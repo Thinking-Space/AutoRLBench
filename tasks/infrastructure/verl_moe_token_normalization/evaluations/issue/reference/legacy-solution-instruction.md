@@ -1,0 +1,2 @@
+Inspect the supplied real RL workspace, configuration and observed training evidence. Identify any training correctness problem, or justify a normal-control conclusion. Work offline; do not change the model, real dataset or parallel layout. Save a specific explanation to `$PTDBENCH_RESULTS/agent_answer.md`.
+Repair any established correctness problem while preserving intended training behavior. Avoid unnecessary changes if the supplied workspace is already correct.

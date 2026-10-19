@@ -17,6 +17,7 @@ Evaluation images and the in-container tooling shared by every task.
 | Name | Base | Used by |
 | --- | --- | --- |
 | `verl` | `verlai/verl:vllm017.latest` | `data/verl_taco_difficulty_mismatch`, `infrastructure/verl_missing_flash_attn_patch` |
+| `verl-moe-token` | Same pinned veRL base, plus the recorded MCore router backport | `infrastructure/verl_moe_token_normalization` |
 | `slime-v0.3.2` | `slimerl/slime:v0.3.2-cu129` | `reward/slime_retool_length_reward_bonus` |
 | `search-r1-verl` | `nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04` + `search-r1-runtime/uv.lock` | `environment/search_r1_zero_query_embedding` |
 | `ppo-critic-vimpo` | `nvidia/cuda:12.8.1-devel-ubuntu24.04` | `configuration/verl_aime25_single_sample_protocol` |
