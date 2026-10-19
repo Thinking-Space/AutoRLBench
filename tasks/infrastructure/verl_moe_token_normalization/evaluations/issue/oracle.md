@@ -37,4 +37,10 @@ an absent full run, or a missing router backport. Training reaches step 150;
 missing W&B steps 149-150 are a logging limitation. Low training reward alone
 does not establish held-out health or causation. Disabling z-loss or per-token
 mode avoids the trigger but does not repair the normalization contract.
-No calibrated repair threshold or agent evaluation is included in this task.
+The paired repaired control reaches held-out accuracy 0.453125 at step 100
+and 0.546875 at step 150, versus 0 at both steps in the defective console.
+The task now includes a single-pair calibrated solution tier; no fresh agent
+evaluation is claimed. The two source workspaces have identical launch,
+configuration and environment files and differ in one training-code file.
+The source README additionally discloses an execution-time W&B finish
+lifecycle difference. Cross-seed variance and step-0 accuracy are unmeasured.

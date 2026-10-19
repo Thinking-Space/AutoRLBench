@@ -3,7 +3,12 @@
 set -euo pipefail
 export W=${AUTORLBENCH_WORKSPACE:-$(cd -- "$(dirname -- "$0")/.." && pwd -P)}
 export VARIANT=$(cat "$W/variant.txt")
-export RUN_DIR=${TRAINING_RUN_DIR:-$W/runs/$VARIANT-$(date +%Y%m%d-%H%M%S)-$$}
+if [[ -n "${AUTORLBENCH_RESULTS:-}" ]]; then
+  default_run_dir="$AUTORLBENCH_RESULTS/experiment_logs"
+else
+  default_run_dir="$W/runs/$VARIANT-$(date +%Y%m%d-%H%M%S)-$$"
+fi
+export RUN_DIR=${TRAINING_RUN_DIR:-$default_run_dir}
 mkdir -p "$RUN_DIR"/{logs,home,tmp,wandb/config,wandb/cache,wandb/data}
 mkdir -p "$W/.cache"/{huggingface,torch,torch_extensions,triton,cuda,vllm}
 export HOME="$RUN_DIR/home" TMPDIR="$RUN_DIR/tmp" XDG_CACHE_HOME="$W/.cache"
