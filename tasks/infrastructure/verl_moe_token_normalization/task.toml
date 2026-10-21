@@ -1,0 +1,26 @@
+title = "MoE auxiliary gradients miss token normalization"
+license = "Apache-2.0"
+created_date = "2026-10-18"
+domain = "infrastructure"
+tags = ["verl", "grpo", "moe", "gradient-normalization"]
+
+[submitter]
+name = "Gaoyuan"
+[model]
+name = "Qwen/Qwen1.5-MoE-A2.7B-Chat"
+[dataset]
+name = "openai/gsm8k main"
+[training]
+framework = "verl"
+algo = "GRPO"
+script = "scripts/train.sh"
+[environment]
+image = "verl-moe-token"
+# Both levels inherit this allocation; solution needs >=56 GiB free per GPU.
+[environment.env]
+WANDB_MODE = "offline"
+NVIDIA_VISIBLE_DEVICES = "0,1"
+CUDA_VISIBLE_DEVICES = "0,1"
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "The per-token loss callback omits the token count, so native MoE z-loss gradients skip final token normalization under CP2; the recorded run reaches 150 steps, without establishing a causal collapse claim."

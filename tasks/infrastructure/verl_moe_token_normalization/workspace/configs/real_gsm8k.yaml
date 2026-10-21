@@ -1,0 +1,170 @@
+defaults:
+  - ppo_trainer
+  - override model_engine: megatron
+  - _self_
+
+hydra:
+  searchpath:
+    - file://${oc.env:W}/src/${oc.env:VARIANT}/verl/trainer/config
+  run:
+    dir: ${oc.env:RUN_DIR}/hydra
+  job:
+    chdir: false
+
+algorithm:
+  adv_estimator: grpo
+  use_kl_in_reward: false
+
+data:
+  train_files: ${oc.env:W}/data/gsm8k/train.parquet
+  val_files: ${oc.env:W}/data/gsm8k/validation64.parquet
+  train_batch_size: 4
+  val_batch_size: 8
+  max_prompt_length: 512
+  max_response_length: 1024
+  filter_overlong_prompts: true
+  filter_overlong_prompts_workers: 1
+  truncation: error
+  dataloader_num_workers: 0
+  shuffle: true
+  seed: 2026
+
+actor_rollout_ref:
+  model:
+    path: ${oc.env:W}/models/Qwen1.5-MoE-A2.7B-Chat
+    use_remove_padding: true
+    enable_gradient_checkpointing: true
+    use_fused_kernels: false
+  actor:
+    ppo_mini_batch_size: 4
+    ppo_micro_batch_size_per_gpu: 1
+    use_dynamic_bsz: true
+    ppo_max_token_len_per_gpu: 1536
+    use_kl_loss: true
+    kl_loss_coef: 0.001
+    kl_loss_type: low_var_kl
+    entropy_coeff: 0.0
+    loss_agg_mode: token-mean
+    optim:
+      lr: 1.0e-6
+      lr_warmup_steps: 1
+      clip_grad: 1.0
+      lr_decay_style: constant
+      use_precision_aware_optimizer: true
+      main_grads_dtype: bf16
+      override_optimizer_config:
+        optimizer_cpu_offload: true
+        optimizer_offload_fraction: 1.0
+        use_torch_optimizer_for_cpu_offload: true
+    megatron:
+      tensor_model_parallel_size: 1
+      context_parallel_size: 2
+      pipeline_model_parallel_size: 1
+      expert_model_parallel_size: 2
+      virtual_pipeline_model_parallel_size: null
+      sequence_parallel: false
+      use_distributed_optimizer: true
+      use_mbridge: true
+      vanilla_mbridge: true
+      use_remove_padding: true
+      param_offload: true
+      optimizer_offload: false
+      grad_offload: true
+      seed: 1234
+      override_transformer_config:
+        calculate_per_token_loss: true
+        moe_z_loss_coeff: 0.001
+        moe_aux_loss_coeff: 0.0
+        moe_shared_expert_gate: true
+        moe_router_load_balancing_type: none
+        recompute_granularity: full
+        recompute_method: uniform
+        recompute_num_layers: 1
+    checkpoint:
+      save_contents: [model, optimizer, extra]
+      mbridge_config:
+        distributed_filesystem: true
+        memory_efficient: true
+  ref:
+    log_prob_micro_batch_size_per_gpu: 1
+    log_prob_use_dynamic_bsz: true
+    log_prob_max_token_len_per_gpu: 1536
+    megatron:
+      tensor_model_parallel_size: 1
+      context_parallel_size: 2
+      pipeline_model_parallel_size: 1
+      expert_model_parallel_size: 2
+      virtual_pipeline_model_parallel_size: null
+      sequence_parallel: false
+      use_mbridge: true
+      vanilla_mbridge: true
+      use_remove_padding: true
+      param_offload: true
+      override_transformer_config:
+        moe_shared_expert_gate: true
+  rollout:
+    name: vllm
+    mode: async
+    load_format: auto
+    tensor_model_parallel_size: 1
+    data_parallel_size: 1
+    expert_parallel_size: 1
+    n: 4
+    seed: 1234
+    temperature: 0.8
+    top_p: 0.95
+    gpu_memory_utilization: 0.55
+    enforce_eager: true
+    enable_chunked_prefill: true
+    enable_prefix_caching: false
+    max_model_len: 1536
+    max_num_batched_tokens: 1536
+    max_num_seqs: 4
+    log_prob_micro_batch_size_per_gpu: 1
+    log_prob_use_dynamic_bsz: true
+    log_prob_max_token_len_per_gpu: 1536
+    calculate_log_probs: true
+    val_kwargs:
+      do_sample: false
+      n: 1
+    agent:
+      num_workers: 1
+    checkpoint_engine:
+      update_weights_bucket_megabytes: 1024
+
+reward:
+  num_workers: 1
+  custom_reward_function:
+    path: null
+    name: compute_score
+  reward_manager:
+    name: naive
+
+trainer:
+  use_v1: false
+  project_name: training-study
+  experiment_name: ${oc.env:VARIANT}-qwen15moe-gsm8k
+  logger: [console, wandb]
+  nnodes: 1
+  n_gpus_per_node: 2
+  total_epochs: 1
+  total_training_steps: 150
+  val_before_train: false
+  log_val_generations: 4
+  test_freq: 4
+  save_freq: 4
+  max_actor_ckpt_to_keep: 1
+  resume_mode: disable
+  default_local_dir: ${oc.env:RUN_DIR}/checkpoints
+  rollout_data_dir: ${oc.env:RUN_DIR}/rollouts
+  validation_data_dir: ${oc.env:RUN_DIR}/validation
+
+ray_kwargs:
+  ray_init:
+    runtime_env:
+      worker_process_setup_hook: runtime_lowmem.install
+    num_cpus: 16
+    num_gpus: 2
+    object_store_memory: 536870912
+    include_dashboard: false
+    _temp_dir: /tmp/ray
