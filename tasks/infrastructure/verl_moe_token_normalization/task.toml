@@ -1,0 +1,34 @@
+title = "MoE auxiliary gradients miss token normalization"
+license = "Apache-2.0"
+created_date = "2026-10-18"
+domain = "infrastructure"
+tags = ["verl", "grpo", "moe", "gradient-normalization"]
+
+[submitter]
+name = "Gaoyuan"
+
+[model]
+name = "Qwen/Qwen1.5-MoE-A2.7B-Chat"
+
+[dataset]
+name = "openai/gsm8k main (7473 train rows, 64 held-out validation rows)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "scripts/train.sh"
+
+[environment]
+image = "verl-moe-token"
+
+# Both levels share the same GPU set; the solution-level rerun needs at least
+# 56 GiB free memory per card. train.sh fixes CP2 / EP2 / TP1, which is exactly
+# two cards.
+[environment.env]
+WANDB_MODE = "offline"
+CUDA_VISIBLE_DEVICES = "0,1"
+NVIDIA_VISIBLE_DEVICES = "0,1"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "MegatronEngineWithLMHead's per-token loss callback returns a two-item (loss, metrics) tuple, so MCore receives no token count and skips final token normalization; under CP2 with moe_z_loss_coeff=0.001 the router z-loss gradients (pre-scaled by num_tokens) are never divided back, actor/grad_norm is ~223 at step 1 against ~3.3 for the repaired callback, and held-out GSM8K accuracy is 0 at steps 100 and 150 against 0.45 / 0.55 for the repaired run."

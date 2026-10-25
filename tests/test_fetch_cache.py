@@ -1,4 +1,4 @@
-"""Cache-hit trust behavior of docker/ptdbench_fetch.py.
+"""Cache-hit trust behavior of docker/autorlbench_fetch.py.
 
 A present cache is trusted by default (no size/sha256 re-check) because
 re-hashing multi-GB weights on every prepare is the dominant cost of a
@@ -15,8 +15,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "ptdbench_fetch.py"
-_spec = importlib.util.spec_from_file_location("ptdbench_fetch", _SCRIPT)
+_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "autorlbench_fetch.py"
+_spec = importlib.util.spec_from_file_location("autorlbench_fetch", _SCRIPT)
 assert _spec and _spec.loader
 fetch = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(fetch)

@@ -1,4 +1,4 @@
-"""task package 的加载和格式校验。"""
+"""Loading and format validation for task packages."""
 
 from .loader import (
     SchemaError,

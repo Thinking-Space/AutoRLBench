@@ -2,7 +2,7 @@
 
 `test.sh` is the single entry point. It does not use `submission.json`, an LLM,
 rules, or rubrics. It strips ANSI escapes and reconstructs `val/em` from
-`$PTDBENCH_RESULTS/experiment_logs`, which is where `run.py --runs-dir` puts
+`$AUTORLBENCH_RESULTS/experiment_logs`, which is where `run.py --runs-dir` puts
 `train.log` and the offline W&B directory.
 
 `val/em` is exact-match accuracy in `[0, 1]` on the 128 held-out HotpotQA

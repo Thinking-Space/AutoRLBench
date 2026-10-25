@@ -165,7 +165,7 @@ def main() -> int:
     #
     # Deliberately NOT checked here: retrieval quality for real queries. That
     # would need the query encoder, and this file is readable by the agent at
-    # /ptdbench/environment -- a gate phrased in terms of query-side scores
+    # /autorlbench/environment -- a gate phrased in terms of query-side scores
     # would be a hint about where to look. The document embeddings are identical
     # on both sides of this task's recorded pair, so document-side invariants
     # are exactly the part that can be asserted without telling the agent

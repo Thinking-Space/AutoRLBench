@@ -17,18 +17,18 @@ from .types import (
 
 
 def harbor_task_name(task_id: str, evaluation_level: str) -> str:
-    """Harbor task 名；同时用于把 trial 结果映射回 AutoRLBench task。"""
+    """Harbor task name; also used to map trial results back to the AutoRLBench task."""
     safe_id = re.sub(r"[^A-Za-z0-9_.-]+", "-", task_id).strip("-.") or "task"
-    return f"ptdbench/{safe_id}-{evaluation_level}"
+    return f"autorlbench/{safe_id}-{evaluation_level}"
 
 
 @dataclass(frozen=True)
 class HarborEvaluationConfig:
-    """AutoRLBench 转换参数；Harbor 自身参数统一放在 harbor_args。
+    """AutoRLBench conversion options; Harbor's own options go in harbor_args.
 
-    Harbor 直接用预构建镜像（task.toml 的 `docker_image`），不再逐任务构建，
-    所以 verifier 固定与 agent 共用同一个容器（shared 模式）。prepare.sh 在
-    `harbor run` 之前由 AutoRLBench 在同一个镜像里跑完，产物以只读挂载交给 Harbor。
+    Harbor uses the prebuilt image (`docker_image` in task.toml) instead of building per task,
+    so the verifier always shares the agent's container (shared mode). AutoRLBench runs prepare.sh
+    in the same image before `harbor run` and hands the outputs to Harbor as a read-only mount.
     """
 
     evaluation_level: str = "solution"
@@ -36,9 +36,9 @@ class HarborEvaluationConfig:
     agent_network: str = "public"
     verifier_network: str = "public"
     temp_dir: Optional[Path] = None
-    # prepare 阶段用的 HF 镜像站；只影响 prepare，agent / verifier 是离线的。
+    # HF mirror for the prepare stage only; the agent and verifier are offline.
     huggingface_mirror: Optional[str] = None
-    # 与 EvaluationConfig 同一套下载缓存，留空落到仓库根的 models/ 和 datasets/。
+    # Same download caches as EvaluationConfig; empty means models/ and datasets/ at the repo root.
     models_dir: Optional[Path] = None
     datasets_dir: Optional[Path] = None
     harbor_command: Sequence[str] = field(default_factory=lambda: ("harbor",))
@@ -82,32 +82,32 @@ class HarborEvaluationConfig:
 
 @dataclass(frozen=True)
 class HarborTaskUnit:
-    """批次中的一个待评测单元：一个 task 的一个 evaluation。"""
+    """One unit to evaluate in a batch: one evaluation of one task."""
 
     package: TaskPackage
     evaluation: EvaluationPaths
     workspace_before_hash: str
-    # prepare 阶段跑完之后宿主机上的两个目录。workspace 是 prepare 写过的那份副本
-    # （权重可能就下在里面），物化时整份放进 environment/，由 Harbor 在容器启动后
-    # 上传到 /workspace；prepared 以只读挂到 /ptdbench/prepared。都为 None 表示还
-    # 没 staging，这时直接用任务自带的 workspace、不挂 prepared。
+    # Two host directories produced by the prepare stage. workspace is the copy prepare wrote to
+    # (weights may have been downloaded into it); it is placed whole into environment/ and Harbor
+    # uploads it to /workspace after the container starts. prepared is mounted read-only at
+    # /autorlbench/prepared. Both None means not staged yet: use the task's own workspace, no prepared mount.
     workspace: Optional[Path] = None
     prepared: Optional[Path] = None
 
     @property
     def harbor_task_name(self) -> str:
-        """写进 task.toml 的 Harbor task 名，也是 trial 的回溯键。"""
+        """Harbor task name written into task.toml; also the key for tracing trials back."""
         return harbor_task_name(self.package.task_id, self.evaluation.level)
 
     @property
     def dir_name(self) -> str:
-        """批次目录下的子目录名；Harbor task 名含 '/'，不能直接做目录。"""
+        """Subdirectory name under the batch directory; Harbor task names contain '/' and cannot be used directly."""
         return self.harbor_task_name.split("/", 1)[1]
 
 
 @dataclass(frozen=True)
 class PreparedHarborTask:
-    """在线生成的一批临时 Harbor task。"""
+    """A batch of temporary Harbor tasks generated on the fly."""
 
     root: Path
     tasks_dir: Path
@@ -126,7 +126,7 @@ class PreparedHarborTask:
 
 @dataclass(frozen=True)
 class HarborRun:
-    """Harbor CLI 的进程结果及其确定的 job 目录。"""
+    """Harbor CLI process result and its resolved job directory."""
 
     command: CommandResult
     job_dir: Path
@@ -134,7 +134,7 @@ class HarborRun:
 
 @dataclass(frozen=True)
 class HarborEvaluationReport:
-    """一个 Harbor job 中所有 trial 的 AutoRLBench 结果。"""
+    """AutoRLBench results for all trials in one Harbor job."""
 
     task_ids: Sequence[str]
     evaluation_level: str

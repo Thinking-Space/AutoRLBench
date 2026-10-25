@@ -6,14 +6,12 @@ import subprocess
 from unittest.mock import patch
 from pathlib import Path
 
-from autorlbench.agents.base import AgentExecutionContext, AgentRunner
-from autorlbench.agents.installed.codex import CodexAgentRunner
 from autorlbench.cli import build_parser
 from autorlbench.core.types import (
     DATASETS_DIR,
     MODELS_DIR,
     PREPARED_DIR,
-    PTDBENCH_ENVIRONMENT_DIR,
+    AUTORLBENCH_ENVIRONMENT_DIR,
     AgentSpec,
     CommandResult,
     EnvironmentPlan,
@@ -21,7 +19,6 @@ from autorlbench.core.types import (
 )
 from autorlbench.evaluation.evaluator import TaskEvaluator
 from autorlbench.runtimes import (
-    CommandSpec,
     EnvironmentArtifact,
     SandboxInstance,
     SandboxRequest,
@@ -55,7 +52,7 @@ class RecordingRuntime(SandboxRuntime):
             "results": "/results",
             "oracle": "/task/oracle",
             "verifier": "/task/verifier",
-            "environment": PTDBENCH_ENVIRONMENT_DIR,
+            "environment": AUTORLBENCH_ENVIRONMENT_DIR,
             "prepared": PREPARED_DIR,
             "models": MODELS_DIR,
             "datasets": DATASETS_DIR,
@@ -76,73 +73,14 @@ class RecordingRuntime(SandboxRuntime):
         self.events.append(f"close:{sandbox.request.stage}")
 
 
-class RecordingAgent(AgentRunner):
-    def __init__(self, setup_returncode: int = 0) -> None:
-        super().__init__(AgentSpec(kind="recording"))
-        self.setup_returncode = setup_returncode
-
-    def setup(self, context, *, runtime, sandbox):
-        runtime.events.append("agent:setup")
-        return result("setup", self.setup_returncode)
-
-    def run(self, context, *, runtime, artifact, sandbox=None):
-        runtime.events.append("agent:run")
-        return result("run")
-
-
 class SandboxLifecycleTests(unittest.TestCase):
-    def context(self, root: Path) -> AgentExecutionContext:
-        for name in ("workspace", "visible", "results"):
-            (root / name).mkdir()
-        return AgentExecutionContext(
-            task_id="task",
-            instruction="do work",
-            metadata={},
-            timeout_s=10,
-            task_root=root,
-            workspace=root / "workspace",
-            visible_task=root / "visible",
-            results=root / "results",
-        )
-
-    def test_setup_and_run_share_one_sandbox(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            runtime = RecordingRuntime()
-            outcome = TaskEvaluator()._run_agent(
-                RecordingAgent(),
-                self.context(Path(temp_dir)),
-                runtime,
-                None,
-            )
-        self.assertEqual(outcome.setup.returncode, 0)
-        self.assertIsNotNone(outcome.execution)
-        self.assertEqual(
-            runtime.events,
-            ["create:agent", "agent:setup", "agent:run", "close:agent"],
-        )
-
-    def test_setup_failure_skips_run_and_closes_sandbox(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            runtime = RecordingRuntime()
-            outcome = TaskEvaluator()._run_agent(
-                RecordingAgent(setup_returncode=1),
-                self.context(Path(temp_dir)),
-                runtime,
-                None,
-            )
-        self.assertIsNone(outcome.execution)
-        self.assertEqual(
-            runtime.events,
-            ["create:agent", "agent:setup", "close:agent"],
-        )
-
     def test_sensitive_docker_env_uses_name_only(self):
         argv, process_env = DockerRuntime._docker_env(
-            {"OPENAI_API_KEY": "secret", "PTDBENCH_STAGE": "agent"}
+            {"OPENAI_API_KEY": "secret", "AUTORLBENCH_STAGE": "agent"}
         )
         self.assertEqual(
             argv,
-            ["-e", "OPENAI_API_KEY", "-e", "PTDBENCH_STAGE=agent"],
+            ["-e", "AUTORLBENCH_STAGE=agent", "-e", "OPENAI_API_KEY"],
         )
         self.assertEqual(process_env["OPENAI_API_KEY"], "secret")
         self.assertNotIn("secret", " ".join(argv))
@@ -162,7 +100,6 @@ class SandboxLifecycleTests(unittest.TestCase):
         self.assertEqual(request.network, "bridge")
         self.assertEqual(EvaluationConfig().verifier_network, "bridge")
         self.assertFalse(hasattr(args, "agent_backend"))
-        self.assertEqual(args.agent_network, "bridge")
         self.assertEqual(args.verifier_network, "bridge")
         judge_args = build_parser().parse_args(
             ["evaluate", "task", "--model", "agent-model", "--judge-model", "judge-model"]
@@ -175,10 +112,6 @@ class SandboxLifecycleTests(unittest.TestCase):
             [
                 "evaluate",
                 "task",
-                "--agent-env",
-                "npm_config_registry=https://registry.npmmirror.com",
-                "--agent-env",
-                "EMPTY_VALUE=",
                 "--verifier-env",
                 "HTTPS_PROXY=http://proxy:7890",
                 "--debian-mirror",
@@ -188,13 +121,6 @@ class SandboxLifecycleTests(unittest.TestCase):
             ]
         )
 
-        self.assertEqual(
-            args.agent_env,
-            [
-                "npm_config_registry=https://registry.npmmirror.com",
-                "EMPTY_VALUE=",
-            ],
-        )
         self.assertEqual(args.verifier_env, ["HTTPS_PROXY=http://proxy:7890"])
         self.assertEqual(args.debian_mirror, "https://mirrors.tuna.tsinghua.edu.cn/")
         self.assertEqual(args.huggingface_mirror, "https://hf-mirror.com/")
@@ -210,7 +136,7 @@ class SandboxLifecycleTests(unittest.TestCase):
             )
         )
         argv, process_env = DockerRuntime._docker_env(env)
-        self.assertEqual(env["PTDBENCH_JUDGE_MODEL"], "judge-model")
+        self.assertEqual(env["AUTORLBENCH_JUDGE_MODEL"], "judge-model")
         self.assertEqual(env["OPENAI_BASE_URL"], "https://api.example.test/v1")
         self.assertIn("-e", argv)
         self.assertNotIn("secret-key", " ".join(argv))
@@ -245,7 +171,7 @@ class SandboxLifecycleTests(unittest.TestCase):
                     {
                         "task_id": "task",
                         "environment": EnvironmentPlan(),
-                        # _environment_mount 读的是 paths.environment。
+                        # _environment_mount reads paths.environment.
                         "paths": type("Paths", (), {"environment": root / "environment"})(),
                     },
                 )(),
@@ -284,7 +210,7 @@ class SandboxLifecycleTests(unittest.TestCase):
             )
 
         self.assertEqual(runtime.request.env["HTTPS_PROXY"], "http://proxy:7890")
-        self.assertEqual(runtime.request.env["PTDBENCH_JUDGE_MODEL"], "gpt-5.5")
+        self.assertEqual(runtime.request.env["AUTORLBENCH_JUDGE_MODEL"], "gpt-5.5")
         self.assertEqual(
             runtime.request.env["OPENAI_BASE_URL"],
             "https://api.example.test/v1",
@@ -326,10 +252,10 @@ class SandboxLifecycleTests(unittest.TestCase):
         )
         with patch.dict(
             "os.environ",
-            {"PTDBENCH_DOCKER_PROXY": "http://host.docker.internal:7890"},
+            {"AUTORLBENCH_DOCKER_PROXY": "http://host.docker.internal:7890"},
             clear=False,
         ):
-            env = DockerRuntime._proxy_env(request, {"PTDBENCH_STAGE": "agent"})
+            env = DockerRuntime._proxy_env(request, {"AUTORLBENCH_STAGE": "agent"})
         self.assertEqual(env["HTTP_PROXY"], "http://host.docker.internal:7890")
         self.assertEqual(env["HTTPS_PROXY"], "http://host.docker.internal:7890")
         self.assertEqual(env["ALL_PROXY"], "http://host.docker.internal:7890")
@@ -344,104 +270,15 @@ class SandboxLifecycleTests(unittest.TestCase):
         )
         with patch.dict(
             "os.environ",
-            {"PTDBENCH_DOCKER_PROXY": "http://host.docker.internal:7890"},
+            {"AUTORLBENCH_DOCKER_PROXY": "http://host.docker.internal:7890"},
             clear=False,
         ):
             verifier_env = DockerRuntime._proxy_env(
-                verifier_request, {"PTDBENCH_STAGE": "verifier"}
+                verifier_request, {"AUTORLBENCH_STAGE": "verifier"}
             )
         self.assertEqual(
             verifier_env["HTTPS_PROXY"], "http://host.docker.internal:7890"
         )
-
-    def test_codex_setup_configures_provider_and_logs_in_via_stdin(self):
-        class SetupRuntime(RecordingRuntime):
-            name = "docker"
-
-            def exec(self, sandbox, spec):
-                self.setup_spec = spec
-                return result("setup")
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            runtime = SetupRuntime()
-            context = self.context(Path(temp_dir))
-            runner = CodexAgentRunner(
-                AgentSpec(
-                    kind="codex",
-                    model="gpt-5.5",
-                    reasoning_effort="medium",
-                    base_url="https://yeysai.com/v1",
-                    api_key="secret-key",
-                )
-            )
-            runner.setup(
-                context,
-                runtime=runtime,
-                sandbox=SandboxInstance("recording", "agent", context.sandbox_request(runtime)),
-            )
-
-        shell = runtime.setup_spec.shell
-        self.assertIn('model_provider = "autorlbench"', shell)
-        self.assertIn('model_reasoning_effort = "medium"', shell)
-        self.assertIn('base_url = "https://yeysai.com/v1"', shell)
-        self.assertIn("codex login --with-api-key", shell)
-        self.assertIn('"$OPENAI_API_KEY" | /usr/local/bin/codex login', shell)
-        self.assertNotIn("secret-key", shell)
-        self.assertEqual(runtime.setup_spec.env["OPENAI_API_KEY"], "secret-key")
-        self.assertEqual(runtime.setup_spec.live_log_name, "agent_setup")
-        self.assertFalse(runtime.setup_spec.live_log_to_stderr)
-        self.assertIn("[setup] downloading nvm", shell)
-        self.assertIn("PTDBENCH_DEBIAN_MIRROR", shell)
-        self.assertIn("PTDBENCH_NVM_INSTALL_URL", shell)
-        self.assertIn("[setup] installing @openai/codex@latest", shell)
-        self.assertIn("[setup] complete", shell)
-
-    def test_codex_setup_merges_agent_env_and_debian_mirror(self):
-        class SetupRuntime(RecordingRuntime):
-            name = "docker"
-
-            def exec(self, sandbox, spec):
-                self.setup_spec = spec
-                return result("setup")
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            runtime = SetupRuntime()
-            context = self.context(Path(temp_dir))
-            context = AgentExecutionContext(
-                **{
-                    **context.__dict__,
-                    "debian_mirror": "https://mirrors.tuna.tsinghua.edu.cn",
-                }
-            )
-            runner = CodexAgentRunner(
-                AgentSpec(
-                    kind="codex",
-                    api_key="secret",
-                    env={
-                        "npm_config_registry": "https://registry.npmmirror.com",
-                        "NVM_NODEJS_ORG_MIRROR": "https://npmmirror.com/mirrors/node",
-                    },
-                )
-            )
-            runner.setup(
-                context,
-                runtime=runtime,
-                sandbox=SandboxInstance("recording", "agent", context.sandbox_request(runtime)),
-            )
-
-        self.assertEqual(
-            runtime.setup_spec.env["npm_config_registry"],
-            "https://registry.npmmirror.com",
-        )
-        self.assertEqual(
-            runtime.setup_spec.env["NVM_NODEJS_ORG_MIRROR"],
-            "https://npmmirror.com/mirrors/node",
-        )
-        self.assertEqual(
-            runtime.setup_spec.env["PTDBENCH_DEBIAN_MIRROR"],
-            "https://mirrors.tuna.tsinghua.edu.cn",
-        )
-        self.assertEqual(runtime.setup_spec.env["OPENAI_API_KEY"], "secret")
 
     def test_docker_stream_process_writes_live_stage_logs(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -472,29 +309,6 @@ class SandboxLifecycleTests(unittest.TestCase):
                 stderr,
             )
 
-    def test_codex_setup_debug_enables_terminal_streaming(self):
-        class SetupRuntime(RecordingRuntime):
-            name = "docker"
-
-            def exec(self, sandbox, spec):
-                self.setup_spec = spec
-                return result("setup")
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            runtime = SetupRuntime()
-            context = self.context(Path(temp_dir))
-            context = AgentExecutionContext(
-                **{**context.__dict__, "log_level": "debug"}
-            )
-            runner = CodexAgentRunner(AgentSpec(kind="codex", api_key="secret"))
-            runner.setup(
-                context,
-                runtime=runtime,
-                sandbox=SandboxInstance("recording", "agent", context.sandbox_request(runtime)),
-            )
-
-        self.assertTrue(runtime.setup_spec.live_log_to_stderr)
-
     def test_run_directory_prefix_is_readable_and_safe(self):
         prefix = TaskEvaluator._run_directory_prefix(
             "swe_slugfix/001: trial",
@@ -502,48 +316,14 @@ class SandboxLifecycleTests(unittest.TestCase):
         )
         self.assertRegex(
             prefix,
-            r"^ptdbench-run-swe_slugfix-001-trial-issue-\d{8}-\d{6}-\d{6}-$",
+            r"^autorlbench-run-swe_slugfix-001-trial-issue-\d{8}-\d{6}-\d{6}-$",
         )
 
     def test_huggingface_mirror_reaches_the_prepare_stage_as_hf_endpoint(self):
-        # 下载发生在 prepare 阶段，镜像源也就只能从这个阶段的环境变量进去。
+        # Downloads happen in the prepare stage, so mirror settings can only enter through that stage's env vars.
         env = TaskEvaluator._prepare_mirror_env(
             EvaluationConfig(huggingface_mirror="https://hf-mirror.com")
         )
         self.assertEqual(env, {"HF_ENDPOINT": "https://hf-mirror.com"})
         self.assertEqual(TaskEvaluator._prepare_mirror_env(EvaluationConfig()), {})
 
-    def test_codex_uses_outer_docker_sandbox(self):
-        runner = CodexAgentRunner(
-            AgentSpec(kind="codex", reasoning_effort="high")
-        )
-        argv = runner._build_argv(
-            "prompt",
-            last_message_path="/results/last-message",
-            externally_sandboxed=True,
-        )
-        self.assertIn("--dangerously-bypass-approvals-and-sandbox", argv)
-        self.assertNotIn("--sandbox", argv)
-        self.assertIn('model_reasoning_effort="high"', argv)
-
-    def test_codex_prompt_allows_instruction_defined_result_deliverables(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            context = self.context(Path(temp_dir))
-            prompt = CodexAgentRunner(AgentSpec(kind="codex"))._build_prompt(context)
-        self.assertIn("deliverables", prompt)
-        self.assertIn("$PTDBENCH_RESULTS", prompt)
-
-    def test_codex_keeps_workspace_sandbox_for_local_runtime(self):
-        runner = CodexAgentRunner(AgentSpec(kind="codex"))
-        argv = runner._build_argv(
-            "prompt",
-            last_message_path="/results/last-message",
-            externally_sandboxed=False,
-        )
-        self.assertIn("--sandbox", argv)
-        self.assertIn("workspace-write", argv)
-        self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", argv)
-
-
-if __name__ == "__main__":
-    unittest.main()

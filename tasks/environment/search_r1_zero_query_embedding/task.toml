@@ -1,0 +1,37 @@
+title = "Zero query vector in retrieval"
+license = "Apache-2.0"
+created_date = "2026-10-16"
+domain = "environment"
+tags = ["verl", "grpo", "hotpotqa", "query_vector"]
+
+[submitter]
+name = "chenyinghao"
+
+[model]
+name = "Qwen2.5-1.5B-Instruct"
+
+[dataset]
+name = "HotpotQA distractor (1024 train / 128 held-out)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run.py"
+
+[environment]
+image = "search-r1-verl"
+
+# Single-GPU task. HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE are set per stage by the
+# harness; declaring them here would also block the prepare stage's downloads.
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0"
+NVIDIA_VISIBLE_DEVICES = "0"
+VLLM_ATTENTION_BACKEND = "XFORMERS"
+WANDB_MODE = "offline"
+WANDB_API_KEY = "autorlbench-offline"
+WANDB_SILENT = "true"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "retriever_query_device_copy"
+failure_reason = "Encoder.encode returns an all-zero query embedding (the zero-filled CPU buffer it returns is never written, because torch.as_tensor(buffer, device=cuda) copies instead of aliasing it), so under METRIC_INNER_PRODUCT every document scores 0.0 and FAISS returns the same arbitrary top-3 for every query on both the rollout and the evaluation path; held-out val/em reaches only 15.6% at the 32-step horizon against 32.8% for the identical recipe with the query embedding copied to the host, and the gap is already open at step 0 (3.1% vs 13.3%)"

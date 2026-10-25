@@ -92,7 +92,7 @@ cause:
 ## Machine grading
 
 Machine grading reads only the new experiment logs under
-`$PTDBENCH_RESULTS/experiment_logs`. The required held-out metric is
+`$AUTORLBENCH_RESULTS/experiment_logs`. The required held-out metric is
 `eval/aime`, read in the math_dapo **score** space `[-1, 1]` — the space the
 frozen trace was logged in (`eval_reward_key: score`) and the space
 `slime_retool` grades the same recipe in. No `--eval-reward-key` is involved;

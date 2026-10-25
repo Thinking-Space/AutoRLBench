@@ -9,7 +9,7 @@ _RUNTIME_REGISTRY: Dict[str, Type[SandboxRuntime]] = {}
 
 
 def register_runtime(name: str) -> Callable[[Type[SandboxRuntime]], Type[SandboxRuntime]]:
-    """注册一个 runtime provider，避免 evaluator 维护平台分支。"""
+    """Register a runtime provider so the evaluator need not branch per platform."""
     def decorator(runtime_cls: Type[SandboxRuntime]) -> Type[SandboxRuntime]:
         _RUNTIME_REGISTRY[name] = runtime_cls
         return runtime_cls
@@ -18,12 +18,12 @@ def register_runtime(name: str) -> Callable[[Type[SandboxRuntime]], Type[Sandbox
 
 
 def create_runtime(name: str) -> SandboxRuntime:
-    """按名称创建 runtime。内置 provider 会在模块导入时完成注册。"""
+    """Create a runtime by name. Built-in providers register themselves on module import."""
     runtime_cls = _RUNTIME_REGISTRY.get(name)
     if runtime_cls is None:
         raise ValueError(f"unsupported runtime backend: {name}")
     return runtime_cls()
 
 
-# 导入内置 provider 以触发装饰器注册。
+# Import built-in providers to trigger decorator registration.
 from . import providers as _providers  # noqa: E402,F401

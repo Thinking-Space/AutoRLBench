@@ -1,0 +1,34 @@
+title = "GRPO uid assigned after rollout repeat"
+license = "Apache-2.0"
+created_date = "2026-10-17"
+domain = "algorithm"
+tags = ["verl", "grpo", "advantage", "uid"]
+
+[submitter]
+name = "benchmark_evaluation"
+
+[model]
+name = "Llama-3.2-1B-Instruct"
+
+[dataset]
+name = "DAPO-Math-17k"
+
+[training]
+framework = "verl"
+algo = "GRPO"
+script = "examples/grpo_trainer/run_llama3_2_1b_instruct_dapo_math_fsdp.sh"
+
+[environment]
+image = "verl"
+
+[environment.env]
+HF_HUB_OFFLINE = "1"
+HF_DATASETS_OFFLINE = "1"
+WANDB_MODE = "disabled"
+PYTHONDONTWRITEBYTECODE = "1"
+CUDA_VISIBLE_DEVICES = "0,1"
+NVIDIA_VISIBLE_DEVICES = "0,1"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "The per-prompt uid assignment in RayPPOTrainer.fit was moved below batch.repeat(repeat_times=rollout.n, interleave=True), so every sampled response receives its own UUID and each GRPO group is a singleton; compute_grpo_outcome_advantage silently substitutes id2mean=0.0 and id2std=1.0 for single-element groups, so the group baseline is never subtracted and GRPO degenerates to baseline-free REINFORCE over the raw 0/1 reward. critic/advantages/min is exactly 0.0 at all 60 steps; critic/advantages/max is the constant fp32 1/(1+1e-6) on every rewarded step; held-out accuracy does not separate the defect from a healthy run at 60-step budget."

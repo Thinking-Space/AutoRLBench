@@ -27,7 +27,7 @@
 # What it does NOT do
 # ---------------------------------------------------------------------------
 # It does not produce a runnable workspace. Each task gets a throwaway
-# /workspace and /ptdbench/prepared that are deleted when it finishes -- only
+# /workspace and /autorlbench/prepared that are deleted when it finishes -- only
 # the two cache roots survive, which is the whole point. A real evaluation
 # still runs prepare.sh; it just finds everything already downloaded.
 #
@@ -42,24 +42,24 @@ usage() {
 usage: docker/warm-cache.sh [--models-dir DIR] [--datasets-dir DIR] [task-id ...]
 
   --models-dir DIR    host directory for model downloads; created if missing
-                      (default <repo>/models, or $PTDBENCH_MODELS_DIR)
+                      (default <repo>/models, or $AUTORLBENCH_MODELS_DIR)
   --datasets-dir DIR  host directory for dataset downloads; created if missing
-                      (default <repo>/datasets, or $PTDBENCH_DATASETS_DIR)
+                      (default <repo>/datasets, or $AUTORLBENCH_DATASETS_DIR)
   [task-id]           warm only these tasks (directory names under tasks/);
                       default is every task that has a prepare.sh
 
-Each task runs in its environment image (the tag in the `# ptdbench-image:` header
+Each task runs in its environment image (the tag in the `# autorlbench-image:` header
 of docker/images/<environment.image>.Dockerfile), built on first use exactly as
 `autorlbench build-images` would.
 
 env:
-  PTDBENCH_HF_ENDPOINT passed through as HF_ENDPOINT, for a mirror
+  AUTORLBENCH_HF_ENDPOINT passed through as HF_ENDPOINT, for a mirror
 EOF
     exit 2
 }
 
-models_dir="${PTDBENCH_MODELS_DIR:-$repo_root/models}"
-datasets_dir="${PTDBENCH_DATASETS_DIR:-$repo_root/datasets}"
+models_dir="${AUTORLBENCH_MODELS_DIR:-$repo_root/models}"
+datasets_dir="${AUTORLBENCH_DATASETS_DIR:-$repo_root/datasets}"
 while [ $# -gt 0 ]; do
     case "$1" in
         --models-dir)   [ $# -ge 2 ] || usage; models_dir="$2"; shift 2 ;;
@@ -82,14 +82,14 @@ from pathlib import Path
 
 sys.path.insert(0, ".")
 from autorlbench.core.types import DEFAULT_PREPARE, EnvironmentImage  # noqa: E402
-from autorlbench.utils.yaml import load_simple_yaml  # noqa: E402
+import tomllib  # noqa: E402
 
 wanted = set(sys.argv[1:])
 found = set()
-for metadata_path in sorted(Path("tasks").rglob("metadata.yaml")):
+for metadata_path in sorted(Path("tasks").rglob("task.toml")):
     if "raw" in metadata_path.relative_to("tasks").parts:
         continue
-    environment = (load_simple_yaml(str(metadata_path)) or {}).get("environment")
+    environment = tomllib.loads(metadata_path.read_text(encoding="utf-8")).get("environment")
     if not isinstance(environment, dict) or not environment.get("image"):
         continue
     task_dir = metadata_path.parent
@@ -103,7 +103,7 @@ for metadata_path in sorted(Path("tasks").rglob("metadata.yaml")):
             raise SystemExit(1)
         continue
     found.add(task_dir.name)
-    # The container sees environment/ mounted at /ptdbench/environment, so what
+    # The container sees environment/ mounted at /autorlbench/environment, so what
     # it needs is the path relative to that directory, not the host path.
     relative = script.relative_to(task_dir / "environment")
     image = EnvironmentImage(str(environment["image"]))
@@ -140,8 +140,8 @@ for entry in "${entries[@]}"; do
         fi
     fi
 
-    # Throwaway per task. prepare.sh writes weights into $PTDBENCH_WORKSPACE and
-    # KEY=VALUE lines into $PTDBENCH_PREPARED/env; neither is what we are here
+    # Throwaway per task. prepare.sh writes weights into $AUTORLBENCH_WORKSPACE and
+    # KEY=VALUE lines into $AUTORLBENCH_PREPARED/env; neither is what we are here
     # for, but both have to exist or the script fails on a missing directory.
     scratch="$(mktemp -d)"
     mkdir -p "$scratch/workspace" "$scratch/prepared"
@@ -152,36 +152,36 @@ for entry in "${entries[@]}"; do
     args=(
         docker run --rm
         -v "$scratch/workspace:/workspace"
-        -v "$scratch/prepared:/ptdbench/prepared"
-        -v "$models_dir:/ptdbench/models"
-        -v "$datasets_dir:/ptdbench/datasets"
-        -v "$repo_root/$task_dir/environment:/ptdbench/environment:ro"
+        -v "$scratch/prepared:/autorlbench/prepared"
+        -v "$models_dir:/autorlbench/models"
+        -v "$datasets_dir:/autorlbench/datasets"
+        -v "$repo_root/$task_dir/environment:/autorlbench/environment:ro"
         -w /workspace
-        -e PTDBENCH_STAGE=prepare
-        -e "PTDBENCH_TASK_ID=$task_id"
-        -e PTDBENCH_EVALUATION_LEVEL=solution
-        -e PTDBENCH_WORKSPACE=/workspace
-        -e PTDBENCH_ENVIRONMENT=/ptdbench/environment
-        -e PTDBENCH_PREPARED=/ptdbench/prepared
-        -e PTDBENCH_MODELS=/ptdbench/models
-        -e PTDBENCH_DATASETS=/ptdbench/datasets
+        -e AUTORLBENCH_STAGE=prepare
+        -e "AUTORLBENCH_TASK_ID=$task_id"
+        -e AUTORLBENCH_EVALUATION_LEVEL=solution
+        -e AUTORLBENCH_WORKSPACE=/workspace
+        -e AUTORLBENCH_ENVIRONMENT=/autorlbench/environment
+        -e AUTORLBENCH_PREPARED=/autorlbench/prepared
+        -e AUTORLBENCH_MODELS=/autorlbench/models
+        -e AUTORLBENCH_DATASETS=/autorlbench/datasets
         -e WANDB_MODE=offline
         -e WANDB_SILENT=true
     )
-    [ -n "${PTDBENCH_HF_ENDPOINT:-}" ] && args+=(-e "HF_ENDPOINT=$PTDBENCH_HF_ENDPOINT")
+    [ -n "${AUTORLBENCH_HF_ENDPOINT:-}" ] && args+=(-e "HF_ENDPOINT=$AUTORLBENCH_HF_ENDPOINT")
     # GPUs stay opt-in here, unlike the real prepare stage, which reads the task
     # card's NVIDIA_VISIBLE_DEVICES. Warming is about the download cache, and a
     # prepare.sh that needs a GPU for a format conversion is expected to skip
     # that step when it cannot find one -- so this script keeps working on a
     # machine with no GPU at all, which is where caches usually get warmed.
-    # Set PTDBENCH_DOCKER_GPUS (same spelling as the runtime honours) to also
+    # Set AUTORLBENCH_DOCKER_GPUS (same spelling as the runtime honours) to also
     # warm whatever the conversion produces.
-    if [ -n "${PTDBENCH_DOCKER_GPUS:-}" ]; then
-        args+=(--gpus "$PTDBENCH_DOCKER_GPUS" "--shm-size=${PTDBENCH_DOCKER_SHM_SIZE:-16g}")
+    if [ -n "${AUTORLBENCH_DOCKER_GPUS:-}" ]; then
+        args+=(--gpus "$AUTORLBENCH_DOCKER_GPUS" "--shm-size=${AUTORLBENCH_DOCKER_SHM_SIZE:-16g}")
     fi
     # No offline switches and no --network flag: this is the one stage that is
     # supposed to reach the network, and reaching it is the entire job here.
-    args+=(--entrypoint sh "$image_tag" -lc "bash /ptdbench/environment/$script")
+    args+=(--entrypoint sh "$image_tag" -lc "bash /autorlbench/environment/$script")
 
     if "${args[@]}"; then
         echo "--- $task_id ok"

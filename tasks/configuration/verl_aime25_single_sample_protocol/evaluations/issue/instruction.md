@@ -19,7 +19,7 @@ snapshot. The benchmark, model, and generation settings are fixed.
 Write one concise UTF-8 diagnosis to:
 
 ```text
-$PTDBENCH_RESULTS/agent_answer.md
+$AUTORLBENCH_RESULTS/agent_answer.md
 ```
 
 State the verdict, identify the concrete root cause, and explain the causal

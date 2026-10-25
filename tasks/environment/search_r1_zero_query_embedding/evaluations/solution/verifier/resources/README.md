@@ -1,6 +1,6 @@
 `test.sh` is the single entry point. It does not use `submission.json`, an LLM,
 rules, or rubrics. It strips ANSI escapes and reconstructs `val/em` from
-`$PTDBENCH_RESULTS/experiment_logs`.
+`$AUTORLBENCH_RESULTS/experiment_logs`.
 
 - `metric_key`: `val/em`, exact-match accuracy on the 128 held-out HotpotQA
   questions, in `[0, 1]`. The trainer prints it on its own step lines
@@ -43,3 +43,7 @@ A second pair at this budget is the follow-up that would let the bar be
 tightened, widened, or moved. Until then, treat a result between roughly 0.16
 and 0.33 as inside the unmeasured band and read the run's logs before trusting
 the verdict.
+
+## System rerun (`run_spec.json`)
+
+The solution protocol is debug-then-report: the agent fixes the workspace, submits `/workspace/report.md`, and does **not** launch training. This directory's `run_spec.json` drives the harness rerun stage — the command, environment (with `$AUTORLBENCH_*` references expanded per backend), timeout, and log roots — executed in the agent's workspace before this verifier runs. The harness deletes the declared log roots (`experiment_logs`) before the rerun, so grading only ever sees this fresh run's logs.

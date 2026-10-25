@@ -22,11 +22,11 @@ class EvaluationPaths:
 
 @dataclass(frozen=True)
 class TaskPaths:
-    """一个 task package 解析后的文件系统布局。"""
+    """Filesystem layout of a parsed task package."""
 
     root: Path
     readme_md: Optional[Path]
-    metadata_yaml: Path
+    task_toml: Path
     workspace: Path
     environment: Path
     evaluations: Dict[str, EvaluationPaths]
@@ -34,7 +34,7 @@ class TaskPaths:
 
 @dataclass(frozen=True)
 class ValidationIssue:
-    """validator 产出的一条目录或 schema 问题。"""
+    """One directory or schema issue reported by the validator."""
 
     severity: str
     path: str
@@ -43,7 +43,7 @@ class ValidationIssue:
 
 @dataclass
 class ValidationReport:
-    """汇总所有校验问题，方便贡献者一次性修复。"""
+    """Collects all validation issues so contributors can fix them in one pass."""
 
     issues: List[ValidationIssue] = field(default_factory=list)
 
@@ -66,7 +66,7 @@ class ValidationReport:
 
 @dataclass(frozen=True)
 class TaskPackage:
-    """加载后的 task：路径、metadata 和校验报告。"""
+    """A loaded task: paths, metadata, and validation report."""
 
     paths: TaskPaths
     metadata: Dict[str, Any]
@@ -84,7 +84,7 @@ class TaskPackage:
 
 @dataclass(frozen=True)
 class AgentSpec:
-    """统一后的 agent 配置。"""
+    """Normalized agent configuration."""
 
     kind: str = "codex"
     command: Optional[str] = None
@@ -118,7 +118,7 @@ class AgentSpec:
 
 @dataclass(frozen=True)
 class CommandResult:
-    """一次命令执行的统一结果，agent 和 verifier 共用。"""
+    """Unified result of one command execution, shared by agent and verifier."""
 
     argv: List[str]
     returncode: int
@@ -142,7 +142,7 @@ class CommandResult:
 
 @dataclass(frozen=True)
 class StageArtifact:
-    """给后续评测阶段预留的 artifact 记录结构。"""
+    """Artifact record structure reserved for later evaluation stages."""
 
     name: str
     path: Path
@@ -150,54 +150,56 @@ class StageArtifact:
     extra: Dict[str, Any] = field(default_factory=dict)
 
 
-# 容器里三个阶段共享的目录。prepare 阶段可写 prepared，agent / verifier 阶段只读。
-# 与 docker/ptdbench-activate.sh 和 docker/ptdbench_fetch.py 的默认值必须一致。
-PREPARED_DIR = "/ptdbench/prepared"
-# 下载缓存，按资产种类分两个根：宿主机上就是仓库根的 models/ 和 datasets/。
-# 分开不是为了好看——一个显式的、跟仓库并排的目录漏挂时一眼看得出来，而藏在
-# work_dir 底下的单个 cache 漏挂了只会安静地把几个 G 留在容器可写层。
-# prepare 阶段可写，agent / verifier 只读。
-MODELS_DIR = "/ptdbench/models"
-DATASETS_DIR = "/ptdbench/datasets"
-# 任务的 environment/ 目录挂进来的位置。三个阶段都只读——prepare.sh 是环境说明，
-# 不是答案，但也没有哪个阶段有理由改仓库里的任务定义。
-PTDBENCH_ENVIRONMENT_DIR = "/ptdbench/environment"
-# 仓库 docker/ 目录（见 DOCKER_DIR）在 prepare 容器里挂进来的位置。只读、仅 prepare 阶段。
-# prepare 跑 prepare.sh 前先 `bash $TOOLING_DIR/install-ptdbench-tooling.sh`，把 fetch/
-# dataset 工具按仓库当前版本装进 /usr/local，避免用到烤进镜像的旧副本。
-TOOLING_DIR = "/ptdbench/tooling"
-# 这个安装脚本在仓库 docker/ 里，挂进来后的容器路径。
-TOOLING_INSTALLER = f"{TOOLING_DIR}/install-ptdbench-tooling.sh"
+# Directory shared by all three stages in the container. Writable in prepare, read-only for agent / verifier.
+# Must match the defaults in docker/autorlbench-activate.sh and docker/autorlbench_fetch.py.
+PREPARED_DIR = "/autorlbench/prepared"
+# Download caches, split into two roots by asset kind: on the host, models/ and datasets/ at the repo root.
+# The split is not cosmetic: an explicit directory next to the repo is obviously missing when unmounted,
+# while a single cache hidden under work_dir would silently leave gigabytes in the container's writable layer.
+# Writable in prepare, read-only for agent / verifier.
+MODELS_DIR = "/autorlbench/models"
+DATASETS_DIR = "/autorlbench/datasets"
+# Where the task's environment/ directory is mounted. Read-only in all three stages: prepare.sh describes
+# the environment, not the answer, but no stage has a reason to modify the task definition in the repo.
+AUTORLBENCH_ENVIRONMENT_DIR = "/autorlbench/environment"
+# Where the repo's docker/ directory (see DOCKER_DIR) is mounted in the prepare container. Read-only, prepare only.
+# Before prepare.sh, prepare runs `bash $TOOLING_DIR/install-autorlbench-tooling.sh` to install the fetch/
+# dataset tools from the current repo into /usr/local, avoiding stale copies baked into the image.
+TOOLING_DIR = "/autorlbench/tooling"
+# Container path of that install script from the repo's docker/ once mounted.
+TOOLING_INSTALLER = f"{TOOLING_DIR}/install-autorlbench-tooling.sh"
 
-# task package 里的约定文件名。写成常量是因为 loader 和 evaluator 都要用，而
-# "默认值散落多处"正是 schema 漂移的起点。
+# Conventional file names in a task package. They are constants because both loader and evaluator use them,
+# and "defaults scattered in several places" is exactly where schema drift starts.
+# Task card file name at the task root; only directories containing it count as tasks.
+TASK_FILE = "task.toml"
 DEFAULT_PREPARE = "environment/prepare.sh"
 
-# 有哪些环境，唯一事实来源是 docker/images/ 下的 <name>.Dockerfile——镜像就是照它
-# 构建的。不在这里再抄一份常量：抄一份就会漂，而漂的结果是任务指定了一个没有
-# Dockerfile 的环境，直到评测跑起来才发现。
+# The single source of truth for available environments is <name>.Dockerfile under docker/images/; the image
+# is built from it. No copy of the list lives here: a copy drifts, and drift means a task names an
+# environment with no Dockerfile, which goes unnoticed until evaluation runs.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DOCKER_DIR = _REPO_ROOT / "docker"
 IMAGES_DIR = DOCKER_DIR / "images"
 IMAGE_DOCKERFILE_SUFFIX = ".Dockerfile"
-# 镜像 tag 写在 Dockerfile 头部的 `# ptdbench-image: <tag>` 一行里，例如
-# ptdbench/verl:vllm0.17-torch2.10-cu129。tag 描述的是栈（框架、推理引擎、CUDA
-# 版本），多个任务共用；不从内容派生 hash。升级栈就改 tag，只改工具脚本则保持
-# tag 不变、显式跑 `autorlbench build-images --rebuild`。
-IMAGE_TAG_HEADER = "# ptdbench-image:"
+# The image tag is declared on a `# autorlbench-image: <tag>` line in the Dockerfile header, e.g.
+# autorlbench/verl:vllm0.17-torch2.10-cu129. The tag describes the stack (framework, inference engine, CUDA
+# version) and is shared by many tasks; it is not a content hash. Upgrading the stack changes the tag; changing
+# only tooling scripts keeps the tag and requires an explicit `autorlbench build-images --rebuild`.
+IMAGE_TAG_HEADER = "# autorlbench-image:"
 
-# 下载缓存在宿主机上的默认位置。跟仓库并排而不是藏在 run 目录里，是因为 run 目录
-# 跑完就删，而这两个目录的全部意义就是活得比 run 长——下一个 run、下一个任务都要
-# 命中它们。默认值放在这里而不是各入口各写一份，cli 和 harbor 才不会漂。
+# Default host location for download caches. They sit next to the repo rather than inside the run directory
+# because run directories are deleted afterwards, and the whole point of these is to outlive a run so the
+# next run and next task hit them. Defining the default here, not per entry point, keeps cli and harbor in sync.
 DEFAULT_MODELS_DIR = _REPO_ROOT / "models"
 DEFAULT_DATASETS_DIR = _REPO_ROOT / "datasets"
 
 
 def known_images() -> frozenset:
-    """docker/images/ 下有 Dockerfile 的环境名；拿不到目录时返回空集合。
+    """Environment names that have a Dockerfile under docker/images/; empty set if the directory is unavailable.
 
-    空集合表示"无法判断"，不是"一个都没有"。装成 wheel 之后 `docker/` 不一定跟着
-    走，那时候校验环境名这件事只能推迟到构建镜像那一步。
+    An empty set means "cannot tell", not "none exist". Once installed as a wheel, `docker/` may not come
+    along, so validating environment names has to wait until the image build.
     """
     if not IMAGES_DIR.is_dir():
         return frozenset()
@@ -212,21 +214,21 @@ def known_images() -> frozenset:
 
 @dataclass(frozen=True)
 class EnvironmentImage:
-    """一个环境对应的镜像：docker/images/<name>.Dockerfile，tag 由其头部声明。
+    """The image for an environment: docker/images/<name>.Dockerfile, tag declared in its header.
 
-    构建上下文是整个 docker/ 目录，因为每个镜像都要 COPY 同一组工具脚本
-    （ptdbench-activate.sh、ptdbench_fetch.py 等），见 docker/.dockerignore。
-    docker 评测、build-images 和 Harbor 的 `docker_image` 都用同一个 tag。
+    The build context is the whole docker/ directory, since every image COPYs the same tooling scripts
+    (autorlbench-activate.sh, autorlbench_fetch.py, etc.); see docker/.dockerignore.
+    Docker evaluation, build-images, and Harbor's `docker_image` all use the same tag.
     """
 
     name: str
 
     @property
     def tag(self) -> str:
-        """Dockerfile 头部 `# ptdbench-image: <tag>` 声明的 tag。
+        """The tag declared by `# autorlbench-image: <tag>` in the Dockerfile header.
 
-        找不到就报错而不是回退到某个默认值：回退会让两个环境悄悄共用一个 tag，
-        后构建的那个覆盖先构建的。
+        Raise if missing instead of falling back to a default: a fallback would let two environments silently
+        share one tag, with the later build overwriting the earlier one.
         """
         try:
             text = self.dockerfile.read_text(encoding="utf-8")
@@ -254,11 +256,11 @@ class EnvironmentImage:
 
 @dataclass(frozen=True)
 class EnvironmentPlan:
-    """任务的 `environment` 段解析结果。
+    """Parsed `environment` section of a task.
 
-    `image` 是环境名，对应 docker/images/<image>.Dockerfile，多个任务共用同一个镜像。
-    `prepare` 是跑训练前要准备的东西（下模型、下数据集、写环境变量），默认
-    environment/prepare.sh。`env` 是任务自己要导出的变量。
+    `image` is the environment name, mapping to docker/images/<image>.Dockerfile; many tasks share one image.
+    `prepare` sets up what training needs (download models and datasets, write env vars); defaults to
+    environment/prepare.sh. `env` holds variables the task exports itself.
     """
 
     image: Optional[str] = None
@@ -278,17 +280,17 @@ class EnvironmentPlan:
             if not key or not isinstance(key, str):
                 raise ValueError("environment.env keys must be non-empty strings")
             if not isinstance(value, str):
-                # YAML 里 `CUDA_VISIBLE_DEVICES: 0,1` 会被读成字符串，但 `: 0` 是 int。
-                # 悄悄 str() 的话，0 和 "0" 的区别就再也看不见了。
+                # In YAML `CUDA_VISIBLE_DEVICES: 0,1` reads as a string, but `: 0` is an int.
+                # Silently calling str() would hide the difference between 0 and "0" for good.
                 raise ValueError(
                     f"environment.env[{key}] must be a string; quote it in YAML"
                 )
-        # PTDBENCH_* 是 harness 自己的通道（stage / task_id / 挂载路径等）。
-        # 让任务覆盖它们，等于让任务改写评测框架对自己的判断。
-        reserved = sorted(key for key in self.env if key.startswith("PTDBENCH_"))
+        # AUTORLBENCH_* are the harness's own channels (stage / task_id / mount paths, etc.).
+        # Letting a task override them lets it rewrite the framework's judgment of itself.
+        reserved = sorted(key for key in self.env if key.startswith("AUTORLBENCH_"))
         if reserved:
             raise ValueError(
-                "environment.env must not set PTDBENCH_* variables: "
+                "environment.env must not set AUTORLBENCH_* variables: "
                 + ", ".join(reserved)
             )
 
@@ -299,10 +301,9 @@ class EnvironmentPlan:
 
 @dataclass(frozen=True)
 class EvaluationConfig:
-    """调用方运行时配置，与 task package 自身数据分开。"""
+    """Caller runtime configuration, kept separate from the task package's own data."""
 
     agent: Optional[AgentSpec] = None
-    agent_cmd: Optional[str] = None
     verifier_cmd: Optional[str] = None
     backend: str = "docker"
     verifier_network: str = "bridge"
@@ -314,9 +315,9 @@ class EvaluationConfig:
     debian_mirror: Optional[str] = None
     huggingface_mirror: Optional[str] = None
     verifier_env: Mapping[str, str] = field(default_factory=dict)
-    # 宿主机上的共享下载缓存，分别挂到容器的 /ptdbench/models 和 /ptdbench/datasets。
-    # prepare.sh 下的模型和数据集都落在这里，所以第二个任务要同一个模型时不会再下
-    # 一遍，重建镜像也不会。留空则用仓库根的 models/ 和 datasets/。
+    # Shared host download caches, mounted at /autorlbench/models and /autorlbench/datasets in the container.
+    # Models and datasets fetched by prepare.sh land here, so a second task needing the same model does not
+    # download it again, nor does an image rebuild. Empty means models/ and datasets/ at the repo root.
     models_dir: Optional[Path] = None
     datasets_dir: Optional[Path] = None
 
@@ -330,8 +331,8 @@ class EvaluationConfig:
                 _normalize_plain_url(self.huggingface_mirror),
             )
         object.__setattr__(self, "verifier_env", _normalize_env(self.verifier_env))
-        # 两个缓存根总是有值：调用方没给就落到仓库根。下游因此不必各自再写一遍
-        # "没给怎么办"，挂载表也就没有"这次没有缓存"这种分支。
+        # Both cache roots always have a value: if the caller gives none, they fall back to the repo root. Downstream
+        # code never handles "not given", and the mount table has no "no cache this time" branch.
         for name, fallback in (
             ("models_dir", DEFAULT_MODELS_DIR),
             ("datasets_dir", DEFAULT_DATASETS_DIR),
@@ -343,7 +344,7 @@ class EvaluationConfig:
 
 @dataclass(frozen=True)
 class EvaluationResult:
-    """AutoRLBench 输出的最终评测摘要。"""
+    """Final evaluation summary produced by AutoRLBench."""
 
     task_id: str
     evaluation_level: str
@@ -358,6 +359,10 @@ class EvaluationResult:
     workspace_before_hash: str
     workspace_after_hash: str
     metadata: Dict[str, Any]
+    # The solution level's system rerun: the pass the harness runs after the agent submits its
+    # report and before grading. None for the issue level, and for solution tasks with no
+    # run_spec.json. Defaulted so the field can sit last without reordering the rest.
+    rerun: Optional[CommandResult] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -370,6 +375,7 @@ class EvaluationResult:
             "agent_spec": None if self.agent_spec is None else self.agent_spec.to_dict(),
             "agent_setup": None if self.agent_setup is None else self.agent_setup.to_dict(),
             "agent": None if self.agent is None else self.agent.to_dict(),
+            "rerun": None if self.rerun is None else self.rerun.to_dict(),
             "verifier": None if self.verifier is None else self.verifier.to_dict(),
             "workspace_before_hash": self.workspace_before_hash,
             "workspace_after_hash": self.workspace_after_hash,

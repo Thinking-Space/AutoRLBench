@@ -272,7 +272,7 @@ def main() -> int:
     parser.add_argument(
         "--results",
         type=Path,
-        default=Path(os.environ.get("PTDBENCH_RESULTS", "/results")),
+        default=Path(os.environ.get("AUTORLBENCH_RESULTS", "/results")),
     )
     args = parser.parse_args()
     results = args.results.expanduser().resolve()

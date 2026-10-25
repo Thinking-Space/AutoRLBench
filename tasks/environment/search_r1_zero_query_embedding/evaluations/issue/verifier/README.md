@@ -1,6 +1,6 @@
 # Issue verifier
 
-`test.sh` grades `$PTDBENCH_RESULTS/agent_answer.md` against hidden `oracle.md`
+`test.sh` grades `$AUTORLBENCH_RESULTS/agent_answer.md` against hidden `oracle.md`
 with an LLM judge. It does not read `submission.json`.
 
 The judge scores verdict, root-cause, and evidence agreement (weights
@@ -24,4 +24,4 @@ Two misreadings the oracle calls out explicitly, because this task invites them:
 `gold.yaml` is retained as a reviewer-facing reference. Machine grading reads
 `oracle.md`, not `gold.yaml`.
 
-Requires `PTDBENCH_JUDGE_MODEL`, `OPENAI_BASE_URL`, and `OPENAI_API_KEY`.
+Requires `AUTORLBENCH_JUDGE_MODEL`, `OPENAI_BASE_URL`, and `OPENAI_API_KEY`.

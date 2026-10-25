@@ -17,11 +17,35 @@ Concretely, update the workspace evaluation configuration
 `expected_generations: 960`.
 
 Do not modify the preserved original evaluation evidence under
-`workspace/ptdbench_case/original_eval/`. Do not modify any evaluation, oracle,
-or verifier file. Do not use the network.
+`workspace/autorlbench_case/original_eval/`. Do not modify any evaluation,
+oracle, or verifier file. Do not use the network.
 
-> **Note (this task's solution grading differs from the other `ppo_critic`
-> tasks).** This is an evaluation-protocol repair, not a training run, so there
-> is no metric-reconstruction grader. The verifier deterministically checks the
-> repaired protocol and that the preserved evidence is unchanged. See the
-> maintainer `readme.md`, "Evaluation design".
+## Your job
+
+This task is a protocol repair, not a training run — there is nothing to
+launch. **Do not start any evaluation or training run**; cheap, non-training
+checks are fine.
+
+When you are done, submit a report at `/workspace/report.md`. It must
+summarize:
+
+1. **Root cause** — why the single-run protocol was unreliable.
+2. **Changes** — every file you changed and what you changed in it.
+3. **Expected effect** — how the repaired protocol addresses the
+   unreliability.
+
+A missing or empty `/workspace/report.md` scores 0.
+
+## What the system will run
+
+After you submit the report, the system re-runs the experiment in your
+repaired workspace as a foreground process:
+
+```bash
+python3 run_eval.py --protocol-only > "$AUTORLBENCH_RESULTS/solution_protocol.json"
+```
+
+from `/workspace`. This is a CPU-only stdlib call (a few seconds). A
+task-specific verifier then reads the JSON it produced and checks the
+protocol fields deterministically; it also verifies that the preserved
+evidence under `autorlbench_case/original_eval/` is unchanged.

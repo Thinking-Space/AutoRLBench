@@ -14,7 +14,7 @@ from ..factory import register_runtime
 
 @register_runtime("local")
 class LocalRuntime(SandboxRuntime):
-    """本机运行时，仅用于开发和 smoke test，不提供安全隔离。"""
+    """Local runtime for development and smoke tests only; provides no security isolation."""
 
     name = "local"
 
@@ -25,7 +25,7 @@ class LocalRuntime(SandboxRuntime):
     def ensure_environment(
         self, image: EnvironmentImage, *, rebuild: bool = False
     ) -> EnvironmentArtifact:
-        # local 模式不构建镜像，直接用本机环境；environment 仍由 task validator 检查。
+        # Local mode builds no image and uses the host environment; the task validator still checks environment.
         return EnvironmentArtifact(backend=self.name)
 
     def path(self, request: SandboxRequest, name: str) -> str:
@@ -38,8 +38,8 @@ class LocalRuntime(SandboxRuntime):
             "results": request.host_results,
             "oracle": oracle,
             "verifier": verifier,
-            # 本机模式没有挂载，逻辑路径就是宿主机路径。三个可选目录只有在调用方
-            # 真的给了的时候才存在——缺了要报 unknown path，而不是返回一个 None。
+            # Local mode has no mounts, so logical paths are host paths. The three optional directories exist only
+            # when the caller actually provided them; a missing one must raise unknown path, not return None.
             "environment": request.host_environment,
             "prepared": request.host_prepared,
             "models": request.host_models,

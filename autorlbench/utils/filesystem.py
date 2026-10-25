@@ -8,7 +8,7 @@ from typing import Iterable, Iterator, Optional, Sequence
 
 
 def pick_existing(root: Path, candidates: Sequence[str]) -> Optional[Path]:
-    """从候选文件名中返回第一个存在的文件。"""
+    """Return the first existing file among the candidate names."""
     for relative_path in candidates:
         path = root / relative_path
         if path.exists():
@@ -17,16 +17,16 @@ def pick_existing(root: Path, candidates: Sequence[str]) -> Optional[Path]:
 
 
 def ensure_dir(path: Path) -> Path:
-    """创建目录并返回原路径，方便在表达式中使用。"""
+    """Create the directory and return the path, for use inside expressions."""
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def copy_tree(src: Path, dst: Path, ignore: Optional[Iterable[str]] = None) -> Path:
-    """复制目录树；如果目标存在，先清理目标以保证结果确定。
+    """Copy a directory tree; if the destination exists, clear it first so the result is deterministic.
 
-    以 symlinks=True 复制，保留符号链接原样（包括悬空链接），与
-    HarborTaskMaterializer._link_tree 的行为一致。
+    Copies with symlinks=True, preserving symlinks as-is (including dangling ones), matching
+    HarborTaskMaterializer._link_tree.
     """
     if dst.exists():
         shutil.rmtree(dst)
@@ -35,7 +35,7 @@ def copy_tree(src: Path, dst: Path, ignore: Optional[Iterable[str]] = None) -> P
 
 
 def iter_files(root: Path, ignore_dirs: Optional[Iterable[str]] = None) -> Iterator[Path]:
-    """遍历目录中的文件，可选跳过生成目录。"""
+    """Iterate over files in a directory, optionally skipping generated directories."""
     ignored = set(ignore_dirs or [])
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [name for name in dirnames if name not in ignored]
@@ -44,7 +44,7 @@ def iter_files(root: Path, ignore_dirs: Optional[Iterable[str]] = None) -> Itera
 
 
 def tree_digest(root: Path, ignore_dirs: Optional[Iterable[str]] = None) -> str:
-    """同时哈希相对路径和文件内容，用于变更检测与缓存键。"""
+    """Hash relative paths together with file contents, for change detection and cache keys."""
     digest = hashlib.sha256()
     for path in sorted(iter_files(root, ignore_dirs=ignore_dirs)):
         relative_path = path.resolve().relative_to(root.resolve())
@@ -60,7 +60,7 @@ def tree_digest(root: Path, ignore_dirs: Optional[Iterable[str]] = None) -> str:
 
 
 def write_text(path: Path, text: str) -> Path:
-    """写入 UTF-8 文本，并自动创建父目录。"""
+    """Write UTF-8 text, creating parent directories as needed."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as file:
         file.write(text)

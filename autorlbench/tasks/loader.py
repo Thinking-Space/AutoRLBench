@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..core.types import (
     DEFAULT_PREPARE,
+    TASK_FILE,
     EnvironmentPlan,
     EvaluationPaths,
     TaskPackage,
@@ -12,42 +14,37 @@ from ..core.types import (
     ValidationReport,
 )
 from ..utils.filesystem import pick_existing
-from ..utils.yaml import SimpleYamlError, load_simple_yaml
 from .validator import validate_task_paths, validate_metadata
 
 
 class SchemaError(ValueError):
-    """task package 无法加载或不满足基本结构。"""
+    """The task package cannot be loaded or lacks the basic structure."""
 
 
 def load_metadata(path: Path) -> Dict[str, Any]:
-    """读取 metadata.yaml，并确保顶层是 mapping。"""
+    """Read task.toml. A TOML top level is always a table, so no type check is needed."""
     if not path.exists():
-        raise SchemaError(f"missing metadata file: {path}")
+        raise SchemaError(f"missing task file: {path}")
     try:
-        data = load_simple_yaml(str(path))
-    except SimpleYamlError as exc:
+        with path.open("rb") as file:
+            return tomllib.load(file)
+    except tomllib.TOMLDecodeError as exc:
         raise SchemaError(f"failed to parse {path}: {exc}") from exc
-    if data is None:
-        return {}
-    if not isinstance(data, dict):
-        raise SchemaError(f"{path} must contain a mapping at the top level")
-    return data
 
 
 def load_task_paths(root: Path) -> TaskPaths:
-    """把 task 根目录解析成固定的路径对象。"""
+    """Resolve the task root into a fixed set of paths."""
     root = root.resolve()
-    readme_md = pick_existing(root, ["readme.md", "README.md"])
-    metadata_yaml = pick_existing(root, ["metadata.yaml", "metadata.yml"])
-    if metadata_yaml is None:
-        raise SchemaError(f"missing metadata.yaml under {root}")
+    readme_md = pick_existing(root, ["README.md"])
+    task_toml = root / TASK_FILE
+    if not task_toml.is_file():
+        raise SchemaError(f"missing {TASK_FILE} under {root}")
 
     evaluations = _load_evaluation_paths(root)
     return TaskPaths(
         root=root,
         readme_md=readme_md,
-        metadata_yaml=metadata_yaml,
+        task_toml=task_toml,
         workspace=root / "workspace",
         environment=root / "environment",
         evaluations=evaluations,
@@ -99,11 +96,11 @@ def _evaluation_paths(level: str, root: Path, oracle: Path) -> EvaluationPaths:
 
 
 def load_environment_plan(paths: TaskPaths, metadata: Dict[str, Any]) -> EnvironmentPlan:
-    """把 metadata 的 environment 段解析成 EnvironmentPlan。
+    """Parse the environment section of metadata into an EnvironmentPlan.
 
-    只有一个必填项：`image`，即 docker/images/ 下的环境名。`prepare` 有约定路径，
-    任务不写也能找到——几乎每个任务都有 prepare.sh，逼着每个 metadata.yaml 再抄一遍
-    路径只会增加抄错的机会。写了就以写的为准。
+    Only `image` is required: the environment name under docker/images/. `prepare` has a
+    conventional path and is found even if the task omits it. Nearly every task has a
+    prepare.sh, and forcing each task.toml to repeat the path only invites typos. An explicit value wins.
     """
     environment = metadata.get("environment")
     if not isinstance(environment, dict):
@@ -111,9 +108,9 @@ def load_environment_plan(paths: TaskPaths, metadata: Dict[str, Any]) -> Environ
 
     image = _optional_str(environment.get("image"))
 
-    # 约定路径只在文件真的存在时才落到 plan 上。让 plan 里带一个不存在的路径，
-    # 等于把"任务没写 prepare.sh"和"任务写了但路径错了"混成同一种状态，而后者
-    # 是必须报错的。validator 负责区分这两件事。
+    # The conventional path lands on the plan only if the file actually exists. A plan carrying a
+    # missing path would conflate "the task has no prepare.sh" with "the task declared a wrong path",
+    # and the latter must be an error. The validator tells the two apart.
     prepare_path = _resolve_optional_file(
         paths, environment.get("prepare"), DEFAULT_PREPARE
     )
@@ -125,7 +122,7 @@ def load_environment_plan(paths: TaskPaths, metadata: Dict[str, Any]) -> Environ
         env = env_declared
     else:
         raise SchemaError(
-            f"{paths.metadata_yaml}: metadata.environment.env must be a mapping"
+            f"{paths.task_toml}: metadata.environment.env must be a mapping"
         )
 
     try:
@@ -135,13 +132,13 @@ def load_environment_plan(paths: TaskPaths, metadata: Dict[str, Any]) -> Environ
             env=env,
         )
     except ValueError as exc:
-        raise SchemaError(f"{paths.metadata_yaml}: {exc}") from exc
+        raise SchemaError(f"{paths.task_toml}: {exc}") from exc
 
 
 def _resolve_optional_file(
     paths: TaskPaths, declared: Any, default: str
 ) -> Optional[Path]:
-    """显式声明的路径原样返回；没声明时只在约定位置存在的情况下返回。"""
+    """Return an explicit path as-is; otherwise return the conventional path only if it exists."""
     text = _optional_str(declared)
     if text is not None:
         return paths.root / text
@@ -157,10 +154,10 @@ def _optional_str(value: Any) -> Optional[str]:
 
 
 def load_task_package(root: str | Path, strict: bool = True) -> TaskPackage:
-    """加载 task，并同时返回路径校验和 metadata 校验结果。"""
+    """Load a task and return its path and metadata validation results."""
     paths = load_task_paths(Path(root))
     path_report = validate_task_paths(paths, strict=strict)
-    metadata = load_metadata(paths.metadata_yaml)
+    metadata = load_metadata(paths.task_toml)
     metadata_report = validate_metadata(metadata, paths)
     report = ValidationReport()
     report.issues.extend(path_report.issues)

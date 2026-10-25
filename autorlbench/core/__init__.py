@@ -1,4 +1,4 @@
-"""AutoRLBench 的稳定数据模型。"""
+"""Stable data models for AutoRLBench."""
 
 from .types import (
     AgentSpec,

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoRLBench — Call for Contributions</title>
+<style>
+  /* ── Design tokens ─────────────────────────────────────── */
+  :root {
+    --bg:        #f4f2ef;
+    --surface:   #fffff8;
+    --surface-raised: #ffffff;
+    --dark:      #1d1d1b;
+    --dark-2:    #2a2a28;
+    --text:      #2a2a28;
+    --text-2:    #6b6b65;
+    --text-inv:  #f4f4f0;
+    --text-inv-2:#b0b0a8;
+    --border:    rgba(42,42,40,.12);
+    --border-dk: rgba(255,255,255,.14);
+
+    --amber:     #e59c2a;
+    --amber-dk:  #f4b03a;
+    --red:       #b03028;
+    --green:     #2a7a4a;
+    --blue:      #2858a8;
+
+    --r-sm:  10px;
+    --r-md:  16px;
+    --r-lg:  22px;
+    --shadow: 0 2px 0 var(--border), 0 8px 32px rgba(20,20,18,.07);
+    --shadow-lg: 0 2px 0 rgba(20,20,18,.06), 0 20px 48px rgba(20,20,18,.12);
+
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: var(--font);
+    color: var(--text);
+    padding: 3rem 2rem 6rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  /* ── Shared card shell ─────────────────────────────────── */
+  .card {
+    width: 780px;
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .75rem 1.3rem .7rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-header .brand {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+  }
+  .card-header .brand img {
+    height: 18px;
+    width: auto;
+    display: block;
+  }
+  .card-header .tag {
+    font-size: .6rem;
+    font-family: var(--mono);
+    letter-spacing: .04em;
+    color: var(--text-2);
+    background: rgba(42,42,40,.07);
+    border-radius: 5px;
+    padding: .2em .6em;
+  }
+  .card-body { padding: 1.6rem 1.5rem 1.5rem; }
+
+  /* eyebrow */
+  .eyebrow {
+    font-size: .62rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-bottom: .55rem;
+  }
+
+  /* headline */
+  .headline {
+    font-size: 1.55rem;
+    font-weight: 780;
+    line-height: 1.12;
+    letter-spacing: -.035em;
+    color: var(--text);
+    margin-bottom: .9rem;
+  }
+  .headline em { font-style: normal; color: var(--red); }
+
+  .sub {
+    font-size: .8rem;
+    line-height: 1.65;
+    color: var(--text-2);
+    max-width: 420px;
+  }
+
+  /* ── Card 1 — Introducing ──────────────────────────────── */
+  #c1 .card-header { border-color: var(--border); }
+  #c1 .eyebrow { color: var(--red); }
+  #c1 .headline { color: var(--text); }
+  #c1 .sub { color: var(--text-2); }
+
+  .c1-stats {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: .75rem;
+    margin-top: 1.4rem;
+  }
+  .c1-stat {
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: .9rem 1rem .8rem;
+    background: rgba(255,255,255,.7);
+  }
+  .c1-stat .num {
+    font-size: 1.5rem;
+    font-weight: 750;
+    letter-spacing: -.04em;
+    color: var(--text);
+    line-height: 1;
+  }
+  .c1-stat .lbl {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .58rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-top: .35rem;
+  }
+  .c1-stat.accent .num { color: var(--red); }
+  .c1-note {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .18rem .5rem;
+    border: 1px solid rgba(47, 158, 91, .4);
+    border-radius: 999px;
+    background: #e6f2ea;
+    color: var(--text-2);
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: .5rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .c1-note::before {
+    content: "";
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #2f9e5b;
+    box-shadow: 0 0 0 2px rgba(47, 158, 91, .16);
+    animation: c1-note-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes c1-note-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(47, 158, 91, .16); }
+    50% { box-shadow: 0 0 0 4px rgba(47, 158, 91, .26); }
+  }
+
+  /* site pill */
+  .site-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin-top: 1.4rem;
+    padding: .4rem .9rem;
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    font-size: .68rem;
+    color: var(--text-2);
+    background: rgba(255,255,255,.7);
+  }
+  .site-pill .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+  }
+
+  /* ── Card 2 — Six categories ───────────────────────────── */
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .65rem;
+    margin-top: 1.15rem;
+  }
+  .category-row {
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: rgba(255,255,255,.7);
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+  }
+  .category-img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: contain;
+    display: block;
+    background: #fff;
+  }
+  .category-info {
+    padding: .1rem .8rem .6rem;
+    flex: 1;
+    border-top: 1px solid var(--border);
+  }
+  .category-tag {
+    display: inline-block;
+    font-size: .55rem;
+    font-weight: 650;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-bottom: .3rem;
+  }
+  .category-info .name {
+    font-size: .74rem;
+    font-weight: 660;
+    color: var(--text);
+    margin-bottom: .2rem;
+    line-height: 1.3;
+  }
+  .category-info .desc {
+    font-size: .64rem;
+    line-height: 1.5;
+    color: var(--text-2);
+  }
+
+  /* ── Card 3 — Contribute ───────────────────────────────── */
+  .steps {
+    margin-top: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: .75rem;
+    padding: .5rem 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    font-size: .6rem;
+    font-family: var(--mono);
+    color: var(--text-2);
+    margin-top: .15rem;
+  }
+  .step-body strong {
+    font-size: .75rem;
+    font-weight: 660;
+    display: block;
+    margin-bottom: .15rem;
+  }
+  .step-body p {
+    font-size: .68rem;
+    line-height: 1.55;
+    color: var(--text-2);
+  }
+
+  /* co-authorship band (Card 3, left column) */
+  .coauthor-band {
+    margin-top: auto;
+    padding: .65rem .7rem;
+    background: var(--dark);
+    border-radius: var(--r-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    white-space: nowrap;
+  }
+  .coauthor-band .cb-main {
+    font-size: .72rem;
+    font-weight: 740;
+    letter-spacing: -.02em;
+    color: var(--text-inv);
+    line-height: 1.3;
+  }
+  .coauthor-band .cb-main strong { color: var(--amber-dk); }
+  .coauthor-band .cb-arrow { font-size: .75rem; color: var(--text-inv-2); }
+  .coauthor-band .cb-result {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem .6rem;
+    border: 1px solid var(--amber);
+    border-radius: 99px;
+    font-size: .54rem;
+    font-weight: 660;
+    color: var(--amber-dk);
+    white-space: nowrap;
+  }
+
+  /* ── Card 3 — CTA ──────────────────────────────────────── */
+
+  .accepting {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .26rem .7rem;
+    background: rgba(42,122,74,.1);
+    border: 1px solid rgba(42,122,74,.25);
+    border-radius: 99px;
+    font-size: .55rem;
+    font-weight: 600;
+    color: var(--green);
+  }
+  .accepting .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: .4; }
+  }
+
+  .tweet-text {
+    width: 780px;
+    padding: .25rem 0 .1rem;
+    font-size: .95rem;
+    line-height: 1.65;
+    color: var(--text);
+  }
+  .tweet-text p { margin-bottom: .6rem; }
+  .tweet-text p:last-child { margin-bottom: 0; }
+  .tweet-text ul {
+    list-style: none;
+    padding: 0;
+    margin: .3rem 0 .6rem;
+  }
+  .tweet-text ul li {
+    padding: .15rem 0;
+    font-size: .9rem;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .tweet-text .links {
+    margin-top: .75rem;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+  }
+  .tweet-text .links a {
+    font-size: .85rem;
+    color: var(--blue);
+    text-decoration: none;
+  }
+  .tweet-text .links a:hover { text-decoration: underline; }
+  .thread-intro {
+    width: 780px;
+    padding: .25rem 0 .5rem;
+  }
+  .thread-intro p {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--text);
+    margin-bottom: .5rem;
+  }
+  .thread-intro p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+
+<!-- ═══════════════════════════════════════════════
+     Card 1 — Introducing AutoRLBench
+═══════════════════════════════════════════════ -->
+<div class="card" id="c1">
+  <div class="card-header">
+    <div class="brand">
+      <img src="images/logo.png" alt="AutoRLBench">
+    </div>
+    <span class="tag">01 · Introducing</span>
+  </div>
+  <div class="card-body">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:1.5rem;">
+      <div>
+        <div class="eyebrow">New benchmark</div>
+        <div class="headline">Real RL training failures.<br>Can agents find the issue and fix them?</div>
+        <p class="sub" style="max-width:none;">Every task is a real RL run that went wrong. The agent reads the workspace, logs, and metrics, finds the root cause, and where a fix exists, repairs it and reruns.</p>
+      </div>
+      <!-- <img src="images/ai-trains-ai.jpeg" alt="AI Trains AI" -->
+           <!-- style="width:185px;height:auto;display:block;flex-shrink:0;"> -->
+    </div>
+    <div class="c1-stats" style="margin-top:1rem;">
+      <div class="c1-stat accent">
+        <div class="num">6</div>
+        <div class="lbl">Failure Categories</div>
+      </div>
+      <div class="c1-stat">
+        <div class="num">13</div>
+        <div class="lbl">Tasks <span class="c1-note">collecting</span></div>
+      </div>
+      <div class="c1-stat">
+        <div class="num">2</div>
+        <div class="lbl">Evaluation Levels</div>
+      </div>
+    </div>
+    <div class="site-pill" style="margin-top:1rem;">
+      <span class="dot"></span>
+      thinking-space.github.io/AutoRLBench · accepting contributions
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     Card 2 — Six categories
+═══════════════════════════════════════════════ -->
+<div class="card" id="c3">
+  <div class="card-header">
+    <div class="brand">
+      <img src="images/logo.png" alt="AutoRLBench">
+    </div>  
+    <span class="tag">02 · Six Categories</span>
+  </div>
+  <div class="card-body">
+    <div class="eyebrow">What does a task looks like?</div>
+    <!-- <div class="headline">One task per failure mode.</div> -->
+    <div class="category-grid">
+      <div class="category-row">
+        <img class="category-img" src="images/task-configuration.jpeg" alt="Configuration">
+        <div class="category-info">
+          <span class="category-tag">Configuration</span>
+          <div class="name">AIME25 single-sample variance</div>
+          <div class="desc">One sample per question makes evaluation too noisy.</div>
+        </div>
+      </div>
+      <div class="category-row">
+        <img class="category-img" src="images/task-reward.jpeg" alt="Reward">
+        <div class="category-info">
+          <span class="category-tag">Reward</span>
+          <div class="name">Length bonus reward hack</div>
+          <div class="desc">Model hacks the reward by generating longer answers.</div>
+        </div>
+      </div>
+      <div class="category-row">
+        <img class="category-img" src="images/task-data.jpeg" alt="Data">
+        <div class="category-info">
+          <span class="category-tag">Data</span>
+          <div class="name">Training data is too hard</div>
+          <div class="desc">Training set is very hard while validation set is easy.</div>
+        </div>
+      </div>
+      <div class="category-row">
+        <img class="category-img" src="images/task-environment.jpeg" alt="Environment">
+        <div class="category-info">
+          <span class="category-tag">Environment</span>
+          <div class="name">Zero query vector in retrieval</div>
+          <div class="desc">Query vector stays all zeros, retrieves same documents.</div>
+        </div>
+      </div>
+      <div class="category-row">
+        <img class="category-img" src="images/task-algorithm.jpeg" alt="Algorithm">
+        <div class="category-info">
+          <span class="category-tag">Algorithm</span>
+          <div class="name">uid assigned after rollout repeat</div>
+          <div class="desc">GRPO silently degraded to baseline-free REINFORCE.</div>
+        </div>
+      </div>
+      <div class="category-row">
+        <img class="category-img" src="images/task-infrastructure.jpeg" alt="Infrastructure">
+        <div class="category-info">
+          <span class="category-tag">Infrastructure</span>
+          <div class="name">MoE gradients miss token normalization</div>
+          <div class="desc">MoE z-loss gradients are never divided by token count.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     Card 3 — Contribute + CTA (merged, compact)
+═══════════════════════════════════════════════ -->
+<div class="card" id="c4">
+  <div class="card-header">
+    <div class="brand">
+      <img src="images/logo.png" alt="AutoRLBench">
+    </div>
+    <span class="tag">03 · Join us</span>
+  </div>
+  <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:stretch;padding:1.1rem 1.3rem 1.2rem;">
+    <!-- Left: steps + co-author band -->
+    <div style="display:flex;flex-direction:column;gap:.6rem;">
+      <div>
+        <div class="eyebrow">Contribute</div>
+        <div class="headline" style="font-size:1.2rem;margin-bottom:.4rem;">You bring the run. We handle the rest.</div>
+      </div>
+      <div class="steps" style="margin-top:0;">
+        <div class="step">
+          <span class="step-num">01</span>
+          <div class="step-body"><strong>Workspace + logs</strong><p>The broken run as it was. Fixed version if you have one.</p></div>
+        </div>
+        <div class="step">
+          <span class="step-num">02</span>
+          <div class="step-body"><strong>Agent packages it</strong><p>Claude Code turns the workspace into a task in one step.</p></div>
+        </div>
+        <div class="step">
+          <span class="step-num">03</span>
+          <div class="step-body"><strong>Open a PR</strong><p>Reviewed and live on the leaderboard.</p></div>
+        </div>
+      </div>
+      <div class="coauthor-band">
+        <div class="cb-main">Contribute <strong>2 valid tasks</strong></div>
+        <div class="cb-arrow">→</div>
+        <span class="cb-result">★ Co-authorship on the paper</span>
+      </div>
+    </div>
+    <!-- Right: headline + accepting + image -->
+    <div style="display:flex;flex-direction:column;gap:.6rem;">
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.35rem;">
+          <div class="eyebrow" style="margin-bottom:0;color:var(--red);">Why it matters</div>
+          <span class="accepting"><span class="dot"></span> Accepting contributions</span>
+        </div>
+        <div class="headline" style="font-size:1.3rem;margin-bottom:.5rem;">Towards <em>AI Trains AI</em>.</div>
+        <p class="sub">AutoRLBench measures the agent capability to diagnose and repair real RL training runs.</p>
+      </div>
+      <div style="width:92%;margin:0 auto;border-radius:var(--r-md);background:#fff;border:1px solid var(--border);box-sizing:border-box;padding:.4rem;display:flex;justify-content:center;">
+        <img src="images/ai-trains-ai.jpeg" alt="AI Trains AI"
+             style="width:78%;height:auto;display:block;">
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

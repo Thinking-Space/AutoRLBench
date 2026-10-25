@@ -1,127 +1,139 @@
-# 用户输入示例
+# User input example
 
-打包时按此结构一次给齐。缺一项就停。数字、commit 与 hash 需换成该次训练的真实值。
+Provide everything in this structure in one go when packaging. If any item is missing, stop. Replace numbers, commits, and hashes with the real values from that training run.
 
-打包时阅读 buggy commit 与 baseline commit 的代码和启动脚本 diff，把根因写成一句话，并写上这里给出的指标现象。
+When packaging, read the code and launch-script diff between the buggy commit and the baseline commit, write the root cause as one sentence, and include the metric symptoms given here.
 
-## 只有评测分
+## Evaluation score only
 
 ```yaml
-source_workspace: /home/test/test06/lyh/verl
-output_dir: /home/test/test1708/data_call/tasks/verl_implementation/llama_dapo_implementation/task_example_001
-task_id: task_example_001
-title: "llama_dapo_implementation implementation diagnosis: task_example_001"
-model_name: Llama-3.2-1B-Instruct
-dataset_name: DAPO-Math-17k
+source_workspace: /home/gaoyuan/verl
+output_dir: tasks/infrastructure/verl_moe_token_normalization
+task_id: verl_moe_token_normalization
+title: "MoE auxiliary gradients miss token normalization"
+domain: infrastructure
+model_name: Qwen/Qwen1.5-MoE-A2.7B-Chat
+dataset_name: openai/gsm8k
 framework: verl
 algo: grpo
 
-git_repo: /home/test/test06/lyh/verl
+git_repo: /home/gaoyuan/verl
 buggy_commit: aaaa1111
 baseline_commit: bbbb2222
 ignore_hunks: []
 
-launch_script: examples/grpo_trainer/run_llama3_2_1b_instruct_dapo_math_fsdp.sh
+launch_script: scripts/train.sh
 launch_args: []
 launch_env:
   WANDB_MODE: offline
-model_path: /workspace/verl/Llama-3.2-1B-instruct
-train_path: /workspace/DAPO-Math-17k_verl/train.parquet
-val_path: /workspace/DAPO-Math-17k_verl/test.parquet
+model_path: /workspace/models/Qwen1.5-MoE-A2.7B-Chat
+train_path: /workspace/data/gsm8k/train.parquet
+val_path: /workspace/data/gsm8k/validation64.parquet
 failure_logs:
-  - logs/llama3_2_1b_instruct_dapo_math_fsdp_20260720_005502.log
+  - logs/train.log
 include_wandb: true
 
-image: verl
+image: verl-moe-token
 gpus: "0,1"
-needs_compose: false
+needs_compose: true
 
 assets:
   - kind: hf
-    repo: LIF1014/ptdbench-Llama-3.2-1B-Instruct
+    repo: Qwen/Qwen1.5-MoE-A2.7B-Chat
     type: model
-    revision: 32f9e721f796d3c639ab64d2f58ceeaa2c3213b9
+    revision: ec052fda178e241c7c443468d2fa1db6618996be
     allow:
+      - LICENSE
       - config.json
-      - generation_config.json
-      - tokenizer_config.json
       - tokenizer.json
-      - tokenizer.model
-      - model.safetensors
+      - tokenizer_config.json
+      - vocab.json
+      - model-00001-of-00008.safetensors
+      # … one allow/expect/expect_size triple per remaining shard plus
+      # model.safetensors.index.json, all listed verbatim in the real input
     expect:
-      model.safetensors: 1ff795ff6a07e6a68085d206fb84417da2f083f68391c2843cd2b8ac6df8538f
+      model-00001-of-00008.safetensors: a51a84c031e0f6c8808bc284106c488ab3db6069a3f6f5a231be1e963206d020
     expect_size:
-      model.safetensors: 2471645608
-    dest: verl/Llama-3.2-1B-instruct
+      model-00001-of-00008.safetensors: 3999614664
+    dest: models/Qwen1.5-MoE-A2.7B-Chat
     why_this_path: >-
-      启动脚本 :30-38 按顺序找 /models/… → /workspace/verl/Llama-3.2-1B-instruct，
-      第一个候选没人挂，必须正好落在第二个上。目录名是小写 i。
-  - kind: recipe
-    recipe: dapo_math_17k
+      scripts/train.sh exports PYTHONPATH from $W and the resolved config
+      reads the model from $W/models/Qwen1.5-MoE-A2.7B-Chat, which prepare
+      fills.
+  - kind: hf
+    repo: openai/gsm8k
+    type: dataset
+    revision: 740312add88f781978c0658806c59bc2815b9866
+    allow:
+      - main/train-00000-of-00001.parquet
+      - main/test-00000-of-00001.parquet
+      - README.md
     expect:
-      train.parquet: fc4cad54f2d15c622025b5e3764e91d2a79145e75358a703658daa66fe47d321
-      test.parquet: 52596fd6ade0d49db3a49ef0c9c89f88aeb323c17fa5ee23fb0c774d7fba3255
+      main/train-00000-of-00001.parquet: ea82612ea9582142387730c793eb67d3b12849002bc0b7fa6f8efafa7351419d
+      main/test-00000-of-00001.parquet: ee7b8da9e381df27b9e3f7758a159ab2bdaa4dbaa910546cbbc47e0cb44e4f59
     expect_size:
-      train.parquet: 2735462
-      test.parquet: 331284
-    dest: DAPO-Math-17k_verl
+      main/train-00000-of-00001.parquet: 2306545
+      main/test-00000-of-00001.parquet: 419088
+    dest: data/raw/gsm8k
+    why_this_path: >-
+      scripts/prepare_gsm8k.py converts the raw parquet into
+      data/gsm8k/{train,validation64}.parquet with a fixed 2026-seed split.
 
-metric_key: val-core/math_dapo/acc/mean@1
-metric_source: text_log
-log_sample: "step:200 - val-core/math_dapo/acc/mean@1:0.0402"
-final_step: 200
-historical_final_baseline: "0.04022346368715084"
-required_final_score: "0.07"
+metric_key: val-core/openai/gsm8k/acc/mean@1
+metric_source: wandb_history
+log_sample: '{"_step": 150, "val-core/openai/gsm8k/acc/mean@1": 0.0}'
+final_step: 150
+historical_final_baseline: "0"
+required_final_score: "0.4"
 
 historical_eval_points:
-  - { step: 0, eval_score: 0.030726256983240222 }
-  - { step: 100, eval_score: 0.03519553072625698 }
-  - { step: 200, eval_score: 0.04022346368715084 }
+  - { step: 100, eval_score: 0.0 }
+  - { step: 150, eval_score: 0.0 }
 ```
 
-按上述 diff 写出的 `failure_reason` 会类似：`apply_monkey_patch 不再安装 flash-attention hook，val-core 最终约 0.0402`。具体措辞以过滤后的 diff 为准。
+A `failure_reason` written from this diff would look like: `the per-token loss callback returns (loss, metrics) instead of the native (loss sum, token count, metrics), so MCore never normalizes the MoE z-loss gradients; final val-core is 0.0`. The exact wording follows the filtered diff.
 
-`assets` 里每一条落成 `environment/prepare.sh` 的一次 `ptdbench_fetch_hf` / `ptdbench_dataset` / `ptdbench_fetch_url` 调用，`dest` 前面补 `$PTDBENCH_WORKSPACE/`。`why_this_path` 写成脚本里那条注释——路径错了要到训练中途才炸。
-## 未写评分方式
+Each entry in `assets` becomes one `autorlbench_fetch_hf` / `autorlbench_dataset` / `autorlbench_fetch_url` call in `environment/prepare.sh`, with `$AUTORLBENCH_WORKSPACE/` prefixed to `dest`. `why_this_path` becomes the comment in the script, because a wrong path only blows up midway through training.
+## No scoring method given
 
-上面的示例到 `required_final_score` 为止，就是默认评分：分数全部看评测集键。按 `score_mode` 取该键的最高有限值（默认 `best`）或 `final_step` 那一点（`final`），达到 `required_final_score` 则 score 为 1，否则为 0。
+The example above, up to `required_final_score`, is the default scoring: the score depends entirely on the eval-set key. Per `score_mode`, take that key's highest finite value (default `best`) or the value at `final_step` (`final`). If it reaches `required_final_score`, score is 1; otherwise 0.
 
-需要收窄时再给这两项：
+Give these two only when you need to narrow it:
 
 ```yaml
-score_mode: best              # 或 final；不写按 best
+score_mode: best              # or final; defaults to best
 required_final_score_max: "1.0"
 ```
 
-`score_mode: best` 适合单点噪声大的评测（例如 30 道题的 AIME）；`final` 适合要求「跑到终点且终点达标」。`required_final_score_max` 用来挡掉明显编造的值。
+`score_mode: best` suits evals with high per-point noise (for example, 30-question AIME); `final` suits "run to the end and pass at the end". `required_final_score_max` rejects obviously fabricated values.
 
-## 用户指定评分方式时追加
+## Add when the user specifies a scoring method
 
-参考分不限于训练分。每一项给出键名、门槛、权重、出现位置和一条 log 样例，并写明及格规则。
+Reference scores are not limited to training scores. For each one, give the key name, threshold, weight, where it appears, and one log sample, and state the pass rule.
 
 ```yaml
 score_components:
   - role: validation
-    key: val-core/math_dapo/acc/mean@1
-    required: "0.07"
+    key: val-core/openai/gsm8k/acc/mean@1
+    required: "0.4"
     weight: "0.8"
-    source: text_log
-    log_sample: "step:200 - val-core/math_dapo/acc/mean@1:0.0402"
+    source: wandb_history
+    log_sample: '{"_step": 150, "val-core/openai/gsm8k/acc/mean@1": 0.0}'
   - role: training_reward
     key: critic/rewards/mean
     required: "0.14"
     weight: "0.2"
     source: text_log
-    log_sample: "step:200 - critic/rewards/mean:0.16"
-pass_rule: "score = 各项权重乘以该项是否达到门槛（达到为 1，否则为 0）之和；score 为 1 才算通过"
+    log_sample: "step:150 - critic/rewards/mean:0.16"
+pass_rule: "score = sum over components of weight times whether the component meets its threshold (1 if met, else 0); pass only when score is 1"
 ```
 
-`role` 决定 `grader_spec.json` 里的键名，用扁平三件套写，**不要**生成 `components` / `pass_rule` 字段：
+`role` determines the key names in `grader_spec.json`. Write them as a flat triple; **do not** generate `components` / `pass_rule` fields:
 
 ```json
 {
-  "metric_key": "val-core/math_dapo/acc/mean@1",
-  "required_final_score": "0.07",
+  "metric_key": "val-core/openai/gsm8k/acc/mean@1",
+  "required_final_score": "0.4",
   "validation_weight": "0.8",
   "training_reward_key": "critic/rewards/mean",
   "required_training_reward": "0.14",
@@ -129,11 +141,11 @@ pass_rule: "score = 各项权重乘以该项是否达到门槛（达到为 1，�
 }
 ```
 
-`role: learning_rate` 对应 `learning_rate_key` / `required_learning_rate` / `learning_rate_weight`（见 `tasks/rlve_hyper/task_008`）。评测集那一侧一律是 `validation_weight`。
+`role: learning_rate` maps to `learning_rate_key` / `required_learning_rate` / `learning_rate_weight`. The eval-set side is always `validation_weight`.
 
-`pass_rule` 按用户原文实现。用户没有写 `score_components` 时，不要套用这段加权。
+Implement `pass_rule` exactly as the user wrote it. If the user did not provide `score_components`, do not apply this weighting.
 
-## 需要多卡或大 shm 时追加
+## Add when multi-GPU or large shm is needed
 
 ```yaml
 gpus: "0,1,2,3,4,5,6,7"
@@ -141,11 +153,11 @@ needs_compose: true
 shm_size: "16gb"
 ```
 
-`needs_compose: true` 时把 `tasks/slime_retool/environment/docker-compose.yaml` 照抄过去（按 `shm_size` 改一处）。它只对 harbor 后端生效，原生 docker 路径从 `metadata.environment.env` 的 `NVIDIA_VISIBLE_DEVICES` 自己翻译 `--gpus`。
+With `needs_compose: true`, copy `tasks/reward/slime_retool_length_reward_bonus/environment/docker-compose.yaml` verbatim (changing one line for `shm_size`). It only applies to the harbor backend; the native docker path derives `--gpus` itself from `NVIDIA_VISIBLE_DEVICES` in `[environment.env]` of `task.toml`.
 
-## 资产需要现场转换时追加
+## Add when an asset needs on-site conversion
 
-上游没有对应仓库、只能由已下载的资产转出来时（例如 HF → Megatron torch_dist），给出转换命令与它依赖的参数：
+When no upstream repo exists and the asset can only be converted from downloaded assets (for example HF → Megatron torch_dist), give the conversion command and the arguments it depends on:
 
 ```yaml
 assets:
@@ -160,4 +172,4 @@ assets:
     guard_in_launch_script: 'if [ ! -d "$DIST_MODEL_DIR" ]'
 ```
 
-`skip_without_cuda: true` 时 `prepare.sh` 要先探测 CUDA，不可用就打印一行跳过——harbor 后端把 prepare 跑成 build-time 层，那里没有 GPU，由 `guard_in_launch_script` 那个守卫在 agent 阶段补做。产物不逐字节可复现时，不要给它写 `--expect`。
+With `skip_without_cuda: true`, `prepare.sh` must probe for CUDA first and, if unavailable, print one line and skip. The harbor backend runs prepare as a build-time layer with no GPU, so the `guard_in_launch_script` guard does the work in the agent stage. If the output is not byte-for-byte reproducible, do not write `--expect` for it.

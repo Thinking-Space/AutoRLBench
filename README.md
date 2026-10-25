@@ -1,414 +1,162 @@
-# AutoRLBench
 
-AutoRLBench is a benchmark framework for community
-submission of broken post-train tasks, environment specs, and verifier logic.
+<p align="center">
+  <a href="https://thinking-space.github.io/AutoRLBench/"><img src="assets/logo.png" alt="AutoRLBench" width="360"></a>
+</p>
 
-## Core idea
+<p align="center">
+  <a href="https://thinking-space.github.io/AutoRLBench/"><img alt="Website" src="https://img.shields.io/badge/Website-thinking--space.github.io-4285F4?logo=googlechrome&logoColor=white"></a>
+  <a href="https://thinking-space.github.io/AutoRLBench/#leaderboard"><img alt="Leaderboard" src="https://img.shields.io/badge/Leaderboard-0.1-FFB000?logo=trophy&logoColor=white"></a>
+  <a href="https://thinking-space.github.io/AutoRLBench/#tasks"><img alt="Tasks" src="https://img.shields.io/badge/Tasks-6%20domains-00C853?logo=stack&logoColor=white"></a>
+  <a href="https://thinking-space.github.io/AutoRLBench/contribute.html"><img alt="Contribute" src="https://img.shields.io/badge/Contribute-a%20run-7B1FA2?logo=git-pull-request&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-D22128?logo=apache&logoColor=white"></a>
+  <a href="README_zh.md"><img alt="Chinese (Simplified)" src="https://img.shields.io/badge/Chinese-Simplified-E74C3C"></a>
+</p>
 
-1. A task package provides a broken `workspace/` plus one or more evaluations.
-2. A prepare stage runs the task's `environment/prepare.sh` to fetch models and
-   datasets. It is the only stage with network access and the only one that
-   sees the shared download cache.
-3. A specified model+agent follows the selected evaluation's instruction.
-4. The evaluator runs the selected `verifier/test.sh` against the workspace.
-5. The verifier writes structured results to `$PTDBENCH_RESULTS/result.json`.
+A benchmark and open call for valuable, reproducible RL runs. Each task is a real training run that went wrong. The agent has to find the root cause (**issue**) and, where a repaired run exists, fix it and rerun (**solution**).
+
+<p align="center"><img src="assets/ai-trains-ai.jpeg" alt="AI Trains AI" width="480"></p>
+
+## Leaderboard
+
+AutoRLBench Leaderboard 0.1, issue evaluation. *First release; updated as new agents and tasks are added.*
+
+| # | Model | Agent | Issue score | |
+| ---: | --- | --- | ---: | :--- |
+| 1 | Claude-Fable-5.1 | Claude Code | 0.86 | ██████████████████░░ |
+| 2 | Grok-4.7 | Grok Build | 0.79 | ████████████████░░░░ |
+| 3 | GPT-6-Astra | Codex | 0.64 | █████████████░░░░░░░ |
+| 4 | GLM-5.3 | Claude Code | 0.64 | █████████████░░░░░░░ |
+| 5 | GPT-6.1-Sol | Codex | 0.57 | ████████████░░░░░░░░ |
+| 6 | Qwen3.8-Max | Qwen Code | 0.57 | ████████████░░░░░░░░ |
+| 7 | Kimi-K3 | Claude Code | 0.50 | ██████████░░░░░░░░░░ |
+| 8 | Gemini-4-Argon | Claude Code | 0.43 | █████████░░░░░░░░░░░ |
+| 9 | DeepSeek-V4-Pro | Claude Code | 0.29 | ██████░░░░░░░░░░░░░░ |
+
+Solution evaluation (repair and rerun) is coming soon. Full results: [website](https://thinking-space.github.io/AutoRLBench/#leaderboard).
+
+## Tasks
+
+Six domains, one representative task each. The domains come from where in the RL pipeline the failure lives:
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<a href="tasks/configuration/verl_aime25_single_sample_protocol/">
+<img src="assets/task-configuration.jpeg" alt="Configuration" width="100%">
+</a>
+<strong>Configuration</strong> · issue · solution<br>
+<a href="tasks/configuration/verl_aime25_single_sample_protocol/"><b>AIME25 single-sample variance</b></a><br>
+One sample per question makes a 30-question score too noisy to judge the run.
+</td>
+<td width="50%" valign="top">
+<a href="tasks/reward/slime_retool_length_reward_bonus/">
+<img src="assets/task-reward.jpeg" alt="Reward" width="100%">
+</a>
+<strong>Reward</strong> · issue · solution<br>
+<a href="tasks/reward/slime_retool_length_reward_bonus/"><b>Length bonus reward hack</b></a><br>
+An unconditional length bonus teaches the policy to write longer, not better.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="tasks/data/verl_taco_difficulty_mismatch/">
+<img src="assets/task-data.jpeg" alt="Data" width="100%">
+</a>
+<strong>Data</strong> · issue<br>
+<a href="tasks/data/verl_taco_difficulty_mismatch/"><b>Training data is too hard</b></a><br>
+Train is TACO <code>VERY_HARD</code> while validation is <code>EASY</code>; held-out accuracy ends below its start.
+</td>
+<td width="50%" valign="top">
+<a href="tasks/environment/search_r1_zero_query_embedding/">
+<img src="assets/task-environment.jpeg" alt="Environment" width="100%">
+</a>
+<strong>Environment</strong> · issue · solution<br>
+<a href="tasks/environment/search_r1_zero_query_embedding/"><b>Zero query vector in retrieval</b></a><br>
+The retriever's query vector is all zeros, so every query gets the same documents.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="tasks/algorithm/verl_grpo_uid_after_repeat/">
+<img src="assets/task-algorithm.jpeg" alt="Algorithm" width="100%">
+</a>
+<strong>Algorithm</strong> · issue<br>
+<a href="tasks/algorithm/verl_grpo_uid_after_repeat/"><b>GRPO uid assigned after rollout repeat</b></a><br>
+The uid assignment lands after the rollout repeat step, making every GRPO group a singleton and silently degrading training to baseline-free REINFORCE.
+</td>
+<td width="50%" valign="top">
+<a href="tasks/infrastructure/verl_moe_token_normalization/">
+<img src="assets/task-infrastructure.jpeg" alt="Infrastructure" width="100%">
+</a>
+<strong>Infrastructure</strong> · issue · solution<br>
+<a href="tasks/infrastructure/verl_moe_token_normalization/"><b>MoE auxiliary gradients miss token normalization</b></a><br>
+The per-token loss callback omits the token count, so MoE z-loss gradients are never normalized.
+</td>
+</tr>
+</table>
+
+## How a task works
+
+```text
+prepare ──▶ agent ──▶ [rerun] ──▶ verifier
+  │           │          │            │
+  │           │          │            └─ issue:    LLM judge on agent_answer.md vs. hidden oracle
+  │           │          │               solution: a metric threshold on the rerun's logs
+  │           │          └─ solution only: the harness re-runs the experiment on the agent's
+  │           │             workspace, per the task's run_spec.json
+  │           └─ reads instruction.md and a writable copy of workspace/
+  └─ fetches pinned models and datasets (the only stage with network)
+```
+
+Each stage runs in its own container from the same prebuilt image. Oracles and verifiers are mounted only into the verifier stage.
+
+At the solution level the agent repairs the workspace and submits `report.md` — it does **not** launch training itself. The harness clears the task's log roots, re-runs the experiment on the repaired workspace, and grades only that fresh run. No `report.md`, no rerun and no grading: the task scores 0. A solution task without a `run_spec.json` (a pure protocol repair, say) skips the rerun but is bound by the same report gate.
+
+## Repository layout
+
+| Path | Contents |
+| --- | --- |
+| [`tasks/`](tasks/) | Benchmark tasks, grouped by domain |
+| [`autorlbench/`](autorlbench/) | Evaluation harness: task loader, validator, runtimes, agent adapters, CLI |
+| [`docker/`](docker/) | Shared environment images and in-container tooling ([README](docker/README.md)) |
+| [`skills/package-task/`](skills/package-task/) | Agent skill that turns a raw task into a task |
+| [`tests/`](tests/) | Harness unit tests |
+| [`page/`](page/) | Website source, deployed to GitHub Pages |
 
 ## Task layout
 
 ```text
-task/
-├── readme.md
-├── metadata.yaml
-├── workspace/
-├── environment/         # optional
-│   └── prepare.sh       # fetch models/datasets before the run
+tasks/<domain>/<task_id>/
+├── README.md               # summary, difficulty, reference solution, verification
+├── task.toml               # metadata and environment image
+├── workspace/              # the run as the agent sees it: code, config, logs, metrics
+├── environment/prepare.sh  # fetches pinned models and datasets (only stage with network)
 └── evaluations/
-    ├── issue/
-    │   ├── instruction.md
-    │   ├── oracle.md
-    │   └── verifier/
-    │       └── test.sh
-    └── solution/
-        ├── instruction.md
-        ├── oracle/
-        └── verifier/
-            ├── test.sh
-            ├── tests/        # optional
-            └── resources/    # optional
+    ├── issue/              # instruction.md · oracle.md · verifier/
+    └── solution/           # instruction.md · oracle/ · verifier/ (grader_spec.json · run_spec.json)
 ```
 
-The directory layout identifies the task format. A task may provide `issue`,
-`solution`, or both under `evaluations/`. Legacy tasks with top-level
-`instruction.md`, `oracle/`, and `verifier/` remain supported and are loaded as
-a `solution` evaluation.
-
-## Contributing a task
-
-You do not have to produce that layout by hand. Contribute the raw material;
-an agent turns it into a task.
-
-### 1. Prepare a raw task
-
-Four things, under `raw_tasks/<your_task>/`:
-
-```text
-raw_tasks/<your_task>/
-├── buggy_workspace/      code that reproduces the defect + that run's artifacts
-├── fixed_workspace/      the same tree repaired + its own run's artifacts
-├── Dockerfile            the environment both runs were recorded on
-└── README.md             the defect, the fix, and the measured outcome
-```
-
-[raw_tasks/raw_task_example/](raw_tasks/raw_task_example/) is a worked example —
-a Search-R1 GRPO run whose retriever returns an all-zero query embedding.
-
-What matters in each:
-
-- **The two workspaces must differ only by the fix.** Anything else that
-  differs between them is something the comparison is also measuring. Each one
-  should be self-contained: its own code, its own inputs, no sibling directory
-  either side reaches into.
-- **Each workspace carries its own run's artifacts**, where the run wrote them.
-  At minimum: the W&B offline directory (including the `run-*.wandb` binary —
-  without it `wandb sync` cannot replay the run), the complete stdout/stderr of
-  the run, and whatever else the framework emits that shows the symptom.
-  Per-step metric files are small and are what a threshold gets read off; keep
-  all of them. Full rollout dumps are large — a couple of steps as samples is
-  enough.
-- **The Dockerfile** should build without a build context if it can. Pin
-  versions; say in a comment which recorded run they came from.
-- **The README** follows
-  [skills/package-task/readme-format.md](skills/package-task/readme-format.md):
-  the defect, the fix as a diff, the measured outcome of both arms, and a
-  section for every plausible-but-wrong diagnosis. If you ran each arm once,
-  say so — a single-seed result supports margins, not variance, and whoever
-  calibrates a threshold needs to know which they have.
-
-Leave the raw material raw. Absolute paths, hostnames, and `broken`/`fixed`
-labels in your logs are expected; sanitizing them is step 2's job.
-
-What to leave out: model weights, checkpoints, and anything derivable from what
-you did ship (a FAISS index whose corpus is already in the bundle). Record how
-to obtain them instead.
-
-### 2. Convert it to a task
-
-The `skills/package-task` skill does this. Point an agent at your raw task and
-let it produce `tasks/<family>/<task_id>/` in the layout above: one workspace
-instead of two, the fix sealed into `evaluations/solution/oracle/`, assets moved
-into `environment/prepare.sh`, your `Dockerfile` mapped onto a shared image
-under `docker/images/`, and the logs sanitized and thinned.
-
-It ends with `python3 -m autorlbench validate <task_dir>`, which must report
-zero errors.
-
-### 3. Open a PR
-
-Against this repository, with the generated task. Keep the raw task out of the
-PR unless it is small enough to be useful as evidence.
-
-## Source layout
-
-```text
-autorlbench/
-├── cli.py
-├── core/                       # 稳定的数据模型
-│   └── types.py
-├── tasks/                      # task 加载、校验和 schema YAML
-│   ├── loader.py
-│   ├── validator.py
-│   └── yaml.py
-├── evaluation/                 # agent/verifier 流程编排
-│   └── evaluator.py
-├── runtimes/                   # 执行平台抽象和 provider
-│   ├── base.py
-│   ├── factory.py
-│   └── providers/
-│       ├── local.py
-│       └── docker.py
-├── agents/                     # agent 抽象、注册和内置适配器
-│   ├── base.py
-│   ├── factory.py
-│   └── installed/
-│       ├── codex.py
-│       └── shell.py
-└── utils/                      # 不带业务语义的通用工具
-    └── filesystem.py
-```
-
-新增 agent 只需要实现 `agents/base.py` 约定的接口并在 agent factory 中注册；
-新增执行平台只需要实现 `runtimes/base.py` 的 `SandboxRuntime` 并注册 provider。
-两者都不需要修改 `evaluation/evaluator.py`。
-
-## Visibility
-
-Agent-visible for the selected evaluation:
-
-- its `instruction.md`, exposed as `/task/instruction.md`
-- a writable copy of `workspace/`, including whatever `prepare.sh` fetched into it
-- the environment image named by `environment.image`
-  (`docker/images/<name>.Dockerfile`, tagged as its `# ptdbench-image:` header says)
-- the task's own `environment/` directory, read-only at `/ptdbench/environment`
-- the prepare stage's output, read-only at `/ptdbench/prepared`
-
-Verifier-only:
-
-- the selected evaluation's `oracle.md` or `oracle/`
-- the selected evaluation's `verifier/`
-
-Human-review only:
-
-- `readme.md`
-
-Evaluator metadata:
-
-- `metadata.yaml`
-
-The Docker evaluator runs prepare, agent and verifier in separate container
-invocations. The agent stage does not mount hidden oracle or verifier files, and
-neither does the prepare stage: it executes a script the task package ships, so
-there is no reason to let it read the answer.
-
-## Runtime abstraction
-
-AutoRLBench separates the task contract from the execution platform. The current
-runtime implementations are:
-
-- `local`: runs commands on the host and is intended only for development;
-- `docker`: runs prepare/agent/verifier in separate containers, all from the
-  image named by the task's `environment.image`. The image is built from
-  `docker/images/<name>.Dockerfile` the first time it is missing; run
-  `autorlbench build-images [NAME...] [--rebuild]` to build ahead of time or to
-  pick up an edited Dockerfile (the tag is fixed, so edits are not detected).
-
-The environment image is prepared once and reused by all three stages. The
-stages still use different containers: prepare gets the network and the download
-cache, the agent gets a writable workspace and public instruction, while the
-verifier gets a read-only workspace plus the selected hidden evaluation. Reusing
-one image does not mean sharing one container, which is important for keeping
-hidden grading files inaccessible.
-
-The platform boundary is `autorlbench.runtimes.base.SandboxRuntime`. A future runtime
-such as Harbor or a remote cloud sandbox should implement this interface for
-environment preparation, logical path mapping, and command execution. Agent
-adapters only receive a runtime and an environment artifact; they do not import
-Docker or host-process executors.
-
-The low-level command implementation lives with the corresponding provider under
-`autorlbench.runtimes.providers/`. New platform integrations should depend on
-`SandboxRuntime`, not on the Docker or Local provider classes.
-
-## Verifier contract
-
-Each evaluation's `verifier/test.sh` is the single entrypoint. It should read:
-
-- `PTDBENCH_WORKSPACE`
-- `PTDBENCH_ORACLE`
-- `PTDBENCH_VERIFIER`
-- `PTDBENCH_RESULTS`
-- `PTDBENCH_TASK_ID`
-- `PTDBENCH_EVALUATION_LEVEL`
-
-For an issue evaluation, the instruction may require the agent to write a
-report such as `$PTDBENCH_RESULTS/agent_answer.md`. This is a task-level output
-contract: the framework does not generate or recover that file from the agent's
-final message. The issue verifier decides how to score it. `tests/` and
-`resources/` are optional for both evaluation levels.
-
-The verifier should exit `0` for success and non-zero for failure. It may also
-write:
-
-```json
-{
-  "passed": true,
-  "score": 1.0,
-  "metrics": {
-    "hidden_pass_rate": 1.0
-  }
-}
-```
-
-to:
-
-```text
-$PTDBENCH_RESULTS/result.json
-```
-
-If no `result.json` exists, the evaluator falls back to the verifier exit code.
-
-## CLI
-
-Validate a task:
+## Quick start
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 -m autorlbench validate tasks/slime_retool
+# Validate a task
+python3 -m autorlbench validate tasks/reward/slime_retool_length_reward_bonus
+
+# Prepare and run the verifier on a task in Docker (no agent)
+python3 -m autorlbench evaluate tasks/reward/slime_retool_length_reward_bonus \
+  --evaluation-level issue --backend docker \
+  --judge-model <judge-model> --json
+
+# Run an agent through Harbor (pip install harbor)
+python3 -m autorlbench harbor-evaluate tasks/reward --agent codex --model <model>
 ```
 
-Run only the verifier on the staged workspace with the local backend:
+Run `python3 -m autorlbench --help` for every option. The issue verifier calls an OpenAI-compatible judge through `OPENAI_BASE_URL` and `OPENAI_API_KEY`. `evaluate` runs no agent, so at `--evaluation-level solution` it stops at the report gate and scores 0 unless the staged workspace already carries a `report.md`.
 
-```bash
-PYTHONDONTWRITEBYTECODE=1 python3 -m autorlbench evaluate tasks/slime_retool --backend local --keep-artifacts --json
-```
+## Contributing
 
-Put run artifacts under a known directory for debugging:
+We welcome both problematic runs and healthy reference runs. Bring the issue materials, or add the repaired run when it exists; an agent does the packaging. Contribute **two valid tasks** and you become a co-author on the benchmark paper. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution guide](https://thinking-space.github.io/AutoRLBench/contribute.html).
 
-```bash
-PYTHONDONTWRITEBYTECODE=1 python3 -m autorlbench evaluate tasks/slime_retool \
-  --backend local \
-  --work-dir ./runs \
-  --keep-artifacts \
-  --json
-```
+## License
 
-Run an agent command inside the Docker environment, then verify:
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 python3 -m autorlbench evaluate tasks/slime_retool \
-  --backend docker \
-  --agent shell \
-  --agent-command "your-agent-command" \
-  --timeout-s 3600 \
-  --keep-artifacts \
-  --json
-```
-
-Run Codex as the agent:
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 python3 -m autorlbench evaluate tasks/slime_retool \
-  --evaluation-level solution \
-  --backend docker \
-  --agent codex \
-  --model gpt-5 \
-  --reasoning-effort high \
-  --json
-```
-
-The Codex adapter turns `instruction.md` into the initial prompt and runs
-`codex exec` in the staged workspace. With `--backend docker`, AutoRLBench starts
-a fresh task container, installs `@openai/codex@latest`, and runs Codex in that
-same container. The verifier runs in a separate clean container built
-from the original task environment. Agent installation is not cached yet.
-After installation, AutoRLBench creates a Codex model-provider entry from
-`--base-url` and runs `codex login --with-api-key` via stdin. The credential is
-not embedded in the command line or setup logs. The generated provider uses
-the generic internal name `autorlbench`.
-For the Docker backend, the container is the outer security boundary, so Codex
-runs with `--dangerously-bypass-approvals-and-sandbox` to avoid an unsupported
-nested bubblewrap user namespace. The local backend retains Codex's
-`workspace-write` sandbox.
-
-Agent options:
-
-- `--evaluation-level issue|solution`
-- `--agent codex|shell`
-- `--model <name>`
-- `--judge-model <name>`
-- `--reasoning-effort minimal|low|medium|high|xhigh`
-- `--base-url <url>`
-- `--api-key <key>`
-- `--agent-command <command-or-executable>`
-- `--agent-arg <arg>` for repeatable extra CLI flags
-
-`run.sh` defaults to `high`; override it without editing the script:
-
-```bash
-PTDBENCH_REASONING_EFFORT=medium ./run.sh
-```
-
-`run.sh` applies a 3600-second timeout to each long-running stage. Override it
-with `PTDBENCH_TIMEOUT_S`. Terminal progress is quiet by default. Enable it
-with `PTDBENCH_LOG_LEVEL=debug`; setup output is always streamed to
-`results/agent_setup.stdout.log` and `results/agent_setup.stderr.log` while the
-installation is running.
-
-```bash
-PTDBENCH_LOG_LEVEL=debug bash run.sh
-```
-
-Select the issue evaluation in the same way:
-
-```bash
-PTDBENCH_EVALUATION_LEVEL=issue ./run.sh
-```
-
-### Harbor batch evaluation
-
-`harbor-evaluate` runs every task on its prebuilt environment image: the
-generated task.toml sets `docker_image` to the tag declared in
-`docker/images/<name>.Dockerfile`, so Harbor never builds a per-task image. For
-each task AutoRLBench first runs `environment/prepare.sh` in that image (online,
-same staging as `evaluate`), then starts one Harbor job with the prepared
-workspace uploaded to `/workspace` and the prepare output, the task's
-`environment/` and the model/dataset caches bind-mounted read-only. The verifier
-shares the agent's container. Agent and verifier are offline for HF/W&B.
-
-Harbor mounts are job-wide, so each task gets its own job; the per-task reports
-are merged. It accepts one or more task directories, or a directory whose direct
-children are tasks (not recursive):
-
-```bash
-python3 -m autorlbench harbor-evaluate \
-  tasks/rlve_hyper/task_001 \
-  tasks/rlve_hyper/task_008 \
-  --agent codex \
-  --model gpt-5.5
-```
-
-GPUs: Harbor's docker environment has no GPU option, so GPU tasks need the
-Docker daemon's default runtime set to `nvidia` (or an equivalent compose
-override on the Harbor side). `--mounts`/`--mounts-json` are managed by
-AutoRLBench and rejected if forwarded.
-
-Keep every task path before forwarded Harbor options. The included batch
-script makes that boundary explicit: arguments before `--` are task paths and
-arguments after it are passed to `harbor run`.
-
-```bash
-./run_harbor_multi.sh
-./run_harbor_multi.sh tasks/rlve_hyper -- --n-attempts 2
-```
-
-Each trial keeps its singular `task_id`. A batch report uses `task_ids` and
-also reports `n_tasks`, `n_completed_tasks`, and `missing_task_ids`. It passes
-only when every submitted task produced at least one trial and every trial
-passed.
-
-To add a new agent, put its runner under `autorlbench/agents/installed/`, register
-it with the factory, and keep `evaluator.py` untouched. Its `run` method should
-only construct a `CommandSpec` and call the supplied `SandboxRuntime`.
-
-The Docker backend resolves the image from the task's `environment.image`,
-mounts the editable
-workspace at `/workspace`, exposes public task text at `/task`, and writes
-results to `/results`. The verifier sees its selected evaluation at `/task`;
-`PTDBENCH_ORACLE` and `PTDBENCH_VERIFIER` resolve the evaluation-specific
-paths. `--backend` selects the single runtime backend used by both agent and
-verifier; their network policies remain independently configurable through
-`--agent-network` and `--verifier-network`.
-
-Run artifacts are grouped under `results/`. The main files are:
-
-- `agent_trace.json`
-- `result.json`
-- `report.json`
-
-Docker container network defaults:
-
-- Docker agent stage: `bridge`, so API-backed agents can reach their model endpoint
-- Docker verifier stage: `bridge`, so API-backed judges and external validation
-  services are available; pass `--verifier-network none` for an offline verifier
-
-Docker Desktop does not automatically pass a host GUI/system proxy into a
-container. If the host network requires Clash, opt in explicitly with a
-host-reachable proxy URL (the port must match the Clash configuration):
-
-```bash
-export PTDBENCH_DOCKER_PROXY=http://host.docker.internal:7890
-export PTDBENCH_DOCKER_NO_PROXY=localhost,127.0.0.1,host.docker.internal
-./run.sh
-```
-
-The proxy settings apply to both agent and verifier containers. Without
-`PTDBENCH_DOCKER_PROXY`, AutoRLBench leaves the default Docker bridge network
-unchanged and does not require Clash.
+Apache-2.0. Each task's workspace keeps the license of its upstream code.

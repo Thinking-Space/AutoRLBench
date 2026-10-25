@@ -144,9 +144,9 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    verifier = Path(os.environ.get("PTDBENCH_VERIFIER", Path(__file__).parent))
-    results = Path(os.environ.get("PTDBENCH_RESULTS", "/results"))
-    oracle = Path(os.environ.get("PTDBENCH_ORACLE", "/task/oracle.md"))
+    verifier = Path(os.environ.get("AUTORLBENCH_VERIFIER", Path(__file__).parent))
+    results = Path(os.environ.get("AUTORLBENCH_RESULTS", "/results"))
+    oracle = Path(os.environ.get("AUTORLBENCH_ORACLE", "/task/oracle.md"))
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--answer", type=Path, default=results / "agent_answer.md")
     parser.add_argument("--oracle", type=Path, default=oracle)
@@ -161,15 +161,15 @@ def main() -> int:
         answer = read_required(args.answer.resolve(), "agent_answer.md")
         oracle = read_required(args.oracle.resolve(), "oracle.md")
         prompt = read_required(args.prompt.resolve(), "judge_prompt.md")
-        model = os.environ.get("PTDBENCH_JUDGE_MODEL", "").strip()
+        model = os.environ.get("AUTORLBENCH_JUDGE_MODEL", "").strip()
         base_url = os.environ.get("OPENAI_BASE_URL", "").strip()
         api_key = os.environ.get("OPENAI_API_KEY", "").strip()
         if not model or not base_url or not api_key:
             raise JudgeError(
-                "PTDBENCH_JUDGE_MODEL, OPENAI_BASE_URL, and OPENAI_API_KEY "
+                "AUTORLBENCH_JUDGE_MODEL, OPENAI_BASE_URL, and OPENAI_API_KEY "
                 "are required"
             )
-        timeout_s = float(os.environ.get("PTDBENCH_JUDGE_TIMEOUT_S", "60"))
+        timeout_s = float(os.environ.get("AUTORLBENCH_JUDGE_TIMEOUT_S", "60"))
         judgment = call_judge(
             prompt=prompt,
             oracle=oracle,
@@ -179,10 +179,16 @@ def main() -> int:
             api_key=api_key,
             timeout_s=timeout_s,
         )
+        # New scoring logic: verdict must be 1.0, root_cause and evidence must be > 0.8
+        passed = (
+            judgment["verdict_score"] == 1.0
+            and judgment["root_cause_score"] > 0.8
+            and judgment["evidence_score"] > 0.8
+        )
         score = sum(judgment[key] * weight for key, weight in WEIGHTS.items())
         score = round(score, 6)
         result = {
-            "passed": score >= PASS_SCORE,
+            "passed": passed,
             "score": score,
             "metrics": {
                 "status": "judged",

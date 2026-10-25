@@ -14,7 +14,7 @@ from ...core.types import (
     DATASETS_DIR,
     MODELS_DIR,
     PREPARED_DIR,
-    PTDBENCH_ENVIRONMENT_DIR,
+    AUTORLBENCH_ENVIRONMENT_DIR,
     TOOLING_DIR,
     CommandResult,
     EnvironmentImage,
@@ -29,14 +29,14 @@ from ..base import (
 from ..factory import register_runtime
 
 
-# ray + sglang 的 worker 之间通过 /dev/shm 传张量，NCCL 也在那里开缓冲区。Docker
-# 的默认值是 64MB，第一次 rollout 就会爆，而报出来的是一个看不懂的 bus error。
+# ray + sglang workers pass tensors through /dev/shm, and NCCL allocates buffers there too. Docker's
+# default is 64MB, which blows up on the first rollout with an unhelpful bus error.
 DEFAULT_SHM_SIZE = "16g"
 
 
 @dataclass(frozen=True)
 class DockerMount:
-    """一个宿主机到容器的目录挂载。"""
+    """One host-to-container directory mount."""
 
     host_path: Path
     container_path: str
@@ -49,7 +49,7 @@ class DockerMount:
 
 @register_runtime("docker")
 class DockerRuntime(SandboxRuntime):
-    """Docker provider，集中处理镜像、挂载和网络。"""
+    """Docker provider, handling images, mounts, and networking in one place."""
 
     name = "docker"
 
@@ -60,11 +60,11 @@ class DockerRuntime(SandboxRuntime):
     def ensure_environment(
         self, image: EnvironmentImage, *, rebuild: bool = False
     ) -> EnvironmentArtifact:
-        """镜像已存在就直接用，否则照 docker/images/<name>.Dockerfile 构建。
+        """Use the image if it exists; otherwise build it from docker/images/<name>.Dockerfile.
 
-        tag 是固定的，所以"已存在"不代表"和 Dockerfile 一致"：改了 Dockerfile 或
-        docker/ 下的工具脚本之后要 rebuild（`autorlbench build-images --rebuild`）。
-        rebuild 走 docker 的层缓存，没变的层不会重跑。
+        Tags are fixed, so "exists" does not mean "matches the Dockerfile": after changing the Dockerfile or
+        tooling scripts under docker/, rebuild (`autorlbench build-images --rebuild`).
+        Rebuilds use docker's layer cache, so unchanged layers are not rerun.
         """
         if rebuild or not self._image_exists(image.tag):
             if not image.dockerfile.is_file():
@@ -72,7 +72,7 @@ class DockerRuntime(SandboxRuntime):
                     f"image {image.tag!r} not found locally and {image.dockerfile} "
                     "does not exist to build it from"
                 )
-            # 构建日志是给人看的进度，不是命令结果；走 stderr，stdout 留给 CLI 的输出。
+            # Build logs are progress for humans, not command results; send them to stderr and keep stdout for CLI output.
             subprocess.run(
                 [
                     "docker",
@@ -94,7 +94,7 @@ class DockerRuntime(SandboxRuntime):
             "visible_task": "/task",
             "workspace": "/workspace",
             "results": "/results",
-            "environment": PTDBENCH_ENVIRONMENT_DIR,
+            "environment": AUTORLBENCH_ENVIRONMENT_DIR,
             "prepared": PREPARED_DIR,
             "models": MODELS_DIR,
             "datasets": DATASETS_DIR,
@@ -139,7 +139,7 @@ class DockerRuntime(SandboxRuntime):
     ) -> SandboxInstance:
         if artifact.backend != self.name or not artifact.reference:
             raise ValueError("docker runtime needs a built environment artifact")
-        container_name = f"ptdbench-{request.stage}-{uuid.uuid4().hex[:12]}"
+        container_name = f"autorlbench-{request.stage}-{uuid.uuid4().hex[:12]}"
         env = self._proxy_env(request, self._merged_spec(request, CommandSpec()).env)
         argv = [
             "docker",
@@ -346,51 +346,56 @@ class DockerRuntime(SandboxRuntime):
         """Optionally expose a host-reachable proxy to task containers.
 
         Docker does not inherit the host's GUI/system proxy settings. The
-        explicit PTDBENCH_DOCKER_PROXY opt-in keeps direct networking as the
+        explicit AUTORLBENCH_DOCKER_PROXY opt-in keeps direct networking as the
         default and avoids forwarding a host localhost address by accident.
         """
         result = dict(env)
-        proxy = os.environ.get("PTDBENCH_DOCKER_PROXY", "").strip()
+        proxy = os.environ.get("AUTORLBENCH_DOCKER_PROXY", "").strip()
         if proxy:
             for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
                 result.setdefault(key, proxy)
-        no_proxy = os.environ.get("PTDBENCH_DOCKER_NO_PROXY", "").strip()
+        no_proxy = os.environ.get("AUTORLBENCH_DOCKER_NO_PROXY", "").strip()
         if no_proxy:
             result.setdefault("NO_PROXY", no_proxy)
         return result
 
     @staticmethod
     def _gpu_args(request: SandboxRequest) -> list[str]:
-        """把任务声明的 NVIDIA_VISIBLE_DEVICES 翻译成 docker 的 `--gpus`。
+        """Translate the task-declared NVIDIA_VISIBLE_DEVICES into docker's `--gpus`.
 
-        镜像侧（CUDA 基础镜像）一直假设 libcuda.so.1 是 `--gpus` 注入的，缺的只是
-        这一半。把变量 `-e`
-        进容器并不会让容器看见 GPU：宿主机的 default runtime 是 runc，只有
-        `--gpus` 才会让 nvidia 的 hook 真正注入设备节点和 libcuda.so.1。
+        The image side (CUDA base image) has always assumed libcuda.so.1 is injected by `--gpus`; only
+        this half was missing. Passing the variable via `-e`
+        into the container does not make GPUs visible: the host's default runtime is runc, and only
+        `--gpus` makes the nvidia hook actually inject device nodes and libcuda.so.1.
 
-        没有声明就一个 flag 都不加，纯 CPU 的任务和阶段（判分几乎都是）行为与
-        接线前完全相同。`none` / `void` 是 NVIDIA_VISIBLE_DEVICES 自己的"不要
-        GPU"取值，按同一条处理。
+        With no declaration, no flag is added, so CPU-only tasks and stages (grading almost always is) behave
+        exactly as before this wiring. `none` / `void` are NVIDIA_VISIBLE_DEVICES's own "no
+        GPU" values and are treated the same way.
 
-        PTDBENCH_DOCKER_GPUS 是宿主机侧的覆盖，沿用 _proxy_env 的 opt-in 惯例：
-        一台只有 2 张卡的机器不该因为任务卡片写着 8 张就跑不起来。
+        AUTORLBENCH_DOCKER_GPUS is a host-side override, following the opt-in convention of _proxy_env:
+        a machine with only 2 GPUs should still run a task whose card says 8.
 
-        prepare は模型・データセットのダウンロードだけで GPU は不要。`docker create`
-        は --gpus を受け付けるが `docker start` 時に NVIDIA runtime hook が実際の
-        デバイスノードをバインドしようとして失敗する環境がある。
+        Prepare only downloads models and datasets and needs no GPU. `docker create`
+        accepts --gpus, but on some hosts the NVIDIA runtime hook fails at `docker start` when it
+        tries to bind the actual device nodes.
+
+        The rerun has to run real training, so it takes the cards the task declares, exactly as the
+        agent stage does. The agent gets them too, but the protocol forbids it from launching
+        training -- there the GPU is headroom for cheap offline checks; the rerun is what actually
+        fills it.
         """
         if request.stage == "prepare":
             return []
-        spec = os.environ.get("PTDBENCH_DOCKER_GPUS", "").strip()
+        spec = os.environ.get("AUTORLBENCH_DOCKER_GPUS", "").strip()
         if not spec:
             spec = str(request.task_env.get("NVIDIA_VISIBLE_DEVICES", "")).strip()
         if not spec or spec in {"none", "void"}:
             return []
-        # `all` 和 `device=...` 本身就是 --gpus 的语法；任务卡片里写的是裸设备表
-        # （"0,1,2,3"），要包一层才能被 docker 认出来。
+        # `all` and `device=...` are already --gpus syntax; task cards hold a bare device list
+        # ("0,1,2,3"), which must be wrapped for docker to recognize it.
         if spec != "all" and not spec.startswith("device="):
             spec = f"device={spec}"
-        shm = os.environ.get("PTDBENCH_DOCKER_SHM_SIZE", "").strip() or DEFAULT_SHM_SIZE
+        shm = os.environ.get("AUTORLBENCH_DOCKER_SHM_SIZE", "").strip() or DEFAULT_SHM_SIZE
         return ["--gpus", spec, f"--shm-size={shm}"]
 
     @staticmethod
@@ -407,20 +412,22 @@ class DockerRuntime(SandboxRuntime):
         return redacted
 
     def _mounts(self, request: SandboxRequest) -> Sequence[DockerMount]:
-        """每个阶段挂什么，以及谁能写。
+        """What each stage mounts, and who can write.
 
-        三张表的差别就是这套设计的访问控制，值得挨条说清楚：
+        The differences between the tables are this design's access control, so each is spelled out:
 
-        * **workspace**：prepare 和 agent 可写，verifier 只读。prepare 要写是因为
-          权重就下在任务脚本引用的那个相对路径上（`./Qwen2.5-0.5B-Instruct`）；
-          verifier 只读是因为判分不能改现场。
-        * **/task**：prepare 和 agent 挂的是 visible_task（只有 instruction），
-          verifier 挂的是整个 evaluation 目录（含 oracle 和判分脚本）。这条是"别剧透"——
-          prepare 跑的是任务自带的脚本，没有理由让它读到答案。
-        * **prepared**：prepare 可写，后两个阶段只读。verifier 要读 prepare 交付的
-          模型路径，但不能读到一份 agent 改过的——否则判分依据是可以被应试者编辑的。
-        * **models / datasets**：prepare 可写，后两个阶段只读。见
-          SandboxRequest.host_models。
+        * **workspace**: writable by prepare, agent and rerun, read-only for verifier. Prepare writes because
+          weights are downloaded to the relative path the task script references (`./Qwen2.5-0.5B-Instruct`);
+          rerun writes because training itself writes checkpoints;
+          the verifier is read-only because grading must not alter the scene.
+        * **/task**: prepare, agent and rerun mount visible_task (instruction only);
+          the verifier mounts the whole evaluation directory (with oracle and grading scripts). This is "no spoilers":
+          prepare runs a script shipped with the task and has no reason to read the answer, and neither does a rerun.
+        * **prepared**: writable by prepare, read-only for every later stage. The verifier reads the model
+          path prepare delivered, but must not read a copy the agent modified, or the grading basis would be editable by the examinee.
+          The rerun reads it too, read-only: that is what makes "the experiment ran on the assets prepare delivered" hold.
+        * **models / datasets**: writable by prepare, read-only for every later stage. See
+          SandboxRequest.host_models.
         """
         if request.stage == "prepare":
             mounts = [
@@ -428,13 +435,18 @@ class DockerRuntime(SandboxRuntime):
                 DockerMount(request.host_visible_task, "/task", read_only=True),
                 DockerMount(request.host_prepared, PREPARED_DIR),
             ]
-            # 仓库 docker/ 只读挂进来：prepare 跑脚本前先用它装最新的 fetch/dataset 工具
-            # （见 TOOLING_DIR / install-ptdbench-tooling.sh）。只有 prepare 需要。
+            # The repo's docker/ mounted read-only: before running the script, prepare uses it to install the latest fetch/dataset
+            # tools (see TOOLING_DIR / install-autorlbench-tooling.sh). Only prepare needs it.
             if request.host_tooling is not None:
                 mounts.append(
                     DockerMount(request.host_tooling, TOOLING_DIR, read_only=True)
                 )
-        elif request.stage == "agent":
+        elif request.stage in {"agent", "rerun"}:
+            # Rerun comes after the agent: the workspace stays writable, because the training script
+            # writes checkpoints and ray writes scratch directories, and results stays writable
+            # because that is where the logs grading reads land. The only difference from the agent
+            # is nothing at all on /task -- a rerun runs the command the task declared and has no
+            # more reason to see the oracle than the agent does.
             mounts = [
                 DockerMount(request.host_workspace, "/workspace"),
                 DockerMount(request.host_visible_task, "/task", read_only=True),
@@ -447,13 +459,13 @@ class DockerRuntime(SandboxRuntime):
                 DockerMount(request.host_results, "/results"),
             ]
         if request.host_environment is not None:
-            # 三个阶段都只读：没有任何一个阶段有理由改仓库里的任务定义。
+            # Read-only in all three stages: no stage has a reason to modify the task definition in the repo.
             mounts.append(
-                DockerMount(request.host_environment, PTDBENCH_ENVIRONMENT_DIR, read_only=True)
+                DockerMount(request.host_environment, AUTORLBENCH_ENVIRONMENT_DIR, read_only=True)
             )
         if request.stage != "prepare" and request.host_prepared is not None:
             mounts.append(DockerMount(request.host_prepared, PREPARED_DIR, read_only=True))
-        # 下载缓存：只有 prepare 需要写，后两个阶段挂只读的同一份。
+        # Download caches: only prepare needs to write; the later two stages mount the same copy read-only.
         read_only = request.stage != "prepare"
         for host, container in (
             (request.host_models, MODELS_DIR),

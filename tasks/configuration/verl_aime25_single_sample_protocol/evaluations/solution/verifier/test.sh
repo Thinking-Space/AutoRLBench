@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${PTDBENCH_WORKSPACE:?PTDBENCH_WORKSPACE is required}"
-: "${PTDBENCH_RESULTS:?PTDBENCH_RESULTS is required}"
-: "${PTDBENCH_ORACLE:?PTDBENCH_ORACLE is required}"
+: "${AUTORLBENCH_RESULTS:?AUTORLBENCH_RESULTS is required}"
+: "${AUTORLBENCH_ORACLE:?AUTORLBENCH_ORACLE is required}"
+: "${AUTORLBENCH_WORKSPACE:?AUTORLBENCH_WORKSPACE is required}"
 
-mkdir -p "$PTDBENCH_RESULTS"
+PROTO="$AUTORLBENCH_RESULTS/solution_protocol.json"
 
-PROTO="$PTDBENCH_RESULTS/solution_protocol.json"
-
-python3 \
-  "$PTDBENCH_WORKSPACE/run_eval.py" \
-  --protocol-only \
-  > "$PROTO"
+if [ ! -f "$PROTO" ]; then
+    echo "[FAIL] rerun did not produce solution_protocol.json" >&2
+    echo "       expected: $PROTO" >&2
+    exit 1
+fi
 
 python3 - "$PROTO" <<'PY'
 import json
@@ -35,8 +34,8 @@ assert p["expected_generations"] == 960, p
 print("[PASS] repaired AIME25 protocol is active")
 PY
 
-EVID="$PTDBENCH_WORKSPACE/ptdbench_case/original_eval"
-MANIFEST="$PTDBENCH_ORACLE/original_eval.sha256"
+EVID="$AUTORLBENCH_WORKSPACE/autorlbench_case/original_eval"
+MANIFEST="$AUTORLBENCH_ORACLE/original_eval.sha256"
 
 if [ ! -f "$MANIFEST" ]; then
     echo "[FAIL] missing trusted oracle evidence manifest:" >&2

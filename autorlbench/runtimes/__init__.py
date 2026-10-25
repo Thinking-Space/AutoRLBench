@@ -1,4 +1,4 @@
-"""评测执行平台。"""
+"""Evaluation execution platforms."""
 
 from .base import (
     CommandSpec,

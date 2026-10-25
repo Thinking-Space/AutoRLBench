@@ -1,152 +1,55 @@
-# <task-id>
+# Task README template
 
-<!--
-  填写说明见 [readme-format.md](readme-format.md)。写完删掉本注释。
-  <尖括号> 是占位符，全部替换掉。
-  六节封顶。不要新增节：环境进身份表，运行方式进 Running it，局限写进它所属的那一节。
--->
+Every task's `README.md` follows this template, modeled on terminal-bench-science. The reader is a reviewer, not the agent:
+the README may state the root cause and threshold, but must not be mounted into the agent stage.
+
+Style:
+
+- **Clear at a glance.** The sentence under the title says "what is being trained and what goes wrong", matching the sentence on the website task card.
+- **Identity table fields match `task.toml`**, with no new wording. The `Recorded runs` row states how many runs per side.
+- **Only three sections**: Difficulty, Reference solution, Verification. Each is 1–3 paragraphs, or one table plus a few lines.
+  Maintainer notes (migration history, asset shas, sanitization records) go in `prepare.sh` comments or `source_manifest.json`, not the README.
+- **Always use numbers**, never "dropped significantly".
+
+```markdown
+# <Title, same as task.toml title>
+
+<One sentence: training <model> with <algo> on <dataset>. <What goes wrong>.>
 
 | | |
 | --- | --- |
-| **Author** | <贡献者> |
-| **Domain** | `<environment>` · `<reward>` · `<algorithm>` · `<configuration>` · `<data>` · `<infrastructure>` |
-| **Tags** | `<tag-1>` `<tag-2>` `<tag-3>` |
-| **Framework** | <框架与版本，如 Search-R1 + veRL vendored> |
-| **Model** | <模型名与规模> |
-| **Dataset** | <数据集，训练/验证条数，语料规模> |
-| **Environment** | `Dockerfile`，<是否自包含> — <关键 pin：Python、CUDA、torch、框架> |
-| **Resources** | <几张什么卡> |
-| **Recorded runs** | <每侧几次、什么时候跑的> |
-| **Recorded runtime** | <每侧耗时> |
+| **Author** | <name> |
+| **Domain** | <configuration · reward · data · environment · algorithm · infrastructure> |
+| **Tags** | `<tag>` `<tag>` |
+| **Model** | <model> |
+| **Dataset** | <train / held-out, sizes> |
+| **Framework** | <framework>, `<launch script>` |
+| **Environment** | `<image>` · <GPUs> |
+| **Evaluations** | issue · solution |
+| **Recorded runs** | <N defective + N control runs, steps, duration> |
 
-<!--
-  身份表必须写实。审稿人扫一眼就知道这个任务是怎么录出来的、门槛是几次运行标定的。
-  如果每侧只跑了一次，就在下面的 Task abstract 或 Verification 里明说。
--->
+## Difficulty
 
-## Task abstract
+<Where the defect is: path + symbol, and a few lines of code if they help.>
 
-<第一句：缺陷是什么，一句话说清。>
+<Why nothing fails loudly: valid shapes, rising training reward, plausible distractors.
+Name the single strongest piece of evidence that rules out the wrong diagnosis.>
 
-<第二句：为什么它不炸 —— 什么都是合法的，所以没有任何报错。>
+<Optional: a small table of the measured curve, defective vs control.>
 
-<最后一句：实测后果的数字。必须带数字，不要写「显著下降」「效果很差」这种词。>
+## Reference solution
 
-```
-                                      held-out <指标> @ <步数>
-  buggy_workspace                            <数字>
-  fixed_workspace                            <数字>
-```
-
-<!--
-  可选的小对照块。放不下就删掉，数字写进上一句。
--->
-
-## The defect
-
-`<文件路径>`, in `<函数或类>`:
-
-```python
-<能看出缺陷的那几行代码>
-```
-
-<逐句解释这段代码实际做了什么，以及它和作者以为它做的事差在哪里。>
-
-<说明为什么它看起来是对的 —— 在哪一种条件下它确实能工作。这一句决定了它为什么能通过 review。>
-
-### Why nothing catches it
-
-<为什么运行时不报错：形状合法、dtype 合法、异常没抛、指标仍在涨……>
-
-<缺陷是否同时落在训练路径和评测路径上。>
-
-<关键量化证据。最有力的一条通常是「差距在 step 0 就已经拉开」这类 —— 一句话排掉一整类归因。>
-
-## Evidence
-
-每个 workspace 自带它那次运行的产物，位置就是运行当时写出来的地方：
-
-| Artifact | What it answers |
-| --- | --- |
-| `<相对路径>` | <它能证明什么，不是它是什么> |
-| `<相对路径>` | <…> |
-
-<产物之外的量化观察。如果某个文件被裁剪过，说明裁到多少行、为什么够用。>
-
-<如果存在训练前就能测到的现象（检索质量、数据校验、离线检查），放一张两列对照表。>
-
-### Held-out results
-
-| Step | buggy <指标> | fixed <指标> |
-| ---: | ---: | ---: |
-| 0 | <数字> | <数字> |
-| <…> | <…> | <…> |
-| **<末步>** | **<数字>** | **<数字>** |
-
-<两侧共同点的说明：同一份数据、同一个 seed、同一个配方。没有这句，读者没有理由相信这个对照。>
-
-<差距最早出现在哪一步，以及这意味着什么。>
-
-## Reference answer
-
-### `issue` — the diagnosis
-
-A passing answer must identify **all** of:
-
-1. <根因一>
-2. <根因二：机制>
-3. <根因三：为什么无声>
-
-<!--
-  多根因必须写这一句，否则 judge 会把只点出一半的答案判满分：
-  Identifying only part of these must receive partial root-cause credit.
--->
-
-<哪些归因必须判不过。尤其要列出「说反了现象」的那一个 —— 例如「训练没有提升」而实测是在提升。>
-
-### `solution` — the patch
-
-```diff
-- <缺陷行>
-+ <修复行>
-```
-
-<哪一部分才是真正的修复，哪几部分只是为了让结果明确符合下游要求。>
-
-<如果修复不止一处，逐个列出，并说明少改一处会怎样。>
-
-### <不属于修复的差异>
-
-<两侧之间与修复无关的差异：端口、卡号、日志路径。说明为什么它们不是复现条件，
-以及打包时必须处理。>
+- **issue**: <what a passing diagnosis must name; which attributions must fail.>
+- **solution**: <the minimal patch and why it is sufficient.>
 
 ## Verification
 
-<!--
-  raw task 阶段还没有 verifier 时，这一节写成提议并标明。
--->
-
-- **Decider:** `<指标键>` at `<步数>`，读自 `<文件路径>`。
-- **Threshold:** `<门槛>`。两侧实测端点 `<低>` 与 `<高>`，余量 <下余量> / <上余量>，
-  <哪边薄>。
-- **压过对照侧起步点：** 门槛必须高于对照侧 step 0（`<数值>`），否则「改对代码但没跑完」
-  也会过。
-- **Upper bound:** `<上界>` —— 只用来拒绝离谱的值，不是评优线。
-
-**本门槛只有每侧 `<N>` 次运行作为标定。** <只报余量、不报方差；门槛附近属于未测区间，
-需读日志再判；补一对重跑是下一步。>
-
-<评测本身不该断言什么，尤其是任何会暴露缺陷位置的量。>
-
-## Running it
-
-```bash
-<启动命令>
+- **issue**: an LLM judge compares `agent_answer.md` with the hidden oracle on
+  verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2. Passing requires ≥ 0.8.
+- **solution**: the agent submits `report.md` and does not train; the harness reruns the
+  experiment per `run_spec.json` and grades only that run. <metric key, step, threshold.
+  Margins to both arms, whether it clears the control's step 0, and how many runs per side
+  it was calibrated on.>
 ```
 
-<入口脚本自己管了什么：拉起并发服务、等待就绪、结束时清理；以及不要另起或绕开。>
-
-<没有随包的东西，以及怎么取：模型、索引、checkpoint。能从随包内容算出来的东西不要收，
-但要写清楚怎么重建。>
-
-<环境的硬约束：哪个 pin 不能动、为什么。Dockerfile 里自带的保真度说明也搬一份到这里。>
+For issue-only tasks, delete the `solution` line from both Reference solution and Verification.

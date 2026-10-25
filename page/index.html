@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoRLBench - Benchmark Tasks</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23171716'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="styles.css?v=20261018-1">
+    <title>AutoRLBench — A benchmark for AI agents on real RL training runs</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <link rel="stylesheet" href="styles.css?v=20261023-4">
 </head>
 <body class="home-page">
+    <!-- Aurora orbs — decorative, hidden from assistive tech -->
+    <canvas id="globe-canvas" aria-hidden="true"></canvas>
     <nav>
-        <a href="index.html" class="nav-logo">AutoRLBench</a>
+        <a href="index.html" class="nav-logo"><img src="images/logo.png" alt="AutoRLBench" width="150" height="24"></a>
         <div class="nav-links">
             <a href="index.html">HOME</a>
             <a href="#tasks">TASKS</a>
             <a href="#leaderboard">LEADERBOARD</a>
             <a href="contribute.html">CONTRIBUTE</a>
+            <a href="team.html">TEAM</a>
             <a class="nav-github" href="https://github.com/Thinking-Space/AutoRLBench" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3.3-.4 6.8-1.6 6.8-7A5.4 5.4 0 0 0 19.4 4 5 5 0 0 0 19.3.5S18.2.1 15 1.8a13.4 13.4 0 0 0-7 0C4.8.1 3.7.5 3.7.5A5 5 0 0 0 3.6 4a5.4 5.4 0 0 0-1.4 3.7c0 5.4 3.5 6.6 6.8 7A4.8 4.8 0 0 0 8 18v4"/><path d="M8 19c-3 .9-3-1.5-4.2-2"/></svg>
                 <span>GITHUB</span>
@@ -24,65 +27,125 @@
 
     <!-- Hero -->
     <section class="hero">
-        <h1>AutoRLBench</h1>
-        <p>A benchmark and open call for valuable, reproducible RL runs. We welcome both problematic runs and healthy reference runs. Issue evaluation is available now; Solution evaluation is coming soon.</p>
-        <div class="hero-stats">
-            <div class="stat">
-                <div class="stat-number">20</div>
-                <div class="stat-label">Tasks</div>
-            </div>
-            <div class="stat">
-                <div class="stat-number">6</div>
-                <div class="stat-label">Domains</div>
-            </div>
-            <div class="stat">
-                <div class="stat-number">1</div>
-                <div class="stat-label">Live evaluation</div>
-            </div>
-            <div class="stat">
-                <div class="stat-number">9</div>
-                <div class="stat-label">Evaluated systems</div>
-            </div>
-        </div>
+        <img src="images/logo.png" alt="AutoRLBench" class="hero-logo">
+        <p>A Benchmark for AI agents to diagnose and repair real RL training runs.
+            <br>Can an agent diagnose why a run fails — and repair it?
+        </p>
         <div class="hero-buttons">
-            <a href="#contribute" class="btn btn-primary">Contribute a Run</a>
+            <a href="contribute.html" class="btn btn-primary">Contribute a Run</a>
             <a href="#tasks" class="btn btn-secondary">Browse Tasks</a>
         </div>
-        <a class="contribute-guide-link" href="contribute.html">Read the full contribution guide <span aria-hidden="true">→</span></a>
+        <div class="hero-push" aria-hidden="true"></div>
+        <div class="category-strip-wrap"><div class="category-strip" id="category-strip"></div></div>
     </section>
 
-    <!-- Tasks -->
-    <section id="tasks">
-        <h2 class="section-title">Tasks</h2>
-        <p class="section-subtitle">Grouped by common failure modes across the RL pipeline.</p>
-        <div class="task-overview-stats" aria-label="Tasks summary">
-            <div class="task-overview-stat">
-                <strong id="domain-count">6</strong>
-                <span>DOMAINS</span>
+    <!-- Why this benchmark -->
+    <section id="why">
+        <h2 class="section-title">Why this benchmark</h2>
+        <p class="gap-lede">Most AI-for-AI evaluation is end-to-end: agents execute the full training pipeline and return only a final pass / fail result. This tells us whether it succeeds but not where it fails.</p>
+        <p class="gap-lede">AutoRLBench isolates <strong>RL training diagnosis and repair</strong> on real RL runs.</p>
+        <div class="why-stats">
+            <div class="why-stat">
+                <span class="why-stat-num">6</span>
+                <span class="why-stat-label">Failure<br>Categories</span>
             </div>
-            <div class="task-overview-stat-divider" aria-hidden="true"></div>
-            <div class="task-overview-stat">
-                <strong id="active-task-count">20</strong>
-                <span>TASKS</span>
-                <em class="collecting-note">Actively collecting</em>
+            <div class="why-stat">
+                <span class="why-stat-num">14</span>
+                <span class="why-stat-label">Tasks</span>
+                <span class="why-stat-note">actively collecting</span>
+            </div>
+            <div class="why-stat">
+                <span class="why-stat-num">2</span>
+                <span class="why-stat-label">Evaluation<br>Levels</span>
             </div>
         </div>
-        <div class="domain-cards" id="domain-cards"></div>
-        <p class="task-sample-note">One task is shown as a sample for each available category.</p>
+        <div class="why-invite">
+            <p>Real failures are scarce — the ones that would make this benchmark matter are now <br>sitting in your checkpoint folders and post-mortem notes. 
+            <br>📣 Bring us the run that confused you for a week; we will turn it into a benchmark task.</p>
+        </div>
+    </section>
+
+     <!-- Tasks -->
+    <section id="tasks">
+        <h2 class="section-title">What does a task look like?</h2>
         <div class="tasks-grid" id="sample-cards"></div>
     </section>
+
+    <!-- How a task runs -->
+    <!-- <section id="pipeline">
+        <h2 class="section-title">How a task runs</h2>
+        <div class="pipeline-flow">
+            <div class="pipeline-stage">
+                <div class="pipeline-stage-label"><span>Stage 01</span><b>prepare</b></div>
+                <h3>Prepare model and data</h3>
+                <p>Downloads and pins the model and dataset versions.</p>
+            </div>
+            <div class="pipeline-arrow" aria-hidden="true">→</div>
+            <div class="pipeline-stage is-agent">
+                <div class="pipeline-stage-label"><span>Stage 02</span><b>agent</b></div>
+                <h3>Diagnose or repair</h3>
+                <p>Reads instruction.md and a writable copy of workspace/. For solutions, it repairs the code and submits report.md; the harness reruns the training itself.</p>
+            </div>
+            <div class="pipeline-arrow" aria-hidden="true">→</div>
+            <div class="pipeline-stage">
+                <div class="pipeline-stage-label"><span>Stage 03</span><b>verify</b></div>
+                <h3>Judge against the oracle</h3>
+                <p>Issue: a judge compares agent_answer.md with the hidden oracle. Solution: the rerun is read against a metric threshold.</p>
+            </div>
+        </div>
+    </section> -->
 
     <!-- Leaderboard -->
     <section id="leaderboard">
         <h2 class="section-title">Leaderboard</h2>
-        <p class="section-subtitle">Issue scores for the agents under evaluation.</p>
-        <div class="lb-kicker">AutoRLBench Leaderboard 0.1</div>
+        <div class="lb-kicker">AutoRLBench Leaderboard v0.1 (issue)</div>
         <div class="lb-header">
+            <span class="lb-header-rank">#</span>
             <span>Model</span>
             <span>Agent</span>
             <span class="lb-header-scores">Issue</span>
         </div>
         <div class="leaderboard-list"></div>
+
+        <div class="lb-analysis">
+            <h3 class="lb-subtitle">Failure Modes</h3>
+            <div class="lb-chart-row">
+                <figure class="lb-chart" style="flex-grow: 0.948">
+                    <div class="lb-chart-image">
+                        <img src="images/chart_category.png" width="670" height="707" loading="lazy"
+                             alt="Pass rate by failure category: Configuration 90%, Reward 80%, Environment 75%, Algorithm 45%, Infrastructure 35%, Data 10%.">
+                    </div>
+                    <figcaption>
+                        <h4>Pass rate by category</h4>
+                        <p>Issue-task pass rate in each failure category, averaged on all agents.</p>
+                    </figcaption>
+                </figure>
+                <figure class="lb-chart" style="flex-grow: 1.725">
+                    <div class="lb-chart-image">
+                        <img src="images/chart_detail.png" width="1421" height="824" loading="lazy"
+                             alt="Per-task outcome grid for each model, graded as pass, weak evidence, wrong cause, or fail.">
+                    </div>
+                    <figcaption>
+                        <h4>Per-task result</h4>
+                        <p>Agent performance on each Issue task: pass, weak evidence, wrong cause, or fail.</p>
+                    </figcaption>
+                </figure>
+            </div>
+        </div>
+
+        <div class="lb-analysis">
+            <h3 class="lb-subtitle">Time Usage &amp; Cost Efficiency</h3>
+            <figure class="lb-chart lb-chart-wide">
+                <div class="lb-chart-image">
+                    <img src="images/chart_usage.png" width="2335" height="754" loading="lazy"
+                         alt="Scatter plots of average performance against average time usage in minutes and average cost in dollars for each model.">
+                </div>
+                <figcaption>
+                    <h4>Performance vs. time and cost</h4>
+                    <p>Average Issue score against average minutes (left) and average cost (right) per task.</p>
+                </figcaption>
+            </figure>
+        </div>
     </section>
 
     <!-- Evaluation -->
@@ -96,41 +159,59 @@
         </div>
     </section>
 
-    <!-- Contribute -->
-    <section id="contribute" class="contribute-section">
-        <div class="contribute-cta">
-            <div class="contribute-cta-copy">
-                <span class="contribute-kicker">CONTRIBUTE</span>
-                <h2>Contribute a valuable RL run.</h2>
-                <p>Submit the full configuration, workspace, launch path, logs, and metrics. Problem cases, healthy runs, and useful controls are all welcome.</p>
-            </div>
-            <div class="contribute-cta-action">
-                <div class="contribute-cta-meta"><span>Complete run package</span><span>Issue available now</span></div>
-                <a class="btn btn-primary" href="contribute.html">Read the contribution guide <span aria-hidden="true">→</span></a>
-            </div>
+    <!-- Why contribute -->
+    <section id="coauthor" class="contribute-why">
+        <h2 class="section-title">Why Contribute</h2>
+        <p class="contribute-why-lede">Help us build the benchmark, showcase your expertise, and shape<br>the future of AI-for-AI evaluation.</p>
+        <div class="contribute-why-grid">
+            <article class="contribute-why-card">
+                <div class="contribute-why-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.2-3.4-1.2-.4-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.3 1.1 2.9.9.1-.7.3-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.2-.4-1.2.1-2.5 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.5.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>
+                </div>
+                <h3>Open Source</h3>
+                <p>Every task lives in a public repository. Anyone can reproduce, review, and build on your runs.</p>
+            </article>
+            <article class="contribute-why-card">
+                <div class="contribute-why-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M5 3h2v18H5V3zm4 1h11l-3.5 4.5L20 13H9V4z"/></svg>
+                </div>
+                <h3>Shape Evaluation</h3>
+                <p>Your hands-on training experience and debugging stories set the bar for what frontier agents must solve next.</p>
+            </article>
+            <article class="contribute-why-card">
+                <div class="contribute-why-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8L12 2z"/></svg>
+                </div>
+                <h3>Co-authorship</h3>
+                <p>Contribute <strong>two valid tasks</strong> and become a co-author on the research publication.</p>
+            </article>
         </div>
+        <a class="contribute-guide-link" href="contribute.html">Read the contribution guide <span aria-hidden="true">&rarr;</span></a>
     </section>
 
     <!-- Footer -->
     <footer id="contact">
         <div class="footer-grid">
             <div class="footer-brand">
-                <div class="nav-logo">AutoRLBench</div>
-                <p>A benchmark and open call for complete, reproducible RL runs.</p>
+                <div class="nav-logo"><img src="images/logo.png" alt="AutoRLBench" width="150" height="24"></div>
+                <p>A benchmark for AI agents on RL training diagnosis and repair.</p>
             </div>
             <div class="footer-col">
                 <h4>Benchmark</h4>
+                <a href="#why">Why this benchmark</a>
+                <a href="#pipeline">How a task runs</a>
                 <a href="#tasks">Tasks</a>
                 <a href="#leaderboard">Leaderboard</a>
-                <a href="#evaluation">Evaluation</a>
             </div>
             <div class="footer-col">
                 <h4>Contribute</h4>
                 <a href="contribute.html">Submission Guide</a>
-                <a href="contribute.html#requirements">Run Package</a>
+                <a href="contribute.html#levels">Run Package</a>
+                <a href="team.html">Team</a>
             </div>
             <div class="footer-col">
                 <h4>Contact</h4>
+                <a href="https://github.com/Thinking-Space/AutoRLBench" target="_blank" rel="noopener noreferrer">GitHub</a>
                 <a href="contribute.html">Contribution Guide</a>
                 <a href="#contact">AutoRLBench</a>
             </div>
@@ -140,8 +221,8 @@
         </div>
     </footer>
 
-    <script src="task-data.js?v=20261018-3"></script>
-    <script src="app.js?v=20261018-2"></script>
-    <script src="site.js?v=20261016-3"></script>
+    <script src="task-data.js?v=20261022-5"></script>
+    <script src="app.js?v=20261022-2"></script>
+    <script src="globe.js?v=20261020-1"></script>
 </body>
 </html>

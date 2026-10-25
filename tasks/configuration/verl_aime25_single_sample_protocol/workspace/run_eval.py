@@ -129,7 +129,7 @@ def main() -> None:
         os.environ.get(
             "OUTPUT_DIR",
             (
-                "/workspace/ptdbench_case/reproduced_eval/"
+                "/workspace/autorlbench_case/reproduced_eval/"
                 f"n{samples}"
             ),
         )
@@ -167,7 +167,7 @@ def main() -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 68)
-    print("PTDBENCH CASE 5 — AIME25 EVALUATION")
+    print("AUTORLBENCH CASE 5 — AIME25 EVALUATION")
     print("=" * 68)
 
     for key, value in protocol.items():

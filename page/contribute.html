@@ -4,17 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contribute - AutoRLBench</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23171716'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="styles.css?v=20261016-37">
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <link rel="stylesheet" href="styles.css?v=20261021-35">
 </head>
 <body class="guide-page">
+    <!-- Aurora orbs — decorative, hidden from assistive tech -->
+    <canvas id="globe-canvas" aria-hidden="true"></canvas>
     <nav>
-        <a href="index.html" class="nav-logo">AutoRLBench</a>
+        <a href="index.html" class="nav-logo"><img src="images/logo.png" alt="AutoRLBench" width="150" height="24"></a>
         <div class="nav-links">
             <a href="index.html">HOME</a>
             <a href="index.html#tasks">TASKS</a>
             <a href="index.html#leaderboard">LEADERBOARD</a>
             <a href="contribute.html" aria-current="page">CONTRIBUTE</a>
+            <a href="team.html">TEAM</a>
             <a class="nav-github" href="https://github.com/Thinking-Space/AutoRLBench" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3.3-.4 6.8-1.6 6.8-7A5.4 5.4 0 0 0 19.4 4 5 5 0 0 0 19.3.5S18.2.1 15 1.8a13.4 13.4 0 0 0-7 0C4.8.1 3.7.5 3.7.5A5 5 0 0 0 3.6 4a5.4 5.4 0 0 0-1.4 3.7c0 5.4 3.5 6.6 6.8 7A4.8 4.8 0 0 0 8 18v4"/><path d="M8 19c-3 .9-3-1.5-4.2-2"/></svg>
                 <span>GITHUB</span>
@@ -34,10 +37,10 @@
             </div>
             <aside class="guide-hero-card" aria-label="Required materials">
                 <span class="guide-card-label">Required</span>
-                <div class="guide-hero-row"><span>01</span><strong>Instruction</strong><em>issue</em></div>
-                <div class="guide-hero-row"><span>02</span><strong>Baseline run</strong><em>issue</em></div>
-                <div class="guide-hero-row"><span>03</span><strong>Environment</strong><em>issue</em></div>
-                <div class="guide-hero-row"><span>04</span><strong>Solution run</strong><em>solution</em></div>
+                <div class="guide-hero-row"><span>01</span><strong>Instruction</strong><em>diagnosis</em></div>
+                <div class="guide-hero-row"><span>02</span><strong>Workspace</strong><em>the recorded run</em></div>
+                <div class="guide-hero-row"><span>03</span><strong>Environment</strong><em>image & data</em></div>
+                <div class="guide-hero-row"><span>04</span><strong>Solution</strong><em>adds rerun</em></div>
             </aside>
         </section>
 
@@ -66,38 +69,38 @@
                 <article class="guide-evaluation-card">
                     <div class="guide-card-top"><span>Level 01</span><code>Issue</code></div>
                     <h3>Issue</h3>
-                    <p>The agent finds the failure. Stop here if there is no repaired run.</p>
+                    <p>Diagnose the failure using the workspace and metrics.</p>
                     <div class="guide-file-rows">
-                        <div><span>Instruction</span><strong>What to diagnose, and what the failure is.</strong></div>
-                        <div><span>Baseline run</span><strong>Code, launch path, logs, and metrics for the broken run.</strong></div>
-                        <div><span>Environment</span><strong>Image, dependencies, model, and data for that run.</strong></div>
+                        <div><span>Instruction</span><strong>What to diagnose and what the failure is.</strong></div>
+                        <div><span>Workspace</span><strong>Code, config, logs, and metrics from the recorded run.</strong></div>
+                        <div><span>Environment</span><strong>Container image, dependencies, model, and dataset.</strong></div>
                     </div>
                 </article>
                 <article class="guide-evaluation-card is-dark">
                     <div class="guide-card-top"><span>Level 02</span><code>Solution</code></div>
                     <h3>Solution</h3>
-                    <p>Everything in Issue, plus the run that shows the fix.</p>
+                    <p>Everything in Issue, plus repair instructions and rerun threshold.</p>
                     <div class="guide-file-rows">
-                        <div><span>Issue</span><strong>Instruction, baseline run, and environment.</strong></div>
-                        <div><span>Solution run</span><strong>The repaired launch path, logs, and metrics.</strong></div>
+                        <div><span>Issue</span><strong>Diagnosis instruction, workspace, and environment.</strong></div>
+                        <div><span>Solution</span><strong>Fix instructions and threshold. Adds repair-and-rerun evaluation.</strong></div>
                     </div>
                 </article>
             </div>
             <div class="guide-example">
                 <div>
-                    <h3>slime_retool_length_hack</h3>
+                    <h3>slime_retool_length_reward_bonus</h3>
                     <p>Training Qwen3-4B with GRPO on DAPO-Math-17k.</p>
                     <p>Issue: the model hacks the reward by generating longer answers. </p>
                     <p>Solution: remove the length bonus.</p>
-                    <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/tasks/slime_retool_length_hack" target="_blank" rel="noopener noreferrer">Open the sample <span aria-hidden="true">&rarr;</span></a>
+                    <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/tasks/reward/slime_retool_length_reward_bonus" target="_blank" rel="noopener noreferrer">Open the sample <span aria-hidden="true">&rarr;</span></a>
                 </div>
-                <pre>tasks/slime_retool_length_hack/
+                <pre>tasks/reward/slime_retool_length_reward_bonus/
 ├── environment/
-├── workspace/             baseline run
-├── evaluations/issue/
-├── evaluations/solution/  solution run
-├── metadata.yaml
-└── readme.md</pre>
+├── workspace/             the recorded run
+├── evaluations/issue/     diagnosis
+├── evaluations/solution/  repair and rerun
+├── task.toml
+└── README.md</pre>
             </div>
         </section>
 
@@ -117,7 +120,7 @@
                         </div>
                         <button type="button" id="copy-agent-prompt">Copy</button>
                     </div>
-                    <pre id="agent-prompt">Package the workspace at &lt;path&gt; as a PTDBench issue task using https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task.</pre>
+                    <pre id="agent-prompt">Package the workspace at &lt;path&gt; as an AutoRLBench issue task using https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task.</pre>
                 </article>
                 <article class="submit-way" id="pr">
                     <div class="submit-way-head">
@@ -139,7 +142,7 @@
                             <span>02</span>
                             <div>
                                 <strong>Add only what you have</strong>
-                                <p>Instruction, baseline run, and environment. Add the solution run when it exists.</p>
+                                <p>Diagnosis instruction, workspace, and environment. Solution adds repair-and-rerun evaluation.</p>
                             </div>
                         </li>
                         <li>
@@ -150,7 +153,7 @@
                             </div>
                         </li>
                     </ol>
-                    <pre class="submit-git">git clone https://github.com/&lt;you&gt;/AutoRLBench.git
+                    <pre class="submit-git">git clone https://github.com/Thinking-Space/AutoRLBench.git
 cd AutoRLBench
 git checkout -b contrib/your-task-name
 git add tasks/your-task-name
@@ -163,7 +166,7 @@ git push -u origin contrib/your-task-name</pre>
 
     <footer id="contact">
         <div class="footer-grid">
-            <div class="footer-brand"><div class="nav-logo">AutoRLBench</div><p>A benchmark and open call for reproducible RL runs.</p></div>
+            <div class="footer-brand"><div class="nav-logo"><img src="images/logo.png" alt="AutoRLBench" width="150" height="24"></div><p>A benchmark and open call for reproducible RL runs.</p></div>
             <div class="footer-col"><h4>Benchmark</h4><a href="index.html#tasks">Tasks</a><a href="index.html#leaderboard">Leaderboard</a></div>
             <div class="footer-col"><h4>Contact</h4><a href="#levels">Issue and solution</a><a href="#agent">Agent</a><a href="#pr">Pull request</a></div>
         </div>
@@ -194,5 +197,6 @@ git push -u origin contrib/your-task-name</pre>
             window.setTimeout(function () { button.textContent = 'Copy'; }, 1600);
         });
     </script>
+    <script src="globe.js?v=20261020-1"></script>
 </body>
 </html>

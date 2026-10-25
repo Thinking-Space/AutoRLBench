@@ -2,8 +2,8 @@
 
 `test.sh` is the single entry point. It does not use `submission.json`, an LLM,
 rules, or rubrics. It strips ANSI escapes and reconstructs `eval/aime` from
-`$PTDBENCH_RESULTS/experiment_logs`, including offline W&B files under
-`$PTDBENCH_RESULTS/experiment_logs/wandb`.
+`$AUTORLBENCH_RESULTS/experiment_logs`, including offline W&B files under
+`$AUTORLBENCH_RESULTS/experiment_logs/wandb`.
 
 ## Which space `eval/aime` is read in
 

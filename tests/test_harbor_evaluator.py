@@ -22,7 +22,7 @@ from autorlbench.core.types import (
     DATASETS_DIR,
     MODELS_DIR,
     PREPARED_DIR,
-    PTDBENCH_ENVIRONMENT_DIR,
+    AUTORLBENCH_ENVIRONMENT_DIR,
     CommandResult,
     EnvironmentImage,
 )
@@ -38,32 +38,39 @@ from autorlbench.evaluation.harbor_evaluator import (
 from autorlbench.tasks import load_task_package
 
 
-METADATA = """title: Harbor fixture
-submitter:
-  name: test
-license: MIT
-created_date: 2026-09-13
-domain: rl
-model:
-  name: Qwen2.5-1.5B
-dataset:
-  name: taco
-training:
-  framework: verl
-  algo: grpo
-  script: train.sh
-environment:
-  image: verl
-  env:
-    CUDA_VISIBLE_DEVICES: "0"
-outcome:
-  failure_type: test
-  failure_reason: test
+METADATA = """title = "Harbor fixture"
+license = "MIT"
+created_date = "2026-09-13"
+domain = "rl"
+
+[submitter]
+name = "test"
+
+[model]
+name = "Qwen2.5-1.5B"
+
+[dataset]
+name = "taco"
+
+[outcome]
+failure_type = "test"
+failure_reason = "test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "train.sh"
+
+[environment]
+image = "verl"
+
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0"
 """
 
 
 def create_task(root: Path, name: str = "harbor_fixture") -> Path:
-    """一个带 issue / solution 两套评测、prepare.sh 和 verl 镜像的最小任务。"""
+    """A minimal task with issue / solution evaluations, prepare.sh, and the verl image."""
     task = root / name
     (task / "workspace" / "pkg").mkdir(parents=True)
     (task / "workspace" / "train.sh").write_text(
@@ -72,7 +79,7 @@ def create_task(root: Path, name: str = "harbor_fixture") -> Path:
     (task / "workspace" / "pkg" / "code.py").write_text("x = 1\n", encoding="utf-8")
     (task / "environment").mkdir()
     (task / "environment" / "prepare.sh").write_text(
-        "#!/usr/bin/env bash\necho KEY=1 >> \"$PTDBENCH_PREPARED/env\"\n",
+        "#!/usr/bin/env bash\necho KEY=1 >> \"$AUTORLBENCH_PREPARED/env\"\n",
         encoding="utf-8",
     )
     for level in ("issue", "solution"):
@@ -87,7 +94,7 @@ def create_task(root: Path, name: str = "harbor_fixture") -> Path:
         else:
             (evaluation / "oracle").mkdir()
             (evaluation / "oracle" / "fix.diff").write_text("diff\n", encoding="utf-8")
-    (task / "metadata.yaml").write_text(METADATA, encoding="utf-8")
+    (task / "task.toml").write_text(METADATA, encoding="utf-8")
     return task
 
 
@@ -136,7 +143,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
             (task_dir / "instruction.md").read_text(encoding="utf-8"),
             "issue instruction\n",
         )
-        self.assertIn('PTDBENCH_ORACLE = "/tests/oracle.md"', self.toml(task_dir))
+        self.assertIn('AUTORLBENCH_ORACLE = "/tests/oracle.md"', self.toml(task_dir))
 
     def test_task_uses_the_prebuilt_image_and_ships_no_dockerfile(self):
         task_dir = self.materialize()
@@ -154,7 +161,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
 
         self.assertTrue((environment / "pkg" / "code.py").is_file())
         self.assertTrue((environment / "train.sh").is_file())
-        # 隐藏文件和 prepare.sh 都不进 agent 的 workspace。
+        # Hidden files and prepare.sh stay out of the agent's workspace.
         self.assertFalse((environment / "oracle").exists())
         self.assertFalse((environment / "verifier").exists())
         self.assertFalse((environment / "prepare.sh").exists())
@@ -170,7 +177,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
 
         uploaded = task_dir / "environment" / "weights" / "model.bin"
         self.assertTrue(uploaded.is_file())
-        # 硬链接：几十 GB 的权重不在磁盘上多占一份。
+        # Hard links: tens of GB of weights are not duplicated on disk.
         self.assertEqual(
             uploaded.stat().st_ino, (staged / "weights" / "model.bin").stat().st_ino
         )
@@ -197,7 +204,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
 
         self.assertIn('environment_mode = "shared"', task_toml)
         self.assertIn('artifacts = [{ source = "/workspace", exclude = [', task_toml)
-        self.assertNotIn("PTDBENCH_ORACLE", task_toml.split("[verifier.env]")[0])
+        self.assertNotIn("AUTORLBENCH_ORACLE", task_toml.split("[verifier.env]")[0])
 
     def test_workspace_artifact_skips_weights_and_checkpoints(self):
         artifacts = next(
@@ -218,7 +225,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
 
         self.assertTrue((task_dir / "solution" / "helper.py").is_file())
         self.assertTrue(os.access(task_dir / "solution" / "solve.sh", os.X_OK))
-        # 不进 agent 上传的 workspace，也不进 verifier 的 tests/。
+        # Not in the workspace uploaded for the agent, nor in the verifier's tests/.
         self.assertFalse((task_dir / "environment" / "solution").exists())
         self.assertFalse((task_dir / "tests" / "solution").exists())
 
@@ -226,7 +233,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
         staged = self.root / "big"
         staged.mkdir()
         with open(staged / "model.safetensors", "wb") as handle:
-            handle.truncate(3 * (1 << 30))  # 稀疏文件，不真的占 3GB
+            handle.truncate(3 * (1 << 30))  # sparse file, does not really take 3GB
 
         small = self.toml(self.materialize())
         big = self.toml(self.materialize(workspace=staged))
@@ -244,19 +251,19 @@ class HarborTaskMaterializerTests(FixtureTestCase):
         )
 
         for section in (agent_env, verifier_env):
-            self.assertIn(f'PTDBENCH_PREPARED = "{PREPARED_DIR}"', section)
-            self.assertIn(f'PTDBENCH_MODELS = "{MODELS_DIR}"', section)
-            self.assertIn(f'PTDBENCH_DATASETS = "{DATASETS_DIR}"', section)
-            self.assertIn(f'PTDBENCH_ENVIRONMENT = "{PTDBENCH_ENVIRONMENT_DIR}"', section)
+            self.assertIn(f'AUTORLBENCH_PREPARED = "{PREPARED_DIR}"', section)
+            self.assertIn(f'AUTORLBENCH_MODELS = "{MODELS_DIR}"', section)
+            self.assertIn(f'AUTORLBENCH_DATASETS = "{DATASETS_DIR}"', section)
+            self.assertIn(f'AUTORLBENCH_ENVIRONMENT = "{AUTORLBENCH_ENVIRONMENT_DIR}"', section)
             self.assertIn(f'BASH_ENV = "{ACTIVATE_HOOK}"', section)
             self.assertIn('HF_HUB_OFFLINE = "1"', section)
             self.assertIn('WANDB_MODE = "offline"', section)
             self.assertIn('CUDA_VISIBLE_DEVICES = "0"', section)
-        self.assertIn('PTDBENCH_STAGE = "agent"', agent_env)
-        self.assertIn('PTDBENCH_STAGE = "verifier"', verifier_env)
+        self.assertIn('AUTORLBENCH_STAGE = "agent"', agent_env)
+        self.assertIn('AUTORLBENCH_STAGE = "verifier"', verifier_env)
 
     def test_no_gpu_option_is_written(self):
-        # Harbor 的 docker 环境不支持 GPU；写了 gpus 会让 trial 初始化失败。
+        # Harbor's docker environment does not support GPUs; declaring gpus makes trial initialization fail.
         self.assertNotIn("gpus", self.toml(self.materialize()))
 
     def test_wrapper_activates_the_hook_and_writes_harbor_reward(self):
@@ -265,9 +272,9 @@ class HarborTaskMaterializerTests(FixtureTestCase):
 
         self.assertIn(f". {ACTIVATE_HOOK}", wrapper)
         self.assertLess(
-            wrapper.index(ACTIVATE_HOOK), wrapper.index('bash "$PTDBENCH_VERIFIER/test.sh"')
+            wrapper.index(ACTIVATE_HOOK), wrapper.index('bash "$AUTORLBENCH_VERIFIER/test.sh"')
         )
-        self.assertIn("ptdbench-result.json", wrapper)
+        self.assertIn("autorlbench-result.json", wrapper)
         self.assertIn("/logs/verifier/reward.txt", wrapper)
 
     def test_each_task_gets_its_own_directory_under_one_batch(self):
@@ -305,7 +312,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
             )
         )
 
-        self.assertIn('PTDBENCH_JUDGE_MODEL = "judge-model"', task_toml)
+        self.assertIn('AUTORLBENCH_JUDGE_MODEL = "judge-model"', task_toml)
         self.assertIn("${OPENAI_BASE_URL:-https://api.openai.com/v1}", task_toml)
         self.assertIn("${OPENAI_API_KEY:-}", task_toml)
         self.assertIn('network_mode = "no-network"', task_toml)
@@ -435,11 +442,11 @@ class HarborRunnerTests(unittest.TestCase):
         by_target = {mount["target"]: mount for mount in mounts}
         self.assertEqual(
             set(by_target),
-            {PREPARED_DIR, PTDBENCH_ENVIRONMENT_DIR, MODELS_DIR, DATASETS_DIR},
+            {PREPARED_DIR, AUTORLBENCH_ENVIRONMENT_DIR, MODELS_DIR, DATASETS_DIR},
         )
         self.assertEqual(by_target[PREPARED_DIR]["source"], str((root / "prep").resolve()))
         self.assertEqual(
-            by_target[PTDBENCH_ENVIRONMENT_DIR]["source"],
+            by_target[AUTORLBENCH_ENVIRONMENT_DIR]["source"],
             str(self.package.paths.environment.resolve()),
         )
         self.assertEqual(by_target[MODELS_DIR]["source"], str((root / "models").resolve()))
@@ -568,7 +575,7 @@ class HarborRunnerTests(unittest.TestCase):
             try:
                 self.assertEqual(run_dir.parent, parent.resolve())
                 self.assertTrue(
-                    run_dir.name.startswith("ptdbench-harbor-harbor_fixture-solution-")
+                    run_dir.name.startswith("autorlbench-harbor-harbor_fixture-solution-")
                 )
             finally:
                 shutil.rmtree(run_dir)
@@ -582,7 +589,7 @@ class HarborRunnerTests(unittest.TestCase):
                 parent,
             )
             try:
-                self.assertTrue(run_dir.name.startswith("ptdbench-harbor-batch-2-"))
+                self.assertTrue(run_dir.name.startswith("autorlbench-harbor-batch-2-"))
             finally:
                 shutil.rmtree(run_dir)
 
@@ -597,7 +604,7 @@ class ExpandTaskRootsTests(unittest.TestCase):
 
     def _task(self, path: Path) -> Path:
         path.mkdir(parents=True)
-        (path / "metadata.yaml").write_text("id: x\n", encoding="utf-8")
+        (path / "task.toml").write_text('title = "x"\n', encoding="utf-8")
         return path
 
     def test_task_directory_is_used_as_is(self):
@@ -651,7 +658,7 @@ class HarborResultMapperTests(FixtureTestCase):
             self.trial_dir / "artifacts" / "workspace",
         )
         self._write_manifest("ok")
-        (self.trial_dir / "verifier" / "ptdbench-result.json").write_text(
+        (self.trial_dir / "verifier" / "autorlbench-result.json").write_text(
             json.dumps(
                 {
                     "passed": True,
@@ -714,7 +721,7 @@ class HarborResultMapperTests(FixtureTestCase):
     def _map(self):
         return self._report().trials[0]
 
-    def test_maps_harbor_trial_and_ptdbench_metrics(self):
+    def test_maps_harbor_trial_and_autorlbench_metrics(self):
         result = self._map()
 
         self.assertTrue(result.passed)
@@ -725,7 +732,7 @@ class HarborResultMapperTests(FixtureTestCase):
         self.assertEqual(result.metrics["harbor_rewards"], {"reward": 0.75})
         self.assertTrue((self.trial_dir / "report.json").is_file())
         self.assertTrue(
-            (self.trial_dir / "ptdbench-harbor-command.json").is_file()
+            (self.trial_dir / "autorlbench-harbor-command.json").is_file()
         )
 
     def test_workspace_artifact_failure_fails_closed(self):
@@ -754,7 +761,7 @@ class HarborResultMapperTests(FixtureTestCase):
         self.assertTrue(report.passed)
         self.assertEqual(report.score, 0.75)
         self.assertEqual(report.to_dict()["task_ids"], [self.package.task_id])
-        self.assertTrue((self.job_dir / "ptdbench-report.json").is_file())
+        self.assertTrue((self.job_dir / "autorlbench-report.json").is_file())
 
     def test_each_trial_is_mapped_back_to_its_own_task(self):
         other_unit = make_unit(self.other_package(), "solution", "other-before")
@@ -851,7 +858,7 @@ class HarborResultMapperTests(FixtureTestCase):
             units=[self.unit, make_unit(self.other_package(), "solution")],
         )
         trial = json.loads((self.trial_dir / "result.json").read_text(encoding="utf-8"))
-        trial["task_name"] = "ptdbench/unrelated-solution"
+        trial["task_name"] = "autorlbench/unrelated-solution"
         (self.trial_dir / "result.json").write_text(
             json.dumps(trial), encoding="utf-8"
         )
@@ -896,7 +903,7 @@ class HarborResultMapperTests(FixtureTestCase):
 
     def test_unknown_task_name_in_a_single_task_job_is_an_error(self):
         trial = json.loads((self.trial_dir / "result.json").read_text(encoding="utf-8"))
-        trial["task_name"] = "ptdbench/unrelated-solution"
+        trial["task_name"] = "autorlbench/unrelated-solution"
         (self.trial_dir / "result.json").write_text(
             json.dumps(trial), encoding="utf-8"
         )
@@ -972,7 +979,7 @@ class HarborPreparerTests(FixtureTestCase):
 
 
 class HarborEvaluatorFlowTests(FixtureTestCase):
-    """prepare → 物化 → 每个 task 一个 Harbor job → 合并报告。"""
+    """prepare, materialize, one Harbor job per task, merge reports."""
 
     def _evaluator(self, fail_prepare_for=()):
         preparer = MagicMock()
@@ -1037,7 +1044,7 @@ class HarborEvaluatorFlowTests(FixtureTestCase):
         self.assertIsNone(suffix)
         self.assertIn("docker_image", task_toml)
         self.assertIn("pkg", uploaded)
-        # 临时目录（prepare staging + 物化 task）跑完即删。
+        # Temporary directories (prepare staging + materialized tasks) are deleted after the run.
         self.assertEqual(list((self.root / "tmp").iterdir()), [])
 
     def test_batch_runs_one_job_per_task_and_merges_reports(self):

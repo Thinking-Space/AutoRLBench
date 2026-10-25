@@ -1,8 +1,8 @@
-"""环境镜像的运行时接线：三个阶段各挂什么、各拿到哪些环境变量。
+"""Runtime wiring of environment images: what each of the three stages mounts and which env vars it gets.
 
-这个文件盯的是访问控制，不是功能。三张挂载表的差别（谁可写、谁看得到 cache、
-谁看得到 oracle）就是"agent 不能给自己判分、verifier 不能读到被改过的数据"
-这条性质的全部实现，所以每一条都值得有一个会失败的测试盯着。
+This file guards access control, not features. The differences between the three mount tables (who can write,
+who sees the cache, who sees the oracle) are the entire implementation of "the agent cannot grade itself and
+the verifier cannot read tampered data", so each one deserves a test that would fail.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from autorlbench.core.types import (
     DATASETS_DIR,
     MODELS_DIR,
     PREPARED_DIR,
-    PTDBENCH_ENVIRONMENT_DIR,
+    AUTORLBENCH_ENVIRONMENT_DIR,
     TOOLING_DIR,
     EnvironmentPlan,
 )
@@ -29,7 +29,7 @@ ROOT = Path("/host/run")
 
 
 def make_request(stage: str = "agent", **kwargs) -> SandboxRequest:
-    """一个"什么都挂上了"的请求；单条测试再按需去掉某个目录。"""
+    """A request with "everything mounted"; individual tests remove a directory as needed."""
     defaults = dict(
         stage=stage,
         task_id="task_001",
@@ -53,24 +53,24 @@ class MountTableTests(unittest.TestCase):
             for mount in DockerRuntime()._mounts(request)
         }
 
-    # --- workspace：谁可写 ---------------------------------------------------
+    # --- workspace: who can write ---------------------------------------------
 
     def test_prepare_can_write_the_workspace(self) -> None:
-        # 权重就下在任务脚本引用的那个相对路径上（./Qwen2.5-0.5B-Instruct），
-        # workspace 只读的话 prepare.sh 第一条命令就失败。
+        # Weights are downloaded to the relative path the task script references (./Qwen2.5-0.5B-Instruct);
+        # with a read-only workspace the first command of prepare.sh would fail.
         self.assertFalse(self._mounts(make_request("prepare"))["/workspace"].read_only)
 
     def test_agent_can_write_the_workspace(self) -> None:
         self.assertFalse(self._mounts(make_request("agent"))["/workspace"].read_only)
 
     def test_verifier_gets_a_read_only_workspace(self) -> None:
-        # 判分不能改现场。
+        # Grading must not alter the scene.
         self.assertTrue(self._mounts(make_request("verifier"))["/workspace"].read_only)
 
-    # --- /task：别剧透 -------------------------------------------------------
+    # --- /task: no spoilers ---------------------------------------------------
 
     def test_prepare_and_agent_only_see_the_visible_task(self) -> None:
-        # prepare 跑的是任务自带的脚本，没有理由让它读到 oracle 或判分脚本。
+        # Prepare runs a script shipped with the task and has no reason to read the oracle or grading scripts.
         for stage in ("prepare", "agent"):
             mount = self._mounts(make_request(stage))["/task"]
             self.assertEqual(mount.host_path, ROOT / "visible", stage)
@@ -81,31 +81,31 @@ class MountTableTests(unittest.TestCase):
         self.assertEqual(mount.host_path, ROOT / "task")
         self.assertTrue(mount.read_only)
 
-    # --- prepared：prepare 写，后两个阶段只读 --------------------------------
+    # --- prepared: prepare writes, the later two stages read only -------------
 
     def test_prepare_owns_the_prepared_directory(self) -> None:
         self.assertFalse(self._mounts(make_request("prepare"))[PREPARED_DIR].read_only)
 
     def test_agent_and_verifier_get_prepared_read_only(self) -> None:
-        # verifier 要读 prepare 交付的模型/数据集，但不能读到一份 agent 改过的，
-        # 否则判分依据是可以被应试者编辑的。
+        # The verifier reads the models/datasets prepare delivered, but must not read a copy the agent modified,
+        # or the grading basis would be editable by the examinee.
         for stage in ("agent", "verifier"):
             self.assertTrue(self._mounts(make_request(stage))[PREPARED_DIR].read_only, stage)
 
     def test_prepared_is_absent_when_the_run_has_none(self) -> None:
         self.assertNotIn(PREPARED_DIR, self._mounts(make_request("agent", host_prepared=None)))
 
-    # --- models / datasets：prepare 可写，后两个阶段只读 ---------------------
+    # --- models / datasets: writable by prepare, read-only later --------------
 
     def test_prepare_can_write_the_download_cache(self) -> None:
-        # 下载发生在 prepare，写不了就等于没有缓存。
+        # Downloads happen in prepare; if it cannot write, there is effectively no cache.
         mounts = self._mounts(make_request("prepare"))
         for container_path in (MODELS_DIR, DATASETS_DIR):
             self.assertIn(container_path, mounts)
             self.assertFalse(mounts[container_path].read_only, container_path)
 
     def test_later_stages_see_the_download_cache_read_only(self) -> None:
-        # 看得到是为了排查时对得上账；只读是因为判分依据不能是 agent 改得动的东西。
+        # Visible so debugging can reconcile them; read-only because the grading basis must not be agent-editable.
         for stage in ("agent", "verifier"):
             mounts = self._mounts(make_request(stage))
             for container_path in (MODELS_DIR, DATASETS_DIR):
@@ -113,17 +113,17 @@ class MountTableTests(unittest.TestCase):
                 self.assertTrue(mounts[container_path].read_only, (stage, container_path))
 
     def test_stages_without_a_download_cache_still_run(self) -> None:
-        # 没有共享缓存只是"这次的下载不会被下一次复用"，不是错误。
+        # No shared cache only means "this download will not be reused next time", not an error.
         for stage in ("prepare", "agent", "verifier"):
             mounts = self._mounts(make_request(stage, host_models=None, host_datasets=None))
             self.assertNotIn(MODELS_DIR, mounts, stage)
             self.assertNotIn(DATASETS_DIR, mounts, stage)
 
-    # --- tooling：只有 prepare 只读挂仓库 docker/ ----------------------------
+    # --- tooling: only prepare mounts the repo docker/ read-only ---------------
 
     def test_prepare_mounts_the_tooling_dir_read_only(self) -> None:
-        # prepare 跑脚本前要用 docker/install-ptdbench-tooling.sh 装最新 fetch/dataset
-        # 工具，所以仓库 docker/ 要挂进来；只读，因为 prepare 没理由改仓库。
+        # Before its script, prepare uses docker/install-autorlbench-tooling.sh to install the latest fetch/dataset
+        # tools, so the repo docker/ must be mounted; read-only, since prepare has no reason to modify the repo.
         mount = self._mounts(make_request("prepare", host_tooling=ROOT / "docker"))[
             TOOLING_DIR
         ]
@@ -131,7 +131,7 @@ class MountTableTests(unittest.TestCase):
         self.assertTrue(mount.read_only)
 
     def test_later_stages_never_mount_tooling(self) -> None:
-        # agent / verifier 不跑 prepare，工具装了也没用，而且它们是另起的容器。
+        # Agent / verifier do not run prepare, so the tools are useless there, and they run in separate containers.
         for stage in ("agent", "verifier"):
             self.assertNotIn(
                 TOOLING_DIR,
@@ -140,28 +140,28 @@ class MountTableTests(unittest.TestCase):
             )
 
     def test_prepare_without_tooling_still_runs(self) -> None:
-        # 装成 wheel 后 docker/ 可能不跟着走；没有就不挂（安装脚本那步也兜底跳过）。
+        # docker/ may not ship with a wheel install; if absent, do not mount it (the installer step also skips).
         self.assertNotIn(
             TOOLING_DIR, self._mounts(make_request("prepare", host_tooling=None))
         )
 
-    # --- environment：三个阶段都只读 ----------------------------------------
+    # --- environment: read-only in all three stages ---------------------------
 
     def test_environment_is_read_only_in_every_stage(self) -> None:
         for stage in ("prepare", "agent", "verifier"):
-            mount = self._mounts(make_request(stage))[PTDBENCH_ENVIRONMENT_DIR]
+            mount = self._mounts(make_request(stage))[AUTORLBENCH_ENVIRONMENT_DIR]
             self.assertEqual(mount.host_path, ROOT / "environment", stage)
             self.assertTrue(mount.read_only, stage)
 
     def test_task_without_environment_dir_mounts_nothing(self) -> None:
-        # environment/ 是可选的；没有就不挂，而不是挂一个不存在的目录。
+        # environment/ is optional; if absent, do not mount it rather than mounting a missing directory.
         request = make_request("agent", host_environment=None)
-        self.assertNotIn(PTDBENCH_ENVIRONMENT_DIR, self._mounts(request))
+        self.assertNotIn(AUTORLBENCH_ENVIRONMENT_DIR, self._mounts(request))
 
     # --- results ------------------------------------------------------------
 
     def test_prepare_has_no_results_mount(self) -> None:
-        # prepare 不产出给判分看的东西；它的日志由 harness 在宿主机侧落盘。
+        # Prepare produces nothing for grading; the harness writes its logs on the host side.
         self.assertNotIn("/results", self._mounts(make_request("prepare")))
 
     def test_no_mount_is_declared_twice(self) -> None:
@@ -172,20 +172,20 @@ class MountTableTests(unittest.TestCase):
 
 
 class GpuWiringTests(unittest.TestCase):
-    """任务卡片声明的显卡怎么变成 `docker create` 的 flag。
+    """How GPUs declared on the task card become `docker create` flags.
 
-    这条是"任务能不能真的跑训练"的全部实现。宿主机的 default runtime 是 runc，
-    把 NVIDIA_VISIBLE_DEVICES `-e` 进容器不会让容器看见任何设备——只有 --gpus
-    会触发 nvidia 的 hook。镜像侧（CUDA 基础镜像）一直假设 libcuda.so.1 是
-    --gpus 注入的，这里补上缺的另一半。
+    This is the entire implementation of "can the task actually train". The host's default runtime is runc,
+    and passing NVIDIA_VISIBLE_DEVICES via `-e` makes no device visible in the container; only --gpus
+    triggers the nvidia hook. The image side (CUDA base image) has always assumed libcuda.so.1 is
+    injected by --gpus; this supplies the missing half.
     """
 
     def _args(self, **kwargs) -> list:
         return DockerRuntime._gpu_args(make_request("agent", **kwargs))
 
     def test_a_device_list_becomes_a_device_spec(self) -> None:
-        # 任务卡片里写的是裸设备表（rlve_hyper/task_001 是 "0,1,2,3"），
-        # docker 只认 device= 前缀。
+        # Task cards hold a bare device list (rlve_hyper/task_001 has "0,1,2,3"),
+        # and docker only recognizes the device= prefix.
         args = self._args(task_env={"NVIDIA_VISIBLE_DEVICES": "0,1,2,3"})
         self.assertEqual(args[:2], ["--gpus", "device=0,1,2,3"])
 
@@ -194,34 +194,34 @@ class GpuWiringTests(unittest.TestCase):
                          ["--gpus", "all"])
 
     def test_gpu_stages_get_a_usable_shm(self) -> None:
-        # docker 默认的 64MB /dev/shm 会让 ray/sglang 在第一次 rollout 爆掉，
-        # 而报出来的是一个看不懂的 bus error。
+        # Docker's default 64MB /dev/shm makes ray/sglang blow up on the first rollout,
+        # with an unhelpful bus error.
         args = self._args(task_env={"NVIDIA_VISIBLE_DEVICES": "0"})
         self.assertIn("--shm-size=16g", args)
 
     def test_a_cpu_only_task_is_untouched(self) -> None:
-        # 接线前后逐字节相同——纯 CPU 的任务和判分阶段没有理由多占内存。
+        # Byte-for-byte identical to before the wiring: CPU-only tasks and the grading stage have no reason to use more memory.
         self.assertEqual(self._args(), [])
 
     def test_explicitly_asking_for_no_gpu_is_honoured(self) -> None:
-        # `none` / `void` 是 NVIDIA_VISIBLE_DEVICES 自己的"不要 GPU"取值。
+        # `none` / `void` are NVIDIA_VISIBLE_DEVICES's own "no GPU" values.
         for value in ("none", "void", ""):
             self.assertEqual(self._args(task_env={"NVIDIA_VISIBLE_DEVICES": value}), [], value)
 
     def test_the_host_can_override_the_task_card(self) -> None:
-        # 一台只有 2 张卡的机器不该因为卡片写着 8 张就跑不起来。
-        with mock.patch.dict(os.environ, {"PTDBENCH_DOCKER_GPUS": "device=0,1"}):
+        # A machine with only 2 GPUs should still run a task whose card says 8.
+        with mock.patch.dict(os.environ, {"AUTORLBENCH_DOCKER_GPUS": "device=0,1"}):
             args = self._args(task_env={"NVIDIA_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7"})
         self.assertEqual(args[:2], ["--gpus", "device=0,1"])
 
     def test_the_host_can_override_the_shm_size(self) -> None:
-        with mock.patch.dict(os.environ, {"PTDBENCH_DOCKER_SHM_SIZE": "64g"}):
+        with mock.patch.dict(os.environ, {"AUTORLBENCH_DOCKER_SHM_SIZE": "64g"}):
             args = self._args(task_env={"NVIDIA_VISIBLE_DEVICES": "0"})
         self.assertIn("--shm-size=64g", args)
 
     def test_every_stage_can_reach_the_gpu_it_declares(self) -> None:
-        # prepare 要 GPU 把 HF 权重转成 torch_dist，agent 要跑训练。verifier 也拿得到
-        # 是因为 task_env 对三个阶段一视同仁——它不声明就自然没有。
+        # Prepare needs GPUs to convert HF weights to torch_dist, and the agent runs training. The verifier gets them
+        # too because task_env treats all three stages alike; if it declares none, it naturally has none.
         for stage in ("prepare", "agent", "verifier"):
             request = make_request(stage, task_env={"NVIDIA_VISIBLE_DEVICES": "0"})
             self.assertIn("--gpus", DockerRuntime._gpu_args(request), stage)
@@ -229,8 +229,8 @@ class GpuWiringTests(unittest.TestCase):
 
 class StageRequestTests(unittest.TestCase):
     def test_prepare_without_a_landing_zone_is_rejected(self) -> None:
-        # 没有落点的 prepare 会"成功"却什么也没留下，直到 agent 找不到模型才暴露，
-        # 而那时报的是任务的错。
+        # A prepare with nowhere to write would "succeed" and leave nothing, surfacing only when the agent cannot find the model,
+        # and then it is reported as the task's fault.
         with self.assertRaises(ValueError) as ctx:
             SandboxRequest(
                 stage="prepare",
@@ -252,79 +252,79 @@ class StandardEnvTests(unittest.TestCase):
         return DockerRuntime().standard_env(make_request(stage, **kwargs))
 
     def test_every_stage_is_told_which_stage_it_is(self) -> None:
-        # activate hook 按 PTDBENCH_STAGE 决定每个阶段的差异。
+        # The activate hook uses AUTORLBENCH_STAGE to decide per-stage differences.
         for stage in ("prepare", "agent", "verifier"):
             env = self._env(stage)
-            self.assertEqual(env["PTDBENCH_STAGE"], stage, stage)
-            self.assertNotIn("PTDBENCH_CONDA_ENV", env, stage)
+            self.assertEqual(env["AUTORLBENCH_STAGE"], stage, stage)
+            self.assertNotIn("AUTORLBENCH_CONDA_ENV", env, stage)
 
     def test_prepare_and_agent_never_learn_where_the_oracle_is(self) -> None:
         for stage in ("prepare", "agent"):
             env = self._env(stage)
-            self.assertEqual(env["PTDBENCH_ORACLE"], "", stage)
-            self.assertEqual(env["PTDBENCH_VERIFIER"], "", stage)
-            self.assertEqual(env["PTDBENCH_TASK_ROOT"], "/task", stage)
+            self.assertEqual(env["AUTORLBENCH_ORACLE"], "", stage)
+            self.assertEqual(env["AUTORLBENCH_VERIFIER"], "", stage)
+            self.assertEqual(env["AUTORLBENCH_TASK_ROOT"], "/task", stage)
 
     def test_verifier_gets_the_grading_paths(self) -> None:
         env = self._env("verifier")
-        self.assertEqual(env["PTDBENCH_ORACLE"], "/task/oracle")
-        self.assertEqual(env["PTDBENCH_VERIFIER"], "/task/verifier")
-        # visible_task 对 verifier 没有意义：它看得到整个 /task。
-        self.assertEqual(env["PTDBENCH_VISIBLE_TASK"], "")
+        self.assertEqual(env["AUTORLBENCH_ORACLE"], "/task/oracle")
+        self.assertEqual(env["AUTORLBENCH_VERIFIER"], "/task/verifier")
+        # visible_task means nothing to the verifier: it sees the whole /task.
+        self.assertEqual(env["AUTORLBENCH_VISIBLE_TASK"], "")
 
     def test_paths_match_what_is_actually_mounted(self) -> None:
         env = self._env("prepare")
-        self.assertEqual(env["PTDBENCH_ENVIRONMENT"], PTDBENCH_ENVIRONMENT_DIR)
-        self.assertEqual(env["PTDBENCH_PREPARED"], PREPARED_DIR)
-        self.assertEqual(env["PTDBENCH_MODELS"], MODELS_DIR)
-        self.assertEqual(env["PTDBENCH_DATASETS"], DATASETS_DIR)
+        self.assertEqual(env["AUTORLBENCH_ENVIRONMENT"], AUTORLBENCH_ENVIRONMENT_DIR)
+        self.assertEqual(env["AUTORLBENCH_PREPARED"], PREPARED_DIR)
+        self.assertEqual(env["AUTORLBENCH_MODELS"], MODELS_DIR)
+        self.assertEqual(env["AUTORLBENCH_DATASETS"], DATASETS_DIR)
 
     def test_the_download_cache_is_exported_to_every_stage(self) -> None:
-        # 三个阶段都挂得到，所以三个阶段都该拿到真实路径而不是空串。
+        # All three stages can mount them, so all three should get real paths rather than empty strings.
         for stage in ("prepare", "agent", "verifier"):
             env = self._env(stage)
-            self.assertEqual(env["PTDBENCH_MODELS"], MODELS_DIR, stage)
-            self.assertEqual(env["PTDBENCH_DATASETS"], DATASETS_DIR, stage)
+            self.assertEqual(env["AUTORLBENCH_MODELS"], MODELS_DIR, stage)
+            self.assertEqual(env["AUTORLBENCH_DATASETS"], DATASETS_DIR, stage)
 
     def test_unmounted_directories_are_the_empty_string(self) -> None:
-        # "你看不到"，而不是"路径在那儿但目录是空的"——后者会让 prepare.sh 把模型
-        # 下到一个跑完就消失的地方。
+        # "You cannot see it", not "the path is there but the directory is empty"; the latter would make prepare.sh
+        # download the model somewhere that vanishes after the run.
         env = self._env("agent", host_models=None, host_datasets=None)
-        self.assertEqual(env["PTDBENCH_MODELS"], "")
-        self.assertEqual(env["PTDBENCH_DATASETS"], "")
+        self.assertEqual(env["AUTORLBENCH_MODELS"], "")
+        self.assertEqual(env["AUTORLBENCH_DATASETS"], "")
         env = self._env("agent", host_environment=None, host_prepared=None)
-        self.assertEqual(env["PTDBENCH_ENVIRONMENT"], "")
-        self.assertEqual(env["PTDBENCH_PREPARED"], "")
+        self.assertEqual(env["AUTORLBENCH_ENVIRONMENT"], "")
+        self.assertEqual(env["AUTORLBENCH_PREPARED"], "")
 
 
 class NetworkPolicyEnvTests(unittest.TestCase):
-    """离线开关按阶段给，不是烤在镜像的 ENV 里。"""
+    """Offline switches are set per stage, not baked into the image ENV."""
 
     def test_prepare_is_allowed_to_reach_the_network(self) -> None:
-        # 镜像级 ENV 对三个阶段一视同仁，等于让 prepare 自己关掉自己要用的网络。
+        # Image-level ENV treats all three stages alike, so prepare would cut off its own network.
         env = DockerRuntime().standard_env(make_request("prepare"))
         for key in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
             self.assertNotIn(key, env)
 
     def test_prepare_still_does_not_report_to_wandb(self) -> None:
-        # prepare 只是在下载，没有什么可上报的。
+        # Prepare is only downloading; there is nothing to report.
         env = DockerRuntime().standard_env(make_request("prepare"))
         self.assertEqual(env["WANDB_MODE"], "offline")
 
     def test_agent_and_verifier_are_pinned_offline(self) -> None:
-        # 一次 silent 的联网下载可能把评测跑在一份没人校验过的权重上，还看不出来。
+        # A silent network download could run the evaluation on weights nobody verified, without anyone noticing.
         for stage in ("agent", "verifier"):
             env = DockerRuntime().standard_env(make_request(stage))
             self.assertEqual(env["HF_HUB_OFFLINE"], "1", stage)
             self.assertEqual(env["TRANSFORMERS_OFFLINE"], "1", stage)
             self.assertEqual(env["HF_DATASETS_OFFLINE"], "1", stage)
             self.assertEqual(env["WANDB_MODE"], "offline", stage)
-            # 有些框架在 offline 下仍然会因为没有 key 而直接退出。
+            # Some frameworks still exit immediately in offline mode when no key is set.
             self.assertTrue(env["WANDB_API_KEY"])
 
 
 class PrepareScriptTests(unittest.TestCase):
-    """evaluator 怎么把 prepare.sh 翻译成容器里的一条路径。"""
+    """How the evaluator translates prepare.sh into a container path."""
 
     def _package(self, root: Path, *, prepare: Path | None, image: str | None = "verl"):
         from autorlbench.core.types import TaskPaths
@@ -332,7 +332,7 @@ class PrepareScriptTests(unittest.TestCase):
         paths = TaskPaths(
             root=root,
             readme_md=None,
-            metadata_yaml=root / "metadata.yaml",
+            task_toml=root / "task.toml",
             workspace=root / "workspace",
             environment=root / "environment",
             evaluations={},
@@ -358,7 +358,7 @@ class PrepareScriptTests(unittest.TestCase):
             package = self._package(root, prepare=script)
             self.assertEqual(
                 TaskEvaluator("local")._prepare_script(package),
-                f"{PTDBENCH_ENVIRONMENT_DIR}/prepare.sh",
+                f"{AUTORLBENCH_ENVIRONMENT_DIR}/prepare.sh",
             )
 
     def test_no_prepare_script_means_no_prepare_stage(self) -> None:
@@ -369,8 +369,8 @@ class PrepareScriptTests(unittest.TestCase):
             self.assertIsNone(TaskEvaluator("local")._prepare_script(package))
 
     def test_script_outside_the_environment_directory_is_rejected(self) -> None:
-        # 只有 environment/ 挂进容器；声明一个在外面的路径会在容器里变成
-        # "文件不存在"，报错点离原因很远。
+        # Only environment/ is mounted into the container; a path outside it would become
+        # "file not found" in the container, far from the real cause.
         from autorlbench.evaluation.evaluator import TaskEvaluator
         from autorlbench.tasks import SchemaError
 

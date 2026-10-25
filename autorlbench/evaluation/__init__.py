@@ -1,4 +1,4 @@
-"""AutoRLBench 评测流程编排。"""
+"""AutoRLBench evaluation orchestration."""
 
 from ..core.harbor_types import (
     HarborEvaluationConfig,

@@ -13,12 +13,12 @@ from ..core.types import (
 
 
 def validate_task_paths(paths: TaskPaths, strict: bool = True) -> ValidationReport:
-    """检查 task 的目录和入口文件。"""
+    """Check the task's directories and entry files."""
     report = ValidationReport()
-    _expect_file(report, paths.metadata_yaml, "metadata.yaml")
+    _expect_file(report, paths.task_toml, "task.toml")
     _expect_dir(report, paths.workspace, "workspace")
-    # environment/ 里只剩可选内容（prepare.sh 等），镜像本身由 metadata 的
-    # environment.image 指向 docker/images/，所以目录可以不存在，但存在就得是目录。
+    # environment/ now holds only optional content (prepare.sh etc.); the image itself comes from
+    # metadata environment.image pointing into docker/images/. The directory may be absent, but if present it must be a directory.
     if paths.environment.exists() and not paths.environment.is_dir():
         report.add("error", "environment", "expected a directory")
     if not paths.evaluations:
@@ -66,10 +66,10 @@ def _validate_evaluation_paths(
 def validate_metadata(
     metadata: Dict[str, Any], paths: Optional[TaskPaths] = None
 ) -> ValidationReport:
-    """检查 metadata 中当前 schema 强制要求的字段。
+    """Check the fields the current schema requires in metadata.
 
-    `paths` 可选：给了就顺便校验 metadata 里指向任务目录的路径真的存在（现在只有
-    `training.script`）。不给也能用——这个函数本身只需要一份 metadata。
+    `paths` is optional: if given, also check that metadata paths into the task directory exist
+    (currently only `training.script`). Without it this still works; the function only needs metadata.
     """
     report = ValidationReport()
     required_fields = [
@@ -121,7 +121,7 @@ def validate_metadata(
 
 
 def dump_report(report: ValidationReport) -> str:
-    """把校验结果转为 CLI 可直接打印的 JSON。"""
+    """Convert the validation result to JSON the CLI can print directly."""
     return json.dumps(report.to_dict(), indent=2, ensure_ascii=False)
 
 
@@ -151,18 +151,18 @@ def _expect_optional_dir(report: ValidationReport, path, label: str) -> None:
 def _validate_training(
     report: ValidationReport, training: Dict[str, Any], paths: Optional[TaskPaths]
 ) -> None:
-    """校验 training 段里的启动脚本。
+    """Validate the launch script in the training section.
 
-    `script` 是"这个任务怎么跑起来"的唯一出处：任务卡上记的、instruction.md
-    里写给 agent 看的都是同一条路径。以前靠 glob 猜（examples 下
-    的 *_rl.sh / run_*.sh），rlve 那种把脚本放在 scripts/training/ 下的任务就一个
-    都猜不到，所以现在由任务自己声明。
+    `script` is the single source of truth for "how this task runs": the task card and
+    instruction.md point the agent at the same path. Guessing via glob (*_rl.sh / run_*.sh
+    under examples) missed tasks like rlve that keep scripts under scripts/training/,
+    so tasks now declare it themselves.
 
-    路径相对 workspace/，不是相对任务根目录：容器里 workspace 被挂到 /workspace，
-    训练脚本是在那儿跑的，任务卡上记的也该是同一条路径。
+    The path is relative to workspace/, not the task root: in the container workspace is mounted
+    at /workspace, the training script runs there, and the task card should record the same path.
 
-    不是必填项——`framework: none` 的任务（例如纯代码修复）本来就没有训练脚本。
-    但凡声明了 framework 又没写 script，就是漏了，给 warning。
+    Not required: `framework: none` tasks (e.g. pure code fixes) have no training script.
+    But declaring a framework without a script is an omission and gets a warning.
     """
     script = training.get("script")
     args = training.get("script_args")
@@ -191,16 +191,16 @@ def _validate_training(
             f"expected a path relative to workspace/, got {script!r}",
         )
     elif script.startswith("/") or ".." in Path(script).parts:
-        # 绝对路径在别人的机器上没有意义，`..` 则指到 workspace 外面去了——
-        # 而容器里只有 workspace 那一份是任务自己的。
+        # An absolute path means nothing on another machine, and `..` points outside workspace;
+        # in the container only workspace belongs to the task.
         report.add(
             "error",
             "metadata.training.script",
             f"must stay inside workspace/: {script}",
         )
     elif paths is not None and not (paths.workspace / script).is_file():
-        # 路径写错和压根没写，症状完全不同：前者要到 `run` 那一刻才炸，而那通常
-        # 已经是几个小时之后了。
+        # A wrong path and a missing one fail very differently: the former only blows up at `run`,
+        # which is often hours later.
         report.add(
             "error",
             "metadata.training.script",
@@ -210,8 +210,8 @@ def _validate_training(
     if args in (None, ""):
         return
     if not isinstance(args, list):
-        # 一整行 "a b c" 和三个参数的区别，在带空格的参数上就不一样了；这里只认
-        # 列表，免得读者去猜是谁来做分词。
+        # A single string "a b c" and three arguments differ once arguments contain spaces; accept
+        # only a list so readers need not guess who does the splitting.
         report.add(
             "error",
             "metadata.training.script_args",
@@ -220,20 +220,20 @@ def _validate_training(
         return
     for index, arg in enumerate(args):
         if not isinstance(arg, str):
-            # YAML 里 `- 0` 是 int，`- "0"` 才是参数本身的样子。
+            # In TOML `0` is an int; `"0"` is what the argument actually looks like.
             report.add(
                 "error",
                 f"metadata.training.script_args[{index}]",
-                "expected a string; quote the value in YAML",
+                "expected a string; quote the value in task.toml",
             )
 
 
 def _validate_environment(report: ValidationReport, environment: Dict[str, Any]) -> None:
-    """校验 environment 段：`image` 必填，`prepare` / `env` 可选。
+    """Validate the environment section: `image` is required, `prepare` / `env` optional.
 
-    `image` 是 docker/images/ 下的环境名，镜像照 docker/images/<image>.Dockerfile
-    构建。旧 schema 的 `conda` / `dockerfile` / `requirements` 直接报错而不是忽略：
-    忽略的话任务作者会以为它们还在起作用。
+    `image` is an environment name under docker/images/, built from docker/images/<image>.Dockerfile.
+    Old-schema `conda` / `dockerfile` / `requirements` are errors rather than ignored:
+    if ignored, task authors would think they still have an effect.
     """
     for legacy in ("conda", "dockerfile", "requirements"):
         if legacy in environment:
@@ -251,8 +251,8 @@ def _validate_environment(report: ValidationReport, environment: Dict[str, Any])
     elif not isinstance(image, str):
         report.add("error", "metadata.environment.image", f"expected a string, got {image!r}")
     elif known and image not in known:
-        # 拿不到 docker/images/（比如装成 wheel 之后）时不报错：那种情况下这里只能
-        # 瞎猜，真正的判据是构建镜像时找不找得到 Dockerfile。
+        # No error when docker/images/ is unavailable (e.g. installed as a wheel): we could only
+        # guess here; the real check is whether the build finds the Dockerfile.
         report.add(
             "error",
             "metadata.environment.image",
@@ -274,19 +274,19 @@ def _validate_environment(report: ValidationReport, environment: Dict[str, Any])
             report.add("error", "metadata.environment.env", "expected a mapping")
         else:
             for key, value in env.items():
-                if str(key).startswith("PTDBENCH_"):
-                    # 这些是 harness 自己的通道；任务改写它们等于改写评测对自己的判断。
+                if str(key).startswith("AUTORLBENCH_"):
+                    # These are the harness's own channels; letting a task override them lets it rewrite the evaluation's judgment of itself.
                     report.add(
                         "error",
                         f"metadata.environment.env.{key}",
-                        "tasks must not set PTDBENCH_* variables",
+                        "tasks must not set AUTORLBENCH_* variables",
                     )
                 elif not isinstance(value, str):
-                    # YAML 里 `CUDA_VISIBLE_DEVICES: 0,1` 是字符串，但 `: 0` 是 int。
+                    # In TOML `CUDA_VISIBLE_DEVICES = 0` is an int; it must be written as `"0"`.
                     report.add(
                         "error",
                         f"metadata.environment.env.{key}",
-                        "expected a string; quote the value in YAML",
+                        "expected a string; quote the value in task.toml",
                     )
 
 
