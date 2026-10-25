@@ -1,0 +1,1155 @@
+diff --git a/agent_system/environments/env_manager.py b/agent_system/environments/env_manager.py
+index 396347d..d0be841 100755
+--- a/agent_system/environments/env_manager.py
++++ b/agent_system/environments/env_manager.py
+@@ -1181,8 +1181,9 @@ def make_envs(config):
+         from agent_system.environments.env_package.awm import build_awm_envs, awm_projection
+         _envs = build_awm_envs(env_num=config.data.train_batch_size, group_n=group_n, env_config=config.env)
+         _val_envs = build_awm_envs(env_num=config.data.val_batch_size, group_n=1, env_config=config.env)
+-        envs = AWMEnvironmentManager(_envs, awm_projection, config)
+-        val_envs = AWMEnvironmentManager(_val_envs, awm_projection, config)
++        projection_f = partial(awm_projection, require_think=projection_require_think)
++        envs = AWMEnvironmentManager(_envs, projection_f, config)
++        val_envs = AWMEnvironmentManager(_val_envs, projection_f, config)
+         return envs, val_envs
+     if "search" in config.env.env_name.lower():
+         from agent_system.environments.env_package.search import build_search_envs, search_projection
+diff --git a/agent_system/environments/env_package/awm/bridge.py b/agent_system/environments/env_package/awm/bridge.py
+index 311d270..8d8ec9b 100755
+--- a/agent_system/environments/env_package/awm/bridge.py
++++ b/agent_system/environments/env_package/awm/bridge.py
+@@ -32,12 +32,21 @@ REWARD_BY_TYPE = {
+     "others": 0.0,
+     "agent_error": 0.0,
+     "environment_error": 0.0,
++    "server_error": 0.0,
+     "judge_error": 0.0,
+     "format_error": -1.0,
+     "tool_not_found": -1.0,
+     "invalid_args": -1.0,
+ }
+ 
++# Judge labels that count as a successful / partial task outcome.  Terminal
++# shaping below only rewrites these; environment/agent errors stay as-is.
++_COMPLETE_TYPES = {"complete", "completed"}
++_INCOMPLETE_TYPES = {"incomplete", "partially_completed", "partial"}
++# Identical successful tool calls (same name + arguments) this many times in a
++# row end the episode and run the verifier instead of letting the agent loop.
++DEFAULT_REPEAT_SUCCESS_TERMINATE_K = 5
++
+ 
+ @dataclass
+ class Session:
+@@ -46,13 +55,21 @@ class Session:
+     task: str
+     output_dir: str
+     db_path: str
+-    server: object
+-    mcp: MCPToolExecutor
++    server: object | None
++    mcp: MCPToolExecutor | None
+     tools_text: str
+     verifier: dict
+     steps: int = 0
+     done: bool = False
+     trajectory: list[dict] | None = None
++    startup_error: str | None = None
++    # Consecutive MCP service failures are tracked separately from malformed
++    # model actions.  A repeated identical failure indicates an environment
++    # problem rather than an agent error.
++    last_mcp_error: str | None = None
++    mcp_error_streak: int = 0
++    last_success_call_key: str | None = None
++    success_call_streak: int = 0
+ 
+ 
+ class Bridge:
+@@ -75,6 +92,9 @@ class Bridge:
+         # readiness probes and make otherwise healthy servers miss the window.
+         self.startup_concurrency = max(1, int(config.get("startup_concurrency", 32)))
+         self.startup_semaphore = asyncio.Semaphore(self.startup_concurrency)
++        self.repeat_success_terminate_k = max(
++            2, int(config.get("repeat_success_terminate_k", DEFAULT_REPEAT_SUCCESS_TERMINATE_K))
++        )
+         work_root = config.get("work_root")
+         self.work_root = Path(work_root) if work_root else Path(tempfile.mkdtemp(prefix="seed_awm_"))
+         self.work_root.mkdir(parents=True, exist_ok=True)
+@@ -89,7 +109,15 @@ class Bridge:
+         verifier_file = "gen_verifier.pure_code.jsonl" if self.reward_mode == "code" else "gen_verifier.jsonl"
+         self.verifiers = tools_jsonl_load(str(self.data / verifier_file))
+ 
+-    def _record_judge(self, session: Session, reward_type: str, verifier_result: dict, judge_result: dict | None) -> None:
++    def _record_judge(
++        self,
++        session: Session,
++        reward_type: str,
++        verifier_result: dict,
++        judge_result: dict | None,
++        shaped_reward_type: str | None = None,
++        ended_with_final: bool | None = None,
++    ) -> None:
+         """Append one complete Judge decision to the bridge-owned JSONL log."""
+         entry = {
+             "timestamp": time.time(),
+@@ -101,10 +129,16 @@ class Bridge:
+             "verifier_result": verifier_result,
+             "llm_judge": judge_result,
+         }
++        if shaped_reward_type is not None:
++            entry["shaped_reward_type"] = shaped_reward_type
++        if ended_with_final is not None:
++            entry["ended_with_final"] = ended_with_final
+         with self.judge_log_path.open("a", encoding="utf-8") as handle:
+             handle.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+ 
+     async def _stop_server(self, proc):
++        if proc is None:
++            return
+         try:
+             pgid = os.getpgid(proc.pid)
+         except ProcessLookupError:
+@@ -136,58 +170,71 @@ class Bridge:
+     async def _start_one(self, index: int, item: dict) -> Session:
+         scenario = str(item["scenario"])
+         task_idx = int(item["task_idx"])
+-        output_dir = self.work_root / f"env_{index}"
+-        if output_dir.exists():
+-            shutil.rmtree(output_dir)
+-        output_dir.mkdir(parents=True)
+-        server_config = ServerConfig(
+-            scenario=scenario,
+-            envs_load_path=str(self.data / "gen_envs.jsonl"),
+-            db_schema_path=str(self.data / "gen_db.jsonl"),
+-            sample_path=str(self.data / "gen_sample.jsonl"),
+-            temp_server_path=str(output_dir / "server_runtime.py"),
+-        )
+-        db_path = _prepare_database(server_config, str(output_dir))
+-        port = get_random_available_port()
+-        server = start_server_process(
+-            scenario, str(self.data / "gen_envs.jsonl"), db_path, port,
+-            output_dir=str(output_dir), temp_server_path=server_config.temp_server_path,
++        last_error = None
++        for attempt in range(1, 4):
++            output_dir = self.work_root / f"env_{index}"
++            if output_dir.exists():
++                shutil.rmtree(output_dir)
++            output_dir.mkdir(parents=True)
++            server = None
++            try:
++                server_config = ServerConfig(
++                    scenario=scenario,
++                    envs_load_path=str(self.data / "gen_envs.jsonl"),
++                    db_schema_path=str(self.data / "gen_db.jsonl"),
++                    sample_path=str(self.data / "gen_sample.jsonl"),
++                    temp_server_path=str(output_dir / "server_runtime.py"),
++                )
++                db_path = _prepare_database(server_config, str(output_dir))
++                port = get_random_available_port()
++                server = start_server_process(
++                    scenario, str(self.data / "gen_envs.jsonl"), db_path, port,
++                    output_dir=str(output_dir), temp_server_path=server_config.temp_server_path,
++                )
++                ready = False
++                for _ in range(120):
++                    if server.poll() is not None:
++                        break
++                    try:
++                        _reader, writer = await asyncio.open_connection("127.0.0.1", port)
++                        writer.close()
++                        await writer.wait_closed()
++                        ready = True
++                        break
++                    except OSError:
++                        await asyncio.sleep(0.5)
++                if not ready:
++                    raise RuntimeError(f"MCP server failed to start for {scenario} task {task_idx}")
++                mcp = MCPToolExecutor(f"http://127.0.0.1:{port}/mcp", timeout=self.tool_timeout)
++                tools = []
++                for tool_attempt in range(10):
++                    tools = await mcp.list_tools()
++                    if any(tool.get("name") != "list_tools" for tool in tools):
++                        break
++                    await asyncio.sleep(min(0.5 * (tool_attempt + 1), 2.0))
++                if not any(tool.get("name") != "list_tools" for tool in tools):
++                    raise RuntimeError(f"MCP business tools did not register for {scenario} task {task_idx}")
++                verifier = find_scenario_entry(self.verifiers, scenario, task_idx=task_idx)
++                if not verifier:
++                    raise RuntimeError(f"Verifier not found for {scenario} task {task_idx}")
++                return Session(
++                    scenario=scenario, task_idx=task_idx, task=str(item["task"]),
++                    output_dir=str(output_dir), db_path=db_path, server=server, mcp=mcp,
++                    tools_text=format_tools_for_response(tools), verifier=verifier, trajectory=[],
++                )
++            except BaseException as exc:
++                last_error = exc
++                await self._stop_server(server)
++                if attempt < 3:
++                    await asyncio.sleep(0.5 * attempt)
++
++        # Keep this item in the vector so the rollout batch remains aligned.
++        return Session(
++            scenario=scenario, task_idx=task_idx, task=str(item["task"]),
++            output_dir=str(self.work_root / f"env_{index}"), db_path="", server=None, mcp=None,
++            tools_text="", verifier={}, done=True, trajectory=[],
++            startup_error=f"MCP startup failed after 3 attempts: {last_error}",
+         )
+-        try:
+-            ready = False
+-            for _ in range(120):
+-                if server.poll() is not None:
+-                    break
+-                try:
+-                    _reader, writer = await asyncio.open_connection("127.0.0.1", port)
+-                    writer.close()
+-                    await writer.wait_closed()
+-                    ready = True
+-                    break
+-                except OSError:
+-                    await asyncio.sleep(0.5)
+-            if not ready:
+-                raise RuntimeError(f"MCP server failed to start for {scenario} task {task_idx}")
+-            mcp = MCPToolExecutor(f"http://127.0.0.1:{port}/mcp", timeout=self.tool_timeout)
+-            tools = []
+-            for attempt in range(10):
+-                tools = await mcp.list_tools()
+-                if any(tool.get("name") != "list_tools" for tool in tools):
+-                    break
+-                await asyncio.sleep(min(0.5 * (attempt + 1), 2.0))
+-            if not any(tool.get("name") != "list_tools" for tool in tools):
+-                raise RuntimeError(f"MCP business tools did not register for {scenario} task {task_idx}")
+-            verifier = find_scenario_entry(self.verifiers, scenario, task_idx=task_idx)
+-            if not verifier:
+-                raise RuntimeError(f"Verifier not found for {scenario} task {task_idx}")
+-            return Session(
+-                scenario=scenario, task_idx=task_idx, task=str(item["task"]),
+-                output_dir=str(output_dir), db_path=db_path, server=server, mcp=mcp,
+-                tools_text=format_tools_for_response(tools), verifier=verifier, trajectory=[],
+-            )
+-        except BaseException:
+-            await self._stop_server(server)
+-            raise
+ 
+     async def reset(self, items: list[dict]) -> dict:
+         await self.close()
+@@ -203,11 +250,13 @@ class Bridge:
+         self.sessions = [result for result in results if isinstance(result, Session)]
+         errors = [result for result in results if isinstance(result, BaseException)]
+         if errors:
++            # Unexpected bridge-level errors are still fatal; individual task
++            # startup failures are represented by placeholder sessions above.
+             await self.close()
+             raise RuntimeError(f"Failed to start {len(errors)} AWM environment(s): {errors[0]}")
+         return {"tasks": [session.task for session in self.sessions]}
+ 
+-    async def _verify(self, session: Session, final_answer: str) -> tuple[float, dict]:
++    async def _verify(self, session: Session, final_answer: str) -> tuple[float, dict, dict, dict | None, str]:
+         reward_type, details = run_verifier(
+             session.verifier, self.reward_mode,
+             str(Path(session.output_dir) / "initial.db"), session.db_path, final_answer,
+@@ -224,15 +273,62 @@ class Bridge:
+                         llm_base_url=self.judge_base_url, llm_api_key=self.judge_api_key,
+                         llm_model=self.judge_model, trajectory=session.trajectory or [],
+                     )
+-        if self.reward_mode == "sql":
+-            self._record_judge(session, reward_type, details, judge_result)
+         info = {"reward_type": reward_type, "verify_result": details}
+         if judge_result is not None:
+             info["llm_judge"] = judge_result
+         normalized_type = str(reward_type).strip().lower().replace("-", "_").replace(" ", "_")
+-        return REWARD_BY_TYPE.get(normalized_type, 0.0), info
++        return REWARD_BY_TYPE.get(normalized_type, 0.0), info, details, judge_result, reward_type
++
++    @staticmethod
++    def _normalize_reward_type(reward_type: str | None) -> str:
++        return str(reward_type or "").strip().lower().replace("-", "_").replace(" ", "_")
++
++    @staticmethod
++    def _success_call_key(name: str, tool_name: str | None, tool_args) -> str | None:
++        """Stable identity for a successful list_tools / call_tool action."""
++        if name == "list_tools":
++            return "list_tools"
++        if name != "call_tool" or not tool_name:
++            return None
++        try:
++            args_repr = json.dumps(tool_args, sort_keys=True, default=str, ensure_ascii=False)
++        except TypeError:
++            args_repr = str(tool_args)
++        return f"call_tool:{tool_name}:{args_repr}"
++
++    def _shape_terminal_reward(self, name: str, reward: float, verify_info: dict) -> tuple[float, dict]:
++        """Rewrite complete/incomplete when the episode did not end on a final answer.
++
++        complete + last action is still a tool call -> 0.5
++        incomplete + no final answer -> -1.0
++        Environment / judge / format errors are left unchanged.
++        """
++        if name == "final":
++            return reward, verify_info
++        original = self._normalize_reward_type(verify_info.get("reward_type"))
++        if original in _COMPLETE_TYPES:
++            verify_info = {
++                **verify_info,
++                "judge_reward_type": original,
++                "reward_type": "complete_no_final",
++            }
++            return 0.5, verify_info
++        if original in _INCOMPLETE_TYPES:
++            verify_info = {
++                **verify_info,
++                "judge_reward_type": original,
++                "reward_type": "incomplete_no_final",
++            }
++            return -1.0, verify_info
++        return reward, verify_info
+ 
+     async def _step_one(self, session: Session, action: dict) -> dict:
++        if session.startup_error:
++            return {
++                "observation": f"Environment unavailable: {session.startup_error}",
++                "reward": 0.0, "done": True, "action_valid": True,
++                "reward_type": "environment_error",
++            }
+         if session.done:
+             return {"observation": "", "reward": 0.0, "done": True}
+         session.steps += 1
+@@ -245,6 +341,8 @@ class Bridge:
+         response = ""
+         action_valid = True
+         action_error = None
++        mcp_error_key = None
++        tool_name, tool_args = None, None
+         if name == "final":
+             # Plain final answers are valid terminal actions.  The content is
+             # passed to the verifier below.
+@@ -263,10 +361,22 @@ class Bridge:
+             else:
+                 try:
+                     response = await session.mcp.call_tool(tool_name, tool_args)
++                except asyncio.TimeoutError:
++                    response = f"Error: MCP tool call timed out after {self.tool_timeout}s"
++                    action_valid = False
++                    mcp_error_key = response
+                 except Exception as exc:
+                     response = f"Error: {type(exc).__name__}: {exc}"
+                     action_valid = False
+-                    action_error = "tool_not_found"
++                    mcp_error_key = response
++                else:
++                    # Some MCP implementations return an error payload as a
++                    # string instead of raising.  Treat those responses as
++                    # service errors too, while leaving ordinary tool output
++                    # untouched.
++                    if isinstance(response, str) and response.startswith("Error:"):
++                        action_valid = False
++                        mcp_error_key = response
+         elif name == "invalid":
+             response = "Error: output one valid <tool_call> block, or a plain final answer."
+             action_valid = False
+@@ -275,10 +385,45 @@ class Bridge:
+             action_valid = False
+             action_error = "format_error"
+ 
+-        # Malformed arguments and failed tool dispatches are invalid tool
+-        # calls as well; terminate on the same step as any other format error.
+-        if action_error is not None:
++        if mcp_error_key is not None:
++            if session.last_mcp_error == mcp_error_key:
++                session.mcp_error_streak += 1
++            else:
++                session.last_mcp_error = mcp_error_key
++                session.mcp_error_streak = 1
++            # Two consecutive identical MCP failures are treated as an
++            # environment failure.  Do not attribute this to the agent.
++            if session.mcp_error_streak >= 2:
++                action_error = "environment_error"
++                done = True
++            session.last_success_call_key = None
++            session.success_call_streak = 0
++        else:
++            session.last_mcp_error = None
++            session.mcp_error_streak = 0
++
++        # Malformed arguments and invalid output remain terminal agent errors.
++        if action_error is not None and action_error != "environment_error":
+             done = True
++            session.last_success_call_key = None
++            session.success_call_streak = 0
++
++        # Identical successful tool calls in a row are treated as looping:
++        # stop and send the trajectory to the verifier instead of burning
++        # the remaining budget on the same call.  MCP errors are not
++        # successful calls and must not count toward this streak.
++        if action_error is None and mcp_error_key is None and name in {"list_tools", "call_tool"}:
++            call_key = self._success_call_key(name, tool_name, tool_args)
++            if call_key and call_key == session.last_success_call_key:
++                session.success_call_streak += 1
++            else:
++                session.last_success_call_key = call_key
++                session.success_call_streak = 1
++            if session.success_call_streak >= self.repeat_success_terminate_k:
++                done = True
++        elif action_error is None and mcp_error_key is None:
++            session.last_success_call_key = None
++            session.success_call_streak = 0
+ 
+         session.trajectory.append({
+             "iteration": session.steps, "role": "assistant",
+@@ -295,8 +440,16 @@ class Bridge:
+             reward = REWARD_BY_TYPE[action_error]
+             verify_info["reward_type"] = action_error
+         elif done:
+-            verified_reward, verify_info = await self._verify(session, str(action.get("content", "")))
+-            reward = verified_reward
++            verified_reward, verify_info, details, judge_result, raw_reward_type = await self._verify(
++                session, str(action.get("content", "")),
++            )
++            reward, verify_info = self._shape_terminal_reward(name, verified_reward, verify_info)
++            if self.reward_mode == "sql":
++                self._record_judge(
++                    session, raw_reward_type, details, judge_result,
++                    shaped_reward_type=str(verify_info.get("reward_type", raw_reward_type)),
++                    ended_with_final=name == "final",
++                )
+             session.done = True
+         if action_error is not None:
+             session.done = True
+diff --git a/agent_system/environments/env_package/awm/envs.py b/agent_system/environments/env_package/awm/envs.py
+index 5dc6e99..803db78 100644
+--- a/agent_system/environments/env_package/awm/envs.py
++++ b/agent_system/environments/env_package/awm/envs.py
+@@ -61,6 +61,7 @@ class AWMMCPVectorEnv:
+             "judge_timeout": float(self.config.awm.get("judge_timeout", 120)),
+             "judge_max_retries": int(self.config.awm.get("judge_max_retries", 3)),
+             "startup_concurrency": int(self.config.awm.get("startup_concurrency", 32)),
++            "repeat_success_terminate_k": int(self.config.awm.get("repeat_success_terminate_k", 5)),
+         }
+         self._process.stdin.write(json.dumps(config) + "\n")
+         self._process.stdin.flush()
+diff --git a/agent_system/environments/env_package/awm/projection.py b/agent_system/environments/env_package/awm/projection.py
+index fa9e6dd..8fcfe02 100644
+--- a/agent_system/environments/env_package/awm/projection.py
++++ b/agent_system/environments/env_package/awm/projection.py
+@@ -1,18 +1,47 @@
+ import json
+ import re
+-from typing import List, Tuple
++from typing import List, Optional, Tuple
+ 
+ 
+-def awm_projection(actions: List[str]) -> Tuple[List[dict], List[int]]:
+-    """Parse the single MCP meta-tool call emitted by the AWM agent prompt."""
++_TOOL_CALL_PATTERN = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.DOTALL)
++_THINK_CLOSE = "</think>"
++
++
++def _payload_after_think(action: str, require_think: bool) -> Optional[str]:
++    """Return the text that may contain a tool call / final answer.
++
++    Tool-call extraction only looks after the first ``</think>``.  Content
++    inside the reasoning block is ignored.  A missing close tag is a format
++    failure when thinking is required.
++    """
++    close_idx = action.lower().find(_THINK_CLOSE)
++    if close_idx == -1:
++        if require_think:
++            return None
++        return action
++    return action[close_idx + len(_THINK_CLOSE) :]
++
++
++def awm_projection(actions: List[str], require_think: bool = False) -> Tuple[List[dict], List[int]]:
++    """Parse the single MCP meta-tool call emitted by the AWM agent prompt.
++
++    When thinking is enabled, an incomplete reasoning block is a format
++    failure, just like malformed tool-call JSON.  Tool-call / final-answer
++    parsing uses only the suffix after ``</think>``.
++    """
+     projected = []
+     valid = []
+-    pattern = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.DOTALL)
+     for action in actions:
+-        matches = pattern.findall(action)
++        payload = _payload_after_think(action, require_think=require_think)
++        if payload is None:
++            projected.append({"name": "invalid", "content": action})
++            valid.append(0)
++            continue
++        matches = _TOOL_CALL_PATTERN.findall(payload)
+         if not matches:
+-            projected.append({"name": "final", "content": action.strip()})
+-            valid.append(1 if action.strip() else 0)
++            content = payload.strip()
++            projected.append({"name": "final", "content": content})
++            valid.append(1 if content else 0)
+             continue
+         try:
+             call = json.loads(matches[0])
+diff --git a/agent_system/multi_turn_rollout/rollout_loop.py b/agent_system/multi_turn_rollout/rollout_loop.py
+index 4650f0c..1fad8fb 100755
+--- a/agent_system/multi_turn_rollout/rollout_loop.py
++++ b/agent_system/multi_turn_rollout/rollout_loop.py
+@@ -258,6 +258,7 @@ class TrajectoryCollector:
+         data_source: Optional[str] = None,
+         max_prompt_length: Optional[int] = None,
+         images: Any = None,
++        enable_thinking: Optional[bool] = None,
+     ) -> Dict:
+         """
+         Build a prompt sample using the same chat-template path as rollout.
+@@ -265,6 +266,9 @@ class TrajectoryCollector:
+         """
+         prompt_length = int(max_prompt_length or self.config.data.max_prompt_length)
+         apply_chat_template_kwargs = self.config.data.get("apply_chat_template_kwargs", {})
++        if enable_thinking is not None:
++            apply_chat_template_kwargs = dict(apply_chat_template_kwargs)
++            apply_chat_template_kwargs["enable_thinking"] = enable_thinking
+         prompt_images = self._normalize_prompt_images(images)
+         chat = np.array([{
+             "content": obs_content,
+@@ -403,6 +407,7 @@ class TrajectoryCollector:
+         meta_info: Optional[Dict] = None,
+         max_prompt_length: Optional[int] = None,
+         images: Optional[List[Any]] = None,
++        enable_thinking: Optional[bool] = None,
+     ) -> DataProto:
+         """
+         Build a batch of text or multimodal prompts. Used for SEED analysis
+@@ -418,6 +423,7 @@ class TrajectoryCollector:
+                     data_source=data_source,
+                     max_prompt_length=max_prompt_length,
+                     images=sample_images,
++                    enable_thinking=enable_thinking,
+                 )
+             )
+         batch = collate_fn(processed_samples)
+diff --git a/examples/seed_trainer/run_awm_opsd_qwen3_8b.sh b/examples/seed_trainer/run_awm_opsd_qwen3_8b.sh
+index 20f70ab..5fd72a5 100755
+--- a/examples/seed_trainer/run_awm_opsd_qwen3_8b.sh
++++ b/examples/seed_trainer/run_awm_opsd_qwen3_8b.sh
+@@ -17,32 +17,39 @@ if [[ -n "$CONDA_ENV" && "${CONDA_DEFAULT_ENV:-}" != "$CONDA_ENV" ]]; then
+     set -u
+ fi
+ 
+-MODEL_PATH="${MODEL_PATH:-/local/user/models/sft/awm_episode_skill_sft_qwen3_8b_ep3_20260914_100457/global_step_693}"
++MODEL_PATH="${MODEL_PATH:-locaszzz/IDEA_sft}"
++if [[ ! -d "$MODEL_PATH" && "$MODEL_PATH" != /* ]]; then
++    MODEL_PATH="$(python3 -c 'import os, sys; from pathlib import Path; from huggingface_hub import snapshot_download; token=os.environ.get("HF_TOKEN"); token_path=os.environ.get("HF_TOKEN_PATH"); token=token or (Path(token_path).read_text().strip() if token_path else None); print(snapshot_download(sys.argv[1], token=token))' "$MODEL_PATH")"
++fi
+ AWM_ROOT="${AWM_ROOT:-/workspace/awm_source}"
+ AWM_DATA_ROOT="${AWM_DATA_ROOT:-/workspace/data/AgentWorldModel-1K}"
+ AWM_PYTHON="${AWM_PYTHON:-$AWM_ROOT/.venv/bin/python}"
+ DATA_DIR="${DATA_DIR:-$AWM_DATA_ROOT/verl}"
+-OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/outputs/awm_opsd_qwen3_8b_step693_wandb_v2}"
++OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_ROOT/outputs/awm_opsd_qwen3_8b_step693_wandb_v5}"
++CHECKPOINT_DIR="${CHECKPOINT_DIR:-/local/user/models/opsd-tool/awm_opsd_qwen3_8b_step693_wandb_v5}"
+ 
+ N_GPUS_PER_NODE="${N_GPUS_PER_NODE:-8}"
+ TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-16}"
+ VAL_BATCH_SIZE="${VAL_BATCH_SIZE:-8}"
+ GROUP_SIZE="${GROUP_SIZE:-8}"
+-MAX_STEPS="${MAX_STEPS:-30}"
++MAX_STEPS="${MAX_STEPS:-20}"
+ TOTAL_TRAINING_STEPS="${TOTAL_TRAINING_STEPS:-200}"
+-PPO_MINI_BATCH_SIZE="${PPO_MINI_BATCH_SIZE:-32}"
+-PPO_MICRO_BATCH_SIZE_PER_GPU="${PPO_MICRO_BATCH_SIZE_PER_GPU:-1}"
+-AWM_REWARD_MODE="${AWM_REWARD_MODE:-sql}"
++PPO_MINI_BATCH_SIZE="${PPO_MINI_BATCH_SIZE:-128}"
++PPO_MICRO_BATCH_SIZE_PER_GPU="${PPO_MICRO_BATCH_SIZE_PER_GPU:-4}"
++AWM_REWARD_MODE="${AWM_REWARD_MODE:-code}"
+ # SQL rewards use the Paratera OpenAI-compatible GLM endpoint (as in
+ # tests/test_paratra_api.py).  These values are intentionally defined here so
+ # the launcher can be run directly after activating the seed conda env.
+ AWM_JUDGE_BASE_URL="${AWM_JUDGE_BASE_URL:-https://judge.example.invalid/v1}"
+ AWM_JUDGE_API_KEY="${AWM_JUDGE_API_KEY:-EMPTY}"
+ AWM_JUDGE_MODEL="${AWM_JUDGE_MODEL:-GLM-5.3-Flash}"
+-AWM_JUDGE_CONCURRENCY="${AWM_JUDGE_CONCURRENCY:-10}"
++AWM_JUDGE_CONCURRENCY="${AWM_JUDGE_CONCURRENCY:-20}"
+ AWM_JUDGE_TIMEOUT="${AWM_JUDGE_TIMEOUT:-120}"
+ AWM_JUDGE_MAX_RETRIES="${AWM_JUDGE_MAX_RETRIES:-3}"
+ AWM_STARTUP_CONCURRENCY="${AWM_STARTUP_CONCURRENCY:-32}"
++STUDENT_ENABLE_THINKING="${STUDENT_ENABLE_THINKING:-false}"
++TEACHER_ENABLE_THINKING="${TEACHER_ENABLE_THINKING:-false}"
++SKILL_GEN_ENABLE_THINKING="${SKILL_GEN_ENABLE_THINKING:-false}"
+ case "$AWM_REWARD_MODE" in
+     code) VERIFIER_FILE="$AWM_DATA_ROOT/gen_verifier.pure_code.jsonl" ;;
+     sql) VERIFIER_FILE="$AWM_DATA_ROOT/gen_verifier.jsonl" ;;
+@@ -79,7 +86,7 @@ export RAY_TMPDIR="${RAY_TMPDIR:-/local/user/ray}"
+ mkdir -p "$RAY_TMPDIR"
+ export NCCL_ASYNC_ERROR_HANDLING="${NCCL_ASYNC_ERROR_HANDLING:-1}"
+ export NCCL_IB_DISABLE="${NCCL_IB_DISABLE:-1}"
+-export NCCL_P2P_DISABLE="${NCCL_P2P_DISABLE:-1}"
++export NCCL_P2P_DISABLE="${NCCL_P2P_DISABLE:-0}"
+ export TORCH_NCCL_BLOCKING_WAIT="${TORCH_NCCL_BLOCKING_WAIT:-1}"
+ ulimit -u 65536
+ 
+@@ -90,11 +97,12 @@ launch_args=(
+     data.train_batch_size="$TRAIN_BATCH_SIZE"
+     data.val_batch_size="$VAL_BATCH_SIZE"
+     data.max_prompt_length=12288
+-    data.max_response_length=4096
++    data.max_response_length=2048
+     data.filter_overlong_prompts=True
+     data.truncation=left
+     data.return_raw_chat=True
+-    +data.apply_chat_template_kwargs.enable_thinking=False
++    +data.apply_chat_template_kwargs.enable_thinking="$STUDENT_ENABLE_THINKING"
++    +env.projection_require_think="$STUDENT_ENABLE_THINKING"
+     actor_rollout_ref.model.path="$MODEL_PATH"
+     actor_rollout_ref.model.trust_remote_code=True
+     actor_rollout_ref.model.use_remove_padding=True
+@@ -103,7 +111,8 @@ launch_args=(
+     actor_rollout_ref.actor.optim.lr_warmup_steps_ratio=0.1
+     actor_rollout_ref.actor.ppo_mini_batch_size="$PPO_MINI_BATCH_SIZE"
+     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu="$PPO_MICRO_BATCH_SIZE_PER_GPU"
+-    actor_rollout_ref.actor.ppo_max_token_len_per_gpu=14336
++    actor_rollout_ref.actor.use_dynamic_bsz=True
++    actor_rollout_ref.actor.ppo_max_token_len_per_gpu=24576
+     actor_rollout_ref.actor.use_kl_loss=True
+     actor_rollout_ref.actor.kl_loss_coef=0.01
+     actor_rollout_ref.actor.kl_loss_type=low_var_kl
+@@ -115,8 +124,8 @@ launch_args=(
+     actor_rollout_ref.actor.fsdp_config.optimizer_offload=False
+     actor_rollout_ref.rollout.name=vllm
+     actor_rollout_ref.rollout.tensor_model_parallel_size=1
+-    actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1
+-    actor_rollout_ref.rollout.gpu_memory_utilization="${GPU_MEMORY_UTILIZATION:-0.55}"
++    actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu="$PPO_MICRO_BATCH_SIZE_PER_GPU"
++    actor_rollout_ref.rollout.gpu_memory_utilization="${GPU_MEMORY_UTILIZATION:-0.45}"
+     actor_rollout_ref.rollout.enable_chunked_prefill=True
+     actor_rollout_ref.rollout.enforce_eager=False
+     actor_rollout_ref.rollout.free_cache_engine=False
+@@ -124,7 +133,7 @@ launch_args=(
+     actor_rollout_ref.rollout.max_num_batched_tokens=14336
+     actor_rollout_ref.rollout.val_kwargs.temperature=0.4
+     actor_rollout_ref.rollout.val_kwargs.do_sample=True
+-    actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=1
++    actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu="$PPO_MICRO_BATCH_SIZE_PER_GPU"
+     actor_rollout_ref.ref.fsdp_config.param_offload=True
+     # AWM emits the complete format-failure reward (-1.0) and terminates the
+     # episode in the environment.  Do not apply verl's separate invalid-action
+@@ -146,6 +155,11 @@ launch_args=(
+     algorithm.seed.analysis_max_step_skills_per_traj=0
+     algorithm.seed.analysis_prompt_version=seed
+     algorithm.seed.analysis_include_episode_summary=True
++    +algorithm.seed.teacher_enable_thinking="$TEACHER_ENABLE_THINKING"
++    +algorithm.seed.skill_gen_enable_thinking="$SKILL_GEN_ENABLE_THINKING"
++    algorithm.seed.analysis_dump_dir="$OUTPUT_DIR/seed_analysis"
++    algorithm.seed.augmented_observation_dump_dir="$OUTPUT_DIR/seed_augmented_observations"
++    algorithm.seed.state_group_dump_dir="$OUTPUT_DIR/seed_state_group"
+     algorithm.seed.failed_only=False
+     algorithm.seed.normalize_teacher_adv=False
+     algorithm.seed.skill_gen.max_samples=all
+@@ -175,11 +189,11 @@ launch_args=(
+     trainer.experiment_name=opsd_qwen3_8b_step715_skill_teacher
+     trainer.n_gpus_per_node="$N_GPUS_PER_NODE"
+     trainer.nnodes=1
+-    trainer.save_freq="${SAVE_FREQ:-5}"
++    trainer.save_freq="${SAVE_FREQ:-1000}"
+     trainer.test_freq="${TEST_FREQ:-50}"
+     trainer.total_training_steps="$TOTAL_TRAINING_STEPS"
+     trainer.val_before_train=False
+-    trainer.default_local_dir="$OUTPUT_DIR"
++    trainer.default_local_dir="$CHECKPOINT_DIR"
+     trainer.rollout_data_dir="$OUTPUT_DIR/rollouts"
+     ray_init.num_cpus="${RAY_NUM_CPUS:-64}"
+ )
+@@ -187,6 +201,8 @@ launch_args=(
+ echo "Model: $MODEL_PATH"
+ echo "Data: $DATA_DIR"
+ echo "Output: $OUTPUT_DIR"
++echo "Checkpoint: $CHECKPOINT_DIR"
++echo "Thinking: student=$STUDENT_ENABLE_THINKING, teacher=$TEACHER_ENABLE_THINKING, skill_gen=$SKILL_GEN_ENABLE_THINKING"
+ echo "Effective rollout batch: $((TRAIN_BATCH_SIZE * GROUP_SIZE)); GPUs: $N_GPUS_PER_NODE; reward mode: $AWM_REWARD_MODE"
+ if [[ "$AWM_REWARD_MODE" == "sql" ]]; then
+     echo "Judge: $AWM_JUDGE_BASE_URL (model: $AWM_JUDGE_MODEL)"
+diff --git a/examples/seed_trainer/run_awm_opsd_qwen3_8b_one_step.sh b/examples/seed_trainer/run_awm_opsd_qwen3_8b_one_step.sh
+index 36cd3f5..786cbb9 100755
+--- a/examples/seed_trainer/run_awm_opsd_qwen3_8b_one_step.sh
++++ b/examples/seed_trainer/run_awm_opsd_qwen3_8b_one_step.sh
+@@ -19,7 +19,7 @@ export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
+ export TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-8}"
+ export GROUP_SIZE="${GROUP_SIZE:-4}"
+ export PPO_MINI_BATCH_SIZE="${PPO_MINI_BATCH_SIZE:-32}"
+-export PPO_MICRO_BATCH_SIZE_PER_GPU="${PPO_MICRO_BATCH_SIZE_PER_GPU:-1}"
++export PPO_MICRO_BATCH_SIZE_PER_GPU="${PPO_MICRO_BATCH_SIZE_PER_GPU:-4}"
+ export TOTAL_TRAINING_STEPS=1
+ 
+ # Saving/testing is not needed for this probe; retain console output by
+diff --git a/scripts/model_merger.py b/scripts/model_merger.py
+index 3bd25ca..416ce72 100755
+--- a/scripts/model_merger.py
++++ b/scripts/model_merger.py
+@@ -54,11 +54,15 @@ from transformers import (
+     AutoConfig,
+     AutoModelForCausalLM,
+     AutoModelForTokenClassification,
+-    AutoModelForVision2Seq,
+     GenerationConfig,
+     PretrainedConfig,
+ )
+ 
++try:
++    from transformers import AutoModelForVision2Seq
++except ImportError:
++    AutoModelForVision2Seq = None
++
+ try:
+     # for torch 2.5+
+     from torch.distributed.tensor import DTensor
+@@ -110,6 +114,8 @@ class BaseModelMerger(ABC):
+         elif "ForCausalLM" in self.model_config.architectures[0]:
+             return AutoModelForCausalLM
+         elif "ForConditionalGeneration" in self.model_config.architectures[0]:
++            if AutoModelForVision2Seq is None:
++                raise ImportError("This transformers version does not provide AutoModelForVision2Seq")
+             return AutoModelForVision2Seq
+ 
+         raise NotImplementedError(f"Unknown architecture {self.model_config.architectures}")
+@@ -141,7 +147,14 @@ class BaseModelMerger(ABC):
+         del model
+ 
+         processor = hf_processor(self.hf_model_config_path)
+-        tokenizer = hf_tokenizer(self.hf_model_config_path)
++        try:
++            tokenizer = hf_tokenizer(self.hf_model_config_path)
++        except AttributeError as exc:
++            # Some newer tokenizer_config formats are not readable by older
++            # Transformers versions; the checkpoint already contains the
++            # tokenizer files and the caller can copy them directly.
++            print(f"Warning: failed to load tokenizer, skipping tokenizer save: {exc}")
++            tokenizer = None
+         if processor is not None:
+             print(f"Saving processor to {self.config.target_dir}")
+             processor.save_pretrained(self.config.target_dir)
+diff --git a/scripts/sft/_common/pipeline.py b/scripts/sft/_common/pipeline.py
+index dde8b59..dfdc975 100644
+--- a/scripts/sft/_common/pipeline.py
++++ b/scripts/sft/_common/pipeline.py
+@@ -938,6 +938,20 @@ def normalize_messages(prompt: Dict[str, Any]) -> List[Dict[str, str]]:
+     return normalized
+ 
+ 
++def prepend_reasoning(raw_output: object, response_json: str) -> str:
++    """Preserve reasoning and repair legacy outputs missing ``<think>``."""
++    raw = str(raw_output or "")
++    close = raw.lower().find("</think>")
++    if close < 0:
++        return response_json
++    prefix = raw[:close].strip()
++    if prefix.lower().startswith("<think>"):
++        prefix = prefix[len("<think>"):].strip()
++    if not prefix:
++        return response_json
++    return f"<think>{prefix}</think>\n{response_json}"
++
++
+ def build_candidate_skill_record(
+     *,
+     trajectory: Dict[str, Any],
+@@ -1309,10 +1323,11 @@ def build_sft_exports(
+             "episode_summary": candidate.get("episode_summary", ""),
+             "episode_skill": candidate.get("episode_skill", ""),
+         }
++        response_json = json.dumps(response_payload, ensure_ascii=False)
+         sft_records.append(
+             {
+                 "prompt": normalize_messages(prompt)[-1]["content"],
+-                "response": json.dumps(response_payload, ensure_ascii=False),
++                "response": prepend_reasoning(candidate.get("llm_raw_output", ""), response_json),
+                 "skill_id": record["skill_id"],
+                 "task_id": record["task_id"],
+                 "task_type": record["task_type"],
+diff --git a/scripts/sft/_common_v1/pipeline.py b/scripts/sft/_common_v1/pipeline.py
+index dde8b59..adc91b9 100644
+--- a/scripts/sft/_common_v1/pipeline.py
++++ b/scripts/sft/_common_v1/pipeline.py
+@@ -938,6 +938,24 @@ def normalize_messages(prompt: Dict[str, Any]) -> List[Dict[str, str]]:
+     return normalized
+ 
+ 
++def prepend_reasoning(raw_output: object, response_json: str) -> str:
++    """Preserve model reasoning before the supervised JSON response.
++
++    Some legacy outputs contain only ``</think>``. Treat the text before that
++    marker as reasoning and synthesize the missing opening tag.
++    """
++    raw = str(raw_output or "")
++    close = raw.lower().find("</think>")
++    if close < 0:
++        return response_json
++    prefix = raw[:close].strip()
++    if prefix.lower().startswith("<think>"):
++        prefix = prefix[len("<think>"):].strip()
++    if not prefix:
++        return response_json
++    return f"<think>{prefix}</think>\n{response_json}"
++
++
+ def build_candidate_skill_record(
+     *,
+     trajectory: Dict[str, Any],
+@@ -1309,10 +1327,11 @@ def build_sft_exports(
+             "episode_summary": candidate.get("episode_summary", ""),
+             "episode_skill": candidate.get("episode_skill", ""),
+         }
++        response_json = json.dumps(response_payload, ensure_ascii=False)
+         sft_records.append(
+             {
+                 "prompt": normalize_messages(prompt)[-1]["content"],
+-                "response": json.dumps(response_payload, ensure_ascii=False),
++                "response": prepend_reasoning(candidate.get("llm_raw_output", ""), response_json),
+                 "skill_id": record["skill_id"],
+                 "task_id": record["task_id"],
+                 "task_type": record["task_type"],
+diff --git a/scripts/sft/_common_v1/trainer.sh b/scripts/sft/_common_v1/trainer.sh
+index 026d225..d3fb036 100755
+--- a/scripts/sft/_common_v1/trainer.sh
++++ b/scripts/sft/_common_v1/trainer.sh
+@@ -107,6 +107,7 @@ trainer_args=(
+     "trainer.logger=$TRAINER_LOGGER"
+     "trainer.total_epochs=$TOTAL_EPOCHS"
+     "trainer.default_hdfs_dir=null"
++    "trainer.save_freq_steps=50"
+ )
+ 
+ if [[ "$MULTIMODAL" == "true" ]]; then
+diff --git a/scripts/sft/awm/build_candidate_skill_sft.py b/scripts/sft/awm/build_candidate_skill_sft.py
+index e08f7c0..0db53d1 100644
+--- a/scripts/sft/awm/build_candidate_skill_sft.py
++++ b/scripts/sft/awm/build_candidate_skill_sft.py
+@@ -45,6 +45,33 @@ def remove_think(value: str) -> str:
+     return value.strip()
+ 
+ 
++def prepend_reasoning(raw_output: object, response_json: str) -> str:
++    """Keep reasoning before JSON and repair outputs containing only </think>."""
++    raw = str(raw_output or "")
++    close = raw.lower().find("</think>")
++    if close < 0:
++        return response_json
++    prefix = raw[:close].strip()
++    if prefix.lower().startswith("<think>"):
++        prefix = prefix[len("<think>"):].strip()
++    if not prefix:
++        return response_json
++    return f"<think>{prefix}</think>\n{response_json}"
++
++
++def preserve_think(value: object) -> str:
++    """Keep marked reasoning, adding a missing opening marker when needed."""
++    text = json_text(value).strip()
++    close = text.lower().find("</think>")
++    if close < 0:
++        return text
++    prefix = text[:close].strip()
++    suffix = text[close + len("</think>"):].lstrip()
++    if prefix.lower().startswith("<think>"):
++        return text
++    return f"<think>{prefix}</think>{suffix}"
++
++
+ def clip_text(text: str, limit: int = 18000) -> str:
+     if len(text) <= limit:
+         return text
+@@ -123,9 +150,10 @@ def main() -> None:
+                 "Return JSON with episode_summary, episode_skill, and step_skills.\n\n"
+                 + context
+             )
++            response_json = json.dumps(response, ensure_ascii=False)
+             rows.append({
+                 "prompt": prompt,
+-                "response": remove_think(json.dumps(response, ensure_ascii=False)),
++                "response": prepend_reasoning(skill.get("llm_raw_output", ""), response_json),
+                 "task_id": task_id,
+                 "task_type": rollout.get("scenario", "awm"),
+             })
+@@ -146,9 +174,9 @@ def main() -> None:
+                 prompt_parts = []
+                 for message in history:
+                     role = str(message.get("role", "user"))
+-                    content = remove_think(json_text(message.get("content", "")))
++                    content = preserve_think(message.get("content", ""))
+                     prompt_parts.append(f"{role}: {content}")
+-                response = remove_think(json_text(messages[-1].get("content", "")))
++                response = preserve_think(messages[-1].get("content", ""))
+                 if not response:
+                     continue
+                 rows.append({
+@@ -159,7 +187,7 @@ def main() -> None:
+                     # skill rows intentionally remain prompt/response text.
+                     "messages": [
+                         {**m, "role": str(m.get("role", "user")),
+-                         "content": remove_think(json_text(m.get("content", "")))}
++                         "content": preserve_think(m.get("content", ""))}
+                         for m in history + [messages[-1]]
+                     ],
+                     "task_id": f"turn_{turn_count}",
+diff --git a/scripts/sft/awm/debug_appointment_second_turn.py b/scripts/sft/awm/debug_appointment_second_turn.py
+index 4c4baab..0d3175b 100644
+--- a/scripts/sft/awm/debug_appointment_second_turn.py
++++ b/scripts/sft/awm/debug_appointment_second_turn.py
+@@ -177,7 +177,7 @@ def parse_args() -> argparse.Namespace:
+     parser = argparse.ArgumentParser()
+     parser.add_argument("--api-url", default="http://127.0.0.1:8220/v1")
+     parser.add_argument("--model", default="qwen3-8b-awm-natural-step-715")
+-    parser.add_argument("--max-tokens", type=int, default=512)
++    parser.add_argument("--max-tokens", type=int, default=2048)
+     parser.add_argument("--temperature", type=float, default=1.0)
+     parser.add_argument(
+         "--enable-thinking",
+diff --git a/scripts/sft/awm/merge_turn_sft_data.py b/scripts/sft/awm/merge_turn_sft_data.py
+index 53d5d62..52008f0 100644
+--- a/scripts/sft/awm/merge_turn_sft_data.py
++++ b/scripts/sft/awm/merge_turn_sft_data.py
+@@ -19,6 +19,18 @@ def remove_think(value: str) -> str:
+     return value.strip()
+ 
+ 
++def preserve_think(value: object) -> str:
++    text = str(value or "").strip()
++    close = text.lower().find("</think>")
++    if close < 0:
++        return text
++    prefix = text[:close].strip()
++    suffix = text[close + len("</think>"):].lstrip()
++    if prefix.lower().startswith("<think>"):
++        return text
++    return f"<think>{prefix}</think>{suffix}"
++
++
+ def main() -> None:
+     p = argparse.ArgumentParser()
+     p.add_argument("--skill-data", required=True)
+@@ -55,8 +67,8 @@ def main() -> None:
+             history = []
+             for message in messages[:-1]:
+                 role = str(message.get("role", "user"))
+-                history.append(f"{role}: {remove_think(str(message.get('content', '')))}")
+-            response = remove_think(str(messages[-1].get("content", "")))
++                history.append(f"{role}: {preserve_think(message.get('content', ''))}")
++            response = preserve_think(messages[-1].get("content", ""))
+             if not response:
+                 continue
+             rows.append({
+@@ -64,7 +76,7 @@ def main() -> None:
+                 "response": response,
+                 "messages": [
+                     {**m, "role": str(m.get("role", "user")),
+-                     "content": remove_think(str(m.get("content", "")))}
++                     "content": preserve_think(m.get("content", ""))}
+                     for m in messages
+                 ],
+                 "task_id": f"turn_{turn_rows}",
+diff --git a/scripts/sft/awm_sft/train_sft.sh b/scripts/sft/awm_sft/train_sft.sh
+index 0a58707..924e95e 100755
+--- a/scripts/sft/awm_sft/train_sft.sh
++++ b/scripts/sft/awm_sft/train_sft.sh
+@@ -10,7 +10,7 @@ MODELS_ROOT="/local/user/models"
+ # MODELS_ROOT="/local/user"
+ MODEL_TAG="qwen3_8b"
+ DEFAULT_SFT_CONDA_ENV="seed"
+-DEFAULT_LR="5e-6"
++DEFAULT_LR="1e-6"
+ DEFAULT_MAX_LENGTH="8192"
+ MULTIMODAL="false"
+ DATA_DIR_EXTRA_SUFFIX=""
+diff --git a/tests/kill_github_tests.sh b/tests/kill_github_tests.sh
+index 5c76d76..85782d8 100755
+--- a/tests/kill_github_tests.sh
++++ b/tests/kill_github_tests.sh
+@@ -1,41 +1,7 @@
+-#!/bin/bash
++mv /local/user/models/opsd-tool/awm_opsd_qwen3_8b_step693_wandb_v3/global_step_20 \
++   /workspace/seed_source/outputs/awm_opsd_qwen3_8b_step693_wandb_v3/
+ 
+-if [ "$#" -ne 1 ]; then
+-    echo "Usage: $0 YOUR_GITHUB_TOKEN"
+-    echo "Please provide exactly one input argument for your github token."
+-    exit 1
+-fi
++mv /local/user/models/opsd-tool/awm_opsd_qwen3_8b_step693_wandb_v3/global_step_19 \
++   /workspace/seed_source/outputs/awm_opsd_qwen3_8b_step693_wandb_v3/
+ 
+-# Set your GitHub repository details
+-OWNER="volcengine"
+-REPO="verl"
+-TOKEN=$1
+-
+-# API URL for workflow runs
+-API_URL="https://api.github.com/repos/$OWNER/$REPO/actions/runs?status=queued"
+-
+-# Check required commands
+-command -v jq >/dev/null 2>&1 || { echo "jq is required but not installed. Aborting."; exit 1; }
+-
+-# Get queued workflow runs
+-response=$(curl -s -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github.v3+json" "$API_URL")
+-
+-# Run this for debugging
+-# echo $response
+-
+-# Extract run IDs
+-queued_run_ids=$(echo "$response" | jq -r '.workflow_runs[] | .id')
+-
+-if [ -z "$queued_run_ids" ]; then
+-    echo "No queued workflow runs found."
+-    exit 0
+-fi
+-
+-# Cancel each queued run
+-for run_id in $queued_run_ids; do
+-    echo "Cancelling run $run_id"
+-    cancel_url="https://api.github.com/repos/$OWNER/$REPO/actions/runs/$run_id/cancel"
+-    curl -s -X POST -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github.v3+json" "$cancel_url"
+-done
+-
+-echo "Cancelled all queued workflow runs."
++bash /workspace/seed_source/scripts/sft/awm_sft/train_sft.sh
+\ No newline at end of file
+diff --git a/verl/trainer/config/ppo_trainer.yaml b/verl/trainer/config/ppo_trainer.yaml
+index aae27cc..b522054 100755
+--- a/verl/trainer/config/ppo_trainer.yaml
++++ b/verl/trainer/config/ppo_trainer.yaml
+@@ -374,6 +374,9 @@ env:
+     judge_model: ""
+     judge_timeout: 120
+     judge_max_retries: 3
++    # End the episode and run the verifier after this many identical
++    # successful tool calls in a row (same tool name + arguments).
++    repeat_success_terminate_k: 5
+   sokoban:
+     dim_room: [6, 6]
+     num_boxes: 1
+diff --git a/verl/trainer/ppo/ray_trainer.py b/verl/trainer/ppo/ray_trainer.py
+index 19c2762..4b607ac 100755
+--- a/verl/trainer/ppo/ray_trainer.py
++++ b/verl/trainer/ppo/ray_trainer.py
+@@ -2018,6 +2018,12 @@ class RayPPOTrainer:
+             OmegaConf.select(self.config, "algorithm.seed.analysis_prompt_version") or "seed"
+         )
+ 
++    def _get_seed_skill_gen_enable_thinking(self) -> bool:
++        return self._config_bool(self.config, "algorithm.seed.skill_gen_enable_thinking", False)
++
++    def _get_seed_teacher_enable_thinking(self) -> bool:
++        return self._config_bool(self.config, "algorithm.seed.teacher_enable_thinking", True)
++
+     def _build_seed_traj_success_map(self, batch: DataProto) -> Dict[object, float]:
+         if "episode_success" in batch.non_tensor_batch:
+             episode_success_np = np.asarray(batch.non_tensor_batch["episode_success"], dtype=np.float32)
+@@ -2216,6 +2222,7 @@ class RayPPOTrainer:
+             },
+             max_prompt_length=analysis_context_length,
+             images=prompt_images if use_visual_prompts else None,
++            enable_thinking=self._get_seed_skill_gen_enable_thinking(),
+         )
+         prompt_lengths = prompt_batch.batch["attention_mask"].sum(dim=-1).detach().cpu().numpy()
+         module_logger.info(
+@@ -2775,6 +2782,7 @@ class RayPPOTrainer:
+                 data_sources=data_sources,
+                 meta_info=teacher_meta_info,
+                 images=prompt_images if use_prompt_images else None,
++                enable_thinking=self._get_seed_teacher_enable_thinking(),
+             )
+             prompt_lengths = teacher_prompt_batch.batch["attention_mask"].sum(dim=-1).detach().cpu().numpy()
+             module_logger.info(
+diff --git a/vllm_model/vllm_model.sh b/vllm_model/vllm_model.sh
+index 9c9c690..6d1c713 100644
+--- a/vllm_model/vllm_model.sh
++++ b/vllm_model/vllm_model.sh
+@@ -39,6 +39,21 @@ CUDA_VISIBLE_DEVICES=0 \
+     --gpu-memory-utilization 0.90 \
+     --trust-remote-code
+ 
++CUDA_VISIBLE_DEVICES=0 \
++  PYTHONPATH=/workspace/seed_source/scripts \
++  /local/user/conda_envs/seed/bin/python \
++  /workspace/seed_source/scripts/vllm_seed_compat.py serve \
++  /local/user/models/sft/awm_episode_skill_sft_qwen3_8b_ep3_20260921_164910/global_step_100 \
++    --served-model-name global_step_100 \
++    --host 127.0.0.1 \
++    --port 8218 \
++    --enable-auto-tool-choice \
++    --tool-call-parser hermes \
++    --max-num-seqs 8 \
++    --max-model-len 32768 \
++    --gpu-memory-utilization 0.90 \
++    --trust-remote-code
++
+ CUDA_VISIBLE_DEVICES=0 /local/user/conda_envs/seed/bin/vllm serve \
+   /local/user/models/sft/awm_episode_skill_sft_qwen3_8b_ep3_20260914_100457/global_step_693 \
+   --served-model-name global_step_693 \
+@@ -63,13 +78,20 @@ CUDA_VISIBLE_DEVICES=1 /local/user/conda_envs/vllm_qwen_3_8/bin/vllm serve \
+   --max-num-seqs 8 --max-model-len 32768 \
+   --gpu-memory-utilization 0.90 --trust-remote-code
+ 
+-CUDA_VISIBLE_DEVICES=2 /local/user/conda_envs/vllm_qwen_3_8/bin/vllm serve \
+-  /local/user/models/qwen3_8b_awm_skill_sft_verl_12288_natural/global_step_1430 \
+-  --served-model-name global_step_1430 \
+-  --host 127.0.0.1 --port 8220 \
+-  --enable-auto-tool-choice --tool-call-parser hermes \
+-  --max-num-seqs 8 --max-model-len 32768 \
+-  --gpu-memory-utilization 0.90 --trust-remote-code
++CUDA_VISIBLE_DEVICES=2 \
++  PYTHONPATH=/workspace/seed_source/scripts \
++  /local/user/conda_envs/seed/bin/python \
++  /workspace/seed_source/scripts/vllm_seed_compat.py serve \
++  /local/user/models/opsd-tool/awm_episode_skill_sft_qwen3_8b_ep3_20260921_133147/global_step_1 \
++    --served-model-name global_step_1 \
++    --host 127.0.0.1 \
++    --port 8220 \
++    --enable-auto-tool-choice \
++    --tool-call-parser hermes \
++    --max-num-seqs 8 \
++    --max-model-len 32768 \
++    --gpu-memory-utilization 0.90 \
++    --trust-remote-code
+ 
+ CUDA_VISIBLE_DEVICES=3 /local/user/conda_envs/vllm_qwen_3_8/bin/vllm serve \
+   /local/user/models/qwen3_8b_awm_skill_sft_verl_12288_natural/global_step_1430 \
+@@ -161,20 +183,41 @@ CUDA_VISIBLE_DEVICES=6 /local/user/conda_envs/vllm_qwen_1/bin/vllm serve \
+ /workspace/awm_source/.venv/bin/python \
+     /workspace/seed_source/scripts/sft/awm/debug_appointment_second_turn.py \
+     --api-url http://127.0.0.1:8218/v1 \
+-    --model global_step_693 \
+-    --output-dir /workspace/seed_source/outputs/awm_debug_appointment_second_turn
++    --model global_step_19 \
++    --output-dir /workspace/seed_source/outputs/awm_debug_appointment_second_turn \
++    --enable-thinking
++
++/workspace/awm_source/.venv/bin/python \
++    /workspace/seed_source/scripts/sft/awm/debug_appointment_second_turn.py \
++    --api-url http://127.0.0.1:8218/v1 \
++    --model global_step_19 \
++    --output-dir /workspace/seed_source/outputs/awm_debug_appointment_second_turn 
+ 
+ /workspace/awm_source/.venv/bin/python \
+     /workspace/seed_source/scripts/sft/awm/debug_appointment_second_turn.py \
+     --api-url http://127.0.0.1:8219/v1 \
+-    --model Qwen3.5-9B \
+-    --output-dir /workspace/seed_source/outputs/awm_debug_appointment_second_turn
++    --model Qwen3-8B \
++    --output-dir /workspace/seed_source/outputs/awm_debug_appointment_second_turn \
++    --enable-thinking
++
++/workspace/awm_source/.venv/bin/python \
++    /workspace/seed_source/scripts/sft/awm/debug_appointment_second_turn.py \
++    --api-url http://127.0.0.1:8219/v1 \
++    --model Qwen3-8B \
++    --output-dir /workspace/seed_source/outputs/awm_debug_appointment_second_turn 
+ 
+ /workspace/awm_source/.venv/bin/python \
+     /workspace/seed_source/scripts/sft/awm/debug_appointment_second_turn.py \
+     --api-url http://127.0.0.1:8220/v1 \
+     --model global_step_100 \
+-    --output-dir /workspace/seed_source/outputs/awm_debug_appointment_second_turn
++    --output-dir /workspace/seed_source/outputs/awm_debug_appointment_second_turn \
++    --enable-thinking
++
++/workspace/awm_source/.venv/bin/python \
++    /workspace/seed_source/scripts/sft/awm/debug_appointment_second_turn.py \
++    --api-url http://127.0.0.1:8220/v1 \
++    --model global_step_100 \
++    --output-dir /workspace/seed_source/outputs/awm_debug_appointment_second_turn 
+ 
+ /workspace/awm_source/.venv/bin/python \
+     /workspace/seed_source/scripts/sft/awm/debug_appointment_second_turn.py \
