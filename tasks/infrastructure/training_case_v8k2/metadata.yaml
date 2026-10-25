@@ -1,0 +1,31 @@
+title: Fused multimodal sequence-parallel training diagnosis
+submitter:
+  name: Gaoyuan
+license: Apache-2.0
+created_date: 2026-10-24
+domain: code
+model:
+  name: Qwen/Qwen3-VL-8B-Instruct
+  revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
+  license: apache-2.0
+dataset:
+  name: derek-thomas/ScienceQA image-bearing multiple choice
+  revision: f18b0a70359ebfb41f658fd564208d0355b013f4
+  license: cc-by-sa-4.0
+training:
+  framework: verl
+  algo: GRPO
+  script: scripts/run_training.py
+  script_args: []
+environment:
+  image: vl-grpo-cu129-recorded
+  prepare: environment/prepare.sh
+  env:
+    WANDB_MODE: "offline"
+    PYTHONDONTWRITEBYTECODE: "1"
+    OMP_NUM_THREADS: "2"
+    MKL_NUM_THREADS: "2"
+    OPENBLAS_NUM_THREADS: "2"
+outcome:
+  failure_type: fused_sequence_parallel_label_alignment
+  failure_reason: 'The fused FSDP path does not consistently consume globally shifted SP-sliced labels at local hidden-state positions. Real response-loss positions with nonzero advantages and gradients are affected. Paired forty-step observations show label correction and a 5.3515625pp validation-change improvement; measured before last-five validation change is -2.578125pp against a frozen -5pp quality-decline threshold.'

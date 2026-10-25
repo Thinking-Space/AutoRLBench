@@ -1,0 +1,262 @@
+diff --git a/verl/models/transformers/dense_common.py b/verl/models/transformers/dense_common.py
+index 56fe293f5cb..0e2041effb8 100644
+--- a/verl/models/transformers/dense_common.py
++++ b/verl/models/transformers/dense_common.py
+@@ -83,6 +83,7 @@ def forward_with_torch_backend(
+     cache_position: Optional[torch.LongTensor] = None,
+     logits_to_keep: int | torch.Tensor = 0,
+     temperature: float = 1.0,
++    shift_labels: Optional[torch.LongTensor] = None,
+     **loss_kwargs,
+ ) -> tuple | CausalLMOutputForPPO:
+     from verl.utils.experimental.torch_functional import FusedLinearForPPO
+@@ -105,8 +106,13 @@ def forward_with_torch_backend(
+     if not return_dict:
+         raise NotImplementedError("forward_with_torch_backend has to return_dict")
+ 
+-    # Loss calculations
+-    if labels is not None:
++    # Loss calculations.
++    # When the engine has already prepared globally-rolled labels (e.g. the FSDP
++    # path under Ulysses SP, see issue #6068), it passes them as `shift_labels`
++    # so we don't redo `torch.roll` on a sequence-parallel-sliced shard.
++    if shift_labels is not None:
++        rolled_labels = shift_labels
++    elif labels is not None:
+         rolled_labels = torch.roll(labels, shifts=-1, dims=-1)
+     elif input_ids is not None:
+         rolled_labels = torch.roll(input_ids, shifts=-1, dims=-1)
+@@ -145,6 +151,7 @@ def forward_with_triton_backend(
+     cache_position: Optional[torch.LongTensor] = None,
+     logits_to_keep: int | torch.Tensor = 0,
+     temperature: float = 1.0,
++    shift_labels: Optional[torch.LongTensor] = None,
+     **loss_kwargs,
+ ) -> tuple | CausalLMOutputForPPO:
+     from verl.utils.kernel.linear_cross_entropy import linear_cross_entropy
+@@ -168,8 +175,11 @@ def forward_with_triton_backend(
+     if not return_dict:
+         raise NotImplementedError("forward_with_triton_backend has to return_dict")
+ 
+-    # Loss calculations
+-    if labels is not None:
++    # Loss calculations. See `forward_with_torch_backend` for why `shift_labels`
++    # takes precedence over local `torch.roll` (issue #6068).
++    if shift_labels is not None:
++        rolled_labels = shift_labels
++    elif labels is not None:
+         rolled_labels = torch.roll(labels, shifts=-1, dims=-1)
+     elif input_ids is not None:
+         rolled_labels = torch.roll(input_ids, shifts=-1, dims=-1)
+diff --git a/verl/models/transformers/glm4v.py b/verl/models/transformers/glm4v.py
+index d35075c315e..8dfb619f2ba 100644
+--- a/verl/models/transformers/glm4v.py
++++ b/verl/models/transformers/glm4v.py
+@@ -477,6 +477,7 @@ def forward_with_torch_backend(
+     input_ids: torch.LongTensor = None,
+     labels: Optional[torch.LongTensor] = None,
+     temperature: float = 1.0,
++    shift_labels: Optional[torch.LongTensor] = None,
+     **kwargs,
+ ) -> tuple | Glm4vCausalLMOutputForPPO:
+     from verl.utils.experimental.torch_functional import FusedLinearForPPO
+@@ -484,8 +485,11 @@ def forward_with_torch_backend(
+     outputs = glm4v_forward(self, input_ids, **kwargs)
+     hidden_states = outputs[0]
+ 
+-    # Loss calculations
+-    if labels is not None:
++    # See `dense_common.forward_with_torch_backend` for the `shift_labels`
++    # rationale (issue #6068).
++    if shift_labels is not None:
++        rolled_labels = shift_labels
++    elif labels is not None:
+         rolled_labels = torch.roll(labels, shifts=-1, dims=-1)
+     elif input_ids is not None:
+         rolled_labels = torch.roll(input_ids, shifts=-1, dims=-1)
+@@ -511,6 +515,7 @@ def forward_with_triton_backend(
+     input_ids: torch.LongTensor = None,
+     labels: Optional[torch.LongTensor] = None,
+     temperature: float = 1.0,
++    shift_labels: Optional[torch.LongTensor] = None,
+     **kwargs,
+ ) -> tuple | Glm4vCausalLMOutputForPPO:
+     from verl.utils.kernel.linear_cross_entropy import linear_cross_entropy
+@@ -518,8 +523,11 @@ def forward_with_triton_backend(
+     outputs = glm4v_forward(self, input_ids, **kwargs)
+     hidden_states = outputs[0]
+ 
+-    # Loss calculations
+-    if labels is not None:
++    # See `dense_common.forward_with_torch_backend` for the `shift_labels`
++    # rationale (issue #6068).
++    if shift_labels is not None:
++        rolled_labels = shift_labels
++    elif labels is not None:
+         rolled_labels = torch.roll(labels, shifts=-1, dims=-1)
+     elif input_ids is not None:
+         rolled_labels = torch.roll(input_ids, shifts=-1, dims=-1)
+diff --git a/verl/models/transformers/qwen2_vl.py b/verl/models/transformers/qwen2_vl.py
+index 448d7938b4f..571597edd76 100644
+--- a/verl/models/transformers/qwen2_vl.py
++++ b/verl/models/transformers/qwen2_vl.py
+@@ -492,6 +492,7 @@ def forward_with_torch_backend(
+     input_ids: torch.LongTensor = None,
+     labels: Optional[torch.LongTensor] = None,
+     temperature: float = 1.0,
++    shift_labels: Optional[torch.LongTensor] = None,
+     **kwargs,
+ ) -> tuple | Qwen2VLCausalLMOutputForPPO:
+     from verl.utils.experimental.torch_functional import FusedLinearForPPO
+@@ -499,8 +500,11 @@ def forward_with_torch_backend(
+     outputs = qwen2_vl_forward(self, input_ids, **kwargs)
+     hidden_states = outputs[0]
+ 
+-    # Loss calculations
+-    if labels is not None:
++    # Loss calculations. See `dense_common.forward_with_torch_backend` for the
++    # `shift_labels` rationale (issue #6068).
++    if shift_labels is not None:
++        rolled_labels = shift_labels
++    elif labels is not None:
+         rolled_labels = torch.roll(labels, shifts=-1, dims=-1)
+     elif input_ids is not None:
+         rolled_labels = torch.roll(input_ids, shifts=-1, dims=-1)
+@@ -526,6 +530,7 @@ def forward_with_triton_backend(
+     input_ids: torch.LongTensor = None,
+     labels: Optional[torch.LongTensor] = None,
+     temperature: float = 1.0,
++    shift_labels: Optional[torch.LongTensor] = None,
+     **kwargs,
+ ) -> tuple | Qwen2VLCausalLMOutputForPPO:
+     from verl.utils.kernel.linear_cross_entropy import linear_cross_entropy
+@@ -533,8 +538,11 @@ def forward_with_triton_backend(
+     outputs = qwen2_vl_forward(self, input_ids, **kwargs)
+     hidden_states = outputs[0]
+ 
+-    # Loss calculations
+-    if labels is not None:
++    # See `dense_common.forward_with_torch_backend` for the `shift_labels`
++    # rationale (issue #6068).
++    if shift_labels is not None:
++        rolled_labels = shift_labels
++    elif labels is not None:
+         rolled_labels = torch.roll(labels, shifts=-1, dims=-1)
+     elif input_ids is not None:
+         rolled_labels = torch.roll(input_ids, shifts=-1, dims=-1)
+diff --git a/verl/models/transformers/qwen3_5.py b/verl/models/transformers/qwen3_5.py
+index 3d1f8153ea6..d73a5082a48 100644
+--- a/verl/models/transformers/qwen3_5.py
++++ b/verl/models/transformers/qwen3_5.py
+@@ -199,6 +199,7 @@ def forward_with_torch_backend(
+     input_ids: torch.LongTensor = None,
+     labels: Optional[torch.LongTensor] = None,
+     temperature: float = 1.0,
++    shift_labels: Optional[torch.LongTensor] = None,
+     **kwargs,
+ ) -> "Qwen3_5CausalLMOutputForPPO":
+     from verl.utils.experimental.torch_functional import FusedLinearForPPO
+@@ -206,8 +207,11 @@ def forward_with_torch_backend(
+     outputs = self.model(input_ids, **kwargs)
+     hidden_states = outputs[0]
+ 
+-    # Loss calculations
+-    if labels is not None:
++    # See `dense_common.forward_with_torch_backend` for the `shift_labels`
++    # rationale (issue #6068).
++    if shift_labels is not None:
++        rolled_labels = shift_labels
++    elif labels is not None:
+         rolled_labels = torch.roll(labels, shifts=-1, dims=-1)
+     elif input_ids is not None:
+         rolled_labels = torch.roll(input_ids, shifts=-1, dims=-1)
+@@ -233,6 +237,7 @@ def forward_with_triton_backend(
+     input_ids: torch.LongTensor = None,
+     labels: Optional[torch.LongTensor] = None,
+     temperature: float = 1.0,
++    shift_labels: Optional[torch.LongTensor] = None,
+     **kwargs,
+ ) -> "Qwen3_5CausalLMOutputForPPO":
+     from verl.utils.kernel.linear_cross_entropy import linear_cross_entropy
+@@ -240,8 +245,11 @@ def forward_with_triton_backend(
+     outputs = self.model(input_ids, **kwargs)
+     hidden_states = outputs[0]
+ 
+-    # Loss calculations
+-    if labels is not None:
++    # See `dense_common.forward_with_torch_backend` for the `shift_labels`
++    # rationale (issue #6068).
++    if shift_labels is not None:
++        rolled_labels = shift_labels
++    elif labels is not None:
+         rolled_labels = torch.roll(labels, shifts=-1, dims=-1)
+     elif input_ids is not None:
+         rolled_labels = torch.roll(input_ids, shifts=-1, dims=-1)
+diff --git a/verl/models/transformers/qwen3_vl.py b/verl/models/transformers/qwen3_vl.py
+index f385d716d52..f12f31d4f56 100644
+--- a/verl/models/transformers/qwen3_vl.py
++++ b/verl/models/transformers/qwen3_vl.py
+@@ -280,6 +280,7 @@ def forward_with_torch_backend(
+     input_ids: torch.LongTensor = None,
+     labels: Optional[torch.LongTensor] = None,
+     temperature: float = 1.0,
++    shift_labels: Optional[torch.LongTensor] = None,
+     **kwargs,
+ ) -> "Qwen3VLCausalLMOutputForPPO":
+     from verl.utils.experimental.torch_functional import FusedLinearForPPO
+@@ -287,8 +288,12 @@ def forward_with_torch_backend(
+     outputs = self.model(input_ids, **kwargs)
+     hidden_states = outputs[0]
+ 
+-    # Loss calculations
+-    if labels is not None:
++    # Loss calculations. `shift_labels` (when provided by the engine) is the
++    # globally-rolled, SP-sliced label tensor — using it avoids the local-roll
++    # bug in issue #6068 under Ulysses sequence parallel.
++    if shift_labels is not None:
++        rolled_labels = shift_labels
++    elif labels is not None:
+         rolled_labels = torch.roll(labels, shifts=-1, dims=-1)
+     elif input_ids is not None:
+         rolled_labels = torch.roll(input_ids, shifts=-1, dims=-1)
+@@ -314,6 +319,7 @@ def forward_with_triton_backend(
+     input_ids: torch.LongTensor = None,
+     labels: Optional[torch.LongTensor] = None,
+     temperature: float = 1.0,
++    shift_labels: Optional[torch.LongTensor] = None,
+     **kwargs,
+ ) -> "Qwen3VLCausalLMOutputForPPO":
+     from verl.utils.kernel.linear_cross_entropy import linear_cross_entropy
+@@ -321,8 +327,11 @@ def forward_with_triton_backend(
+     outputs = self.model(input_ids, **kwargs)
+     hidden_states = outputs[0]
+ 
+-    # Loss calculations
+-    if labels is not None:
++    # Loss calculations. See `forward_with_torch_backend` for the `shift_labels`
++    # rationale (issue #6068).
++    if shift_labels is not None:
++        rolled_labels = shift_labels
++    elif labels is not None:
+         rolled_labels = torch.roll(labels, shifts=-1, dims=-1)
+     elif input_ids is not None:
+         rolled_labels = torch.roll(input_ids, shifts=-1, dims=-1)
+diff --git a/verl/workers/engine/fsdp/transformer_impl.py b/verl/workers/engine/fsdp/transformer_impl.py
+index 657d3e2e1c9..cbc1aa0a9b0 100644
+--- a/verl/workers/engine/fsdp/transformer_impl.py
++++ b/verl/workers/engine/fsdp/transformer_impl.py
+@@ -1040,6 +1040,14 @@ def prepare_model_inputs(self, micro_batch: TensorDict):
+         if use_fused_kernels:
+             extra_args["temperature"] = temperature_item
+             extra_args["return_dict"] = True
++            if use_remove_padding:
++                # We have already computed `input_ids_rmpad_rolled` from the *full*
++                # global sequence and (when SP>1) SP-sliced it. Pass it into the model
++                # so the fused forward uses these labels verbatim instead of redoing
++                # `torch.roll` on the local SP shard, which would wrap around the
++                # shard boundary rather than the global sequence (issue #6068). This
++                # mirrors what the veomni engine already does for fused kernels.
++                extra_args["shift_labels"] = output_args["input_ids_rmpad_rolled"].unsqueeze(0)
+ 
+         model_inputs.update(multi_modal_inputs)
+         model_inputs.update(extra_args)
