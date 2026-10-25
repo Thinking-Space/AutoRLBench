@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-: "${PTDBENCH_RESULTS:?PTDBENCH_RESULTS must be set}"
-: "${PTDBENCH_ORACLE:?PTDBENCH_ORACLE must be set}"
-: "${PTDBENCH_VERIFIER:?PTDBENCH_VERIFIER must be set}"
+
+verifier="${AUTORLBENCH_VERIFIER:-$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)}"
 export PYTHONDONTWRITEBYTECODE=1
-exec python3 "$PTDBENCH_VERIFIER/judge.py" "$@"
+exec python3 "$verifier/judge.py" "$@"
