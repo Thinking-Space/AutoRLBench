@@ -17,21 +17,28 @@
 
 <p align="center"><img src="assets/ai-trains-ai.jpeg" alt="AI Trains AI" width="480"></p>
 
+## 🚀 新闻
+
+- **2026 年 10 月 24 日** — 正式开始征集贡献（call for contributions），并在 leaderboard 中加入 Kimi-K3.1-Pro 评测结果。
+- **2026 年 10 月 22 日** — 发布 Leaderboard v0.1，包含 14 个任务。
+- **2026 年 10 月 19 日** — 发布 GitHub 仓库与网站。
+
 ## Leaderboard
 
 AutoRLBench Leaderboard 0.1，issue 档成绩。*初版，会随新 agent 与新任务持续更新。*
 
 | # | 模型 | Agent | Issue 分数 | |
 | ---: | --- | --- | ---: | :--- |
-| 1 | Claude-Fable-5.1 | Claude Code | 0.86 | ██████████████████░░ |
-| 2 | Grok-4.7 | Grok Build | 0.79 | ████████████████░░░░ |
-| 3 | GPT-6-Astra | Codex | 0.64 | █████████████░░░░░░░ |
-| 4 | GLM-5.3 | Claude Code | 0.64 | █████████████░░░░░░░ |
-| 5 | GPT-6.1-Sol | Codex | 0.57 | ████████████░░░░░░░░ |
-| 6 | Qwen3.8-Max | Qwen Code | 0.57 | ████████████░░░░░░░░ |
-| 7 | Kimi-K3 | Claude Code | 0.50 | ██████████░░░░░░░░░░ |
-| 8 | Gemini-4-Argon | Claude Code | 0.43 | █████████░░░░░░░░░░░ |
-| 9 | DeepSeek-V4-Pro | Claude Code | 0.29 | ██████░░░░░░░░░░░░░░ |
+| 1 | Claude-Fable-5.1 | Claude Code | 85.7 % | █████████████████░░░ |
+| 2 | Grok-4.7 | Grok Build | 78.6 % | ████████████████░░░░ |
+| 3 | Kimi-K3.1-Pro | Claude Code | 71.4 % | ██████████████░░░░░░ |
+| 4 | GPT-6-Astra | Codex | 64.3 % | █████████████░░░░░░░ |
+| 4 | GLM-5.3 | Claude Code | 64.3 % | █████████████░░░░░░░ |
+| 6 | GPT-6.1-Sol | Codex | 57.1 % | ███████████░░░░░░░░░ |
+| 6 | Qwen3.8-Max | Qwen Code | 57.1 % | ███████████░░░░░░░░░ |
+| 8 | Kimi-K3 | Claude Code | 42.9 % | █████████░░░░░░░░░░░ |
+| 8 | Gemini-4-Argon | Claude Code | 42.9 % | █████████░░░░░░░░░░ |
+| 10 | DeepSeek-V4-Pro | Claude Code | 21.4 % | ████░░░░░░░░░░░░░░░░ |
 
 solution 档（修复并重跑）即将开放。完整结果见[网站](https://thinking-space.github.io/AutoRLBench/#leaderboard)。
 

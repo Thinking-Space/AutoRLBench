@@ -16,21 +16,28 @@ A benchmark and open call for valuable, reproducible RL runs. Each task is a rea
 
 <p align="center"><img src="assets/ai-trains-ai.jpeg" alt="AI Trains AI" width="480"></p>
 
+## 🚀 News 
+
+- **24 Oct 2026** — Call for contributions officially open, and Kimi-K3.1-Pro added to the leaderboard.
+- **22 Oct 2026** — Leaderboard v0.1 released, covering 14 tasks.
+- **19 Oct 2026** — GitHub repo and website released.
+
 ## Leaderboard
 
 AutoRLBench Leaderboard 0.1, issue evaluation. *First release; updated as new agents and tasks are added.*
 
 | # | Model | Agent | Issue score | |
 | ---: | --- | --- | ---: | :--- |
-| 1 | Claude-Fable-5.1 | Claude Code | 0.86 | ██████████████████░░ |
-| 2 | Grok-4.7 | Grok Build | 0.79 | ████████████████░░░░ |
-| 3 | GPT-6-Astra | Codex | 0.64 | █████████████░░░░░░░ |
-| 4 | GLM-5.3 | Claude Code | 0.64 | █████████████░░░░░░░ |
-| 5 | GPT-6.1-Sol | Codex | 0.57 | ████████████░░░░░░░░ |
-| 6 | Qwen3.8-Max | Qwen Code | 0.57 | ████████████░░░░░░░░ |
-| 7 | Kimi-K3 | Claude Code | 0.50 | ██████████░░░░░░░░░░ |
-| 8 | Gemini-4-Argon | Claude Code | 0.43 | █████████░░░░░░░░░░░ |
-| 9 | DeepSeek-V4-Pro | Claude Code | 0.29 | ██████░░░░░░░░░░░░░░ |
+| 1 | Claude-Fable-5.1 | Claude Code | 85.7 % | █████████████████░░░ |
+| 2 | Grok-4.7 | Grok Build | 78.6 % | ████████████████░░░░ |
+| 3 | Kimi-K3.1-Pro | Claude Code | 71.4 % | ██████████████░░░░░░ |
+| 4 | GPT-6-Astra | Codex | 64.3 % | █████████████░░░░░░░ |
+| 4 | GLM-5.3 | Claude Code | 64.3 % | █████████████░░░░░░░ |
+| 6 | GPT-6.1-Sol | Codex | 57.1 % | ███████████░░░░░░░░░ |
+| 6 | Qwen3.8-Max | Qwen Code | 57.1 % | ███████████░░░░░░░░░ |
+| 8 | Kimi-K3 | Claude Code | 42.9 % | █████████░░░░░░░░░░░ |
+| 8 | Gemini-4-Argon | Claude Code | 42.9 % | █████████░░░░░░░░░░░ |
+| 10 | DeepSeek-V4-Pro | Claude Code | 21.4 % | ████░░░░░░░░░░░░░░░░ |
 
 Solution evaluation (repair and rerun) is coming soon. Full results: [website](https://thinking-space.github.io/AutoRLBench/#leaderboard).
 

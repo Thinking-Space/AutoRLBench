@@ -4,7 +4,7 @@
                 leave empty to show initials instead
    affiliation: one line, e.g. "University · Lab" */
 const TEAM = [
-    { name: 'Joy Jia Yin Lim*', handle: 'JoylimJY', affiliation: 'Tsinghua University' },
+    { name: 'Joy Lim*', handle: 'JoylimJY', affiliation: 'Tsinghua University' },
     { name: 'Yinghao Chen*', handle: 'yhyayi', affiliation: 'Tsinghua University' },
     { name: 'Bingxiang He*', handle: 'HBX-hbx', affiliation: 'Tsinghua University' },
     { name: 'Yuxin Zuo*', handle: 'yuxinzuo', affiliation: 'Tsinghua University' },

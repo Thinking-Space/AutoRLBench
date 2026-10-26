@@ -24,16 +24,16 @@ const CATEGORY_COUNTS = Object.fromEntries(
 );
 
 const ISSUE_RESULTS = [
-    { model: 'GPT-6-Astra', agent: 'Codex', score: 0.64 },
-    { model: 'GPT-6.1-Sol', agent: 'Codex', score: 0.57 },
-    { model: 'Claude-Fable-5.1', agent: 'Claude Code', score: 0.86 },
-    // { model: 'Claude-Opus-5.5', agent: 'Claude Code', score: 0.43 },
-    { model: 'GLM-5.3', agent: 'Claude Code', score: 0.64 },
-    { model: 'Kimi-K3', agent: 'Claude Code', score: 0.50 },
-    { model: 'DeepSeek-V4-Pro', agent: 'Claude Code', score: 0.29 },
-    { model: 'Gemini-4-Argon', agent: 'Claude Code', score: 0.43 },
-    { model: 'Qwen3.8-Max', agent: 'Qwen Code', score: 0.57 },
-    { model: 'Grok-4.7', agent: 'Grok Build', score: 0.79 }
+    { model: 'GPT-6-Astra', agent: 'Codex', score: 64.3, logo: 'openai' },
+    { model: 'GPT-6.1-Sol', agent: 'Codex', score: 57.1, logo: 'openai' },
+    { model: 'Claude-Fable-5.1', agent: 'Claude Code', score: 85.7, logo: 'anthropic' },
+    { model: 'GLM-5.3', agent: 'Claude Code', score: 64.3, logo: 'glm' },
+    { model: 'Kimi-K3', agent: 'Claude Code', score: 42.9, logo: 'kimi' },
+    { model: 'DeepSeek-V4-Pro', agent: 'Claude Code', score: 21.4, logo: 'deepseek' },
+    { model: 'Gemini-4-Argon', agent: 'Claude Code', score: 42.9, logo: 'googlegemini' },
+    { model: 'Qwen3.8-Max', agent: 'Qwen Code', score: 57.1, logo: 'qwen' },
+    { model: 'Grok-4.7', agent: 'Grok Build', score: 78.6, logo: 'xai' },
+    { model: 'Kimi-K3.1-Pro', agent: 'Claude Code', score: 71.4, logo: 'kimi' },
 ];
 
 function tasksForFamily(family) {
@@ -142,19 +142,18 @@ function renderLeaderboard() {
             displayedRank = prevRank;
         }
         return `
-            <div class="lb-row">
-                ${MEDALS[displayedRank]
-                    ? `<div class="lb-rank is-medal" role="img" aria-label="Rank ${displayedRank}">${MEDALS[displayedRank]}</div>`
-                    : `<div class="lb-rank">${displayedRank}</div>`}
-                <div class="lb-model-cell"><span class="lb-model-name">${result.model}</span></div>
-                <div class="lb-agent-cell"><span class="lb-agent-name">${result.agent}<span class="lb-max-tag">MAX</span></span></div>
-                <div class="lb-scores">
-                    <div class="lb-score-item">
-                        <div class="lb-score-bar"><div class="lb-score-fill" style="width:${result.score * 100}%"></div></div>
-                    </div>
-                    <div class="lb-issue-score">${result.score.toFixed(2)}</div>
-                </div>
-            </div>
+            <tr class="lb-tr">
+                <td class="lb-cell-rank">
+                    ${MEDALS[displayedRank]
+                        ? `<span class="lb-rank is-medal" role="img" aria-label="Rank ${displayedRank}">${MEDALS[displayedRank]}</span>`
+                        : `<span class="lb-rank">${displayedRank}</span>`}
+                </td>
+                <td class="lb-model-cell"><img class="lb-model-logo" src="images/logos/${result.logo}.png" alt="" width="18" height="18" loading="lazy"><span class="lb-model-name">${result.model}</span></td>
+                <td class="lb-cell-agent"><span class="lb-agent-name">${result.agent}</span></td>
+                <td class="lb-cell-effort"><span class="lb-max-tag">MAX</span></td>
+                <td class="lb-cell-score"><span class="lb-issue-score">${result.score.toFixed(1)} %</span></td>
+                <td class="lb-cell-soon"><span class="lb-soon">Coming Soon</span></td>
+            </tr>
         `}).join('');
 }
 
