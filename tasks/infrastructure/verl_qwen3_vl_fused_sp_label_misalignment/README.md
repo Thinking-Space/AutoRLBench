@@ -1,4 +1,4 @@
-# Fused multimodal sequence-parallel training diagnosis
+# Qwen3-VL fused sequence-parallel label misalignment
 
 Submitter: Gaoyuan. Created: 2026-10-24. Domain: code; framework: verl; algorithm: GRPO. Sources: https://github.com/verl-project/verl/issues/6068 and https://github.com/verl-project/verl/pull/6268. Base commit4b9c14f2c306d43f84eccf47315323e3f1ce1270; paired repair consists of six production-file changes from the linked PR plus identical public compatibility changes. Source/patch/resource SHA and licenses are in evaluations/issue/reference/provenance.
 
