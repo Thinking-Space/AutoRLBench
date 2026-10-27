@@ -1,0 +1,44 @@
+--- upstream/verl/utils/checkpoint/fsdp_checkpoint_manager.py
++++ workspace/verl/utils/checkpoint/fsdp_checkpoint_manager.py
+@@ -109,10 +109,15 @@
+ 
+         if self.lr_scheduler is not None:
+             self.lr_scheduler.load_state_dict(lr_scheduler_state_dict)
++        from checkpoint_observer import record_checkpoint
++        record_checkpoint('load_complete', self.lr_scheduler.last_epoch, self.optimizer)
+ 
+     def save_checkpoint(self, local_path: str, hdfs_path: str = None, global_step: int = 0, max_ckpt_to_keep=None):
+         if local_path is None:
+             return
++
++        from checkpoint_observer import record_checkpoint
++        record_checkpoint('save_start', global_step, self.optimizer)
+ 
+         # record the previous global step
+         self.previous_global_step = global_step
+@@ -134,6 +139,7 @@
+             warnings.simplefilter("ignore")
+             with FSDP.state_dict_type(self.model, StateDictType.SHARDED_STATE_DICT, state_dict_cfg, optim_cfg):
+                 model_state_dict = self.model.state_dict()
++                record_checkpoint('model_state_ready', global_step, self.optimizer)
+                 if self.optimizer is not None:
+                     optimizer_state_dict = self.optimizer.state_dict()
+                 else:
+@@ -154,8 +160,12 @@
+                 print(f'[rank-{self.rank}]: Saving model to {os.path.abspath(model_path)}')
+                 print(f'[rank-{self.rank}]: Saving checkpoint to {os.path.abspath(model_path)}')
+                 print(f'[rank-{self.rank}]: Saving extra_state to {os.path.abspath(extra_path)}')
++                record_checkpoint('model_write_start', global_step, self.optimizer)
+                 torch.save(model_state_dict, model_path)
++                record_checkpoint('model_write_complete', global_step, self.optimizer)
++                record_checkpoint('optimizer_write_start', global_step, self.optimizer)
+                 torch.save(optimizer_state_dict, optim_path)  # TODO: address optimizer is None
++                record_checkpoint('optimizer_write_complete', global_step, self.optimizer)
+                 torch.save(extra_state_dict, extra_path)
+ 
+         if "hf_model" in self.checkpoint_contents:
+@@ -171,3 +181,4 @@
+         torch.distributed.barrier()
+ 
+         self.previous_saved_paths.append(local_path)
++        record_checkpoint('save_complete', global_step, self.optimizer)

@@ -1,0 +1,75 @@
+{
+  "final_step": 10,
+  "memory_limit_bytes": 21474836480,
+  "protected_sha256": {
+    "data/test.parquet": "6cafe18129f12b98204a70b676cf3f3f22264cac4118530eca2f8ea89ba03c14",
+    "data/train.parquet": "d2225c8ea5033f6a75fee61465bad5c1ee129de7c4684a0f935773441cea79ca",
+    "logs/checkpoint_events.jsonl": "d2baaee45b9f66e9fd80b897a0e957c6ccc57a3a9055f1dea4f027e5c8c01005",
+    "logs/final_memory_current.txt": "a4a3b16a35844874c6f5a0819a5bb9b0e68324f03f6003fb7af27e28309c03f4",
+    "logs/final_memory_events.txt": "6956e7cd6835881ce3d50e6d66f068102517902855fb089f2303f12aac3f5cd3",
+    "logs/final_memory_max.txt": "8d1097572b00a7a88d0b3b483db940db4252ac5bcb1aee5e448348e9626dae56",
+    "logs/host_memory.jsonl": "10c2e2c826210925a5ab79fab39eecd4f128d2823460e91e5d112a90c68a92a9",
+    "logs/metrics.jsonl": "b86fdfb023f2635ccef3bdf9a170bebb33ef7bd229e3f01ba72b03a06c0bf2ac",
+    "logs/raylet.out": "5bb98b2a1340a6e5770b30b33b10d8ea7b37687c1cf4caf350d6123b6508e016",
+    "logs/resolved_config.yaml": "b10fda0490024d1017d84763a5116e83f27a7dcabf281908cc4aa6e28397ea09",
+    "logs/training.stderr.log": "82f3edb235b3b159033ba5eed9c67c892927d61443c8e4ee5ead5eb43fcb77b4",
+    "logs/training.stdout.log": "25ac4b8e4bbee5168de25cc6421bff48dca8e8a26ca653319698c3bf31c58f82",
+    "logs/worker_events.jsonl": "956d5e5749136002fb38630bcbcd609f3f51dac7c6ee0fd68ea87737f11e384c"
+  },
+  "model_assets": [
+    {
+      "path": "config.json",
+      "sha256": "18e18afcaccafade98daf13a54092927904649e1dd4eba8299ab717d5d94ff45",
+      "size": 659
+    },
+    {
+      "path": "generation_config.json",
+      "sha256": "e558847a8b4402616f1273797b015104dc266fe4b520056fca88823ba8f8ebe6",
+      "size": 242
+    },
+    {
+      "path": "model.safetensors",
+      "sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+      "size": 988097824
+    },
+    {
+      "path": "tokenizer.json",
+      "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+      "size": 7031645
+    },
+    {
+      "path": "tokenizer_config.json",
+      "sha256": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+      "size": 7305
+    },
+    {
+      "path": "vocab.json",
+      "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+      "size": 2776833
+    },
+    {
+      "path": "merges.txt",
+      "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+      "size": 1671839
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e",
+      "size": 11343
+    }
+  ],
+  "minimum_parameter_change": 1e-08,
+  "minimum_optimizer_state_bytes": 3000000000,
+  "source_edit_policy": "workspace-wide; fixed experiment conditions and resource budget required",
+  "repair_files": [
+    "configs/experiment.yaml"
+  ],
+  "dataset": "openai/gsm8k",
+  "evaluation_metric": "val/test_score/openai/gsm8k",
+  "checkpoint_step": 10,
+  "fixed_config": "data:\n  train_files: /workspace/data/train.parquet\n  val_files: /workspace/data/test.parquet\n  train_batch_size: 4\n  max_prompt_length: 1024\n  max_response_length: 256\n  filter_overlong_prompts: true\nactor_rollout_ref:\n  model:\n    path: /workspace/model\n    use_remove_padding: false\n    enable_gradient_checkpointing: true\n  actor:\n    ppo_mini_batch_size: 4\n    ppo_micro_batch_size_per_gpu: 2\n    use_torch_compile: false\n    entropy_coeff: 0.0\n    use_kl_loss: false\n    optim:\n      lr: 0.000001\n    fsdp_config:\n      param_offload: false\n      optimizer_offload: true\n  ref:\n    log_prob_micro_batch_size_per_gpu: 2\n    fsdp_config:\n      param_offload: false\n  rollout:\n    name: vllm\n    n: 4\n    tensor_model_parallel_size: 1\n    gpu_memory_utilization: 0.2\n    num_gpu_blocks_override: 73836\n    max_model_len: 1280\n    max_num_batched_tokens: 2048\n    max_num_seqs: 16\n    enforce_eager: true\n    enable_chunked_prefill: false\n    log_prob_micro_batch_size_per_gpu: 2\n    temperature: 1.0\nalgorithm:\n  adv_estimator: grpo\n  kl_ctrl:\n    kl_coef: 0.0\ncustom_reward_function:\n  path: /workspace/reward.py\n  name: compute_score\ntrainer:\n  n_gpus_per_node: 1\n  nnodes: 1\n  total_training_steps: 10\n  total_epochs: 6\n  logger: [console]\n  test_freq: -1\n  save_freq: 10\n  resume_mode: disable\n  project_name: memory_experiment\n  experiment_name: run\n",
+  "dataset_rows": {
+    "train": 7473,
+    "test": 1319
+  }
+}
