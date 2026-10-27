@@ -1,0 +1,158 @@
+{
+  "traj_uid": "c58c8d1e-90a3-4d48-8e75-d6028ae185bd",
+  "kind": "firmware_no_action",
+  "task": "Create a new firmware_version with version_code '2.3.5', release_channel 'stable', and compatibility limited to device_model_ids ['vm-COOLER-200', 'vm-COOLER-300'], then schedule a firmware_update_job targeting all 'active' devices of those models at site_type 'factory' starting at '2026-01-02T01:00:00Z' with a 3-hour rollout window.",
+  "recorded_score": 1.0,
+  "final_answer": "The requested device models \"vm-COOLER-200\" and \"vm-COOLER-300\" were not found. Since there are no existing device models for Cooler types, it's not possible to create the firmware_update_job unless the device models are created first. This is a required prerequisite for associating firmware compatibility and device-model targeting. To complete the current task, the decision-maker should create the device models first. In the absence of further instructions to create the missing models, I cannot complete the firmware update job.\n\nFinal Answer: The firmware update job could not be scheduled because the requested device models \"vm-COOLER-200\" and \"vm-COOLER-300\" were not found. There are no existing device models for COOLER types, so the firmware and update job creation dependency is incomplete. Please create the missing device models first before scheduling the firmware update.",
+  "observations": {
+    "write_tool_calls": 0,
+    "empty_resource_lookups": [
+      "device_models"
+    ],
+    "task_requires_new_version_and_job": true
+  },
+  "explanation": "The task explicitly requires a NEW firmware version and an update job. The agent only lists resources, reports missing resources or answers an unrelated factory task, and performs no write call. It still receives full reward; the bundled verifier accepts a matching seeded version/job without checking creation.",
+  "actual_tool_calls": [
+    "list_tools",
+    "mcp_tool_mcp_server_list_organizations",
+    "mcp_tool_mcp_server_list_device_models"
+  ],
+  "malformed_tool_calls_not_repaired": [],
+  "seed_fixture_tables": [
+    {
+      "table": "firmware_versions",
+      "ddl": "CREATE TABLE firmware_versions (\n  id INTEGER PRIMARY KEY,\n  version_code TEXT NOT NULL,\n  release_channel TEXT NOT NULL,\n  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP\n)",
+      "rows": [
+        [
+          1,
+          "2.3.5",
+          "stable",
+          "2026-10-22 05:46:01",
+          "2026-10-22 05:46:01"
+        ],
+        [
+          2,
+          "2.3.4",
+          "stable",
+          "2026-09-23 05:46:01",
+          "2026-10-03 05:46:01"
+        ],
+        [
+          3,
+          "2.4.0-beta1",
+          "beta",
+          "2026-10-18 05:46:01",
+          "2026-10-18 05:46:01"
+        ]
+      ]
+    },
+    {
+      "table": "firmware_version_compatibility",
+      "ddl": "CREATE TABLE firmware_version_compatibility (\n  firmware_version_id INTEGER NOT NULL,\n  device_model_id TEXT NOT NULL,\n  PRIMARY KEY (firmware_version_id, device_model_id),\n  FOREIGN KEY (firmware_version_id) REFERENCES firmware_versions(id),\n  FOREIGN KEY (device_model_id) REFERENCES device_models(id)\n)",
+      "rows": [
+        [
+          1,
+          "vm-COOLER-200"
+        ],
+        [
+          1,
+          "vm-COOLER-300"
+        ],
+        [
+          2,
+          "vm-COOLER-200"
+        ],
+        [
+          2,
+          "vm-PURIFIER-100"
+        ],
+        [
+          3,
+          "vm-COOLER-200"
+        ]
+      ]
+    },
+    {
+      "table": "firmware_update_jobs",
+      "ddl": "CREATE TABLE firmware_update_jobs (\n  id INTEGER PRIMARY KEY,\n  firmware_version_id INTEGER NOT NULL,\n  release_channel TEXT NOT NULL,\n  target_site_type TEXT,\n  target_organization_id INTEGER,\n  target_device_model_id TEXT,\n  target_device_status TEXT,\n  rollout_start_at DATETIME NOT NULL,\n  rollout_end_at DATETIME,\n  state TEXT NOT NULL,\n  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (firmware_version_id) REFERENCES firmware_versions(id),\n  FOREIGN KEY (target_organization_id) REFERENCES organizations(id),\n  FOREIGN KEY (target_device_model_id) REFERENCES device_models(id)\n)",
+      "rows": [
+        [
+          1,
+          2,
+          "stable",
+          "factory",
+          1,
+          "vm-COOLER-200",
+          "active",
+          "2026-10-17 05:46:01",
+          "2026-10-17 07:46:01",
+          "failed",
+          "2026-10-17 05:46:01",
+          "2026-10-17 05:46:01"
+        ],
+        [
+          2,
+          2,
+          "stable",
+          "factory",
+          1,
+          "vm-COOLER-300",
+          "active",
+          "2026-10-20 05:46:01",
+          "2026-10-20 07:46:01",
+          "failed",
+          "2026-10-20 05:46:01",
+          "2026-10-20 05:46:01"
+        ],
+        [
+          3,
+          2,
+          "stable",
+          "factory",
+          1,
+          "vm-PURIFIER-100",
+          "active",
+          "2026-10-21 05:46:01",
+          "2026-10-21 07:46:01",
+          "failed",
+          "2026-10-21 05:46:01",
+          "2026-10-21 05:46:01"
+        ],
+        [
+          4,
+          1,
+          "stable",
+          "factory",
+          1,
+          null,
+          "active",
+          "2026-01-02 01:00:00",
+          "2026-01-02 04:00:00",
+          "scheduled",
+          "2026-10-23 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          5,
+          3,
+          "beta",
+          "factory",
+          1,
+          "vm-PURIFIER-100",
+          "active",
+          "2026-01-03 03:00:00",
+          "2026-01-03 06:00:00",
+          "scheduled",
+          "2026-10-23 05:46:01",
+          "2026-10-23 05:46:01"
+        ]
+      ]
+    }
+  ],
+  "bundled_verifier_seed_probe_result": {
+    "result": "complete"
+  },
+  "verifier_line": 6856,
+  "fixture_scope": "Reconstructed from bundled generated schema/seed data; NOT an archived historical initial/final DB pair. Historical contradiction is established from original complete tool history.",
+  "source_databases": []
+}

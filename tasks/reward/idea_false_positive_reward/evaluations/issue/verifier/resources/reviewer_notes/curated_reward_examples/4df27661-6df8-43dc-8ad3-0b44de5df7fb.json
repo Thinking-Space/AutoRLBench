@@ -1,0 +1,451 @@
+{
+  "traj_uid": "4df27661-6df8-43dc-8ad3-0b44de5df7fb",
+  "kind": "watchlist_runtime",
+  "task": "Create a new stock watchlist named 'Tech Growth 2025' and add the following symbols to it: MSFT, NVDA, AMD, AVGO, and META.",
+  "recorded_score": 1.0,
+  "final_answer": "The MCP environment application appears to not have been initialized. Known available watchlist and security tools were expected to be functional starting from initial core server endpoints. The goal requires creating a new stock watchlist and adding the specified symbols; the watchlist tool failed at lookup and the list watchlists attempt failed because the application content was not initialized, violating expected watches fund wire compatibility. I cannot complete the user's request successfully in this environment as missing answers for watchlist-by-name lookup, watchlist accession, and initialization confirm㈼\n\nThe task cannot be completed in the current environment. The application content worker returned \"MCPApp not initialized, please call initialize() first\" for the list-watchlists tool. This likely means the expected recorder reconnaissance sublayer initialization or server-side permission/model availability is absent. It is not team-approved to invoke creator watchlist endpoints without first watching completion proofs. The complete user-list-of-accounts wint not trigger authorize without such initialization🍾\n\nThe watchlist 'Tech Growth 2025' could not be found, and the environment requires proper initialization that wasn't provided. A complete watchlist setup cannot proceed uniquely without the application state. It is recommended to re-establish application initialization or ensure expected product environment with listed/found-by-name compatibility before invoking watchlista creators. The requested watchlist and symbols remain incomplete. 📌\n\nFinal Answer: The task cannot be completed successfully. The required watchlist initialization and recorded-by-name execution proof from the listed MCP stocks application were not provided. The returned RuntimeError implies missing watcher probe initialization, so I cannot confirm a successful watchlist creation or symbol addition to 'Tech Growth 2025'. Please initialize the correct application tool before executing write access holder-assigned watchlist scopes.",
+  "observations": {
+    "successful_non_catalog_tool_responses": 0,
+    "error_tool_responses": 2,
+    "task_requires_new_creation": true,
+    "conclusion": "No successful requested creation; full reward despite failed execution.",
+    "idempotence_boundary": "Counted only for explicit NEW-entity instructions and failed execution, not an ordinary already-satisfied update."
+  },
+  "explanation": "The task explicitly requires a NEW watchlist and five symbol additions. All non-catalog tool responses fail before successful execution; no new watchlist or additions are confirmed, yet the reward is 1. The bundled verifier accepts the unchanged seeded watchlist.",
+  "actual_tool_calls": [
+    "list_tools",
+    "mcp_tool_mcp_server_get_watchlist_by_name",
+    "mcp_tool_mcp_server_list_watchlists"
+  ],
+  "malformed_tool_calls_not_repaired": [],
+  "seed_fixture_tables": [
+    {
+      "table": "watchlists",
+      "ddl": "CREATE TABLE watchlists (\n  id INTEGER PRIMARY KEY,\n  user_id INTEGER NOT NULL,\n  name TEXT NOT NULL,\n  description TEXT,\n  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (user_id) REFERENCES users(id)\n)",
+      "rows": [
+        [
+          1,
+          1,
+          "Tech Growth 2025",
+          "High-growth tech names for 2025",
+          "2026-10-23 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          2,
+          1,
+          "Dividend Income",
+          "Large-cap dividend payers",
+          "2026-10-13 05:46:01",
+          "2026-10-13 05:46:01"
+        ]
+      ]
+    },
+    {
+      "table": "watchlist_items",
+      "ddl": "CREATE TABLE watchlist_items (\n  id INTEGER PRIMARY KEY,\n  watchlist_id INTEGER NOT NULL,\n  security_id INTEGER NOT NULL,\n  position INTEGER,\n  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n  UNIQUE(watchlist_id, security_id),\n  FOREIGN KEY (watchlist_id) REFERENCES watchlists(id),\n  FOREIGN KEY (security_id) REFERENCES securities(id)\n)",
+      "rows": [
+        [
+          1,
+          1,
+          3,
+          1,
+          "2026-10-23 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          2,
+          1,
+          4,
+          2,
+          "2026-10-23 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          3,
+          1,
+          5,
+          3,
+          "2026-10-23 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          4,
+          1,
+          6,
+          4,
+          "2026-10-23 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          5,
+          1,
+          7,
+          5,
+          "2026-10-23 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          6,
+          2,
+          11,
+          1,
+          "2026-10-13 05:46:01",
+          "2026-10-13 05:46:01"
+        ],
+        [
+          7,
+          2,
+          12,
+          2,
+          "2026-10-13 05:46:01",
+          "2026-10-13 05:46:01"
+        ],
+        [
+          8,
+          2,
+          13,
+          3,
+          "2026-10-13 05:46:01",
+          "2026-10-13 05:46:01"
+        ]
+      ]
+    },
+    {
+      "table": "securities",
+      "ddl": "CREATE TABLE securities (\n  id INTEGER PRIMARY KEY,\n  symbol TEXT NOT NULL,\n  name TEXT NOT NULL,\n  security_type TEXT NOT NULL CHECK (security_type IN ('STOCK','ETF','MUTUAL_FUND','OPTION')),\n  exchange TEXT,\n  currency TEXT NOT NULL DEFAULT 'USD',\n  underlying_security_id INTEGER,\n  is_option_underlying INTEGER NOT NULL DEFAULT 0,\n  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n  UNIQUE(symbol, security_type),\n  FOREIGN KEY (underlying_security_id) REFERENCES securities(id)\n)",
+      "rows": [
+        [
+          1,
+          "AAPL",
+          "Apple Inc.",
+          "STOCK",
+          "NASDAQ",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          2,
+          "TSLA",
+          "Tesla Inc.",
+          "STOCK",
+          "NASDAQ",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          3,
+          "MSFT",
+          "Microsoft Corporation",
+          "STOCK",
+          "NASDAQ",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          4,
+          "NVDA",
+          "NVIDIA Corporation",
+          "STOCK",
+          "NASDAQ",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          5,
+          "AMD",
+          "Advanced Micro Devices Inc.",
+          "STOCK",
+          "NASDAQ",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          6,
+          "AVGO",
+          "Broadcom Inc.",
+          "STOCK",
+          "NASDAQ",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          7,
+          "META",
+          "Meta Platforms Inc.",
+          "STOCK",
+          "NASDAQ",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          8,
+          "SPY",
+          "SPDR S&P 500 ETF Trust",
+          "ETF",
+          "NYSEARCA",
+          "USD",
+          null,
+          1,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          9,
+          "VTI",
+          "Vanguard Total Stock Market ETF",
+          "ETF",
+          "NYSEARCA",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          10,
+          "SWPPX",
+          "Schwab S&P 500 Index Fund",
+          "MUTUAL_FUND",
+          "MUTF",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          11,
+          "JNJ",
+          "Johnson & Johnson",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          12,
+          "KO",
+          "Coca-Cola Company",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          13,
+          "PG",
+          "Procter & Gamble Company",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          14,
+          "T",
+          "AT&T Inc.",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          15,
+          "VZ",
+          "Verizon Communications Inc.",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          16,
+          "PFE",
+          "Pfizer Inc.",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          17,
+          "XOM",
+          "Exxon Mobil Corporation",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          18,
+          "CVX",
+          "Chevron Corporation",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          19,
+          "MCD",
+          "McDonald's Corporation",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          20,
+          "PEP",
+          "PepsiCo Inc.",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          21,
+          "SO",
+          "Southern Company",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          22,
+          "DUK",
+          "Duke Energy Corporation",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          23,
+          "HD",
+          "Home Depot Inc.",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          24,
+          "BAC",
+          "Bank of America Corporation",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          25,
+          "BRK.B",
+          "Berkshire Hathaway Inc. Class B",
+          "STOCK",
+          "NYSE",
+          "USD",
+          null,
+          0,
+          "2025-09-18 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          26,
+          "SPY 470C",
+          "SPY 470 Call Next Month",
+          "OPTION",
+          "OPRA",
+          "USD",
+          8,
+          0,
+          "2026-10-13 05:46:01",
+          "2026-10-23 05:46:01"
+        ],
+        [
+          27,
+          "SPY 480C",
+          "SPY 480 Call Next Month",
+          "OPTION",
+          "OPRA",
+          "USD",
+          8,
+          0,
+          "2026-10-13 05:46:01",
+          "2026-10-23 05:46:01"
+        ]
+      ]
+    }
+  ],
+  "bundled_verifier_seed_probe_result": {
+    "result": "complete"
+  },
+  "verifier_line": 548,
+  "fixture_scope": "Reconstructed from bundled generated schema/seed data; NOT an archived historical initial/final DB pair. Historical contradiction is established from original complete tool history.",
+  "source_databases": []
+}

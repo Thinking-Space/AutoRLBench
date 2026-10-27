@@ -1,0 +1,33 @@
+title = "Inaccurate rule-based task rewards in IDEA AWM OPSD"
+license = "LicenseRef-IDEA4AutoRLBench-Composite"
+created_date = "2026-10-22"
+domain = "reward"
+tags = ["idea", "verl", "awm", "opsd", "issue-only"]
+
+[submitter]
+name = "Jinyang Wu"
+
+[model]
+name = "locaszzz/IDEA_sft"
+
+[dataset]
+name = "locaszzz/IDEA_training_data; locaszzz/AgentWorldModel-1K"
+
+[training]
+framework = "IDEA / veRL / Agent World Model"
+algo = "OPSD"
+script = "run_local.sh"
+script_args = ["--train"]
+
+[environment]
+# Static diagnosis only; optional training uses the separate idea-historical image.
+image = "idea-issue"
+prepare = "environment/prepare.sh"
+
+[environment.env]
+WANDB_MODE = "offline"
+PYTHONDONTWRITEBYTECODE = "1"
+
+[outcome]
+failure_type = "reward_validity"
+failure_reason = "Rule-based reward judgments are inaccurate: generated completion verifiers award full reward to trajectories that do not satisfy the requested task."
