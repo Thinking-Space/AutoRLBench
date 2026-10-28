@@ -4,8 +4,19 @@ An RL training process can time out in advantage normalization when context
 parallelism leaves one data-parallel worker with no local response tokens and
 that worker skips a collective required by its peers.
 
-**Status:** task proposal with recovered historical evidence and an executable
-CPU reproducer; **not a packaged or leaderboard-ready AutoRLBench task**.
+**Status:** task proposal with recovered historical evidence, an executable CPU
+reproducer and one validated real GPU replay pair; **not a packaged or
+leaderboard-ready AutoRLBench task**.
+
+An additional [public JustRL2 construction draft](miles_ppo_empty_shard_collective/justrl2/README.md)
+now builds healthy/faulty replay-training workspaces from the pinned open-source
+release, with public model assets and an explicitly authored fixture. Its actual
+public CP/GAE/whitening path has passed CPU checks. On October 28, 2026, an
+8×H100 replay run completed real actor and critic forward/GAE/whitening/backward
+and Adam steps in the healthy arm and saved checkpoints; the faulty arm produced
+the expected empty/nonempty divergence and a target `all_reduce` store wait
+timeout. The public candidate container image and checkpoint restore remain
+unvalidated; these results are separate from the H100 kernel validation below.
 
 | Field | Value |
 | --- | --- |
@@ -201,8 +212,8 @@ cannot be reused as an agent-visible benchmark harness without separation.
   exact launch/runtime configuration and appropriate batch evidence.
 - Construct a defective-only workspace and hidden oracle/verifier; calibrate a
   bounded completion and numerical-correctness evaluation with maintainers.
-- Obtain a clean repaired full-training control before making any end-to-end
-  recovery or training-quality claim.
+- Revalidate the repaired control inside the final public candidate image and
+  add a real checkpoint restore check before claiming Solution-task readiness.
 - Run the AutoRLBench validator and environment preparation once a real task
   directory exists. Neither is claimed for this proposal.
 

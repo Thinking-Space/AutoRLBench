@@ -1,0 +1,179 @@
+{
+  "checked_date": "2026-10-29",
+  "scope": "Local construction, CPU Gloo source-path check, and one real 8xH100 actor/critic replay pair; no AutoRLBench registration or leaderboard result",
+  "public_source_revision": "75814318f243af7e39af337c1173fc3927c9635b",
+  "fixture": {
+    "constructed": true,
+    "online_generation": false,
+    "model": "openbmb/JustRL-II-base-model",
+    "model_revision": "b558bbc71d9433e7c5869effcbac07d4c7f2c5b4",
+    "global_batch_size": 2,
+    "micro_batch_size": 1,
+    "balance_data": false,
+    "topology_per_role": {
+      "cp": 2,
+      "dp": 2,
+      "tp": 1,
+      "pp": 1
+    },
+    "samples": [
+      {
+        "sample_index": 0,
+        "dp_replica": 0,
+        "prompt_tokens": 422,
+        "response_tokens": 2,
+        "total_tokens": 424,
+        "cp_response_counts": [
+          2,
+          0
+        ],
+        "reward": 0.0
+      },
+      {
+        "sample_index": 1,
+        "dp_replica": 1,
+        "prompt_tokens": 28,
+        "response_tokens": 329,
+        "total_tokens": 357,
+        "cp_response_counts": [
+          149,
+          180
+        ],
+        "reward": 1.0
+      }
+    ],
+    "files": {
+      "replay.json": {
+        "sha256": "ecb7d044a6c515ab897a169e2bd352e5a0397d7b26f38beb1c6870dec4d8060c",
+        "size": 21390
+      },
+      "replay.pt": {
+        "sha256": "a2da45f4365ce1679a7219013caf04525b7068206d149e283405e7f396b9e2b2",
+        "size": 10343
+      }
+    }
+  },
+  "source_path_check": {
+    "healthy": [
+      {
+        "rank": 0,
+        "status": "ok",
+        "elapsed_seconds": 0.020695917308330536
+      },
+      {
+        "rank": 1,
+        "status": "ok",
+        "elapsed_seconds": 0.037943082861602306
+      },
+      {
+        "rank": 2,
+        "status": "ok",
+        "elapsed_seconds": 0.021553250029683113
+      },
+      {
+        "rank": 3,
+        "status": "ok",
+        "elapsed_seconds": 0.03807237511500716
+      }
+    ],
+    "faulty": [
+      {
+        "rank": 0,
+        "status": "ok",
+        "elapsed_seconds": 0.0026120003312826157,
+        "timeout_observed": false
+      },
+      {
+        "rank": 1,
+        "status": "ok",
+        "elapsed_seconds": 0.016235750168561935,
+        "timeout_observed": false
+      },
+      {
+        "rank": 2,
+        "status": "ok",
+        "elapsed_seconds": 0.01635641697794199,
+        "timeout_observed": false
+      },
+      {
+        "rank": 3,
+        "status": "error",
+        "elapsed_seconds": 5.020582958124578,
+        "timeout_observed": true
+      }
+    ]
+  },
+  "tool_tests": {
+    "passed": 14,
+    "failed": 0,
+    "notes": "Actual CPU Adam, DCP metadata/shard, and verifier negative cases are tooling checks; they are not JustRL2 training evidence."
+  },
+  "checks": {
+    "source_inventory_files": 286,
+    "only_pair_difference": "miles/backends/training_utils/loss.py",
+    "tokenizer_only_prepare_executed": true,
+    "python_static_analysis_passed": true,
+    "bash_syntax_passed": true
+  },
+  "gpu_training_validated": true,
+  "checkpoint_restore_validated": false,
+  "candidate_image_built": false,
+  "gpu_training": {
+    "validated": true,
+    "cluster": "wuxi_train",
+    "gpu_model": "H100",
+    "gpu_count": 8,
+    "topology_per_role": {
+      "tp": 1,
+      "pp": 1,
+      "cp": 2,
+      "dp": 2
+    },
+    "update_count": 1,
+    "healthy": {
+      "actor_optimizer_steps": 1,
+      "critic_optimizer_steps": 1,
+      "finite_gradients_and_parameters": true,
+      "sampled_parameter_changes": {
+        "actor": true,
+        "critic": true
+      },
+      "checkpoint_payloads_present": true,
+      "checkpoint_restore_tested": false,
+      "online_rollout": false
+    },
+    "faulty": {
+      "expected_training_failure": true,
+      "failure_evidence": "store_wait_timeout",
+      "first_divergence": [
+        {
+          "role": "actor",
+          "skipping_rank": 1,
+          "waiting_rank": 3
+        },
+        {
+          "role": "critic",
+          "skipping_rank": 1,
+          "waiting_rank": 3
+        }
+      ],
+      "target_collective": "dist.all_reduce(stats_tensor, group=process_group)",
+      "error_signature": [
+        "DistBackendError",
+        "store->get",
+        "wait timeout after 60000ms",
+        "distributed_c10d.py",
+        "all_reduce"
+      ],
+      "training_returned": false
+    },
+    "remote_verifier": {
+      "validated": true,
+      "checks": [
+        "healthy",
+        "faulty"
+      ],
+      "resource_cost": "1 CPU; read-only artifact inspection"
+    }
+  }
+}

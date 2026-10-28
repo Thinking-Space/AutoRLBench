@@ -1,0 +1,185 @@
+# Public JustRL2 constructed regression case
+
+This directory builds a training-replay candidate from the public
+[`merak0514/JustRL-II`](https://github.com/merak0514/JustRL-II) repository at
+`75814318f243af7e39af337c1173fc3927c9635b`. It reintroduces the local empty-shard
+guard around advantage whitening. **Public HEAD already fixes that defect.**
+The mutation is intentional and is not presented as an unfixed upstream bug.
+
+**Status (October 29, 2026): executable construction draft; CPU path and one
+real GPU actor/critic replay pair verified.** It is not an AutoRLBench task
+registration or a leaderboard result. The preceding private-history and
+synthetic H100 kernel results do not stand in for this candidate's training run.
+
+## What the pair contains
+
+`build_case.py` verifies all 286 public source files against `source_files.json`,
+then creates `healthy/` and `faulty/`. Both receive identical local instrumentation
+and launch helpers. The only difference between the trees is one `numel()>0`
+guard and indentation in `miles/backends/training_utils/loss.py`. The generated
+`defect.patch` and `pair_manifest.json` record that difference and every file hash.
+
+The common instrumentation records role/rank/group membership, the first call
+divergence, before/after whitening values, and actual optimizer return/gradient
+and sampled FP32 parameter changes. It adds no collectives and does not alter
+model values, advantages or gradients. It removes the answer-revealing fix
+comment from both copies. These paired trees and scripts are reviewer material;
+the good tree and verifier must be hidden in an eventual benchmark task.
+
+## Constructed input, with explicit provenance
+
+`make_replay.py` uses the pinned public JustRL2 tokenizer to encode two readable,
+scripted math trajectories. Neither response is claimed to be model-generated.
+No inference logprobs are fabricated: every sample has `rollout_log_probs=None`.
+The actor will compute its real logprobs during replay training.
+
+| Sample | Prompt tokens | Response tokens | CP0 / CP1 response tokens | Authored reward |
+| --- | ---: | ---: | --- | ---: |
+| Long reference context, short wrong answer `3` to `1+1` | 422 | 2 | 2 / 0 | 0 |
+| Short prompt, longer correct explanation ending in `2` | 28 | 329 | 149 / 180 | 1 |
+
+Text repetition in this fixture is deliberate and documented. Both responses
+include the tokenizer's end-of-message token. Both masks contain only ones.
+With balancing off, GBS2 and DP2 assign one sample to each DP replica. The CP1
+position's DP group therefore receives **0 versus 180** local response tokens.
+This is distinct from a nonempty tensor with a zero-valued mask.
+
+The fixture is serialized through public `Sample.to_dict()` and round-trip
+checked. `replay.json` is the canonical readable record; `replay.pt` is generated
+for JustRL2's native `--load-debug-rollout-data` path. The canonical JSON SHA256
+under the checked tokenizer is
+`ecb7d044a6c515ab897a169e2bd352e5a0397d7b26f38beb1c6870dec4d8060c`.
+The authored canonical record is included as [fixture.json](fixture.json).
+
+## Real training path
+
+The launcher uses public `train.py` with actor4 + critic4 GPUs, each TP1/PP1/CP2/DP2.
+It retains real public model forward passes, actor/critic value exchange,
+JustRL2 length-adaptive GAE (`k=0.5`), whitening, backward, Adam update and
+actor/critic checkpoint saving. Replay uses authored trajectories and rewards;
+it does not run an online SGLang rollout. This path completed in the healthy arm
+of the October 28, 2026 8×H100 run. The faulty arm reached the intended
+empty/nonempty divergence: the empty rank advanced past the injected guard,
+the nonempty peer entered `distributed_masked_whiten`, and its
+`dist.all_reduce(stats_tensor, group=process_group)` failed with
+`DistBackendError` / `store->get` / `wait timeout after 60000ms`.
+
+Task-specific settings: one rollout/update, GBS2/MBS1, no critic-only warmup,
+no length shaping, no TIS (no generated logprobs), no balancing, no offload and
+no dynamic microbatching. The public model architecture, scalar critic head and
+bias0.52 are retained. This is a systems regression case, not a reproduction of
+the published 128k learning curve or a measurement of policy quality.
+
+`run_pair.py` runs the healthy arm first in a **dedicated container/job**. It
+stops if the intact training path fails. It verifies pinned HF assets, a recorded
+native conversion receipt, native checkpoint inventory, replay hash and both
+source inventories before execution. The faulty arm uses the same assets and
+launch settings. The helper owns a private Ray instance; the parent performs
+Ray cleanup only inside the dedicated task container.
+
+## Preparation and execution
+
+The candidate image is pinned to a publicly available amd64 Docker manifest:
+
+```text
+radixark/miles:dev-cu12-202610020916@sha256:49637ea95c9757f6bbf461faf902f95a5cd0c0f0a3dfbda194595e42f48164c5
+```
+
+`Dockerfile.candidate` has **not been built or tested for this case**. The GPU
+replay used a separate internal image whose CUDA12.9, Megatron and SGLang stack
+was checked in a compatibility probe; that image is not claimed equivalent to
+the public candidate image. Checkpoint payloads were inspected, but restoring
+from them has not been tested.
+
+From this directory, in a suitable environment (Python3.12+ for the preparation
+helpers), use a new preparation directory:
+
+```bash
+python prepare.py --output /workspace/prepared
+python connect_frameworks.py --prepared /workspace/prepared
+python convert_model.py --prepared /workspace/prepared --output /workspace/native-model
+
+BENCH_DEDICATED_CONTAINER=1 python run_pair.py \
+  --prepared /workspace/prepared \
+  --native-model /workspace/native-model \
+  --output /workspace/pair-run
+```
+
+`assets.json` pins the public source archive and each HF model/tokenizer file by
+revision, size and SHA256. Model weights are downloaded, not redistributed here.
+`convert_model.py` runs the public HF-to-torch_dist converter and records the
+input hashes plus tracker-selected output metadata and shard hashes. The GPU
+replay completed this conversion with lossless tensor checks; the standalone
+candidate image still needs its own build and environment validation.
+
+## Acceptance criteria
+
+`verify_run.py` is a **candidate evidence checker**, not yet a calibrated hidden
+AutoRLBench grader. It requires:
+
+- Both roles' actual pre-whitening ledgers establish the expected DP group
+  with one empty and one nonempty local response shard.
+- The healthy run completes whitening and an actual successful finite optimizer
+  step on all actor/critic ranks, with sampled FP32 changes demonstrated for each
+  role. Outputs match independent pooled normalization.
+- Actor and critic trackers select checkpoint0; PyTorch DCP metadata contains
+  model and optimizer state, and every referenced shard exists with sufficient
+  bytes. **This is not a restore test**; `checkpoint_restore_tested=False` remains.
+- In the faulty run, empty peers advance past the guard without calling
+  whitening, nonempty peers enter the call and do not complete it, and either
+  correlated watchdog lines or the complete target `DistBackendError` /
+  `store->get` / `wait timeout` / `all_reduce` stack is present. A generic
+  timeout or an outer deadline alone cannot pass.
+
+Since skipped peers may advance into other collectives, the final watchdog
+operation need not itself be the whitening reduction. The first divergent
+operation is established from the role/rank call ledger, not guessed from one
+error string. Further hidden numerical/adversarial cases and a real restore
+check should be added before claiming Solution-task readiness.
+
+## Checks performed
+
+- Public source and tokenizer download hashes verified; tokenizer-only
+  preparation executed end to end; pair has exactly one differing source file.
+- `check_public_path.py` ran four real CPU/Gloo processes using the exact public
+  CP, GAE and normalization functions compiled from their source AST. Healthy
+  returns and pooled normalization passed; the injected guard timed out in the
+  expected nonempty peer. Critic values were supplied as0.52 in this check;
+  **no model forward, backward or GPU training is claimed**.
+- Tooling tests exercise real CPU Adam snapshots, durable evidence writes, DCP
+  metadata/shard inspection, the target store-wait verifier path, and rejection
+  of malformed/missing evidence. Fourteen tests passed.
+- The October 28, 2026 GPU replay pair used the pinned public model and source
+  revision. The healthy arm passed the evidence checker with one actor and one
+  critic optimizer step plus model/optimizer checkpoint payloads. The faulty
+  arm passed the checker with actor and critic first-divergence records and the
+  target `DistBackendError` store wait. A 1-CPU read-only verifier task reran
+  both checks against the preserved shared artifacts. [construction_checks.json](construction_checks.json)
+  records the GPU result separately from the still-unbuilt public candidate
+  image and the untested restore path.
+
+Reproduce the CPU source-path check after preparation:
+
+```bash
+python check_public_path.py --pair /workspace/prepared/pair \
+  --replay /workspace/prepared/replay/replay.json --output /tmp/public-path-check
+python -m pytest test_case_tools.py -q
+```
+
+The public model conversion and native checkpoint inventory completed in the GPU
+run. The healthy arm performed one real replay update for both actor and critic;
+the faulty arm intentionally failed at the target collective after the first
+divergence. This validates the constructed training case, not online rollout
+quality or checkpoint restoration.
+
+## Packaging next
+
+After a real healthy/faulty pair is recorded, place only the defective workspace
+and sanitized frozen evidence into `tasks/infrastructure/.../workspace/`, move
+the repair and acceptance tests to hidden evaluation directories, add a validated
+shared image and pinned preparation script, then run AutoRLBench validation.
+The current directory stays under `proposals/` until those conditions hold.
+
+All scripts here are Apache-2.0. The copied JustRL2 tree retains its own LICENSE.
+The HF model card currently omits an explicit license field, so model-use terms
+should be resolved before final task acceptance; no model weights are bundled.
