@@ -172,11 +172,11 @@ def distributed_masked_whiten(
     return whitened_values
 
 
-def normalize_original(advantages, loss_masks, total_lengths, response_lengths, cp_rank=1, cp_size=2):
+def normalize_original(advantages, loss_masks, total_lengths, response_lengths, cp_rank=1, cp_size=2, process_group=None):
     global _parallel_state
     parallel_state = SimpleNamespace(
         cp=SimpleNamespace(rank=cp_rank, size=cp_size),
-        intra_dp=SimpleNamespace(group=dist.group.WORLD),
+        intra_dp=SimpleNamespace(group=dist.group.WORLD if process_group is None else process_group),
     )
     _parallel_state = parallel_state
     args = Namespace(normalize_advantages=True, qkv_format="thd")
@@ -238,11 +238,11 @@ def normalize_original(advantages, loss_masks, total_lengths, response_lengths, 
     return advantages
 
 
-def normalize_repaired(advantages, loss_masks, total_lengths, response_lengths, cp_rank=1, cp_size=2):
+def normalize_repaired(advantages, loss_masks, total_lengths, response_lengths, cp_rank=1, cp_size=2, process_group=None):
     global _parallel_state
     parallel_state = SimpleNamespace(
         cp=SimpleNamespace(rank=cp_rank, size=cp_size),
-        intra_dp=SimpleNamespace(group=dist.group.WORLD),
+        intra_dp=SimpleNamespace(group=dist.group.WORLD if process_group is None else process_group),
     )
     _parallel_state = parallel_state
     args = Namespace(normalize_advantages=True, qkv_format="thd")

@@ -25,6 +25,19 @@ lengths and a minimal parallel-state object. Gloo WORLD stands for one DP group
 at a fixed CP coordinate. The original offset function and masking block are
 retained; neither Megatron initialization nor a complete CP mesh is launched.
 
+The adapter now also accepts an explicit DP process group for `reproduce_mesh.py`.
+That optional parameter changes only the standalone wrapper, retaining WORLD as
+the default for the earlier two-process reproducer. All six historical excerpts
+remain verbatim; `source_manifest.json` records the current wrapper hash.
+
+`reproduce_mesh.py` creates full CP×DP2 process groups (CP2 or CP4), checks each
+group and CP reconstruction before whitening, and records per-rank inputs and
+stages. It supports CPU Gloo or one CUDA device per process with NCCL. The
+parent directly owns each worker process group and requires a target-rank
+collective timeout, not merely a failed process or an outer deadline. This
+driver is separate from the original two-process results below; GPU execution
+results must be recorded separately.
+
 ## Historical logs
 
 `historical_manifest.json` records SHA-256 and byte size of each complete original
