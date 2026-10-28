@@ -147,6 +147,36 @@ def worker(args):
     dist.destroy_process_group()
 
 
+def expected_nccl_timeout(records, rank_logs, cp_size, timeout):
+    """Return immutable pre-termination proof only after every blocked peer times out."""
+    if len(records) != cp_size * 2 or {r.get("rank") for r in records} != set(range(cp_size * 2)):
+        return None
+    for r in records:
+        rank = r["rank"]
+        if (r.get("cp_rank"), r.get("dp_rank")) != (rank % cp_size, rank // cp_size):
+            return None
+        if not r.get("group_smoke_passed") or not r.get("cp_reconstruction_passed"):
+            return None
+    complete = [r for r in records if r["cp_rank"] == 0 or r["dp_rank"] == 0]
+    if not all(r.get("stage") == "whitening_complete" and r.get("numerical_match") for r in complete):
+        return None
+    if not all(r.get("local_numel") == 0 for r in complete if r["cp_rank"] > 0):
+        return None
+    waiting = [r for r in records if r["cp_rank"] > 0 and r["dp_rank"] == 1]
+    pattern = re.compile(r"Watchdog caught collective operation timeout: WorkNCCL\([^\n]*OpType=ALLREDUCE, NumelIn=3, NumelOut=3,[^\n]*ran for (\d+) milliseconds before timing out")
+    evidence = {}
+    for r in waiting:
+        if r.get("stage") != "before_whitening" or r.get("local_numel", 0) <= 0:
+            return None
+        hits = [line for line in rank_logs.get(r["rank"], "").splitlines()
+                if (match := pattern.search(line)) and int(match.group(1)) >= timeout * 800]
+        if not hits:
+            return None
+        evidence[str(r["rank"])] = hits
+    return {"records_before_termination": records, "watchdog_lines": evidence,
+            "reason": "all_expected_waiting_ranks_reported_target_watchdog_timeout"}
+
+
 def run_case(args, variant, case):
     out = args.output / f"{variant}-{case}"
     out.mkdir(parents=True, exist_ok=False)
@@ -160,6 +190,7 @@ def run_case(args, variant, case):
            "TORCH_NCCL_TRACE_BUFFER_SIZE": "2000", "TORCH_NCCL_DUMP_ON_TIMEOUT": "1",
            "TORCH_NCCL_DEBUG_INFO_TEMP_FILE": str(out / "nccl_trace_rank_")}
     deadline = False
+    timeout_proof = None
     processes, streams = [], []
     try:
         # Direct children, each with its own tracked process group. Avoid a
@@ -173,6 +204,22 @@ def run_case(args, variant, case):
             ))
         expires = time.monotonic() + args.collective_timeout * 3 + 90
         while any(p.poll() is None for p in processes):
+            if time.monotonic() >= expires:
+                deadline = True
+                break
+            if args.backend == "nccl" and variant == "original" and case == "mixed":
+                current_records = [json.loads(p.read_text()) for p in sorted(out.glob("rank*.json"))]
+                current_logs = {rank: (out / f"worker{rank}.log").read_text(errors="replace") for rank in range(world)}
+                timeout_proof = expected_nccl_timeout(current_records, current_logs, args.cp_size, args.collective_timeout)
+                if timeout_proof:
+                    if time.monotonic() >= expires:
+                        deadline = True
+                        timeout_proof = None
+                        break
+                    # NCCL/CUDA cannot safely resume after a watchdog abort.
+                    # Freeze causal evidence, then terminate only our workers.
+                    save(out / "EXPECTED_TIMEOUT.json", timeout_proof)
+                    break
             if time.monotonic() >= expires:
                 deadline = True
                 break
@@ -196,7 +243,8 @@ def run_case(args, variant, case):
         for stream in streams:
             stream.close()
     returncodes = [p.returncode for p in processes]
-    records = [json.loads(p.read_text()) for p in sorted(out.glob("rank*.json"))]
+    final_records = [json.loads(p.read_text()) for p in sorted(out.glob("rank*.json"))]
+    records = timeout_proof["records_before_termination"] if timeout_proof else final_records
     rank_logs = {rank: (out / f"worker{rank}.log").read_text(errors="replace") for rank in range(world)}
     (out / "stdout.log").write_text("\n".join(f"--- worker {rank} ---\n{log}" for rank, log in rank_logs.items()))
     if deadline:
@@ -216,11 +264,7 @@ def run_case(args, variant, case):
         if any(r["stage"] == "whitening_error" and not re.search(r"timed out|timeout", r.get("error", ""), re.I) for r in waiting):
             raise RuntimeError(f"Unrelated target-stage error: {out}")
         if args.backend == "nccl":
-            pattern = re.compile(r"Watchdog caught collective operation timeout: WorkNCCL\([^\n]*OpType=ALLREDUCE, NumelIn=3, NumelOut=3,[^\n]*ran for (\d+) milliseconds before timing out")
-            signature = any(
-                any(int(m.group(1)) >= args.collective_timeout * 800 for m in pattern.finditer(rank_logs[r["rank"]]))
-                for r in waiting
-            )
+            signature = timeout_proof is not None
         else:
             signature = any(r["stage"] == "whitening_error" and "timed out" in r.get("error", "").lower()
                             and r.get("elapsed_seconds", 0) >= args.collective_timeout * 0.8 for r in waiting)
@@ -233,6 +277,8 @@ def run_case(args, variant, case):
         outcome = "completed_and_numerically_correct"
     summary = {"variant": variant, "case": case, "outcome": outcome,
                "returncodes": returncodes, "ranks": records,
+               "termination_reason": "expected_watchdog_timeout" if timeout_proof else "workers_exited",
+               "all_worker_processes_reaped": all(p.poll() is not None for p in processes),
                "stdout_sha256": hashlib.sha256((out / "stdout.log").read_bytes()).hexdigest()}
     save(out / "RESULT.json", summary)
     print(json.dumps({k: summary[k] for k in ("variant", "case", "outcome", "returncodes")}), flush=True)
@@ -267,7 +313,7 @@ def main():
         "cp_size": args.cp_size, "dp_size": 2, "world_size": args.cp_size * 2,
         "source_sha256": hashlib.sha256(Path(kernels.__file__).read_bytes()).hexdigest(),
         "driver_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "results": [{k: r[k] for k in ("variant", "case", "outcome", "returncodes")} for r in results],
+        "results": [{k: r[k] for k in ("variant", "case", "outcome", "returncodes", "termination_reason", "all_worker_processes_reaped")} for r in results],
     })
     print("MESH_REPRODUCTION_COMPLETE", flush=True)
 

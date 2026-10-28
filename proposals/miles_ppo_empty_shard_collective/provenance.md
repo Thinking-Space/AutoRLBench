@@ -88,6 +88,30 @@ completed and matched pooled numerical reference values. Successful comparisons
 use `rtol=1e-5`, `atol=1e-6`. The results include elapsed times for transparency,
 not as a training-performance benchmark.
 
-This does not reproduce the full 96-GPU NCCL execution, its exact sequence number,
+The original two-process CPU results do not reproduce the full 96-GPU execution,
 the later GAE suspicion, model optimization, or held-out quality. No new RL
 training was launched and no AutoRLBench score is claimed.
+
+## Additional GPU mesh validation
+
+`nccl_mesh_results.json` was collected from the completed October28 execution
+of the final `reproduce_mesh.py`: one8-H100 node, real CP4×DP2 groups, torch2.7.1+cu126,
+CUDA12.6,NCCL2.26.2. Its COMPLETE and EXPECTED_TIMEOUT records retain their original
+SHA256 hashes, and the bundle includes32 healthy-control rank records plus the
+eight pre-termination records for the defective mixed case. The original40rank
+JSONs plus COMPLETE/EXPECTED_TIMEOUT were recovered from task stdout and all42
+hashes checked before publication. Driver/source hashes match the tested files.
+
+No model weights, training data or private addresses are included. Synthetic
+input values, numerical outputs and watchdog timings are unchanged. Rank and
+process-group information is retained. The single-node mesh shares the historical
+CP size and reproduces the same three-element NCCL reduction signature, while
+using DP2 and synthetic precomputed advantages instead of full96GPU training.
+
+The first GPU attempt passed four controls and produced the expected timeouts,
+but NCCL abort/trace cleanup exceeded the parent's deadline. It produced no
+COMPLETE record and was not accepted. The final driver freezes pre-termination
+evidence after every expected blocked rank reports the target watchdog, then
+terminates/reaps its owned processes. Both checks around evidence collection
+give the outer deadline priority. After a watchdog abort, no resumed CUDA output
+is used as a numerical result.

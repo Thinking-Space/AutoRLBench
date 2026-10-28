@@ -132,6 +132,49 @@ training results or a GPU performance measurement.
 
 ## Proposed evaluation
 
+### Additional NCCL validation (October 28, 2026)
+
+The [full mesh driver](miles_ppo_empty_shard_collective/reproduce_mesh.py) was run
+on one node with **8 NVIDIA H100 80GB GPUs, CP4 × DP2**, using PyTorch 2.7.1+cu126,
+CUDA 12.6 and NCCL 2.26.2. The [recorded results](miles_ppo_empty_shard_collective/nccl_mesh_results.json)
+include all per-rank inputs, topology, reference outputs and timeout evidence.
+
+- Original/nonempty, repaired/nonempty, repaired/zero-mask-nonempty and
+  repaired/mixed-empty each completed with correct values on all eight ranks.
+- Original/mixed-empty produced the actual NCCL watchdog signature
+  `SeqNum=2, OpType=ALLREDUCE, NumelIn=3, NumelOut=3` on ranks 5, 6 and 7 after
+  15,046 / 15,068 / 15,080 ms, with a configured 15-second timeout.
+- CP0's DP group completed numerically; ranks 1, 2 and 3 had empty local slices
+  and skipped whitening. Each blocked peer was in the expected corresponding DP
+  group. Group communication and CP reconstruction passed before the target call.
+- After all three watchdog records were captured, the parent froze the evidence
+  and terminated/reaped its own workers. Their `-15` exit codes mean intentional
+  cleanup after the demonstrated failure, not normal completion of the bad code.
+
+The driver writes `COMPLETE.json` only when all five expected outcomes hold. This
+run completed at **2026-10-28 09:35:33 UTC**. It is one execution of the final
+driver, not a multi-seed training experiment. An earlier GPU attempt obtained the
+same three timeouts and four successful controls but exceeded the outer cleanup
+deadline; it was rejected and is not counted as a passing run. The final driver
+accepts evidence only before that deadline and does not resume CUDA computation
+after an observed watchdog failure.
+
+This adds actual GPU/NCCL evidence for the isolated code defect. It does not
+establish the complete cause of every historical 96-GPU failure or a repaired
+end-to-end RL training result.
+
+From the repository root, on a node with eight available GPUs:
+
+```bash
+python proposals/miles_ppo_empty_shard_collective/reproduce_mesh.py \
+  --backend nccl --cp-size 4 --output /tmp/cp-whitening-nccl-run
+```
+
+Use a new output directory per execution. The driver also accepts `--backend gloo`
+for a CPU mesh preflight.
+
+### Intended benchmark contract
+
 For **Issue**, ask the agent to diagnose a stalled PPO run using a frozen source
 snapshot, effective parallel configuration, relevant logs and representative
 batch-shape evidence. The hidden oracle should require the local branch, the DP
