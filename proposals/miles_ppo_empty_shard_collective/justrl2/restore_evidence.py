@@ -42,6 +42,38 @@ def _nonpersistent_paths(value, path=()):
         yield from _nonpersistent_paths(item, (*path, str(key)))
 
 
+def _storage_padding_paths(value, path=()):
+    """Native dp_reshardable drops these explicitly tagged alignment records.
+
+    Identify them only in the live optimizer template, never from file values.
+    A plain dictionary key named padding does not authorize any exclusion.
+    """
+    if isinstance(value, dict):
+        marker = value.get('padding')
+        if (path and path[0] == 'optimizer' and 'param_state' in path
+                and _is_nonpersistent(marker) and marker.data is True):
+            names = set(value) - {'padding'}
+            if names != {'param', 'exp_avg', 'exp_avg_sq'}:
+                raise ValueError('Unexpected native optimizer padding record')
+            if not all(type(value[name]).__module__.startswith('megatron.core.dist_checkpointing')
+                       and type(value[name]).__name__ == 'ShardedTensor'
+                       and isinstance(value[name].data, torch.Tensor) for name in names):
+                raise ValueError('Optimizer padding must carry native ShardedTensor metadata')
+            yield path
+            return
+    value = _unwrap(value)
+    items = value.items() if isinstance(value, dict) else enumerate(value) if isinstance(value, (list, tuple)) else ()
+    for key, item in items:
+        yield from _storage_padding_paths(item, (*path, str(key)))
+
+
+def _padding_counts(state, paths):
+    leaves = dict(_leaves(state))
+    tensors = [v for k, v in leaves.items() if isinstance(v, torch.Tensor)
+               and any(k[:len(p)] == p for p in paths)]
+    return len(tensors), sum(v.numel() for v in tensors)
+
+
 def _leaves(value, path=(), excluded=()):
     if path in excluded or _is_nonpersistent(value):
         return
@@ -95,7 +127,10 @@ def _digest(value, excluded=()):
 
 
 
-def fingerprint(state, *, excluded=()):
+def fingerprint(state, *, excluded=(), storage_padding=None):
+    storage_padding = set(_storage_padding_paths(state)) if storage_padding is None else set(storage_padding)
+    padding_tensors, padding_elements = _padding_counts(state, storage_padding)
+    excluded = set(excluded) | storage_padding
     models = {k: v for k, v in state.items() if k == 'model' or k.startswith('model') and k[5:].isdigit()}
     if not models or 'optimizer' not in state:
         raise ValueError('Both model and optimizer state are required')
@@ -108,7 +143,9 @@ def fingerprint(state, *, excluded=()):
     return dict(model_sha256=model[0], optimizer_sha256=optimizer[0],
                 model_tensors=model[1], model_elements=model[2],
                 optimizer_tensors=optimizer[1], optimizer_elements=optimizer[2],
-                optimizer_steps=optimizer[3], moment_elements=optimizer[4])
+                optimizer_steps=optimizer[3], moment_elements=optimizer[4],
+                ignored_storage_padding_tensors=padding_tensors,
+                ignored_storage_padding_elements=padding_elements)
 
 
 def state_differences(actual, expected, *, excluded=(), limit=12):
@@ -220,7 +257,8 @@ def validate_progress(before, after):
         raise ValueError('Expected exactly one additional Adam step')
     if after['optimizer_sha256'] == before['optimizer_sha256']:
         raise ValueError('Optimizer did not change after update')
-    for key in ('model_tensors', 'model_elements', 'optimizer_tensors', 'optimizer_elements', 'moment_elements'):
+    for key in ('model_tensors', 'model_elements', 'optimizer_tensors', 'optimizer_elements', 'moment_elements',
+                'ignored_storage_padding_tensors', 'ignored_storage_padding_elements'):
         if before[key] != after[key]:
             raise ValueError('State layout changed across update: ' + key)
 
@@ -238,9 +276,10 @@ def checked_load(load, captured, reader, selected, iteration):
     actual_hash = fingerprint(actual)
     # Megatron unwraps LocalNonpersistentObject on load. Exclude precisely those
     # template paths on both sides, never arbitrary keys named "padding".
-    excluded = set(_nonpersistent_paths(actual))
+    storage_padding = set(_storage_padding_paths(actual))
+    excluded = set(_nonpersistent_paths(actual)) | storage_padding
     expected = reader(cpu_template(actual), selected, **captured['load_kwargs'])
-    expected_hash = fingerprint(expected, excluded=excluded)
+    expected_hash = fingerprint(expected, excluded=excluded, storage_padding=storage_padding)
     if actual_hash != expected_hash:
         detail = {'actual': actual_hash, 'expected': expected_hash,
                   'differences': state_differences(actual, expected, excluded=excluded)}

@@ -430,3 +430,46 @@ def test_checked_load_excludes_unwrapped_nonpersistent_padding_only():
     expected['optimizer']['state'][0]['exp_avg'][0, 0] += 1
     with pytest.raises(ValueError, match='differs'):
         h.checked_load(lambda: (0, 0), captured, reader, Path('/unused'), 0)
+
+class ShardedTensor:
+    __module__ = 'megatron.core.dist_checkpointing.mapping'
+    def __init__(self, data):
+        self.data = data
+        self.key = 'optimizer.distributed.test_bucket'
+
+
+def test_native_dp_reshardable_alignment_padding_is_not_optimizer_state():
+    h = helper()
+    model, opt = state_after_update()
+    actual = state_dict(model, opt)
+    # Same representation as pinned sharded_param_state_dp_reshardable:
+    # padding tensors are allocated with torch.empty and dropped by native load.
+    actual['optimizer']['param_state'] = {'bucket': [{
+        'padding': LocalNonpersistentObject(True),
+        'param': ShardedTensor(torch.tensor([17.])),
+        'exp_avg': ShardedTensor(torch.tensor([23.])),
+        'exp_avg_sq': ShardedTensor(torch.tensor([31.])),
+    }]}
+    expected = copy.deepcopy(actual)
+    bucket = expected['optimizer']['param_state']['bucket'][0]
+    bucket['padding'] = True
+    for name in ('param', 'exp_avg', 'exp_avg_sq'):
+        bucket[name] = torch.tensor([99.])
+    def generate(optim_sd_kwargs=None): return actual
+    cap = dict(generate=generate,positional=(),keywords={},load_kwargs={})
+    restored = h.checked_load(lambda: (0, 0),cap,lambda *a, **kw: expected,Path('/unused'),0)
+    assert restored['optimizer_steps'] == [1.,1.]
+    assert restored['ignored_storage_padding_elements'] == 3
+    assert restored['ignored_storage_padding_tensors'] == 3
+    # Damage outside explicit native padding must still fail.
+    expected['optimizer']['state'][0]['exp_avg'][0,0] += 1
+    with pytest.raises(ValueError,match='differs'):
+        h.checked_load(lambda: (0, 0),cap,lambda *a, **kw: expected,Path('/unused'),0)
+
+
+def test_plain_padding_marker_never_excludes_persistent_tensors():
+    h = helper()
+    model,opt = state_after_update()
+    state=state_dict(model,opt)
+    state['optimizer']['param_state'] = {'bucket':[{'padding': True,'param':torch.ones(2)}]}
+    assert h.fingerprint(state)['optimizer_elements'] > h.fingerprint(state_dict(model,opt))['optimizer_elements']
