@@ -280,7 +280,7 @@ def test_restore_shell_uses_separate_load_roots_and_infers_start(tmp_path):
     (root / 'benchmark/train.sh').write_text((HERE / 'train.sh').read_text())
     binary = tmp_path / 'bin'
     binary.mkdir()
-    (binary / 'python3').write_text('#!/bin/sh\nprintf "%s\\n" "$@"\n')
+    (binary / 'python3').write_text('#!/bin/sh\nif [ "$1" = "-c" ]; then printf "%s\\n" "${TEST_LOCAL_GPUS:-4}"; else printf "%s\\n" "$@"; fi\n')
     (binary / 'python3').chmod(0o755)
     env = {**os.environ, 'PATH': str(binary) + ':' + os.environ['PATH'],
         'BENCH_MODEL': '/model', 'BENCH_NATIVE_MODEL': '/native', 'BENCH_REPLAY': '/replay.pt',
@@ -296,6 +296,12 @@ def test_restore_shell_uses_separate_load_roots_and_infers_start(tmp_path):
     two = subprocess.run(['bash', str(root / 'benchmark/train.sh')], env=env,
                          text=True, capture_output=True, check=True).stdout.splitlines()
     assert two[two.index('--num-gpus-per-node')+1] == '4'
+    env['TEST_LOCAL_GPUS'] = '2'
+    four = subprocess.run(['bash', str(root / 'benchmark/train.sh')], env=env,
+                          text=True, capture_output=True, check=True).stdout.splitlines()
+    assert four[four.index('--num-gpus-per-node')+1] == '2'
+    assert four[four.index('--actor-num-gpus-per-node')+1] == '4'
+    assert four[four.index('--critic-num-gpus-per-node')+1] == '4'
     assert two[two.index('--actor-num-gpus-per-node')+1] == '4'
     assert two[two.index('--critic-num-gpus-per-node')+1] == '4'
     assert two[two.index('--context-parallel-size')+1] == '2'
@@ -499,3 +505,15 @@ def test_two_node_runtime_keeps_eight_physical_gpus_and_rejects_wrong_layout():
             runtime.validate_ray_layout(bad,local_gpus=4,external=True)
     with pytest.raises(ValueError):
         runtime.validate_ray_layout(valid,local_gpus=8,external=True)
+
+
+def test_four_two_gpu_nodes_keep_eight_devices_without_sharing():
+    runtime = importlib.import_module('run_training')
+    nodes = [dict(Alive=True,NodeID=str(i),Resources={'GPU':2}) for i in range(4)]
+    runtime.validate_ray_layout(nodes,local_gpus=2,external=True)
+    for bad in (nodes[:3],nodes+[dict(Alive=True,NodeID='extra',Resources={'GPU':2})],
+                [nodes[0],nodes[0],nodes[2],nodes[3]]):
+        with pytest.raises(ValueError):
+            runtime.validate_ray_layout(bad,local_gpus=2,external=True)
+    with pytest.raises(ValueError):
+        runtime.validate_ray_layout(nodes,local_gpus=4,external=True)

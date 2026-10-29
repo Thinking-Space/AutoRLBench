@@ -75,44 +75,48 @@ stops if the intact training path fails. It verifies pinned HF assets, a recorde
 native conversion receipt, native checkpoint inventory, replay hash and both
 source inventories before execution. The faulty arm uses the same assets and
 launch settings. The helper owns a private Ray instance; the parent performs
-Ray cleanup only inside the dedicated task container.
+Ray cleanup only inside the dedicated task container. Dedicated external Ray
+also supports two4-GPU or four2-GPU process nodes, with eight distinct physical
+GPUs required, actor4/critic4 and CP2/DP2 unchanged.
 
 ## Preparation and execution
 
-The candidate runtime was built on October 29, 2026 (linux/amd64):
+The TE-rebuilt, framework-pinned candidate was built on October 29, 2026 (linux/amd64):
 
 ```text
-ghcr.io/merak0514/autorlbench-justrl2@sha256:cc32d641e90f613029bc64e802dd330f5205b26cf3bb447e67ebb485a68ea0d2
+ghcr.io/merak0514/autorlbench-justrl2@sha256:c326df993f6965e35b62d869f3acc919e01b3401982064c295abd603e5fc3475
 ```
 
-[image_build.json](image_build.json) records the successful GitHub Actions build,
-base digest, Dockerfile hash and output digest. Anonymous registry access and the
-[manifest digest](image_manifest.json) were verified. The Dockerfile uses the
-fixed public base digest `49637ea9...18164c5`. The first build failed its import smoke test because ANTLR4.13 was incompatible
-with OmegaConf. The current recipe pins ANTLR4.9.3 and runs parser assertions
-during construction; the replacement build passed. The receipt retains the
-failed attempt separately. The second CPU-only smoke check passed the parser
-imports but could not load TransformerEngine without the NVIDIA driver
-(`libcuda.so.1`). It also reported a FlashAttention ABI warning. Full module
-import and the configured fused-attention training path require GPU validation.
+[image_build.json](image_build.json) records its successful build and
+[manifest](image_manifest.json). Anonymous registry access and local content
+hashes were verified. The preceding TE-rebuilt80355df1 image passed H100 TE linear forward/backward
+and public trainer imports without runtime package changes.
 
-**The built image above failed its H100 training-module import check.** CUDA
-operations passed, but its prebuilt TransformerEngine binding requires a c10
-symbol absent from its PyTorch2.13. FlashAttention has the same ABI mismatch.
-The prior successful GPU replay and native restore used a different internal
-image; those results do not validate this public image.
+The preceding cc32d641 image failed H100 imports: its prebuilt TE/FA bindings
+required an older PyTorch ABI. `rebuild_te.sh` compiles the hash-pinned official
+TE2.17 binding against the base's PyTorch2.13 and removes incompatible optional
+FA2/FA3 packages, retaining cuDNN fused attention. A torch2.11 downgrade was
+rejected because it broke the SGLang kernel ABI.
 
-The current Dockerfile is a replacement recipe: `rebuild_te.sh` compiles the
-hash-pinned official TE2.17 PyTorch extension against the base's PyTorch2.13,
-using the installed NVIDIA header directories. It removes incompatible optional
-FA2/FA3 packages and keeps the original cuDNN fused-attention configuration.
-This combination passed real H100 TE linear forward/backward and all public
-trainer-module imports. A diagnostic torch2.11 downgrade was rejected because
-it broke the SGLang kernel ABI. [runtime_checks.json](runtime_checks.json)
-records these distinct outcomes and CPU checks inside the built public image.
-The replacement image build is in progress; **its full healthy/faulty training
-and native checkpoint restoration are not yet verified**. The current recipe
-therefore does not match the previously built cc32d641 image.
+Native conversion then exposed a second upstream compatibility change: the
+base's newer Megatron removed the tokenizer API used by pinned JustRL2. The
+current recipe additionally pins public Megatron to
+`37f91617b95c1ef4f01fc66210e502572ad97fda`, the revision used by the verified
+internal replay/restore. Conversion explicitly selects fused attention and
+disables optional Apex gradient-accumulation fusion; both training arms use
+these same settings. A real single-H100 conversion with this framework pin
+preserved every HF tensor and passed native checkpoint inventory checks.
+The framework-pinned image build succeeded; its manifest/config hashes and
+Megatron commit were verified, and the digest-identical cluster import completed. Its first multi-node attempt stopped before
+training because the base mixed OpenTelemetry API1.45 with SDK1.44. The current
+recipe pins API1.44 and runs an authenticated Ray startup/task/shutdown smoke
+during construction. This corrected Ray image is building; the latest recipe
+therefore differs from the already-built digest above.
+
+[runtime_checks.json](runtime_checks.json) distinguishes image-level CPU checks,
+actual-image GPU preflight, and pinned-framework conversion. **Full paired
+training and native restore on the final public runtime remain unverified.**
+The successful earlier replay/restore used a different internal image.
 
 From this directory, in a suitable environment (Python3.12+ for the preparation
 helpers), use a new preparation directory:
@@ -171,7 +175,7 @@ check should be added before claiming Solution-task readiness.
   **no model forward, backward or GPU training is claimed**.
 - Tooling tests exercise real CPU Adam snapshots, durable evidence writes, DCP
   metadata/shard inspection, the target store-wait verifier path, and rejection
-  of malformed/missing evidence. The combined tooling and restore suite passes 61 tests.
+  of malformed/missing evidence. The combined tooling and restore suite passes 62 tests.
 - The October 28, 2026 GPU replay pair used the pinned public model and source
   revision. The healthy arm passed the evidence checker with one actor and one
   critic optimizer step plus model/optimizer checkpoint payloads. The faulty

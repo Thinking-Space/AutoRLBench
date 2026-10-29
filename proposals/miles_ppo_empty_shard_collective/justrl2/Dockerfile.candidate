@@ -10,6 +10,16 @@ RUN python3 -c 'from omegaconf import OmegaConf; from math_verify import parse, 
 # TE against the base's torch2.13 and retain the benchmark's cuDNN fused path.
 COPY rebuild_te.sh /tmp/justrl2-rebuild-te.sh
 RUN bash /tmp/justrl2-rebuild-te.sh && rm /tmp/justrl2-rebuild-te.sh
+# Keep the public framework API used by the pinned JustRL2 source and verified
+# native restore. Newer Megatron revisions removed its legacy tokenizer import.
+RUN git -C /root/Megatron-LM checkout --detach 37f91617b95c1ef4f01fc66210e502572ad97fda \
+    && test "$(git -C /root/Megatron-LM rev-parse HEAD)" = 37f91617b95c1ef4f01fc66210e502572ad97fda \
+    && test -f /root/Megatron-LM/megatron/training/tokenizer/tokenizer.py
+# Ray's installed SDK1.44 requires API1.44; the broad base installed API1.45.
+RUN python3 -m pip install --no-cache-dir --no-deps --force-reinstall \
+    "https://files.pythonhosted.org/packages/ca/6f/a04e900f465ff3221ccc395522503e2d10e79fa21f2723c8e177aae1e0d1/opentelemetry_api-1.44.0-py3-none-any.whl#sha256=94b98c893a91b88657eaac1e3ba89618cdb85be6918196705354f34728b2cdef"
+COPY check_ray_runtime.py /tmp/justrl2-check-ray.py
+RUN timeout --kill-after=10s 180s python3 /tmp/justrl2-check-ray.py && rm /tmp/justrl2-check-ray.py
 ENV PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false \
     NVTE_FUSED_ATTN=1 NVTE_FLASH_ATTN=0 NVTE_UNFUSED_ATTN=0
 WORKDIR /workspace

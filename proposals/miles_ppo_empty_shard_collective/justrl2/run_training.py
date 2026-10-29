@@ -12,9 +12,9 @@ import time
 def validate_ray_layout(nodes, *, local_gpus, external):
     alive = [node for node in nodes if node.get('Alive')]
     counts = sorted(node.get('Resources', {}).get('GPU', 0) for node in alive)
-    expected = [4, 4] if external else [8]
-    if counts != expected or local_gpus != (4 if external else 8):
-        raise ValueError('Expected eight dedicated physical GPUs: ' + str(expected))
+    allowed = ([4, 4], [2, 2, 2, 2]) if external else ([8],)
+    if counts not in allowed or not counts or local_gpus != counts[0]:
+        raise ValueError('Expected eight dedicated physical GPUs: ' + str(allowed))
     if len({node['NodeID'] for node in alive}) != len(alive):
         raise ValueError('Duplicate Ray node identities')
 
@@ -33,8 +33,8 @@ def main():
     address = os.environ.get('BENCH_JOB_RAY_ADDRESS')
     local_gpus = torch.cuda.device_count()
     if address:
-        if os.environ.get('BENCH_DEDICATED_CONTAINER') != '1' or local_gpus != 4:
-            raise RuntimeError('External Ray is only supported for the dedicated two-node job')
+        if os.environ.get('BENCH_DEDICATED_CONTAINER') != '1' or local_gpus not in (2, 4):
+            raise RuntimeError('External Ray requires dedicated two- or four-GPU nodes')
         ray.init(address=address, log_to_driver=True)
     else:
         if local_gpus != 8:
@@ -84,7 +84,7 @@ def main():
             "debug_train_only", "debug_disable_optimizer", "balance_data", "use_tis",
             "lr", "critic_lr", "seed", "distributed_timeout_minutes", "load", "critic_load",
             "save", "critic_save", "start_rollout_id", "finetune", "no_load_optim",
-            "no_save_optim"]}, indent=2) + "\n")
+            "no_save_optim", "gradient_accumulation_fusion", "attention_backend"]}, indent=2, default=str) + "\n")
         asyncio.run(train.train(args))
         (output / "TRAINING_RETURNED.json").write_text(json.dumps({
             "train_coroutine_returned": True, "elapsed_seconds": time.time() - started,

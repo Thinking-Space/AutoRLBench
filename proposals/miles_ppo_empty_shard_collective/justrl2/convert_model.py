@@ -53,7 +53,7 @@ def main():
            "NATIVE_OUTPUT": str(output)}
     script = '''set -euo pipefail
 source justrl2/model_args/minicpm5-2b.sh
-python3 tools/convert_hf_to_torch_dist.py "${MODEL_ARGS[@]}" --hf-checkpoint "$HF_SOURCE" --save "$NATIVE_OUTPUT"
+python3 tools/convert_hf_to_torch_dist.py "${MODEL_ARGS[@]}" --attention-backend fused --no-gradient-accumulation-fusion --hf-checkpoint "$HF_SOURCE" --save "$NATIVE_OUTPUT"
 '''
     with (output / "conversion.log").open("w") as stream:
         subprocess.run(["bash", "-c", script], cwd=source, env=env, check=True,

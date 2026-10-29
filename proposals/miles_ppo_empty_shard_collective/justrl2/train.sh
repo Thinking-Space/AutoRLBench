@@ -25,7 +25,10 @@ export WANDB_MODE=offline
 export RAY_DEDUP_LOGS=0
 source justrl2/model_args/minicpm5-2b.sh
 PHYSICAL_GPUS_PER_NODE=8
-if [[ -n "${BENCH_JOB_RAY_ADDRESS:-}" ]]; then PHYSICAL_GPUS_PER_NODE=4; fi
+if [[ -n "${BENCH_JOB_RAY_ADDRESS:-}" ]]; then
+  PHYSICAL_GPUS_PER_NODE=$(python3 -c 'import torch; print(torch.cuda.device_count())')
+  [[ "$PHYSICAL_GPUS_PER_NODE" == 2 || "$PHYSICAL_GPUS_PER_NODE" == 4 ]]
+fi
 
 LOAD_ARGS=(--load "$BENCH_RUN_DIR/actor")
 ROLLOUT_ARGS=(--num-rollout 1 --start-rollout-id 0)
@@ -45,7 +48,7 @@ python3 benchmark/run_training.py -- \
   --train-backend megatron --tensor-model-parallel-size 1 \
   --pipeline-model-parallel-size 1 --context-parallel-size 2 \
   --expert-model-parallel-size 1 --expert-tensor-parallel-size 1 \
-  --qkv-format thd --attention-backend fused \
+  --qkv-format thd --attention-backend fused --no-gradient-accumulation-fusion \
   "${MODEL_ARGS[@]}" \
   --hf-checkpoint "$BENCH_MODEL" --ref-load "$BENCH_NATIVE_MODEL" \
   "${LOAD_ARGS[@]}" --save "$BENCH_RUN_DIR/actor" \
