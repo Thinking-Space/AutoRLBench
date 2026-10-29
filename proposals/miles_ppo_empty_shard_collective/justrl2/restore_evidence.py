@@ -102,13 +102,15 @@ def _canonical_digest(value, excluded=()):
             if item.layout != torch.strided:
                 raise ValueError('Unsupported tensor layout in canonical restore state')
             item = item.detach()
-            raw = bytearray()
+            tensor_sha = hashlib.sha256()
+            tensor_sha.update(str(item.dtype).encode())
+            tensor_sha.update(json.dumps(list(item.shape)).encode())
             for block in item.reshape(-1).split(1024 * 1024):
                 cpu = block.to('cpu').contiguous()
                 if cpu.is_floating_point() and not bool(torch.isfinite(cpu).all()):
                     raise ValueError('Nonfinite canonical restore state')
-                raw.extend(cpu.view(torch.uint8).numpy().tobytes())
-            leaves.append(('tensor', str(item.dtype), tuple(item.shape), bytes(raw)))
+                tensor_sha.update(cpu.view(torch.uint8).numpy().tobytes())
+            leaves.append(('tensor', tensor_sha.hexdigest()))
         elif isinstance(item, (bytes, bytearray)):
             leaves.append(('bytes', bytes(item)))
         else:
