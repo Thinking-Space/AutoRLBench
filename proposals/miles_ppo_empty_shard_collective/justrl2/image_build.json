@@ -15,7 +15,7 @@
   "compressed_layer_bytes": 29389661981,
   "training_on_this_image_validated": false,
   "notes": [
-    "Successful Dockerfile build and GHCR push; GPU training on this new image remains untested.",
+    "Built and anonymously readable; actual H100 import failed with a TE torch ABI mismatch. Not a validated training image.",
     "pip emitted dependency conflicts in the broad upstream runtime; training compatibility is not inferred from image construction.",
     "The previous GPU pair ran on a different internal image."
   ],
@@ -42,5 +42,28 @@
         "scipy": "1.15.3"
       }
     }
-  }
+  },
+  "gpu_runtime_preflight": {
+    "passed": false,
+    "cuda_operation_passed": true,
+    "torch": "2.13.0+cu129",
+    "error": "transformer_engine_torch undefined c10 materialize_cow_storage symbol",
+    "full_training_started": false
+  },
+  "replacement_build": {
+    "branch": "build/justrl2-te213-20261030",
+    "base": "9047ad526d0fbf1bfd89232b12432f30c17aa6aa",
+    "commit": "714a0c7355b5c2f54c4bb9619bab3ef96f00d41c",
+    "files": [
+      ".github/workflows/build-justrl2-candidate.yml",
+      "proposals/miles_ppo_empty_shard_collective/justrl2/Dockerfile.candidate",
+      "proposals/miles_ppo_empty_shard_collective/justrl2/rebuild_te.sh"
+    ],
+    "image_tag": "ghcr.io/merak0514/autorlbench-justrl2:cp2dp2-te213-20261030",
+    "workflow_run": "https://github.com/merak0514/AutoRLBench/actions/runs/40944349088",
+    "status": "in_progress",
+    "gpu_training_verified": false,
+    "checkpoint_restore_verified": false
+  },
+  "current_recipe_matches_built_image": false
 }

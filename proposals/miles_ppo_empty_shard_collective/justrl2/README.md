@@ -96,11 +96,23 @@ imports but could not load TransformerEngine without the NVIDIA driver
 (`libcuda.so.1`). It also reported a FlashAttention ABI warning. Full module
 import and the configured fused-attention training path require GPU validation.
 
-**GPU training inside this newly built image is not yet validated.** The prior
-GPU replay used a different internal image. The build emitted dependency-conflict
-warnings from the broad upstream environment; a successful build is not proof
-of training compatibility. Native checkpoint restoration passed on the prior internal compatibility image.
-It has not yet been tested in the newly built public image.
+**The built image above failed its H100 training-module import check.** CUDA
+operations passed, but its prebuilt TransformerEngine binding requires a c10
+symbol absent from its PyTorch2.13. FlashAttention has the same ABI mismatch.
+The prior successful GPU replay and native restore used a different internal
+image; those results do not validate this public image.
+
+The current Dockerfile is a replacement recipe: `rebuild_te.sh` compiles the
+hash-pinned official TE2.17 PyTorch extension against the base's PyTorch2.13,
+using the installed NVIDIA header directories. It removes incompatible optional
+FA2/FA3 packages and keeps the original cuDNN fused-attention configuration.
+This combination passed real H100 TE linear forward/backward and all public
+trainer-module imports. A diagnostic torch2.11 downgrade was rejected because
+it broke the SGLang kernel ABI. [runtime_checks.json](runtime_checks.json)
+records these distinct outcomes and CPU checks inside the built public image.
+The replacement image build is in progress; **its full healthy/faulty training
+and native checkpoint restoration are not yet verified**. The current recipe
+therefore does not match the previously built cc32d641 image.
 
 From this directory, in a suitable environment (Python3.12+ for the preparation
 helpers), use a new preparation directory:
