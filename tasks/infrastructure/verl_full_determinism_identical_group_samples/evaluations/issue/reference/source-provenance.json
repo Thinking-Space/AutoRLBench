@@ -1,0 +1,167 @@
+{
+  "workspace_framework": {
+    "repo": "https://github.com/verl-project/verl",
+    "base_commit": "6f2aa24abfc01cc72811b376aeb3936503885096",
+    "modified_files": {},
+    "note": "the workspace is verl at the base commit, unmodified; the defect is in the released verl/workers/rollout/vllm_rollout/vllm_async_server.py"
+  },
+  "upstream_status": "checked 2026-10-25: verl main (latest commit touching the file, 619c397d of 2026-10-21) still injects the per-request seed replica_rank + config.seed; no verl issue or pull request found for 'full_determinism' reports identical samples within a GRPO group; verl's own determinism tests run with rollout.n=1",
+  "reference_fix": {
+    "file": "verl/workers/rollout/vllm_rollout/vllm_async_server.py",
+    "origin": "written for this task, not an upstream patch",
+    "rule": "seed = (rollout.seed + crc32(f'{priority}:{crc32(prompt token ids)}')) & 0x7FFFFFFF, where priority is the sample's row in the batch, assigned by AgentLoopManager before dispatch"
+  },
+  "recorded_runs": {
+    "workspace/outputs": "defective arm, data seed 1, 1 GPU, 30 steps",
+    "evaluations/solution/oracle/defective-seed2": "defective arm, data seed 2, 1 GPU, 30 steps",
+    "evaluations/solution/oracle/control": "repaired arm, data seed 1, 1 GPU, 30 steps",
+    "evaluations/solution/oracle/control-seed2": "repaired arm, data seed 2, 1 GPU, 30 steps",
+    "evaluations/issue/reference/restart/repaired-A": "repaired arm, 3 steps, no validation, probe on",
+    "evaluations/issue/reference/restart/repaired-B-restart": "same as repaired-A, separate process",
+    "evaluations/issue/reference/restart/repaired-D-seed43": "same as repaired-A with rollout.seed=43",
+    "evaluations/issue/reference/restart/defective-C": "defective arm, 3 steps, no validation, probe on"
+  },
+  "raw_material_not_published": "original run directories, including the W&B run-*.wandb binaries and the full rollout dumps, are kept by the submitter (they embed internal host names and paths) and are available to maintainers on request",
+  "sanitization": {
+    "rule": "labels, paths, host names and addresses only; no metric value is changed",
+    "replacements": [
+      {
+        "what": "run output directory",
+        "replaced_with": "/workspace/outputs"
+      },
+      {
+        "what": "diagnostic run output directory",
+        "replaced_with": "/workspace/outputs"
+      },
+      {
+        "what": "workspace directory",
+        "replaced_with": "/workspace"
+      },
+      {
+        "what": "run name",
+        "replaced_with": "qwen25_1.5b_gsm8k_grpo_deterministic"
+      },
+      {
+        "what": "diagnostic run name",
+        "replaced_with": "qwen25_1.5b_gsm8k_grpo_deterministic"
+      },
+      {
+        "what": "probe directory",
+        "replaced_with": "/workspace/probe"
+      },
+      {
+        "what": "model directory",
+        "replaced_with": "/workspace/models"
+      },
+      {
+        "what": "data directory",
+        "replaced_with": "/workspace/data"
+      },
+      {
+        "what": "temporary directory",
+        "replaced_with": "/tmp"
+      },
+      {
+        "what": "host project directory",
+        "replaced_with": "/workspace"
+      },
+      {
+        "what": "host home directory",
+        "replaced_with": "/home/user"
+      },
+      {
+        "what": "host IP address",
+        "replaced_with": "127.0.0.1"
+      },
+      {
+        "what": "host name",
+        "replaced_with": "localhost"
+      },
+      {
+        "what": "user name",
+        "replaced_with": "user"
+      },
+      {
+        "what": "remaining host mount prefix",
+        "replaced_with": "/workspace"
+      }
+    ],
+    "files": [
+      {
+        "file": "evaluations/issue/reference/restart/repaired-A/train.log",
+        "sha256_before": "7157fe64cb98d11946f322b3cde3d939396737d5d4c3d5f6ad665fb36f0a4c0a",
+        "sha256_after": "96634d8bce398f6b8224294a2cd740432c7219070422d75d48f24d1e1bc93210",
+        "replacements": {
+          "<ansi escape codes removed>": 2328,
+          "diagnostic run output directory": 8,
+          "workspace directory": 18,
+          "diagnostic run name": 2,
+          "host IP address": 2,
+          "host name": 1
+        }
+      },
+      {
+        "file": "evaluations/issue/reference/restart/repaired-B-restart/train.log",
+        "sha256_before": "7cc8d8bde9436f8e20b65cf005266845042de5343d9584082b341802c204f0ea",
+        "sha256_after": "5c472635c797bc49cfa7efd18e974ddb5f4115993e17fe97e08a6306ea031be8",
+        "replacements": {
+          "<ansi escape codes removed>": 2292,
+          "diagnostic run output directory": 8,
+          "workspace directory": 18,
+          "diagnostic run name": 2,
+          "host IP address": 2,
+          "host name": 1
+        }
+      },
+      {
+        "file": "evaluations/solution/oracle/control/train.log",
+        "sha256_before": "d566db7806a97469f172a46c1c6abe2e6733222742a8f026a960cc2b3dad8746",
+        "sha256_after": "edff1e9b910786b0197ef71ec102131070a359dd6f76dd16d2184f700113fc9f",
+        "replacements": {
+          "<ansi escape codes removed>": 2702,
+          "run output directory": 42,
+          "workspace directory": 18,
+          "run name": 2,
+          "host IP address": 2,
+          "host name": 1
+        }
+      },
+      {
+        "file": "evaluations/solution/oracle/control/wandb/offline-run-20261025_233219-9lmi3865/logs/debug.log",
+        "sha256_before": "78aade9a82cf5fef07372287f44f391e8213ed3f014ae2d0704c1d791c59c97a",
+        "sha256_after": "239e9fb6e020d30f02ac8572cd2e5d36d074be3891f19a8126e5f574a37607a7",
+        "replacements": {
+          "run output directory": 5,
+          "workspace directory": 4,
+          "run name": 2
+        }
+      },
+      {
+        "file": "evaluations/solution/oracle/control-seed2/train.log",
+        "sha256_before": "284f6d490464246f6cc33ad5dfb810607364ed8843a3f17d6e702529e4a56198",
+        "sha256_after": "fbcb8418b0507bb2ed4b74a9a1cc771be96a639faffb4a8f4896e6f77bfda7a8",
+        "replacements": {
+          "<ansi escape codes removed>": 2780,
+          "run output directory": 42,
+          "workspace directory": 18,
+          "run name": 2,
+          "host IP address": 2,
+          "host name": 1
+        }
+      },
+      {
+        "file": "evaluations/solution/oracle/defective-seed2/train.log",
+        "sha256_before": "50895f1feca045beb68d0bb5e51a759f25697990ba106fa3dac23ca7338319da",
+        "sha256_after": "f976ff45888b29d826bd0083f277723e81a2f43ea5f7bc9a19bb95a8cf0444ec",
+        "replacements": {
+          "<ansi escape codes removed>": 2768,
+          "run output directory": 42,
+          "workspace directory": 18,
+          "run name": 2,
+          "host IP address": 2,
+          "host name": 1
+        }
+      }
+    ]
+  }
+}

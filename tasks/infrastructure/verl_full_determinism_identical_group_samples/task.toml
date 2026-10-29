@@ -1,0 +1,32 @@
+title = "Full determinism makes every GRPO group identical"
+license = "Apache-2.0"
+created_date = "2026-10-25"
+domain = "infrastructure"
+tags = ["verl", "grpo", "vllm", "determinism", "sampling-seed"]
+
+[submitter]
+name = "Jianing Yin"
+
+[model]
+name = "Qwen/Qwen2.5-1.5B-Instruct"
+
+[dataset]
+name = "openai/gsm8k main (7473 train rows, 1319 test rows)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_fd.sh"
+
+[environment]
+image = "verl"
+
+# The recorded runs and the solution rerun use one GPU (one vLLM replica, TP=1, FSDP world size 1).
+[environment.env]
+WANDB_MODE = "offline"
+CUDA_VISIBLE_DEVICES = "0"
+NVIDIA_VISIBLE_DEVICES = "0"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "With actor_rollout_ref.rollout.full_determinism=True, vLLMHttpServer.generate gives every request on a replica the same sampling seed (replica_rank + rollout.seed) while vLLM runs batch invariant, so the n samples of a prompt are byte-identical: every GRPO group has zero reward variance, every advantage, pg_loss and grad_norm is exactly 0 for all 30 steps, and held-out GSM8K accuracy stays at 0.08719 at every validation, against 0.7384 at step 30 when the seed is derived per sample."
