@@ -7,7 +7,7 @@ guard around advantage whitening. **Public HEAD already fixes that defect.**
 The mutation is intentional and is not presented as an unfixed upstream bug.
 
 **Status (October 29, 2026): executable construction draft; CPU path and one
-real GPU actor/critic replay pair verified.** It is not an AutoRLBench task
+real GPU actor/critic replay pair and native checkpoint restoration verified.** It is not an AutoRLBench task
 registration or a leaderboard result. The preceding private-history and
 synthetic H100 kernel results do not stand in for this candidate's training run.
 
@@ -99,8 +99,8 @@ import and the configured fused-attention training path require GPU validation.
 **GPU training inside this newly built image is not yet validated.** The prior
 GPU replay used a different internal image. The build emitted dependency-conflict
 warnings from the broad upstream environment; a successful build is not proof
-of training compatibility. Checkpoint payloads were inspected; the native GPU
-restore experiment is pending.
+of training compatibility. Native checkpoint restoration passed on the prior internal compatibility image.
+It has not yet been tested in the newly built public image.
 
 From this directory, in a suitable environment (Python3.12+ for the preparation
 helpers), use a new preparation directory:
@@ -159,7 +159,7 @@ check should be added before claiming Solution-task readiness.
   **no model forward, backward or GPU training is claimed**.
 - Tooling tests exercise real CPU Adam snapshots, durable evidence writes, DCP
   metadata/shard inspection, the target store-wait verifier path, and rejection
-  of malformed/missing evidence. The combined tooling and restore suite passes 60 tests.
+  of malformed/missing evidence. The combined tooling and restore suite passes 61 tests.
 - The October 28, 2026 GPU replay pair used the pinned public model and source
   revision. The healthy arm passed the evidence checker with one actor and one
   critic optimizer step plus model/optimizer checkpoint payloads. The faulty
@@ -167,7 +167,7 @@ check should be added before claiming Solution-task readiness.
   target `DistBackendError` store wait. A 1-CPU read-only verifier task reran
   both checks against the preserved shared artifacts. [construction_checks.json](construction_checks.json)
   records the earlier GPU result separately from the new image build and
-  the pending native GPU restore path.
+  the separately verified native GPU restore path.
 
 Reproduce the CPU source-path check after preparation:
 
@@ -214,8 +214,27 @@ payload-presence check. The focused CPU tests exercise real Adam checkpoint
 restore and reject a no-op loader. Five additional checks ran with the exact
 pinned Megatron mapping classes ([receipt](native_mapping_checks.json)), after
 a GPU attempt exposed an inaccurate test double for `LocalNonpersistentObject`.
-Its native API uses `unwrap()`, not `.data`. Neither these checks nor a native
-loader success message establish the pending GPU resume-and-update result.
+Its native API uses `unwrap()`, not `.data`. These CPU checks are separate from the native GPU result below.
+
+## Native restore result (October 29, 2026)
+
+[restore_results.json](restore_results.json) and the sanitized
+[rank events](restore_events.json) record one successful restore on two nodes
+with four H100 GPUs each, using the internal compatibility image. Each role
+retains four ranks and CP2/DP2. All eight ranks passed exact native model/Adam
+load verification, completed rollout1, advanced Adam step1 to step2, and passed
+an independent readback of checkpoint1 against the live post-update state.
+Original actor/critic checkpoint hashes were unchanged. The parent returned0
+without reaching its outer deadline; all24 load/update/save events passed a
+second offline check. No checkpoint tensors are distributed in this proposal.
+
+The critic rank0 comparison excluded189 alignment-storage elements (63 each
+for the parameter storage, first moment and second moment), exactly those the
+native loader discards. No actual parameter or Adam moment was excluded.
+The successful run used256GiB host memory per node; a prior128GiB attempt ran
+both updates but was rejected after a post-save readback OOM. Earlier verifier
+failures are not counted as successful restores. **The public candidate image
+still requires its own GPU training/restore run.**
 
 ## Packaging next
 
