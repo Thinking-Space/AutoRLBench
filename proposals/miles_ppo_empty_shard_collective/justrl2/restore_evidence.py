@@ -147,15 +147,13 @@ def validate_restore_args(args, root, iteration):
 
 
 def regenerate_state(generate, positional, keywords):
-    """Use native save layout, which exposes populated distributed Adam buffers.
+    """Recreate the native state template without changing its load/save mode.
 
-    is_loading=True may allocate scratch tensors instead of returning live Adam
-    values; comparing that template would be a false restore test.
+    The native loader's ``is_loading`` mode determines optimizer sharding and
+    metadata. Changing it before the independent DCP read can create a valid
+    but structurally different optimizer state and produce a false mismatch.
     """
     bound = inspect.signature(generate).bind(*positional, **keywords)
-    options = dict(bound.arguments.get('optim_sd_kwargs') or {})
-    options['is_loading'] = False
-    bound.arguments['optim_sd_kwargs'] = options
     return generate(*bound.args, **bound.kwargs)
 
 

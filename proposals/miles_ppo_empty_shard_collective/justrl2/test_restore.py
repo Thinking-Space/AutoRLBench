@@ -132,7 +132,7 @@ def test_reconstructed_template_uses_save_state_without_mutating_load_kwargs():
     kw = {'optim_sd_kwargs': {'is_loading': True, 'metadata': {'format': 'dp_reshardable'}}}
     state = h.regenerate_state(generate, (None, None, None, None, None), kw)
     assert set(state) == {'model','optimizer'}
-    assert calls[0]['is_loading'] is False
+    assert calls[0]['is_loading'] is True
     assert kw['optim_sd_kwargs']['is_loading'] is True
 
 
