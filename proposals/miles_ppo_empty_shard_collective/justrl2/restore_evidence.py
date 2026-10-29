@@ -94,34 +94,6 @@ def _digest(value, excluded=()):
     return sha.hexdigest(), tensors, elements, sorted(steps), moments
 
 
-def _canonical_digest(value, excluded=()):
-    """Hash persisted leaves independent of local DCP shard path names."""
-    leaves = []
-    for path, item in _leaves(value, excluded=excluded):
-        if isinstance(item, torch.Tensor):
-            if item.layout != torch.strided:
-                raise ValueError('Unsupported tensor layout in canonical restore state')
-            item = item.detach()
-            tensor_sha = hashlib.sha256()
-            tensor_sha.update(str(item.dtype).encode())
-            tensor_sha.update(json.dumps(list(item.shape)).encode())
-            for block in item.reshape(-1).split(1024 * 1024):
-                cpu = block.to('cpu').contiguous()
-                if cpu.is_floating_point() and not bool(torch.isfinite(cpu).all()):
-                    raise ValueError('Nonfinite canonical restore state')
-                tensor_sha.update(cpu.view(torch.uint8).numpy().tobytes())
-            leaves.append(('tensor', tensor_sha.hexdigest()))
-        elif isinstance(item, (bytes, bytearray)):
-            leaves.append(('bytes', bytes(item)))
-        else:
-            leaves.append(('scalar', json.dumps(item, allow_nan=False, sort_keys=True)))
-    leaves.sort(key=lambda item: repr(item))
-    sha = hashlib.sha256()
-    for item in leaves:
-        sha.update(repr(item).encode())
-        sha.update(b'\0')
-    return sha.hexdigest()
-
 
 def fingerprint(state, *, excluded=()):
     models = {k: v for k, v in state.items() if k == 'model' or k.startswith('model') and k[5:].isdigit()}
@@ -134,12 +106,43 @@ def fingerprint(state, *, excluded=()):
     if not all(optimizer[4].values()):
         raise ValueError('Missing Adam moments')
     return dict(model_sha256=model[0], optimizer_sha256=optimizer[0],
-                model_canonical_sha256=_canonical_digest(models, excluded),
-                optimizer_canonical_sha256=_canonical_digest(state['optimizer'],
-                    {p[1:] for p in excluded if p[0] == 'optimizer'}),
                 model_tensors=model[1], model_elements=model[2],
                 optimizer_tensors=optimizer[1], optimizer_elements=optimizer[2],
                 optimizer_steps=optimizer[3], moment_elements=optimizer[4])
+
+
+def state_differences(actual, expected, *, excluded=(), limit=12):
+    """Report bounded field-level diagnostics; never change the compared state."""
+    a = dict(_leaves(actual, excluded=excluded))
+    b = dict(_leaves(expected, excluded=excluded))
+    differences = []
+    for path in sorted(set(a) | set(b)):
+        if len(differences) >= limit:
+            break
+        row = {'path': list(path)}
+        if path not in a or path not in b:
+            differences.append({**row, 'kind': 'missing_leaf', 'missing_in': 'actual' if path not in a else 'expected'})
+            continue
+        x, y = a[path], b[path]
+        if isinstance(x, torch.Tensor) and isinstance(y, torch.Tensor):
+            if x.shape != y.shape or x.dtype != y.dtype:
+                differences.append({**row, 'kind': 'tensor_metadata',
+                    'actual': [str(x.dtype), list(x.shape)], 'expected': [str(y.dtype), list(y.shape)]})
+                continue
+            count, samples, offset = 0, [], 0
+            for xs, ys in zip(x.detach().reshape(-1).split(1024*1024), y.detach().reshape(-1).split(1024*1024)):
+                xc, yc = xs.cpu(), ys.cpu()
+                unequal = (xc != yc).nonzero().flatten()
+                count += unequal.numel()
+                for index in unequal[:max(0, 4-len(samples))].tolist():
+                    samples.append({'flat_index': offset+index, 'actual': xc[index].item(), 'expected': yc[index].item()})
+                offset += xc.numel()
+            if count:
+                differences.append({**row, 'kind': 'tensor_values', 'different_elements': count, 'samples': samples})
+        elif isinstance(x, torch.Tensor) or isinstance(y, torch.Tensor) or type(x) is not type(y) or x != y:
+            differences.append({**row, 'kind': 'scalar_or_type',
+                'actual': repr(x)[:200], 'expected': repr(y)[:200]})
+    return differences
 
 
 def compare_state(actual, expected):
@@ -179,13 +182,15 @@ def validate_restore_args(args, root, iteration):
 
 
 def regenerate_state(generate, positional, keywords):
-    """Recreate the native state template without changing its load/save mode.
+    """Inspect populated live buffers using the native save view.
 
-    The native loader's ``is_loading`` mode determines optimizer sharding and
-    metadata. Changing it before the independent DCP read can create a valid
-    but structurally different optimizer state and produce a false mismatch.
+    The pinned DistributedOptimizer.sharded_state_dict calls load_state_dict
+    when is_loading=True. Diagnostic snapshots must not invoke that mutation.
     """
     bound = inspect.signature(generate).bind(*positional, **keywords)
+    options = dict(bound.arguments.get('optim_sd_kwargs') or {})
+    options['is_loading'] = False
+    bound.arguments['optim_sd_kwargs'] = options
     return generate(*bound.args, **bound.kwargs)
 
 
@@ -236,15 +241,12 @@ def checked_load(load, captured, reader, selected, iteration):
     excluded = set(_nonpersistent_paths(actual))
     expected = reader(cpu_template(actual), selected, **captured['load_kwargs'])
     expected_hash = fingerprint(expected, excluded=excluded)
-    if actual_hash['model_canonical_sha256'] != expected_hash['model_canonical_sha256']:
-        raise ValueError('Loaded model state differs from checkpoint payload')
-    if actual_hash['optimizer_canonical_sha256'] != expected_hash['optimizer_canonical_sha256']:
-        raise ValueError('Loaded model/optimizer state differs from checkpoint payload')
-    captured['payload_evidence'] = {
-        'model_payload_exact': actual_hash['model_sha256'] == expected_hash['model_sha256'],
-        'optimizer_path_hash_exact': actual_hash['optimizer_sha256'] == expected_hash['optimizer_sha256'],
-        'optimizer_canonical_exact': True,
-    }
+    if actual_hash != expected_hash:
+        detail = {'actual': actual_hash, 'expected': expected_hash,
+                  'differences': state_differences(actual, expected, excluded=excluded)}
+        print('RESTORE_MISMATCH=' + json.dumps(detail, sort_keys=True), flush=True)
+        raise ValueError('Loaded model/optimizer state differs from checkpoint payload: '
+                         + json.dumps(detail['differences'], sort_keys=True))
     # Prove diagnostics did not change the live optimizer/model either.
     if fingerprint(actual) != actual_hash:
         raise ValueError('Diagnostic checkpoint read modified live training state')
@@ -303,7 +305,7 @@ def restore_load_checkpoint(args, load, model, optimizer, scheduler, **kwargs):
     _RESTORE_CONTEXT[role] = (captured, snapshot)
     emit(args, 'restore_loaded', loaded_iteration=iteration, next_rollout_id=iteration + 1,
          load_root=str(expected_root), payload_exact=True,
-         **captured.get('payload_evidence', {}), snapshot=snapshot)
+         snapshot=snapshot)
     return captured['native_result']
 
 
@@ -321,4 +323,4 @@ def restore_after_save(args, iteration):
                             Path(args.save) / f'iter_{iteration:07d}', iteration)
     validate_progress(restored, snapshot)
     emit(args, 'restore_saved', saved_iteration=iteration, save_root=str(Path(args.save).resolve()),
-         payload_exact=True, **captured.get('payload_evidence', {}), snapshot=snapshot)
+         payload_exact=True, snapshot=snapshot)

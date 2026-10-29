@@ -92,15 +92,33 @@ def test_digest_handles_bfloat16_and_is_independent_of_dict_order():
     assert h.fingerprint(state) == h.fingerprint(dict(reversed(list(state.items()))))
 
 
-def test_canonical_digest_ignores_local_optimizer_shard_path_names():
+def test_checked_load_rejects_swapped_adam_moments_with_identical_tensor_multiset():
     h = helper()
     model, opt = state_after_update()
-    state = state_dict(model, opt)
-    renamed = copy.deepcopy(state)
-    renamed['optimizer'] = {'local_shard_17': renamed['optimizer']}
-    # The path-sensitive digest changes, while the persisted tensor content does not.
-    assert h.fingerprint(state)['optimizer_sha256'] != h.fingerprint(renamed)['optimizer_sha256']
-    assert h.fingerprint(state)['optimizer_canonical_sha256'] == h.fingerprint(renamed)['optimizer_canonical_sha256']
+    actual = state_dict(model, opt)
+    expected = copy.deepcopy(actual)
+    st = expected['optimizer']['state'][0]
+    st['exp_avg'], st['exp_avg_sq'] = st['exp_avg_sq'], st['exp_avg']
+    def generate(optim_sd_kwargs=None): return actual
+    captured = dict(generate=generate, positional=(), keywords={}, load_kwargs={})
+    with pytest.raises(ValueError, match='differs'):
+        h.checked_load(lambda: (0, 0), captured, lambda *a, **kw: expected,
+                       Path('/unused'), 0)
+
+
+def test_state_difference_reports_exact_persistent_field_and_samples():
+    h = helper()
+    model, opt = state_after_update()
+    actual = state_dict(model, opt)
+    expected = copy.deepcopy(actual)
+    expected['optimizer']['state'][0]['exp_avg'][0, 0] += 1
+    differences = h.state_differences(actual, expected)
+    assert len(differences) == 1
+    assert differences[0]['path'] == ['optimizer', 'state', '0', 'exp_avg']
+    assert differences[0]['kind'] == 'tensor_values'
+    assert differences[0]['different_elements'] == 1
+    assert differences[0]['samples'][0]['flat_index'] == 0
+    assert abs(differences[0]['samples'][0]['expected'] - differences[0]['samples'][0]['actual'] - 1) < 1e-6
 
 
 def restore_args(tmp_path):
@@ -143,7 +161,7 @@ def test_reconstructed_template_uses_save_state_without_mutating_load_kwargs():
     kw = {'optim_sd_kwargs': {'is_loading': True, 'metadata': {'format': 'dp_reshardable'}}}
     state = h.regenerate_state(generate, (None, None, None, None, None), kw)
     assert set(state) == {'model','optimizer'}
-    assert calls[0]['is_loading'] is True
+    assert calls[0]['is_loading'] is False
     assert kw['optim_sd_kwargs']['is_loading'] is True
 
 
