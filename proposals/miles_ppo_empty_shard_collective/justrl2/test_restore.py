@@ -292,6 +292,14 @@ def test_restore_shell_uses_separate_load_roots_and_infers_start(tmp_path):
     assert result[result.index('--critic-load')+1] == '/original/critic'
     assert result[result.index('--num-rollout')+1] == '2'
     assert '--start-rollout-id' not in result
+    env['BENCH_JOB_RAY_ADDRESS'] = '192.0.2.1:16379'
+    two = subprocess.run(['bash', str(root / 'benchmark/train.sh')], env=env,
+                         text=True, capture_output=True, check=True).stdout.splitlines()
+    assert two[two.index('--num-gpus-per-node')+1] == '4'
+    assert two[two.index('--actor-num-gpus-per-node')+1] == '4'
+    assert two[two.index('--critic-num-gpus-per-node')+1] == '4'
+    assert two[two.index('--context-parallel-size')+1] == '2'
+    env.pop('BENCH_JOB_RAY_ADDRESS')
     env.pop('BENCH_RESTORE_ROOT')
     result = subprocess.run(['bash', str(root / 'benchmark/train.sh')], env=env,
                             text=True, capture_output=True, check=True).stdout.splitlines()
@@ -476,3 +484,18 @@ def test_plain_padding_marker_never_excludes_persistent_tensors():
     state=state_dict(model,opt)
     state['optimizer']['param_state'] = {'bucket':[{'padding': True,'param':torch.ones(2)}]}
     assert h.fingerprint(state)['optimizer_elements'] > h.fingerprint(state_dict(model,opt))['optimizer_elements']
+
+
+def test_two_node_runtime_keeps_eight_physical_gpus_and_rejects_wrong_layout():
+    runtime = importlib.import_module('run_training')
+    valid = [dict(Alive=True,NodeID='a',Resources={'GPU':4}),
+             dict(Alive=True,NodeID='b',Resources={'GPU':4})]
+    runtime.validate_ray_layout(valid, local_gpus=4, external=True)
+    runtime.validate_ray_layout([dict(Alive=True,NodeID='a',Resources={'GPU':8})],
+                                local_gpus=8, external=False)
+    for bad in [valid[:1], valid+[dict(Alive=True,NodeID='c',Resources={'GPU':4})],
+                [valid[0],dict(Alive=True,NodeID='b',Resources={'GPU':2})]]:
+        with pytest.raises(ValueError):
+            runtime.validate_ray_layout(bad,local_gpus=4,external=True)
+    with pytest.raises(ValueError):
+        runtime.validate_ray_layout(valid,local_gpus=8,external=True)

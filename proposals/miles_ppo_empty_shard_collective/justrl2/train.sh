@@ -24,6 +24,8 @@ export TORCH_NCCL_DEBUG_INFO_TEMP_FILE="$BENCH_RUN_DIR/nccl_trace_rank_"
 export WANDB_MODE=offline
 export RAY_DEDUP_LOGS=0
 source justrl2/model_args/minicpm5-2b.sh
+PHYSICAL_GPUS_PER_NODE=8
+if [[ -n "${BENCH_JOB_RAY_ADDRESS:-}" ]]; then PHYSICAL_GPUS_PER_NODE=4; fi
 
 LOAD_ARGS=(--load "$BENCH_RUN_DIR/actor")
 ROLLOUT_ARGS=(--num-rollout 1 --start-rollout-id 0)
@@ -39,7 +41,7 @@ fi
 # forward passes, value exchange, JustRL2 GAE, backward, Adam and checkpoint save.
 python3 benchmark/run_training.py -- \
   --actor-num-nodes 1 --actor-num-gpus-per-node 4 \
-  --critic-num-nodes 1 --critic-num-gpus-per-node 4 --num-gpus-per-node 8 \
+  --critic-num-nodes 1 --critic-num-gpus-per-node 4 --num-gpus-per-node "$PHYSICAL_GPUS_PER_NODE" \
   --train-backend megatron --tensor-model-parallel-size 1 \
   --pipeline-model-parallel-size 1 --context-parallel-size 2 \
   --expert-model-parallel-size 1 --expert-tensor-parallel-size 1 \

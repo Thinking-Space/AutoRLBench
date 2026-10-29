@@ -9,6 +9,16 @@ import tempfile
 import time
 
 
+def validate_ray_layout(nodes, *, local_gpus, external):
+    alive = [node for node in nodes if node.get('Alive')]
+    counts = sorted(node.get('Resources', {}).get('GPU', 0) for node in alive)
+    expected = [4, 4] if external else [8]
+    if counts != expected or local_gpus != (4 if external else 8):
+        raise ValueError('Expected eight dedicated physical GPUs: ' + str(expected))
+    if len({node['NodeID'] for node in alive}) != len(alive):
+        raise ValueError('Duplicate Ray node identities')
+
+
 def main():
     # BENCH_RUN_DIR is unique and must not contain prior training evidence.
     output = Path(os.environ["BENCH_RUN_DIR"]).resolve()
@@ -20,16 +30,27 @@ def main():
     os.environ["RAY_DEDUP_LOGS"] = "0"
     import torch
     import ray
-    if torch.cuda.device_count() != 8:
-        raise RuntimeError("The fixed actor4+critic4 topology requires exactly 8 visible GPUs")
-    tmp = tempfile.mkdtemp(prefix="justrl2-bench-ray-", dir="/tmp")
+    address = os.environ.get('BENCH_JOB_RAY_ADDRESS')
+    local_gpus = torch.cuda.device_count()
+    if address:
+        if os.environ.get('BENCH_DEDICATED_CONTAINER') != '1' or local_gpus != 4:
+            raise RuntimeError('External Ray is only supported for the dedicated two-node job')
+        ray.init(address=address, log_to_driver=True)
+    else:
+        if local_gpus != 8:
+            raise RuntimeError('Single-node actor4+critic4 requires eight visible GPUs')
+        tmp = tempfile.mkdtemp(prefix='justrl2-bench-ray-', dir='/tmp')
+        ray.init(address='local', num_gpus=8, num_cpus=min(32, os.cpu_count() or 8),
+                 object_store_memory=2 * 1024**3, include_dashboard=False,
+                 _temp_dir=tmp, log_to_driver=True)
     started = time.time()
-    # Starting a local private Ray instance avoids touching any other instance.
-    # All descendants run within this task/container; nothing connects to an
-    # existing cluster address.
-    ray.init(address="local", num_gpus=8, num_cpus=min(32, os.cpu_count() or 8),
-             object_store_memory=2 * 1024**3, include_dashboard=False,
-             _temp_dir=tmp, log_to_driver=True)
+    validate_ray_layout(ray.nodes(), local_gpus=local_gpus, external=bool(address))
+    (output / 'RUNTIME_TOPOLOGY.json').write_text(json.dumps({
+        'physical_gpus': 8, 'gpus_per_node': local_gpus,
+        'nodes': [{k: n.get(k) for k in ('NodeID','NodeManagerAddress','Resources')}
+                  for n in ray.nodes() if n.get('Alive')],
+        'actor_ranks': 4, 'critic_ranks': 4, 'cp': 2, 'dp': 2,
+    }, indent=2) + '\n')
     try:
         argv = sys.argv[1:]
         if argv and argv[0] == "--":
