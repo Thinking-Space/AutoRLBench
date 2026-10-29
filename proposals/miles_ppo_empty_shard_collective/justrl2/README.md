@@ -79,17 +79,25 @@ Ray cleanup only inside the dedicated task container.
 
 ## Preparation and execution
 
-The candidate image is pinned to a publicly available amd64 Docker manifest:
+The candidate runtime was built on October 29, 2026 (linux/amd64):
 
 ```text
-radixark/miles:dev-cu12-202610020916@sha256:49637ea95c9757f6bbf461faf902f95a5cd0c0f0a3dfbda194595e42f48164c5
+ghcr.io/merak0514/autorlbench-justrl2@sha256:cc32d641e90f613029bc64e802dd330f5205b26cf3bb447e67ebb485a68ea0d2
 ```
 
-`Dockerfile.candidate` has **not been built or tested for this case**. The GPU
-replay used a separate internal image whose CUDA12.9, Megatron and SGLang stack
-was checked in a compatibility probe; that image is not claimed equivalent to
-the public candidate image. Checkpoint payloads were inspected, but restoring
-from them has not been tested.
+[image_build.json](image_build.json) records the successful GitHub Actions build,
+base digest, Dockerfile hash and output digest. Anonymous registry access and the
+[manifest digest](image_manifest.json) were verified. The Dockerfile uses the
+fixed public base digest `49637ea9...18164c5`. The first build failed its import smoke test because ANTLR4.13 was incompatible
+with OmegaConf. The current recipe pins ANTLR4.9.3 and runs parser assertions
+during construction; the replacement build passed. The receipt retains the
+failed attempt separately. Full training-module import validation is pending.
+
+**GPU training inside this newly built image is not yet validated.** The prior
+GPU replay used a different internal image. The build emitted dependency-conflict
+warnings from the broad upstream environment; a successful build is not proof
+of training compatibility. Checkpoint payloads were inspected; the native GPU
+restore experiment is pending.
 
 From this directory, in a suitable environment (Python3.12+ for the preparation
 helpers), use a new preparation directory:
@@ -110,7 +118,7 @@ revision, size and SHA256. Model weights are downloaded, not redistributed here.
 `convert_model.py` runs the public HF-to-torch_dist converter and records the
 input hashes plus tracker-selected output metadata and shard hashes. The GPU
 replay completed this conversion with lossless tensor checks; the standalone
-candidate image still needs its own build and environment validation.
+candidate image still needs its own training environment validation.
 
 ## Acceptance criteria
 
@@ -148,15 +156,15 @@ check should be added before claiming Solution-task readiness.
   **no model forward, backward or GPU training is claimed**.
 - Tooling tests exercise real CPU Adam snapshots, durable evidence writes, DCP
   metadata/shard inspection, the target store-wait verifier path, and rejection
-  of malformed/missing evidence. Fourteen tests passed.
+  of malformed/missing evidence. The combined tooling and restore suite passes 56 tests.
 - The October 28, 2026 GPU replay pair used the pinned public model and source
   revision. The healthy arm passed the evidence checker with one actor and one
   critic optimizer step plus model/optimizer checkpoint payloads. The faulty
   arm passed the checker with actor and critic first-divergence records and the
   target `DistBackendError` store wait. A 1-CPU read-only verifier task reran
   both checks against the preserved shared artifacts. [construction_checks.json](construction_checks.json)
-  records the GPU result separately from the still-unbuilt public candidate
-  image and the untested restore path.
+  records the earlier GPU result separately from the new image build and
+  the pending native GPU restore path.
 
 Reproduce the CPU source-path check after preparation:
 
@@ -171,6 +179,27 @@ run. The healthy arm performed one real replay update for both actor and critic;
 the faulty arm intentionally failed at the target collective after the first
 divergence. This validates the constructed training case, not online rollout
 quality or checkpoint restoration.
+
+## Checkpoint restore validation
+
+`run_restore.py` validates both roles with the original healthy checkpoints as
+read-only inputs and a separate output tree:
+
+```bash
+BENCH_DEDICATED_CONTAINER=1 python run_restore.py \
+  --prepared /workspace/prepared --native-model /workspace/native-model \
+  --checkpoint-root /workspace/pair-run/healthy \
+  --output /workspace/restore-run --timeout 2400
+```
+
+It requires native loading of model and populated Adam state on every rank,
+compares full tensor hashes against an independent checkpoint read, runs exactly
+one additional update, and checks that checkpoint1 matches the live post-update
+state. It rejects fresh initialization and optimizer-skip paths. Original
+checkpoint hashes must remain unchanged. `RESTORE_RESULT.json` is written only
+after all checks succeed; the original metadata checker alone remains a
+payload-presence check. The focused CPU tests exercise real Adam checkpoint
+restore and reject a no-op loader, but are not a native GPU restore result.
 
 ## Packaging next
 

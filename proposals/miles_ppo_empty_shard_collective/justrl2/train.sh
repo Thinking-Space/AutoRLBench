@@ -25,6 +25,16 @@ export WANDB_MODE=offline
 export RAY_DEDUP_LOGS=0
 source justrl2/model_args/minicpm5-2b.sh
 
+LOAD_ARGS=(--load "$BENCH_RUN_DIR/actor")
+ROLLOUT_ARGS=(--num-rollout 1 --start-rollout-id 0)
+if [[ -n "${BENCH_RESTORE_ROOT:-}" ]]; then
+  : "${BENCH_RESTORE_ITERATION:?restore requires the original iteration}"
+  [[ "$BENCH_RESTORE_ITERATION" =~ ^[0-9]+$ ]]
+  LOAD_ARGS=(--load "$BENCH_RESTORE_ROOT/actor" --critic-load "$BENCH_RESTORE_ROOT/critic"
+             --use-checkpoint-opt_param-scheduler)
+  ROLLOUT_ARGS=(--num-rollout "$((BENCH_RESTORE_ITERATION + 2))")
+fi
+
 # Native replay bypasses SGLang generation but executes the real actor/critic
 # forward passes, value exchange, JustRL2 GAE, backward, Adam and checkpoint save.
 python3 benchmark/run_training.py -- \
@@ -36,13 +46,13 @@ python3 benchmark/run_training.py -- \
   --qkv-format thd --attention-backend fused \
   "${MODEL_ARGS[@]}" \
   --hf-checkpoint "$BENCH_MODEL" --ref-load "$BENCH_NATIVE_MODEL" \
-  --load "$BENCH_RUN_DIR/actor" --save "$BENCH_RUN_DIR/actor" \
+  "${LOAD_ARGS[@]}" --save "$BENCH_RUN_DIR/actor" \
   --critic-save "$BENCH_RUN_DIR/critic" \
   --save-interval 1 --save-retain-interval 100000 \
   --load-debug-rollout-data "$BENCH_REPLAY" --disable-rollout-global-dataset \
   --rollout-function-path benchmark.replay_loader.unused_rollout \
   --eval-function-path benchmark.replay_loader.unused_rollout \
-  --num-rollout 1 --start-rollout-id 0 --rollout-batch-size 2 \
+  "${ROLLOUT_ARGS[@]}" --rollout-batch-size 2 \
   --n-samples-per-prompt 1 --global-batch-size 2 --micro-batch-size 1 \
   --rollout-max-prompt-len 2048 --rollout-max-response-len 2048 \
   --rollout-max-context-len 4096 --seq-length 4096 \

@@ -15,8 +15,9 @@ public CP/GAE/whitening path has passed CPU checks. On October 28, 2026, an
 8×H100 replay run completed real actor and critic forward/GAE/whitening/backward
 and Adam steps in the healthy arm and saved checkpoints; the faulty arm produced
 the expected empty/nonempty divergence and a target `all_reduce` store wait
-timeout. The public candidate container image and checkpoint restore remain
-unvalidated; these results are separate from the H100 kernel validation below.
+timeout. The public candidate image has now been built and published by digest;
+training on that image and checkpoint restore remain pending. These results are
+separate from the H100 kernel validation below.
 
 | Field | Value |
 | --- | --- |

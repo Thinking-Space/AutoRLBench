@@ -43,7 +43,7 @@ def main():
         args.train_env_vars = {
             **args.train_env_vars,
             **{key: value for key, value in os.environ.items()
-               if key in ("BENCH_EVIDENCE_DIR", "PYTHONPATH", "OMP_NUM_THREADS",
+               if key in ("BENCH_EVIDENCE_DIR", "BENCH_RESTORE_ROOT", "BENCH_RESTORE_ITERATION", "PYTHONPATH", "OMP_NUM_THREADS",
                           "CUDA_DEVICE_MAX_CONNECTIONS", "NVTE_FUSED_ATTN", "NVTE_UNFUSED_ATTN", "NVTE_FLASH_ATTN",
                           "TORCH_NCCL_TRACE_BUFFER_SIZE", "TORCH_NCCL_DUMP_ON_TIMEOUT",
                           "TORCH_NCCL_DEBUG_INFO_TEMP_FILE", "NCCL_DEBUG")},
@@ -52,12 +52,18 @@ def main():
             raise RuntimeError("Expected real actor+critic replay training with optimizer enabled")
         if args.balance_data or args.use_dynamic_batch_size or args.use_tis:
             raise RuntimeError("Case requires the frozen unbalanced replay path")
+        if os.environ.get("BENCH_RESTORE_ROOT"):
+            from benchmark.restore_evidence import validate_restore_args
+            validate_restore_args(args, os.environ["BENCH_RESTORE_ROOT"],
+                                  int(os.environ["BENCH_RESTORE_ITERATION"]))
         (output / "effective_config.json").write_text(json.dumps({
             k: getattr(args, k, None) for k in ["advantage_estimator", "context_parallel_size",
             "actor_num_gpus_per_node", "critic_num_gpus_per_node", "global_batch_size",
             "micro_batch_size", "num_rollout", "gae_lambda_k", "normalize_advantages",
             "debug_train_only", "debug_disable_optimizer", "balance_data", "use_tis",
-            "lr", "critic_lr", "seed", "distributed_timeout_minutes"]}, indent=2) + "\n")
+            "lr", "critic_lr", "seed", "distributed_timeout_minutes", "load", "critic_load",
+            "save", "critic_save", "start_rollout_id", "finetune", "no_load_optim",
+            "no_save_optim"]}, indent=2) + "\n")
         asyncio.run(train.train(args))
         (output / "TRAINING_RETURNED.json").write_text(json.dumps({
             "train_coroutine_returned": True, "elapsed_seconds": time.time() - started,
