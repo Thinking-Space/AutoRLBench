@@ -183,6 +183,11 @@ the faulty arm intentionally failed at the target collective after the first
 divergence. This validates the constructed training case, not online rollout
 quality or checkpoint restoration.
 
+A subsequent CPU-only read of the saved actor and critic checkpoint0 metadata
+completed successfully; [checkpoint_inventory.json](checkpoint_inventory.json)
+records tensor counts and common-state keys. It does not establish successful
+optimizer restoration.
+
 ## Checkpoint restore validation
 
 `run_restore.py` validates both roles with the original healthy checkpoints as
