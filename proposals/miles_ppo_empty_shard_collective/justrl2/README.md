@@ -211,7 +211,11 @@ Original
 checkpoint hashes must remain unchanged. `RESTORE_RESULT.json` is written only
 after all checks succeed; the original metadata checker alone remains a
 payload-presence check. The focused CPU tests exercise real Adam checkpoint
-restore and reject a no-op loader, but are not a native GPU restore result.
+restore and reject a no-op loader. Five additional checks ran with the exact
+pinned Megatron mapping classes ([receipt](native_mapping_checks.json)), after
+a GPU attempt exposed an inaccurate test double for `LocalNonpersistentObject`.
+Its native API uses `unwrap()`, not `.data`. Neither these checks nor a native
+loader success message establish the pending GPU resume-and-update result.
 
 ## Packaging next
 
