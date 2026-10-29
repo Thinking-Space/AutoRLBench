@@ -388,16 +388,19 @@ class LocalNonpersistentObject:
     """Megatron wrapper seam; real tensors exercise padding preservation."""
     __module__ = 'megatron.core.dist_checkpointing.mapping'
 
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, obj):
+        self.obj = obj
+
+    def unwrap(self):
+        return self.obj
 
 
 def test_nonpersistent_padding_template_preserves_values_without_aliasing():
     h = helper()
     padding = torch.tensor([3., 7.])
     template = h.cpu_template({'padding': LocalNonpersistentObject(padding)})
-    torch.testing.assert_close(template['padding'].data, padding)
-    template['padding'].data[0] = 99
+    torch.testing.assert_close(template['padding'].unwrap(), padding)
+    template['padding'].unwrap()[0] = 99
     assert padding[0].item() == 3
 
 

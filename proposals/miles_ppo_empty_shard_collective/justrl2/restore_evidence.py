@@ -22,6 +22,8 @@ _RESTORE_CONTEXT = {}
 def _unwrap(value):
     # Megatron's sharded wrappers carry tensors/objects in .data. Avoid importing
     # Megatron for CPU tests or treating a Tensor's .data as another wrapper.
+    if _is_nonpersistent(value):
+        return value.unwrap()
     if type(value).__module__.startswith('megatron.core.dist_checkpointing') and hasattr(value, 'data'):
         return value.data
     return value
@@ -51,7 +53,7 @@ def _storage_padding_paths(value, path=()):
     if isinstance(value, dict):
         marker = value.get('padding')
         if (path and path[0] == 'optimizer' and 'param_state' in path
-                and _is_nonpersistent(marker) and marker.data is True):
+                and _is_nonpersistent(marker) and marker.unwrap() is True):
             names = set(value) - {'padding'}
             if names != {'param', 'exp_avg', 'exp_avg_sq'}:
                 raise ValueError('Unexpected native optimizer padding record')
@@ -239,6 +241,8 @@ def cpu_template(value, *, preserve=False):
         result = torch.empty_like(value, device='cpu')
         result.fill_(float('nan') if result.is_floating_point() else 0)
         return result
+    if _is_nonpersistent(value):
+        return type(value)(cpu_template(value.unwrap(), preserve=True))
     if type(value).__module__.startswith('megatron.core.dist_checkpointing') and hasattr(value, 'data'):
         result = copy.copy(value)
         result.data = cpu_template(value.data, preserve=preserve or _is_nonpersistent(value))
