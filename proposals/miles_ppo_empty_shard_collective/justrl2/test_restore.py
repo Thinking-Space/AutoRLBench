@@ -92,6 +92,17 @@ def test_digest_handles_bfloat16_and_is_independent_of_dict_order():
     assert h.fingerprint(state) == h.fingerprint(dict(reversed(list(state.items()))))
 
 
+def test_canonical_digest_ignores_local_optimizer_shard_path_names():
+    h = helper()
+    model, opt = state_after_update()
+    state = state_dict(model, opt)
+    renamed = copy.deepcopy(state)
+    renamed['optimizer'] = {'local_shard_17': renamed['optimizer']}
+    # The path-sensitive digest changes, while the persisted tensor content does not.
+    assert h.fingerprint(state)['optimizer_sha256'] != h.fingerprint(renamed)['optimizer_sha256']
+    assert h.fingerprint(state)['optimizer_canonical_sha256'] == h.fingerprint(renamed)['optimizer_canonical_sha256']
+
+
 def restore_args(tmp_path):
     root = tmp_path / 'original'
     for role in ('actor', 'critic'):

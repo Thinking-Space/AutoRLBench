@@ -94,6 +94,33 @@ def _digest(value, excluded=()):
     return sha.hexdigest(), tensors, elements, sorted(steps), moments
 
 
+def _canonical_digest(value, excluded=()):
+    """Hash persisted leaves independent of local DCP shard path names."""
+    leaves = []
+    for path, item in _leaves(value, excluded=excluded):
+        if isinstance(item, torch.Tensor):
+            if item.layout != torch.strided:
+                raise ValueError('Unsupported tensor layout in canonical restore state')
+            item = item.detach()
+            raw = bytearray()
+            for block in item.reshape(-1).split(1024 * 1024):
+                cpu = block.to('cpu').contiguous()
+                if cpu.is_floating_point() and not bool(torch.isfinite(cpu).all()):
+                    raise ValueError('Nonfinite canonical restore state')
+                raw.extend(cpu.view(torch.uint8).numpy().tobytes())
+            leaves.append(('tensor', str(item.dtype), tuple(item.shape), bytes(raw)))
+        elif isinstance(item, (bytes, bytearray)):
+            leaves.append(('bytes', bytes(item)))
+        else:
+            leaves.append(('scalar', json.dumps(item, allow_nan=False, sort_keys=True)))
+    leaves.sort(key=lambda item: repr(item))
+    sha = hashlib.sha256()
+    for item in leaves:
+        sha.update(repr(item).encode())
+        sha.update(b'\0')
+    return sha.hexdigest()
+
+
 def fingerprint(state, *, excluded=()):
     models = {k: v for k, v in state.items() if k == 'model' or k.startswith('model') and k[5:].isdigit()}
     if not models or 'optimizer' not in state:
@@ -105,6 +132,9 @@ def fingerprint(state, *, excluded=()):
     if not all(optimizer[4].values()):
         raise ValueError('Missing Adam moments')
     return dict(model_sha256=model[0], optimizer_sha256=optimizer[0],
+                model_canonical_sha256=_canonical_digest(models, excluded),
+                optimizer_canonical_sha256=_canonical_digest(state['optimizer'],
+                    {p[1:] for p in excluded if p[0] == 'optimizer'}),
                 model_tensors=model[1], model_elements=model[2],
                 optimizer_tensors=optimizer[1], optimizer_elements=optimizer[2],
                 optimizer_steps=optimizer[3], moment_elements=optimizer[4])
@@ -203,8 +233,16 @@ def checked_load(load, captured, reader, selected, iteration):
     # template paths on both sides, never arbitrary keys named "padding".
     excluded = set(_nonpersistent_paths(actual))
     expected = reader(cpu_template(actual), selected, **captured['load_kwargs'])
-    if actual_hash != fingerprint(expected, excluded=excluded):
+    expected_hash = fingerprint(expected, excluded=excluded)
+    if actual_hash['model_canonical_sha256'] != expected_hash['model_canonical_sha256']:
+        raise ValueError('Loaded model state differs from checkpoint payload')
+    if actual_hash['optimizer_canonical_sha256'] != expected_hash['optimizer_canonical_sha256']:
         raise ValueError('Loaded model/optimizer state differs from checkpoint payload')
+    captured['payload_evidence'] = {
+        'model_payload_exact': actual_hash['model_sha256'] == expected_hash['model_sha256'],
+        'optimizer_path_hash_exact': actual_hash['optimizer_sha256'] == expected_hash['optimizer_sha256'],
+        'optimizer_canonical_exact': True,
+    }
     # Prove diagnostics did not change the live optimizer/model either.
     if fingerprint(actual) != actual_hash:
         raise ValueError('Diagnostic checkpoint read modified live training state')
@@ -262,7 +300,8 @@ def restore_load_checkpoint(args, load, model, optimizer, scheduler, **kwargs):
     # Preserve native save-template arguments for a second exact read after save.
     _RESTORE_CONTEXT[role] = (captured, snapshot)
     emit(args, 'restore_loaded', loaded_iteration=iteration, next_rollout_id=iteration + 1,
-         load_root=str(expected_root), payload_exact=True, snapshot=snapshot)
+         load_root=str(expected_root), payload_exact=True,
+         **captured.get('payload_evidence', {}), snapshot=snapshot)
     return captured['native_result']
 
 
@@ -280,4 +319,4 @@ def restore_after_save(args, iteration):
                             Path(args.save) / f'iter_{iteration:07d}', iteration)
     validate_progress(restored, snapshot)
     emit(args, 'restore_saved', saved_iteration=iteration, save_root=str(Path(args.save).resolve()),
-         payload_exact=True, snapshot=snapshot)
+         payload_exact=True, **captured.get('payload_evidence', {}), snapshot=snapshot)
