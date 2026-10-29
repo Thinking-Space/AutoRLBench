@@ -159,7 +159,7 @@ check should be added before claiming Solution-task readiness.
   **no model forward, backward or GPU training is claimed**.
 - Tooling tests exercise real CPU Adam snapshots, durable evidence writes, DCP
   metadata/shard inspection, the target store-wait verifier path, and rejection
-  of malformed/missing evidence. The combined tooling and restore suite passes 56 tests.
+  of malformed/missing evidence. The combined tooling and restore suite passes 60 tests.
 - The October 28, 2026 GPU replay pair used the pinned public model and source
   revision. The healthy arm passed the evidence checker with one actor and one
   critic optimizer step plus model/optimizer checkpoint payloads. The faulty
@@ -201,9 +201,13 @@ BENCH_DEDICATED_CONTAINER=1 python run_restore.py \
 ```
 
 It requires native loading of model and populated Adam state on every rank,
-compares full tensor hashes against an independent checkpoint read, runs exactly
+compares keyed full tensor hashes against an independent checkpoint read, runs exactly
 one additional update, and checks that checkpoint1 matches the live post-update
-state. It rejects fresh initialization and optimizer-skip paths. Original
+state. It rejects fresh initialization, swapped Adam moments and optimizer-skip paths.
+Native `dp_reshardable` alignment records explicitly tagged by the live template
+as padding are excluded, matching the native loader; their tensor/element counts
+are recorded. All model and optimizer parameter tensors remain exact comparisons.
+Original
 checkpoint hashes must remain unchanged. `RESTORE_RESULT.json` is written only
 after all checks succeed; the original metadata checker alone remains a
 payload-presence check. The focused CPU tests exercise real Adam checkpoint
