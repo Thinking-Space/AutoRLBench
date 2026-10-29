@@ -91,7 +91,10 @@ base digest, Dockerfile hash and output digest. Anonymous registry access and th
 fixed public base digest `49637ea9...18164c5`. The first build failed its import smoke test because ANTLR4.13 was incompatible
 with OmegaConf. The current recipe pins ANTLR4.9.3 and runs parser assertions
 during construction; the replacement build passed. The receipt retains the
-failed attempt separately. Full training-module import validation is pending.
+failed attempt separately. The second CPU-only smoke check passed the parser
+imports but could not load TransformerEngine without the NVIDIA driver
+(`libcuda.so.1`). It also reported a FlashAttention ABI warning. Full module
+import and the configured fused-attention training path require GPU validation.
 
 **GPU training inside this newly built image is not yet validated.** The prior
 GPU replay used a different internal image. The build emitted dependency-conflict
