@@ -1,0 +1,33 @@
+title = "GRPO generation and accumulation windows"
+license = "Apache-2.0"
+created_date = "2026-10-30"
+domain = "algorithm"
+tags = ["trl", "grpo", "gsm8k"]
+
+[submitter]
+name = "Haoyang Su"
+github = "Hoyant-Su"
+affiliation = "Fudan University; Shanghai Innovation Institute"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K"
+
+[training]
+framework = "TRL"
+algo = "GRPO with DAPO loss"
+script = "train.sh"
+
+[environment]
+image = "trl-grpo-torch26"
+prepare = "environment/prepare.sh"
+
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0"
+NVIDIA_VISIBLE_DEVICES = "0"
+
+[outcome]
+failure_type = "objective normalization error"
+failure_reason = "The generation token denominator is not scaled to the accumulation window, giving half the intended loss."
