@@ -302,6 +302,12 @@ def test_restore_shell_uses_separate_load_roots_and_infers_start(tmp_path):
     assert four[four.index('--num-gpus-per-node')+1] == '2'
     assert four[four.index('--actor-num-gpus-per-node')+1] == '4'
     assert four[four.index('--critic-num-gpus-per-node')+1] == '4'
+    env['TEST_LOCAL_GPUS'] = '1'
+    eight = subprocess.run(['bash', str(root / 'benchmark/train.sh')], env=env,
+                           text=True, capture_output=True, check=True).stdout.splitlines()
+    assert eight[eight.index('--num-gpus-per-node')+1] == '1'
+    assert eight[eight.index('--actor-num-gpus-per-node')+1] == '4'
+    assert eight[eight.index('--critic-num-gpus-per-node')+1] == '4'
     assert two[two.index('--actor-num-gpus-per-node')+1] == '4'
     assert two[two.index('--critic-num-gpus-per-node')+1] == '4'
     assert two[two.index('--context-parallel-size')+1] == '2'
@@ -517,3 +523,15 @@ def test_four_two_gpu_nodes_keep_eight_devices_without_sharing():
             runtime.validate_ray_layout(bad,local_gpus=2,external=True)
     with pytest.raises(ValueError):
         runtime.validate_ray_layout(nodes,local_gpus=4,external=True)
+
+
+def test_eight_single_gpu_nodes_keep_all_role_ranks_and_distinct_nodes():
+    runtime = importlib.import_module('run_training')
+    nodes = [dict(Alive=True,NodeID=str(i),Resources={'GPU':1}) for i in range(8)]
+    runtime.validate_ray_layout(nodes,local_gpus=1,external=True)
+    for bad in (nodes[:7],nodes+[dict(Alive=True,NodeID='extra',Resources={'GPU':1})],
+                [nodes[0],*nodes[:-1]]):
+        with pytest.raises(ValueError):
+            runtime.validate_ray_layout(bad,local_gpus=1,external=True)
+    with pytest.raises(ValueError):
+        runtime.validate_ray_layout(nodes,local_gpus=2,external=True)

@@ -27,7 +27,7 @@ source justrl2/model_args/minicpm5-2b.sh
 PHYSICAL_GPUS_PER_NODE=8
 if [[ -n "${BENCH_JOB_RAY_ADDRESS:-}" ]]; then
   PHYSICAL_GPUS_PER_NODE=$(python3 -c 'import torch; print(torch.cuda.device_count())')
-  [[ "$PHYSICAL_GPUS_PER_NODE" == 2 || "$PHYSICAL_GPUS_PER_NODE" == 4 ]]
+  [[ "$PHYSICAL_GPUS_PER_NODE" == 1 || "$PHYSICAL_GPUS_PER_NODE" == 2 || "$PHYSICAL_GPUS_PER_NODE" == 4 ]]
 fi
 
 LOAD_ARGS=(--load "$BENCH_RUN_DIR/actor")

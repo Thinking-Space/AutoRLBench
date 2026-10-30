@@ -76,7 +76,7 @@ native conversion receipt, native checkpoint inventory, replay hash and both
 source inventories before execution. The faulty arm uses the same assets and
 launch settings. The helper owns a private Ray instance; the parent performs
 Ray cleanup only inside the dedicated task container. Dedicated external Ray
-also supports two4-GPU or four2-GPU process nodes, with eight distinct physical
+also supports two4-GPU, four2-GPU or eight1-GPU process nodes, with eight distinct physical
 GPUs required, actor4/critic4 and CP2/DP2 unchanged.
 
 ## Preparation and execution
@@ -175,7 +175,7 @@ check should be added before claiming Solution-task readiness.
   **no model forward, backward or GPU training is claimed**.
 - Tooling tests exercise real CPU Adam snapshots, durable evidence writes, DCP
   metadata/shard inspection, the target store-wait verifier path, and rejection
-  of malformed/missing evidence. The combined tooling and restore suite passes 62 tests.
+  of malformed/missing evidence. The combined tooling and restore suite passes 63 tests.
 - The October 28, 2026 GPU replay pair used the pinned public model and source
   revision. The healthy arm passed the evidence checker with one actor and one
   critic optimizer step plus model/optimizer checkpoint payloads. The faulty

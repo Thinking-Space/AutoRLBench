@@ -12,7 +12,7 @@ import time
 def validate_ray_layout(nodes, *, local_gpus, external):
     alive = [node for node in nodes if node.get('Alive')]
     counts = sorted(node.get('Resources', {}).get('GPU', 0) for node in alive)
-    allowed = ([4, 4], [2, 2, 2, 2]) if external else ([8],)
+    allowed = ([4, 4], [2, 2, 2, 2], [1] * 8) if external else ([8],)
     if counts not in allowed or not counts or local_gpus != counts[0]:
         raise ValueError('Expected eight dedicated physical GPUs: ' + str(allowed))
     if len({node['NodeID'] for node in alive}) != len(alive):
@@ -33,8 +33,8 @@ def main():
     address = os.environ.get('BENCH_JOB_RAY_ADDRESS')
     local_gpus = torch.cuda.device_count()
     if address:
-        if os.environ.get('BENCH_DEDICATED_CONTAINER') != '1' or local_gpus not in (2, 4):
-            raise RuntimeError('External Ray requires dedicated two- or four-GPU nodes')
+        if os.environ.get('BENCH_DEDICATED_CONTAINER') != '1' or local_gpus not in (1, 2, 4):
+            raise RuntimeError('External Ray requires dedicated one-, two- or four-GPU nodes')
         ray.init(address=address, log_to_driver=True)
     else:
         if local_gpus != 8:
