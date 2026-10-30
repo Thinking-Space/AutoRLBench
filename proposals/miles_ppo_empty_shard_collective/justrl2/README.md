@@ -15,13 +15,21 @@ synthetic H100 kernel results do not stand in for this candidate's training run.
 
 `build_case.py` verifies all 286 public source files against `source_files.json`,
 then creates `healthy/` and `faulty/`. Both receive identical local instrumentation
-and launch helpers. The only difference between the trees is one `numel()>0`
+and launch/compatibility helpers. The only difference between the trees is one `numel()>0`
 guard and indentation in `miles/backends/training_utils/loss.py`. The generated
 `defect.patch` and `pair_manifest.json` record that difference and every file hash.
 
 The common instrumentation records role/rank/group membership, the first call
 divergence, before/after whitening values, and actual optimizer return/gradient
-and sampled FP32 parameter changes. It adds no collectives and does not alter
+and sampled FP32 parameter changes. `process_group_compat.py` aligns Megatron's
+cached collective callables with JustRL2's native-process-group forwarding,
+including PyTorch2.13's renamed tensor-collective aliases. Without this common
+compatibility layer, synchronous coalesced gradient reduction crashed in
+`PyProcessGroup::PyWorkHolder::wait` before optimizer execution. A two-H100
+comparison reproduced the crash and verified exact synchronous/asynchronous
+reduce-scatter and all-gather outputs after rebinding. It changes no collective
+operation, group membership or normalization; the defect guard remains the only
+healthy/faulty source difference. See [checks](process_group_compat_checks.json). It adds no collectives and does not alter
 model values, advantages or gradients. It removes the answer-revealing fix
 comment from both copies. These paired trees and scripts are reviewer material;
 the good tree and verifier must be hidden in an eventual benchmark task.
@@ -175,7 +183,7 @@ check should be added before claiming Solution-task readiness.
   **no model forward, backward or GPU training is claimed**.
 - Tooling tests exercise real CPU Adam snapshots, durable evidence writes, DCP
   metadata/shard inspection, the target store-wait verifier path, and rejection
-  of malformed/missing evidence. The combined tooling and restore suite passes 63 tests.
+  of malformed/missing evidence. The combined tooling and restore suite passes 66 tests.
 - The October 28, 2026 GPU replay pair used the pinned public model and source
   revision. The healthy arm passed the evidence checker with one actor and one
   critic optimizer step plus model/optimizer checkpoint payloads. The faulty

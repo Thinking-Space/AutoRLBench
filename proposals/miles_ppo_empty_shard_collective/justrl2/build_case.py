@@ -22,6 +22,9 @@ def replace_once(text, before, after):
 def common_instrumentation(root):
     actor = root / "miles/backends/megatron_utils/actor.py"
     text = "import os\n" + actor.read_text()
+    text = 'from benchmark.process_group_compat import install as install_process_group_compat\n' + text
+    text = replace_once(text, '        monkey_patch_torch_dist()\n',
+                        '        monkey_patch_torch_dist()\n        install_process_group_compat()\n')
     text = replace_once(text, "        super().init(args, role, with_ref)\n", '''        trace_prefix = os.environ.get("TORCH_NCCL_DEBUG_INFO_TEMP_FILE")
         if trace_prefix:
             os.environ["TORCH_NCCL_DEBUG_INFO_TEMP_FILE"] = trace_prefix + role + "_"
@@ -100,7 +103,7 @@ def build(source, output):
     helper = healthy / "benchmark"
     helper.mkdir()
     (helper / "__init__.py").write_text("")
-    for name in ["runtime_evidence.py", "run_training.py", "train.sh", "replay_loader.py", "sglang_compat.py"]:
+    for name in ["runtime_evidence.py", "run_training.py", "train.sh", "replay_loader.py", "sglang_compat.py", "process_group_compat.py"]:
         shutil.copyfile(HERE / name, helper / name)
     common_instrumentation(healthy)
     shutil.copytree(healthy, output / "faulty")
