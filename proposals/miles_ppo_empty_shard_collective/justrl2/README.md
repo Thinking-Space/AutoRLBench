@@ -1,133 +1,120 @@
 # Public JustRL2 constructed regression case
 
-This directory builds a training-replay candidate from the public
-[`merak0514/JustRL-II`](https://github.com/merak0514/JustRL-II) repository at
-`75814318f243af7e39af337c1173fc3927c9635b`. It reintroduces the local empty-shard
-guard around advantage whitening. **Public HEAD already fixes that defect.**
-The mutation is intentional and is not presented as an unfixed upstream bug.
+**Status (October 30, 2026): the final public image passed a real 8×H100
+healthy/faulty training pair and native model/Adam checkpoint restoration.** A
+separate CPU task reran the acceptance checks against the preserved artifacts
+and rehashed the original and newly saved checkpoint files. This remains a
+proposal, without task registration or a leaderboard result.
 
-**Status (October 29, 2026): executable construction draft; CPU path and one
-real GPU actor/critic replay pair and native checkpoint restoration verified.** It is not an AutoRLBench task
-registration or a leaderboard result. The preceding private-history and
-synthetic H100 kernel results do not stand in for this candidate's training run.
+The case pins public `merak0514/JustRL-II` at
+`75814318f243af7e39af337c1173fc3927c9635b` and public
+`openbmb/JustRL-II-base-model` at
+`b558bbc71d9433e7c5869effcbac07d4c7f2c5b4`.
+**The pinned public source already fixes the empty-shard defect.** The faulty
+arm deliberately reintroduces its local guard; it is not an unfixed upstream bug.
 
-## What the pair contains
-
-`build_case.py` verifies all 286 public source files against `source_files.json`,
-then creates `healthy/` and `faulty/`. Both receive identical local instrumentation
-and launch/compatibility helpers. The only difference between the trees is one `numel()>0`
-guard and indentation in `miles/backends/training_utils/loss.py`. The generated
-`defect.patch` and `pair_manifest.json` record that difference and every file hash.
-
-The common instrumentation records role/rank/group membership, the first call
-divergence, before/after whitening values, and actual optimizer return/gradient
-and sampled FP32 parameter changes. `process_group_compat.py` aligns Megatron's
-cached collective callables with JustRL2's native-process-group forwarding,
-including PyTorch2.13's renamed tensor-collective aliases. Without this common
-compatibility layer, synchronous coalesced gradient reduction crashed in
-`PyProcessGroup::PyWorkHolder::wait` before optimizer execution. A two-H100
-comparison reproduced the crash and verified exact synchronous/asynchronous
-reduce-scatter and all-gather outputs after rebinding. It changes no collective
-operation, group membership or normalization; the defect guard remains the only
-healthy/faulty source difference. See [checks](process_group_compat_checks.json). It adds no collectives and does not alter
-model values, advantages or gradients. It removes the answer-revealing fix
-comment from both copies. These paired trees and scripts are reviewer material;
-the good tree and verifier must be hidden in an eventual benchmark task.
-
-## Constructed input, with explicit provenance
-
-`make_replay.py` uses the pinned public JustRL2 tokenizer to encode two readable,
-scripted math trajectories. Neither response is claimed to be model-generated.
-No inference logprobs are fabricated: every sample has `rollout_log_probs=None`.
-The actor will compute its real logprobs during replay training.
-
-| Sample | Prompt tokens | Response tokens | CP0 / CP1 response tokens | Authored reward |
-| --- | ---: | ---: | --- | ---: |
-| Long reference context, short wrong answer `3` to `1+1` | 422 | 2 | 2 / 0 | 0 |
-| Short prompt, longer correct explanation ending in `2` | 28 | 329 | 149 / 180 | 1 |
-
-Text repetition in this fixture is deliberate and documented. Both responses
-include the tokenizer's end-of-message token. Both masks contain only ones.
-With balancing off, GBS2 and DP2 assign one sample to each DP replica. The CP1
-position's DP group therefore receives **0 versus 180** local response tokens.
-This is distinct from a nonempty tensor with a zero-valued mask.
-
-The fixture is serialized through public `Sample.to_dict()` and round-trip
-checked. `replay.json` is the canonical readable record; `replay.pt` is generated
-for JustRL2's native `--load-debug-rollout-data` path. The canonical JSON SHA256
-under the checked tokenizer is
-`ecb7d044a6c515ab897a169e2bd352e5a0397d7b26f38beb1c6870dec4d8060c`.
-The authored canonical record is included as [fixture.json](fixture.json).
-
-## Real training path
-
-The launcher uses public `train.py` with actor4 + critic4 GPUs, each TP1/PP1/CP2/DP2.
-It retains real public model forward passes, actor/critic value exchange,
-JustRL2 length-adaptive GAE (`k=0.5`), whitening, backward, Adam update and
-actor/critic checkpoint saving. Replay uses authored trajectories and rewards;
-it does not run an online SGLang rollout. This path completed in the healthy arm
-of the October 28, 2026 8×H100 run. The faulty arm reached the intended
-empty/nonempty divergence: the empty rank advanced past the injected guard,
-the nonempty peer entered `distributed_masked_whiten`, and its
-`dist.all_reduce(stats_tensor, group=process_group)` failed with
-`DistBackendError` / `store->get` / `wait timeout after 60000ms`.
-
-Task-specific settings: one rollout/update, GBS2/MBS1, no critic-only warmup,
-no length shaping, no TIS (no generated logprobs), no balancing, no offload and
-no dynamic microbatching. The public model architecture, scalar critic head and
-bias0.52 are retained. This is a systems regression case, not a reproduction of
-the published 128k learning curve or a measurement of policy quality.
-
-`run_pair.py` runs the healthy arm first in a **dedicated container/job**. It
-stops if the intact training path fails. It verifies pinned HF assets, a recorded
-native conversion receipt, native checkpoint inventory, replay hash and both
-source inventories before execution. The faulty arm uses the same assets and
-launch settings. The helper owns a private Ray instance; the parent performs
-Ray cleanup only inside the dedicated task container. Dedicated external Ray
-also supports two4-GPU, four2-GPU or eight1-GPU process nodes, with eight distinct physical
-GPUs required, actor4/critic4 and CP2/DP2 unchanged.
-
-## Preparation and execution
-
-The TE-rebuilt, framework-pinned candidate was built on October 29, 2026 (linux/amd64):
+## Validated image and evidence
 
 ```text
 ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b
 ```
 
-[image_build.json](image_build.json) records its successful build and
-[manifest](image_manifest.json). Anonymous registry access and local content
-hashes were verified. The preceding TE-rebuilt80355df1 image passed H100 TE linear forward/backward
-and public trainer imports without runtime package changes.
+[image_build.json](image_build.json) records the successful linux/amd64 build,
+manifest/config hashes, anonymous registry access and authenticated Ray build
+smoke. The same image digest was used for all three GPU stages. No packages
+were modified during those runs. The frozen tooling bundle SHA256 is
+`79907c3176a798886bbe7c237f8622c413bd031894423dd56dc0cccbc03d1f61`;
+the [final receipt](public_runtime_results.json) also pins each runtime script.
+The compatibility helper is preparation-time source instrumentation, not an
+additional image layer.
 
-The preceding cc32d641 image failed H100 imports: its prebuilt TE/FA bindings
-required an older PyTorch ABI. `rebuild_te.sh` compiles the hash-pinned official
-TE2.17 binding against the base's PyTorch2.13 and removes incompatible optional
-FA2/FA3 packages, retaining cuDNN fused attention. A torch2.11 downgrade was
-rejected because it broke the SGLang kernel ABI.
+| Stage | Verified result |
+| --- | --- |
+| Healthy | Actor4 + critic4 complete real forward, GAE, whitening, backward and finite Adam updates; both roles save checkpoint 0; training returns 0. |
+| Faulty | In both roles rank 1 skips whitening on its empty shard while rank 3 enters; the target `all_reduce` fails with the complete `DistBackendError` / `store->get` / `wait timeout after 60000ms` stack; training exits 1. |
+| Restore | All eight ranks load exact native model and populated Adam state, advance step 1 to step 2, save checkpoint 1, and verify its payload against live post-update state; training returns 0. |
+| Independent audit | A separate 1-CPU, 0-GPU task reruns healthy/faulty and restore event checks, reads both generations' DCP inventories and rehashes every referenced payload; original checkpoints are unchanged. |
 
-Native conversion then exposed a second upstream compatibility change: the
-base's newer Megatron removed the tokenizer API used by pinned JustRL2. The
-current recipe additionally pins public Megatron to
-`37f91617b95c1ef4f01fc66210e502572ad97fda`, the revision used by the verified
-internal replay/restore. Conversion explicitly selects fused attention and
-disables optional Apex gradient-accumulation fusion; both training arms use
-these same settings. A real single-H100 conversion with this framework pin
-preserved every HF tensor and passed native checkpoint inventory checks.
-The framework-pinned image build succeeded; its manifest/config hashes and
-Megatron commit were verified, and the digest-identical cluster import completed. Its first multi-node attempt stopped before
-training because the base mixed OpenTelemetry API1.45 with SDK1.44. The current
-recipe pins API1.44 and runs an authenticated Ray startup/task/shutdown smoke
-during construction. The corrected Ray image above built successfully, including that complete
-startup smoke, and was imported into the cluster with the same manifest digest.
+All stages used eight distinct physical H100 GPUs across eight single-GPU
+process nodes, each with 4 CPUs and 96 GiB host memory. Each role retains
+TP1/PP1/CP2/DP2. No stage reached its outer deadline. Native training completion
+is checked separately from the cluster wrapper's success status; the faulty
+wrapper succeeds only when the expected training failure passes verification.
 
-[runtime_checks.json](runtime_checks.json) distinguishes image-level CPU checks,
-actual-image GPU preflight, and pinned-framework conversion. **Full paired
-training and native restore on the final public runtime remain unverified.**
-The successful earlier replay/restore used a different internal image.
+- [public_runtime_results.json](public_runtime_results.json): input identities,
+  return codes, verification results, eight-rank model/Adam snapshots, log hashes,
+  physical-device counts and independent audit provenance.
+- [public_runtime_events.json](public_runtime_events.json): sanitized rank events;
+  numerical training values and CP/DP membership are unchanged.
+- [public_faulty_trace.txt](public_faulty_trace.txt): complete target Python
+  traceback, with extraction provenance in the final receipt.
+- [public_checkpoint_inventory.json](public_checkpoint_inventory.json): actor and
+  critic checkpoint 0/checkpoint 1 trackers, metadata keys and referenced-file hashes.
+- [runtime_checks.json](runtime_checks.json): earlier component checks and final
+  image validation, distinguished by digest and scope.
 
-From this directory, in a suitable environment (Python3.12+ for the preparation
-helpers), use a new preparation directory:
+Private run paths, node addresses and process IDs are removed or aliased. Raw
+artifacts and checkpoint tensors are retained privately; no checkpoint tensors
+are redistributed in this proposal. Earlier internal-runtime results remain in
+[restore_results.json](restore_results.json) and [restore_events.json](restore_events.json),
+separately from the final public-image evidence above.
+
+## Paired source and compatibility
+
+`build_case.py` verifies 286 public source files against `source_files.json` and
+creates `healthy/` and `faulty/`. Both receive identical instrumentation and
+launch helpers. Their only difference is the injected `numel()>0` guard and its
+indentation in `miles/backends/training_utils/loss.py`. `defect.patch` and
+`pair_manifest.json` record that difference and every file hash. The revealing
+upstream fix comment is removed from both trees.
+
+The image uses Torch 2.13+cu129, a TE 2.17 PyTorch binding rebuilt against that
+runtime, Megatron 37f91617 and Ray 2.59 with matching OpenTelemetry API/SDK 1.44.
+Incompatible optional FA2/FA3 packages are removed; cuDNN fused attention stays
+enabled. Both arms disable optional Apex gradient-accumulation fusion while
+retaining real TE Adam updates. Public model conversion verifies every HF
+tensor before recording native checkpoint inventories.
+
+The common `process_group_compat.py` helper rebinds Megatron's cached collective
+callables to JustRL2's existing native-process-group forwarding, including the
+renamed PyTorch tensor-collective aliases. This resolves a runtime compatibility
+crash before optimizer execution. It changes no collective operation, group
+membership or normalization. A two-H100 check verified exact synchronous and
+asynchronous reduce-scatter/all-gather outputs after rebinding;
+[process_group_compat_checks.json](process_group_compat_checks.json) records it.
+The empty-shard guard remains the only healthy/faulty source difference.
+
+## Authored replay fixture
+
+`make_replay.py` encodes two readable, scripted math trajectories with the pinned
+public tokenizer. Responses and rewards are authored, not model-generated.
+Every sample has `rollout_log_probs=None`; the actor computes real logprobs
+during training. No online SGLang generation or fabricated inference logprobs
+are used.
+
+| Sample | Prompt tokens | Response tokens | CP0 / CP1 response tokens | Reward |
+| --- | ---: | ---: | --- | ---: |
+| Long reference context, short wrong answer `3` to `1+1` | 422 | 2 | 2 / 0 | 0 |
+| Short prompt, longer explanation ending in `2` | 28 | 329 | 149 / 180 | 1 |
+
+Both responses include the end-of-message token, and both masks contain only
+ones. With balancing off, GBS2/MBS1 and DP2 give one sample to each DP replica.
+The CP1 coordinate's DP group therefore receives 0 versus 180 local response
+tokens. This is an empty tensor, not a nonempty tensor whose mask sums to zero.
+Deliberate text repetition is documented in [fixture.json](fixture.json).
+
+Serialization uses public `Sample.to_dict()` and is round-trip checked.
+The canonical readable JSON SHA256 is
+`ecb7d044a6c515ab897a169e2bd352e5a0397d7b26f38beb1c6870dec4d8060c`.
+`replay.pt` feeds the native `--load-debug-rollout-data` path. Public model
+architecture, scalar critic head/bias 0.52 and length-adaptive GAE (`k=0.5`) are
+retained. There is one update per stage, no critic-only warmup, length shaping,
+TIS, balancing, offload or dynamic microbatching. This tests distributed
+training behavior, not learning-curve reproduction or policy quality.
+
+## Preparation and execution
+
+From this directory, with Python 3.12+ inside the image, prepare fresh paths:
 
 ```bash
 python prepare.py --output /workspace/prepared
@@ -138,136 +125,62 @@ BENCH_DEDICATED_CONTAINER=1 python run_pair.py \
   --prepared /workspace/prepared \
   --native-model /workspace/native-model \
   --output /workspace/pair-run
-```
 
-`assets.json` pins the public source archive and each HF model/tokenizer file by
-revision, size and SHA256. Model weights are downloaded, not redistributed here.
-`convert_model.py` runs the public HF-to-torch_dist converter and records the
-input hashes plus tracker-selected output metadata and shard hashes. The GPU
-replay completed this conversion with lossless tensor checks; the standalone
-candidate image still needs its own training environment validation.
-
-## Acceptance criteria
-
-`verify_run.py` is a **candidate evidence checker**, not yet a calibrated hidden
-AutoRLBench grader. It requires:
-
-- Both roles' actual pre-whitening ledgers establish the expected DP group
-  with one empty and one nonempty local response shard.
-- The healthy run completes whitening and an actual successful finite optimizer
-  step on all actor/critic ranks, with sampled FP32 changes demonstrated for each
-  role. Outputs match independent pooled normalization.
-- Actor and critic trackers select checkpoint0; PyTorch DCP metadata contains
-  model and optimizer state, and every referenced shard exists with sufficient
-  bytes. **This is not a restore test**; `checkpoint_restore_tested=False` remains.
-- In the faulty run, empty peers advance past the guard without calling
-  whitening, nonempty peers enter the call and do not complete it, and either
-  correlated watchdog lines or the complete target `DistBackendError` /
-  `store->get` / `wait timeout` / `all_reduce` stack is present. A generic
-  timeout or an outer deadline alone cannot pass.
-
-Since skipped peers may advance into other collectives, the final watchdog
-operation need not itself be the whitening reduction. The first divergent
-operation is established from the role/rank call ledger, not guessed from one
-error string. Further hidden numerical/adversarial cases and a real restore
-check should be added before claiming Solution-task readiness.
-
-## Checks performed
-
-- Public source and tokenizer download hashes verified; tokenizer-only
-  preparation executed end to end; pair has exactly one differing source file.
-- `check_public_path.py` ran four real CPU/Gloo processes using the exact public
-  CP, GAE and normalization functions compiled from their source AST. Healthy
-  returns and pooled normalization passed; the injected guard timed out in the
-  expected nonempty peer. Critic values were supplied as0.52 in this check;
-  **no model forward, backward or GPU training is claimed**.
-- Tooling tests exercise real CPU Adam snapshots, durable evidence writes, DCP
-  metadata/shard inspection, the target store-wait verifier path, and rejection
-  of malformed/missing evidence. The combined tooling and restore suite passes 66 tests.
-- The October 28, 2026 GPU replay pair used the pinned public model and source
-  revision. The healthy arm passed the evidence checker with one actor and one
-  critic optimizer step plus model/optimizer checkpoint payloads. The faulty
-  arm passed the checker with actor and critic first-divergence records and the
-  target `DistBackendError` store wait. A 1-CPU read-only verifier task reran
-  both checks against the preserved shared artifacts. [construction_checks.json](construction_checks.json)
-  records the earlier GPU result separately from the new image build and
-  the separately verified native GPU restore path.
-
-Reproduce the CPU source-path check after preparation:
-
-```bash
-python check_public_path.py --pair /workspace/prepared/pair \
-  --replay /workspace/prepared/replay/replay.json --output /tmp/public-path-check
-python -m pytest test_case_tools.py -q
-```
-
-The public model conversion and native checkpoint inventory completed in the GPU
-run. The healthy arm performed one real replay update for both actor and critic;
-the faulty arm intentionally failed at the target collective after the first
-divergence. This validates the constructed training case, not online rollout
-quality or checkpoint restoration.
-
-A subsequent CPU-only read of the saved actor and critic checkpoint0 metadata
-completed successfully; [checkpoint_inventory.json](checkpoint_inventory.json)
-records tensor counts and common-state keys. It does not establish successful
-optimizer restoration.
-
-## Checkpoint restore validation
-
-`run_restore.py` validates both roles with the original healthy checkpoints as
-read-only inputs and a separate output tree:
-
-```bash
 BENCH_DEDICATED_CONTAINER=1 python run_restore.py \
   --prepared /workspace/prepared --native-model /workspace/native-model \
   --checkpoint-root /workspace/pair-run/healthy \
   --output /workspace/restore-run --timeout 2400
 ```
 
-It requires native loading of model and populated Adam state on every rank,
-compares keyed full tensor hashes against an independent checkpoint read, runs exactly
-one additional update, and checks that checkpoint1 matches the live post-update
-state. It rejects fresh initialization, swapped Adam moments and optimizer-skip paths.
-Native `dp_reshardable` alignment records explicitly tagged by the live template
-as padding are excluded, matching the native loader; their tensor/element counts
-are recorded. All model and optimizer parameter tensors remain exact comparisons.
-Original
-checkpoint hashes must remain unchanged. `RESTORE_RESULT.json` is written only
-after all checks succeed; the original metadata checker alone remains a
-payload-presence check. The focused CPU tests exercise real Adam checkpoint
-restore and reject a no-op loader. Five additional checks ran with the exact
-pinned Megatron mapping classes ([receipt](native_mapping_checks.json)), after
-a GPU attempt exposed an inaccurate test double for `LocalNonpersistentObject`.
-Its native API uses `unwrap()`, not `.data`. These CPU checks are separate from the native GPU result below.
+`assets.json` pins public source/model/tokenizer downloads by revision, byte size
+and SHA256. Model weights are downloaded, not bundled. The launcher owns a
+private Ray instance in a dedicated container/job. Dedicated external Ray also
+supports two 4-GPU, four 2-GPU or eight 1-GPU process nodes, with eight distinct
+physical GPUs and unchanged actor4/critic4, CP2/DP2 geometry.
 
-## Native restore result (October 29, 2026)
+## Acceptance checks and limits
 
-[restore_results.json](restore_results.json) and the sanitized
-[rank events](restore_events.json) record one successful restore on two nodes
-with four H100 GPUs each, using the internal compatibility image. Each role
-retains four ranks and CP2/DP2. All eight ranks passed exact native model/Adam
-load verification, completed rollout1, advanced Adam step1 to step2, and passed
-an independent readback of checkpoint1 against the live post-update state.
-Original actor/critic checkpoint hashes were unchanged. The parent returned0
-without reaching its outer deadline; all24 load/update/save events passed a
-second offline check. No checkpoint tensors are distributed in this proposal.
+`verify_run.py` requires all eight ranks' reciprocal group ledgers, independent
+pooled normalization, actual finite optimizer steps and sampled FP32 parameter
+changes for both roles. Healthy DCP metadata must reference model and optimizer
+payloads with complete shard files. Metadata presence alone is not restoration;
+that check deliberately returns `checkpoint_restore_tested=False`.
 
-The critic rank0 comparison excluded189 alignment-storage elements (63 each
-for the parameter storage, first moment and second moment), exactly those the
-native loader discards. No actual parameter or Adam moment was excluded.
-The successful run used256GiB host memory per node; a prior128GiB attempt ran
-both updates but was rejected after a post-save readback OOM. Earlier verifier
-failures are not counted as successful restores. **The public candidate image
-still requires its own GPU training/restore run.**
+The faulty checker requires the empty peers to advance past the guard and their
+nonempty peers to enter without completing whitening. It additionally requires
+correlated watchdog evidence or the complete target store-timeout stack. A
+generic timeout or outer deadline does not pass. The first divergent collective
+comes from the per-rank ledger; a later watchdog may report another operation.
 
-## Packaging next
+`run_restore.py` independently compares keyed full native model/Adam tensor
+hashes during loading and checkpoint 1 readback. It rejects fresh initialization,
+swapped moments, skipped updates and changed original checkpoints. Only storage
+alignment explicitly tagged as padding by the live native template is excluded,
+matching the native loader; counts are recorded. No actual model parameter or
+Adam moment is excluded. All eight ranks must emit one load, one successful
+update and one save in order, giving 24 restore acceptance events. The final
+event file also retains the training instrumentation events.
 
-After a real healthy/faulty pair is recorded, place only the defective workspace
-and sanitized frozen evidence into `tasks/infrastructure/.../workspace/`, move
-the repair and acceptance tests to hidden evaluation directories, add a validated
-shared image and pinned preparation script, then run AutoRLBench validation.
-The current directory stays under `proposals/` until those conditions hold.
+The local tooling/restore/compatibility suite passes 66 tests, and the private
+stage controller passes 25. These tests include real CPU Adam restoration,
+malformed evidence rejection, and native process-group installer checks. The
+older four-process CPU/Gloo source-path check used supplied critic values 0.52;
+it is distinguished from real GPU training in [construction_checks.json](construction_checks.json).
 
-All scripts here are Apache-2.0. The copied JustRL2 tree retains its own LICENSE.
-The HF model card currently omits an explicit license field, so model-use terms
-should be resolved before final task acceptance; no model weights are bundled.
+```bash
+python check_public_path.py --pair /workspace/prepared/pair \
+  --replay /workspace/prepared/replay/replay.json --output /tmp/public-path-check
+python -m pytest test_case_tools.py test_restore.py test_process_group_compat.py -q
+```
+
+## Before task registration
+
+This directory stays under `proposals/`. Maintainers still need to agree on
+scope and acceptance calibration, separate the defective-only agent workspace
+from hidden repair/verifier material, add hidden numerical/adversarial cases,
+and run AutoRLBench's task validator. The source-based training case, image and
+native restoration are verified; this is not a calibrated hidden grader.
+
+Scripts here are Apache-2.0; the copied source retains its LICENSE. The pinned
+HF model card has no explicit license field, so model-use terms need resolution
+before final task acceptance. No model weights or checkpoint tensors are bundled.

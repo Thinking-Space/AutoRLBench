@@ -4,21 +4,26 @@ An RL training process can time out in advantage normalization when context
 parallelism leaves one data-parallel worker with no local response tokens and
 that worker skips a collective required by its peers.
 
-**Status:** task proposal with recovered historical evidence, an executable CPU
-reproducer and one validated real GPU replay pair; **not a packaged or
-leaderboard-ready AutoRLBench task**.
+**Status:** task proposal with historical evidence, CPU/GPU reproductions, and
+real healthy/faulty training plus native checkpoint restoration on a public
+image; **not a packaged or leaderboard-ready AutoRLBench task**.
 
-An additional [public JustRL2 construction draft](miles_ppo_empty_shard_collective/justrl2/README.md)
-now builds healthy/faulty replay-training workspaces from the pinned open-source
-release, with public model assets and an explicitly authored fixture. Its actual
-public CP/GAE/whitening path has passed CPU checks. On October 28, 2026, an
-8×H100 replay run completed real actor and critic forward/GAE/whitening/backward
-and Adam steps in the healthy arm and saved checkpoints; the faulty arm produced
-the expected empty/nonempty divergence and a target `all_reduce` store wait
-timeout. The public candidate image has now been built and published by digest;
-native checkpoint restore has passed on the internal compatibility image;
-training on the new public image remains pending. These results are
-separate from the H100 kernel validation below.
+The [public JustRL2 case](miles_ppo_empty_shard_collective/justrl2/README.md)
+builds paired workspaces from pinned open-source code and public model assets.
+The pinned source already fixes the defect; the faulty arm explicitly
+reintroduces the empty-shard guard. Its fixture contains authored math
+trajectories, without fabricated rollout log probabilities.
+
+On October 30, 2026, the final public image completed the healthy actor4/critic4
+training path on eight H100s with CP2/DP2, while the faulty arm produced the
+expected first divergence and target collective failure. A separate restore
+stage loaded exact native model/Adam state on all eight ranks, advanced step 1
+to step 2, saved checkpoint 1 and verified its payload against live state.
+Original checkpoint hashes remained unchanged. A separate CPU task reran the
+acceptance checks and rehashed both checkpoint generations. These final-image
+results are distinguished from the earlier internal-runtime runs and the
+historical CP4 kernel reproducer below. See the
+[final receipt](miles_ppo_empty_shard_collective/justrl2/public_runtime_results.json).
 
 | Field | Value |
 | --- | --- |
@@ -206,18 +211,17 @@ cannot be reused as an agent-visible benchmark harness without separation.
 
 ## Remaining work before task registration
 
-- Confirm whether a source-derived distributed kernel repair is in scope, or
-  whether the task must include a complete RL training replay.
-- Select or build a shared benchmark image and pin dependencies. The private
-  historical image tag alone is not a publicly reproducible environment.
-- For full RL replay, provide accessible pinned model/data assets and restore the
-  exact launch/runtime configuration and appropriate batch evidence.
-- Construct a defective-only workspace and hidden oracle/verifier; calibrate a
-  bounded completion and numerical-correctness evaluation with maintainers.
-- Revalidate the repaired control inside the final public candidate image and
-  add a real checkpoint restore check before claiming Solution-task readiness.
-- Run the AutoRLBench validator and environment preparation once a real task
-  directory exists. Neither is claimed for this proposal.
+The public image, pinned model/data preparation, paired real training and native
+checkpoint restoration have passed. Registration still requires:
+
+- Agree with maintainers on the task scope and resource budget.
+- Separate the defective-only agent workspace from the hidden repair/verifier.
+- Add hidden numerical/adversarial cases and calibrate bounded completion and
+  numerical-correctness acceptance.
+- Resolve the pinned model's use terms before final acceptance; no weights or
+  checkpoint tensors are redistributed in this proposal.
+- Run AutoRLBench's validator and environment preparation after creating a
+  formal task directory. Neither is claimed for this proposal.
 
 See [provenance](miles_ppo_empty_shard_collective/provenance.md) for source hashes,
 extraction and sanitization details. This PR adds no entry under `tasks/` and
