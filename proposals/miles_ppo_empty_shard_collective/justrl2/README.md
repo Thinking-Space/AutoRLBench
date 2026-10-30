@@ -84,7 +84,7 @@ GPUs required, actor4/critic4 and CP2/DP2 unchanged.
 The TE-rebuilt, framework-pinned candidate was built on October 29, 2026 (linux/amd64):
 
 ```text
-ghcr.io/merak0514/autorlbench-justrl2@sha256:c326df993f6965e35b62d869f3acc919e01b3401982064c295abd603e5fc3475
+ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b
 ```
 
 [image_build.json](image_build.json) records its successful build and
@@ -110,8 +110,8 @@ The framework-pinned image build succeeded; its manifest/config hashes and
 Megatron commit were verified, and the digest-identical cluster import completed. Its first multi-node attempt stopped before
 training because the base mixed OpenTelemetry API1.45 with SDK1.44. The current
 recipe pins API1.44 and runs an authenticated Ray startup/task/shutdown smoke
-during construction. This corrected Ray image is building; the latest recipe
-therefore differs from the already-built digest above.
+during construction. The corrected Ray image above built successfully, including that complete
+startup smoke, and was imported into the cluster with the same manifest digest.
 
 [runtime_checks.json](runtime_checks.json) distinguishes image-level CPU checks,
 actual-image GPU preflight, and pinned-framework conversion. **Full paired
