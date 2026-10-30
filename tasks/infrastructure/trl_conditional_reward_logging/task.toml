@@ -1,0 +1,33 @@
+title = "Distributed GRPO with conditional reward metrics"
+license = "Apache-2.0"
+created_date = "2026-10-30"
+domain = "infrastructure"
+tags = ["trl", "grpo", "gsm8k"]
+
+[submitter]
+name = "Haoyang Su"
+github = "Hoyant-Su"
+affiliation = "Fudan University; Shanghai Innovation Institute"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K"
+
+[training]
+framework = "TRL"
+algo = "GRPO with DAPO loss"
+script = "train.sh"
+
+[environment]
+image = "trl-grpo-torch26"
+prepare = "environment/prepare.sh"
+
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0,1"
+NVIDIA_VISIBLE_DEVICES = "0,1"
+
+[outcome]
+failure_type = "distributed collective mismatch"
+failure_reason = "Process-local custom metric keys cause unmatched collectives when only one rank emits a metric."
