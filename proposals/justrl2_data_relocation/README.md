@@ -11,7 +11,7 @@ among admitted samples rises from 0.40625 to 0.703125.
 | Training | Native JustRL2 PPO; real SGLang generation, math grading, actor and critic updates |
 | Runtime | Pinned public image; 3 H100 per arm, actor1 + critic1 + generation1 |
 | Recorded runs | One seed per arm, eight updates; relocation before update 4 (zero-based) |
-| Contribution status | Reproducible proposal with diagnosis materials; not yet a registered leaderboard task |
+| Contribution status | Reproducible construction evidence; companion task under `tasks/data/justrl2_data_relocation` |
 
 ## Difficulty
 
@@ -118,8 +118,9 @@ remain on the cluster; published inventories are not a checkpoint restore test.
 The generic diagnosis instruction and judge are copied verbatim from the
 canonical issue scaffold. `evaluations/issue/oracle.md` is reviewer-only material.
 This proposal keeps the transparent construction harness and all three arms
-together; a final agent-visible task must stage only its defective workspace and
-keep the repair/control material hidden. No leaderboard score is claimed.
+together. The companion task at `../../tasks/data/justrl2_data_relocation/` stages
+only its defective workspace, with repair/control material under hidden
+evaluations. No leaderboard score is claimed.
 
 The separate portable-entry GPU check succeeded as job 1428553 and is recorded
 in `public_runtime_validation.json`: public data preparation, exact CPU tensor

@@ -1,0 +1,30 @@
+title = "Missing difficult examples inflate training reward"
+license = "Apache-2.0"
+created_date = "2026-10-31"
+domain = "data"
+tags = ["justrl2", "miles", "ppo", "data-relocation"]
+
+[submitter]
+name = "panhaoxuan"
+
+[model]
+name = "JustRL-II-base-model"
+
+[dataset]
+name = "UltraData-RL-2609 / Math (frozen public selection)"
+
+[training]
+framework = "miles / JustRL-II"
+algo = "ppo"
+script = "run.sh"
+
+[environment]
+image = "justrl2-data-relocation"
+
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0,1,2"
+NVIDIA_VISIBLE_DEVICES = "0,1,2"
+
+[outcome]
+failure_type = "data_difficulty_mismatch"
+failure_reason = "A midpoint directory relocation leaves the training manifest pointing at the previous hard-example paths; native ABORTED filtering removes those examples while training continues and survivor reward rises."
