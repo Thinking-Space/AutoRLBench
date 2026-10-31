@@ -1,0 +1,73 @@
+--- a/calc_agent/calc_agent_loop.py	2026-10-24 16:18:40.462822000 -0400
++++ b/calc_agent/calc_agent_loop.py	2026-10-24 20:40:48.524112000 -0400
+@@ -20,8 +20,6 @@
+ from verl.experimental.agent_loop.agent_loop import AgentLoopOutput
+ from verl.experimental.agent_loop.tool_agent_loop import AgentData, AgentState, ToolAgentLoop
+ from verl.utils.rollout_trace import rollout_trace_op
+-from verl.utils.tokenizer.chat_template import apply_chat_template
+-from verl.utils.tokenizer.tokenizer import normalize_token_ids
+ 
+ logger = logging.getLogger(__file__)
+ logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "WARN"))
+@@ -90,29 +88,12 @@
+                 logger.error(f"Invalid state: {state}")
+                 state = AgentState.TERMINATED
+ 
+-        # Training sequence: render the finished transcript with the model's chat template,
+-        # the same format the model is served with at inference time.
+-        prompt_ids = await self.apply_chat_template(raw_prompt, tools=self.tool_schemas)
+-        full_ids = await self.loop.run_in_executor(
+-            None,
+-            lambda: normalize_token_ids(
+-                apply_chat_template(
+-                    self.tokenizer,
+-                    agent_data.messages,
+-                    tools=self.tool_schemas,
+-                    add_generation_prompt=False,
+-                    tokenize=True,
+-                    **self.apply_chat_template_kwargs,
+-                )
+-            ),
+-        )
+-        response_ids = full_ids[len(prompt_ids) :]
+-        response_mask = self._assistant_token_mask(response_ids)
+-        # Carry the rollout log-probs over to the assistant positions, in order.
+-        sampled_logprobs = iter(
+-            lp for lp, m in zip(agent_data.response_logprobs, agent_data.response_mask, strict=False) if m
+-        )
+-        response_logprobs = [next(sampled_logprobs, 0.0) if m else 0.0 for m in response_mask]
++        # Training sequence: the token stream exchanged with the rollout engine.
++        n_response = len(agent_data.response_mask)
++        prompt_ids = agent_data.prompt_ids[: len(agent_data.prompt_ids) - n_response]
++        response_ids = agent_data.prompt_ids[len(agent_data.prompt_ids) - n_response :]
++        response_mask = agent_data.response_mask
++        response_logprobs = agent_data.response_logprobs
+ 
+         final_text = next(
+             (m.get("content") or "" for m in reversed(agent_data.messages) if m["role"] == "assistant"), ""
+@@ -163,25 +144,6 @@
+             ]
+         return message
+ 
+-    def _assistant_token_mask(self, response_ids: list[int]) -> list[int]:
+-        """1 for tokens inside an assistant block (header excluded, <|im_end|> included), else 0."""
+-        im_start = self.tokenizer.convert_tokens_to_ids("<|im_start|>")
+-        im_end = self.tokenizer.convert_tokens_to_ids("<|im_end|>")
+-        header = self.tokenizer.encode("assistant\n", add_special_tokens=False)
+-        mask, inside, i = [], True, 0  # the prompt ends with the first assistant header
+-        while i < len(response_ids):
+-            tok = response_ids[i]
+-            if not inside and tok == im_start and response_ids[i + 1 : i + 1 + len(header)] == header:
+-                mask.extend([0] * (1 + len(header)))
+-                i += 1 + len(header)
+-                inside = True
+-                continue
+-            mask.append(1 if inside else 0)
+-            if inside and tok == im_end:
+-                inside = False
+-            i += 1
+-        return mask
+-
+     def _maybe_dump(self, kwargs: dict, agent_data: AgentData, output: AgentLoopOutput, score: float) -> None:
+         if not DUMP_DIR:
+             return

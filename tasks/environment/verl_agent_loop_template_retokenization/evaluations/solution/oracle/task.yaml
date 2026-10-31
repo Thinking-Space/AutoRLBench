@@ -1,0 +1,23 @@
+task_id: verl_agent_loop_template_retokenization
+category: environment
+framework: verl
+launch_script: run_calc_grpo.sh
+model: Qwen/Qwen3-1.7B (thinking mode)
+dataset: openai/gsm8k train (7,473) / held-out 512 GSM8K test + 512 reasoning-machines/gsm-hard
+algo: grpo
+expected_verdict: unhealthy
+evidence_kind: historical_run
+buggy_commit: workspace (verl v0.9.0 483b8a0 + calc_agent, defective CalcAgentLoop.run)
+baseline_commit: workspace with code_target/calc_agent/calc_agent_loop.py
+eval_metric_key: training/rollout_actor_probs_pearson_corr
+last_eval_step: 100
+causes:
+  - path: calc_agent/calc_agent_loop.py
+    kind: symbol
+    observed: CalcAgentLoop.run returns apply_chat_template(agent_data.messages) ids, an assistant-block mask from _assistant_token_mask, and the rollout log-probs carried over in order
+    expected: CalcAgentLoop.run returns agent_data.prompt_ids split at len(response_mask), agent_data.response_mask and agent_data.response_logprobs (the sampled token stream)
+key_files:
+  - calc_agent/calc_agent_loop.py
+external_assets_not_in_git:
+  - models/Qwen3-1.7B (Qwen/Qwen3-1.7B @ 70d244cc86ccca08cf5af4e1e306ecf908b1ad5e), fetched by prepare.sh
+  - data/raw/gsm8k and data/raw/gsm-hard (raw sources of the shipped parquet files), fetched by prepare.sh

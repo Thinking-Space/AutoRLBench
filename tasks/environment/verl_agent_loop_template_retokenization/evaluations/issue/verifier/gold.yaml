@@ -1,0 +1,13 @@
+category: implementation
+framework: verl
+task: verl_agent_loop_template_retokenization
+verdict: unhealthy
+root_cause:
+  - calc_agent/calc_agent_loop.py::CalcAgentLoop.run re-renders the episode transcript with the Qwen3 chat template (reasoning dropped, empty <think></think> on the last turn) and returns those ids, recomputed mask and in-order carried-over rollout log-probs, instead of the token stream vLLM sampled
+evidence_metrics:
+  - rollout_corr/kl 0.67-2.99 vs 0.0012-0.0018 for the control. Training/rollout_actor_probs_pearson_corr -0.02..0.04 vs 0.986-0.995
+  - response_length/mean 86-177 tokens while the sampled episodes are ~600-1,100 tokens. Episode dumps show stream_response_ids != response_ids
+  - num_turns/mean 3.90 -> 2.07 (calculator abandoned). Held-out GSM8K / GSM-Hard accuracy within noise of the control
+fix:
+  must:
+    - return agent_data.prompt_ids / response_mask / response_logprobs (the sampled token stream) as the training sample

@@ -1,0 +1,34 @@
+title = "Agent loop trains on a re-rendered transcript"
+license = "Apache-2.0"
+created_date = "2026-10-24"
+domain = "environment"
+tags = ["verl", "grpo", "multi-turn", "tool-calling", "chat-template", "gsm8k"]
+
+[submitter]
+name = "Ziqi Zhou"
+
+[model]
+name = "Qwen3-1.7B (thinking mode)"
+
+[dataset]
+name = "GSM8K train 7,473 / held-out 512 GSM8K test + 512 GSM-Hard"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_calc_grpo.sh"
+
+[environment]
+image = "verl-0.9-vllm0.28"
+
+# Single-GPU task: FSDP actor and vLLM rollout are colocated on one 96 GB GPU.
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0"
+NVIDIA_VISIBLE_DEVICES = "0"
+WANDB_MODE = "offline"
+WANDB_API_KEY = "autorlbench-offline"
+TOKENIZERS_PARALLELISM = "true"
+
+[outcome]
+failure_type = "rollout_training_token_mismatch"
+failure_reason = "CalcAgentLoop.run (calc_agent/calc_agent_loop.py) builds the training sequence by re-applying the Qwen3 chat template to the episode transcript instead of returning the token stream the vLLM engine sampled. The transcript keeps no reasoning, so the template renders every earlier assistant turn without its <think> block and the last one with an empty <think></think>, and the rollout log-probs are then paired with those different tokens in order. 74% of the sampled response tokens never reach the loss, the trained tokens that remain sit in a context the policy never saw (KL(rollout||train) 0.22 nats/token on identical tokens), rollout_corr/kl is 0.67-2.99 against 0.0012-0.0018 for the token-stream control and training/rollout_actor_probs_pearson_corr is -0.02..0.04 against 0.986-0.995. The policy stops calling the calculator (3.9 to 2.1 turns per episode) while held-out GSM8K and GSM-Hard accuracy stay within sampling noise of the control."

@@ -1,0 +1,18 @@
+STANDARD_ANSWER_V1
+CASE_ID: verl_agent_loop_template_retokenization
+BENCHMARK_GROUP: B-environment
+EXPECTED_VERDICT: unhealthy
+EXPECTED_ATTRIBUTION: CalcAgentLoop.run in calc_agent/calc_agent_loop.py trains on the episode transcript re-rendered through the Qwen3 chat template (reasoning dropped, empty <think></think> on the last turn, rollout log-probs paired in order) instead of the token ids vLLM sampled, so the policy is optimised on sequences it never produced.
+PRIMARY_METRIC: training/rollout_actor_probs_pearson_corr
+
+REQUIRED_ALL:
+- Identify that the training sequence returned by CalcAgentLoop.run is rebuilt with apply_chat_template from the transcript (agent_data.messages) rather than taken from the sampled token stream (agent_data.prompt_ids / response_mask / response_logprobs).
+- Explain that the rebuilt sequence differs from what was sampled (the <think> reasoning is missing / rewritten), so training is off-policy and the logged rollout-vs-trainer mismatch (rollout_corr/kl, rollout_actor_probs_pearson_corr) is caused by this, not by numerics.
+
+GLOBAL_JUDGE_POLICY:
+- The score must be exactly 0 or 1.
+- Agent A must explicitly classify the run as healthy or unhealthy.
+- Every REQUIRED_ALL item must be satisfied.
+- A verdict mismatch forces score 0.
+- Equivalent technical wording in any language is acceptable.
+- task.yaml may clarify targets and aliases but may not relax REQUIRED_ALL.

@@ -22,6 +22,7 @@ Evaluation images and the in-container tooling shared by every task.
 | `ppo-critic-vimpo` | `nvidia/cuda:12.8.1-devel-ubuntu24.04` | `configuration/verl_aime25_single_sample_protocol` |
 | `verl` | `verlai/verl:vllm017.latest` | `algorithm/verl_grpo_uid_after_repeat` |
 | `verl-moe-token` | `verlai/verl:vllm017.latest` + `verl-moe-token/mcore5047-minimal.patch` | `infrastructure/verl_moe_token_normalization` |
+| `verl-0.9-vllm0.28` | `vllm/vllm-openai:v0.28.0` + pinned verl deps, flash-attn 2.8.3 from source (not yet built) | `environment/verl_agent_loop_template_retokenization` |
 
 An image shared by several tasks is part of each task's ground truth. If you change a
 Dockerfile, rerun every task that uses it. A task that needs a different stack gets a new
