@@ -1,0 +1,134 @@
+--- a/runtime/storage.py
++++ b/runtime/storage.py
+@@ -378,18 +378,21 @@
+         journal = _decode_json(self._read_bytes("relocation.json"), "relocation.json")
+         _require_schema(journal, "relocation.json")
+         events = journal.get("events")
+-        if not isinstance(events, list) or len(events) > 1 or "pending" not in journal:
++        if not isinstance(events, list) or len(events) > 2 or "pending" not in journal:
+             raise ValueError("Invalid relocation journal")
+-        for event in events:
++        for index, event in enumerate(events):
+             if not isinstance(event, dict) or event.get("files") != files or event.get("rows_moved") != len(files):
+                 raise ValueError("Relocation event does not match backing files")
+             if event.get("source") != "live/hard" or event.get("destination") != "archive/hard":
+                 raise ValueError("Invalid relocation event paths")
+-            if event.get("action") != "relocate" or event.get("repair") is not False:
++            if event.get("action") != ("relocate" if index == 0 else "repair") or type(event.get("repair")) is not bool:
+                 raise ValueError("Invalid relocation event action")
+             for key in ("manifest_before_sha256", "manifest_after_sha256"):
+                 if not isinstance(event.get(key), str) or not re.fullmatch(r"[0-9a-f]{64}", event[key]):
+                     raise ValueError("Invalid manifest hash in relocation event")
++            if index and (not event["repair"] or events[index - 1]["repair"] or
++                          event["manifest_before_sha256"] != events[index - 1]["manifest_after_sha256"]):
++                raise ValueError("Invalid relocation event sequence")
+         return journal
+ 
+     def _complete_pending(self, journal, current_raw):
+@@ -407,18 +410,30 @@
+         for row in manifest["rows"]:
+             _validate_record(row)
+         receipt = pending["receipt"]
+-        if (after != before or receipt != self._receipt(manifest, before, after, "relocate", False)
+-                or current_raw != before or journal["events"]):
++        if type(receipt.get("repair")) is not bool:
++            raise ValueError("Invalid pending repair flag")
++        expected_after = self._repaired_bytes(manifest) if receipt["repair"] else before
++        action = "repair" if journal["events"] else "relocate"
++        if (after != expected_after or receipt != self._receipt(manifest, before, after, action, receipt["repair"])
++                or current_raw not in (before, after)):
+             raise ValueError("Pending migration does not match manifest or receipt")
++        if journal["events"] and journal["events"][-1]["manifest_after_sha256"] != hashlib.sha256(before).hexdigest():
++            raise ValueError("Pending migration breaks event history")
++
+         source = self._path("live/hard")
+         destination = self._path("archive/hard")
+         if source.exists() and destination.exists():
+             raise ValueError("Both live and archive hard directories exist")
+         if source.exists():
++            if action != "relocate":
++                raise ValueError("Repair cannot move the hard directory again")
+             self._validate_hard_directory(manifest, "live/hard")
+             self._path("archive").mkdir(exist_ok=True)
+             source.rename(destination)
+         self._validate_hard_directory(manifest, "archive/hard")
++        if current_raw != after:
++            self._atomic_write("manifest.json", after)
++        # The in-memory mapping changes only after the complete manifest is installed.
+         self._manifest = _decode_json(after, "updated manifest")
+         self.rows = self._manifest["rows"]
+         journal["events"].append(receipt)
+@@ -426,17 +441,32 @@
+         self._atomic_write("relocation.json", _json_bytes(journal))
+         return receipt
+ 
+-
+-    def relocate(self, repair: bool) -> dict:
+-        """Move the backing directory once, retaining a durable relocation journal."""
++    @staticmethod
++    def _repaired_bytes(manifest):
++        rows = [
++            {**row, "path": f"archive/hard/{row['id']}.json"} if row["difficulty"] == "hard" else dict(row)
++            for row in manifest["rows"]
++        ]
++        return _json_bytes({**manifest, "rows": rows})
++
++    def relocate(self, repair: bool = False) -> dict:
++        """Rename live/hard once, optionally repairing its mapping atomically.
++
++        relocation.json stores stable receipts and a write-ahead pending event so
++        interrupted calls can resume after either the rename or manifest replace.
++        Calls must be serialized by the owner of this isolated store.
++        """
++        repair = True  # Reference task repair: always publish the migrated mapping.
+         if type(repair) is not bool:
+-            raise ValueError("Expected a boolean relocation argument")
++            raise ValueError("repair must be a boolean")
+         self._check_marker()
+         manifest, before = self._load_manifest()
+-        files, archived = self._migration_files(manifest)
++        files, already_repaired = self._migration_files(manifest)
+         journal = self._load_journal(files)
+         if journal["pending"] is not None:
+-            return self._complete_pending(journal, before)
++            receipt = self._complete_pending(journal, before)
++            return self.relocate(repair=True) if repair and not receipt["repair"] else receipt
++
+         source = self._path("live/hard")
+         destination = self._path("archive/hard")
+         if source.exists() and destination.exists():
+@@ -445,17 +475,23 @@
+             previous = journal["events"][-1]
+             if source.exists() or previous["manifest_after_sha256"] != hashlib.sha256(before).hexdigest():
+                 raise ValueError("Store state conflicts with relocation history")
+-            if previous["repair"] != archived:
+-                raise ValueError("Relocation receipt conflicts with manifest mapping")
++            if previous["repair"] != already_repaired:
++                raise ValueError("Repair receipt conflicts with manifest mapping")
+             self._validate_hard_directory(manifest, "archive/hard")
+-            self._manifest, self.rows = manifest, manifest["rows"]
+-            return previous
+-        if destination.exists() or archived:
+-            raise ValueError("Archived backing files lack a relocation journal")
+-        self._validate_hard_directory(manifest, "live/hard")
+-        after = before
+-        receipt = self._receipt(manifest, before, after, "relocate", False)
+-        journal["pending"] = {"receipt": receipt, "manifest_before": before.decode("utf-8"),
+-                              "manifest_after": after.decode("utf-8")}
++            if not repair or already_repaired:
++                self._manifest, self.rows = manifest, manifest["rows"]
++                return previous
++            action = "repair"
++        else:
++            if destination.exists() or already_repaired:
++                raise ValueError("Archived backing files lack a relocation journal")
++            self._validate_hard_directory(manifest, "live/hard")
++            action = "relocate"
++        after = self._repaired_bytes(manifest) if repair else before
++        receipt = self._receipt(manifest, before, after, action, repair)
++        journal["pending"] = {
++            "receipt": receipt, "manifest_before": before.decode("utf-8"),
++            "manifest_after": after.decode("utf-8"),
++        }
+         self._atomic_write("relocation.json", _json_bytes(journal))
+         return self._complete_pending(journal, before)
