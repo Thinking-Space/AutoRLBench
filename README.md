@@ -38,8 +38,6 @@ AutoRLBench Leaderboard, issue + solution evaluation.
 | 9 | Qwen3.8-Max | Qwen Code | 44.4 % | 42.9 % | **43.6 %** |
 | 10 | DeepSeek-V4-Pro | Claude Code | 16.7 % | 57.1 % | **36.9 %** |
 
-Scores are pass rates over **18 issue tasks and up to 7 evaluated solution tasks per model**. *Overall* averages the displayed issue and solution percentages. The agent submits `report.md`; the harness evaluates that submission, including remote training jobs. Solution results follow the PTDBench validation-first protocol recorded in the [result provenance](page/solution-results.json). There are **96/180 issue passes and 45/70 solution passes**; the added search and retool solution tasks are included in the ranking. Full results: [website](https://thinking-space.github.io/AutoRLBench/#leaderboard).
-
 ## Tasks
 
 Six domains, one representative task each. The domains come from where in the RL pipeline the failure lives:

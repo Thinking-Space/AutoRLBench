@@ -4,7 +4,7 @@
  * and import_solution_traces.py from the AutoRLBench evaluation
  * dumps and harbor outputs. `passed` drives the result column;
  * hand-verified records without a flag pass at score >= 0.8.
- * The 70 solution records are reconciled against PTDBench validation-first
+ * The 70 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -2458,9 +2458,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1222729,
     "steps": 96,
     "costUsd": 8.3007,
-    "sourceRunId": "ptdbench-20261029-020304-62f1f91a",
+    "sourceRunId": "autorlbench-20261029-020304-62f1f91a",
     "sessionId": "ae54b344-a7dc-4934-950b-cabf2be7956c",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "4f5f6314719fdb066384bec31302ddc7eb222e15e55696faae1fcf8f66181eac"
   },
   {
@@ -2476,9 +2476,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1955810,
     "steps": 165,
     "costUsd": 14.9292,
-    "sourceRunId": "ptdbench-20261028-192644-e19a4112",
+    "sourceRunId": "autorlbench-20261028-192644-e19a4112",
     "sessionId": "80f95c29-afc6-4411-8ba3-9acacaa0afc9",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "ebb30cd949c70e546d58a994ebf68c7231225fc20d5a4de58cd5cf3818850509"
   },
   {
@@ -2494,9 +2494,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2661262,
     "steps": 237,
     "costUsd": 22.281,
-    "sourceRunId": "ptdbench-20261028-115646-b5b27833",
+    "sourceRunId": "autorlbench-20261028-115646-b5b27833",
     "sessionId": "890a30f6-7d2b-4e1d-9857-80a1b627cf08",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "9afadd252e6484540cbed2d40f1905077c0f9d9415463be97a8f53e9cc609b22"
   },
   {
@@ -2512,9 +2512,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1678516,
     "steps": 79,
     "costUsd": 7.4495,
-    "sourceRunId": "ptdbench-20261028-145740-11811fe3",
+    "sourceRunId": "autorlbench-20261028-145740-11811fe3",
     "sessionId": "aac42629-f4d2-4705-a3db-37459dc3bda2",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "f7ce95713d00ef7b3bbf5eb7e513c9891e19d2a58b3ed86ed1a94269c7303493"
   },
   {
@@ -2530,9 +2530,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 18261134,
     "steps": 186,
     "costUsd": 54.2013,
-    "sourceRunId": "ptdbench-20261029-095441-987905ca",
+    "sourceRunId": "autorlbench-20261029-095441-987905ca",
     "sessionId": "65bce2e4-046d-4dbf-866f-ffe89a7da8a7",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "2dc8b3f1c658f7cd8f0d85ecc8b481ad40d074f3cd0c879c23febc9b697c42f6"
   },
   {
@@ -2548,9 +2548,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1905406,
     "steps": 49,
     "costUsd": 11.7932,
-    "sourceRunId": "ptdbench-20261029-130358-52c74f30",
+    "sourceRunId": "autorlbench-20261029-130358-52c74f30",
     "sessionId": "3f6dbbc8-20b4-4ff7-985b-084fd6e0630f",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "110acd52e3d7315d04ba2ed74b164a7e0d403ecb843b97adb33b768e753dfd84"
   },
   {
@@ -2566,9 +2566,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1060928,
     "steps": 37,
     "costUsd": 6.3438,
-    "sourceRunId": "ptdbench-20261029-123804-119f9aac",
+    "sourceRunId": "autorlbench-20261029-123804-119f9aac",
     "sessionId": "1a60e0d2-aeca-4857-87fb-3a44b1ca9bbe",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "02f736f51a6ebd7323c309d973f29e439171dba0b2d46800eb51fe880e5d2694"
   },
   {
@@ -2584,9 +2584,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 8836070,
     "steps": 143,
     "costUsd": 74.045,
-    "sourceRunId": "ptdbench-20261027-194304-09339023",
+    "sourceRunId": "autorlbench-20261027-194304-09339023",
     "sessionId": "3aea19cf-51ea-433d-87b0-aad3600bfd18",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "d49ec43b83cc348d1912acdcd469b80a2e59f7a1a2985ff7f14a0031715f5a5a"
   },
   {
@@ -2602,9 +2602,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 3232911,
     "steps": 71,
     "costUsd": 33.878,
-    "sourceRunId": "ptdbench-20261028-101249-c0b5c84e",
+    "sourceRunId": "autorlbench-20261028-101249-c0b5c84e",
     "sessionId": "9e578767-0e8d-47ed-a12e-a379e4eb6fc8",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "0a179afbe0b5e22e78764bb211745bd74e70fce2cf804e45fb4572bf13911219"
   },
   {
@@ -2620,9 +2620,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 8504203,
     "steps": 158,
     "costUsd": 62.0433,
-    "sourceRunId": "ptdbench-20261029-214225-f23105af",
+    "sourceRunId": "autorlbench-20261029-214225-f23105af",
     "sessionId": "1b474c02-ac96-45cf-a3a0-6dcc3e3ce3df",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "2002d57121b6416afb933dd0a191ae32a57419c144654ac79440e62bc2e12380"
   },
   {
@@ -2638,9 +2638,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 4320763,
     "steps": 250,
     "costUsd": 51.6177,
-    "sourceRunId": "ptdbench-20261027-110517-53777850",
+    "sourceRunId": "autorlbench-20261027-110517-53777850",
     "sessionId": "ff2d69d6-aa38-4545-94b8-f3e5fc0c5bac",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "8e3292509a9c61af3e9bb3ed6696f578515f83afed97bd979a7d05c299f54765"
   },
   {
@@ -2656,9 +2656,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2753214,
     "steps": 106,
     "costUsd": 23.978,
-    "sourceRunId": "ptdbench-20261026-141327-f0244c57",
+    "sourceRunId": "autorlbench-20261026-141327-f0244c57",
     "sessionId": "2ff60384-5d22-4e7f-b0b6-f8ef04754921",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "ee3d6c199e43d692ba6138d1c691d0798ef93c4fdadce084d42c48a51f293a82"
   },
   {
@@ -2674,9 +2674,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 6059124,
     "steps": 223,
     "costUsd": 49.3651,
-    "sourceRunId": "ptdbench-20261028-124224-beeaeeb3",
+    "sourceRunId": "autorlbench-20261028-124224-beeaeeb3",
     "sessionId": "36212862-efbc-459c-9e11-7296cf98c77b",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "edea99040c27625c2d5938c8d775e199b83e28f23742164f789d2bf0b262a82c"
   },
   {
@@ -2692,9 +2692,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 919184,
     "steps": 33,
     "costUsd": 7.642,
-    "sourceRunId": "ptdbench-20261028-200520-b31ebeff",
+    "sourceRunId": "autorlbench-20261028-200520-b31ebeff",
     "sessionId": "1b6e8eb6-8dd2-4aed-a961-5383e3193abf",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "ceecfb77cbca3cefede53e97715d162535e7910a10bc01c4d4055dc20a959fb8"
   },
   {
@@ -2710,9 +2710,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 385958,
     "steps": 30,
     "costUsd": 7.1654,
-    "sourceRunId": "ptdbench-20261028-152547-c1b3fbe7",
+    "sourceRunId": "autorlbench-20261028-152547-c1b3fbe7",
     "sessionId": "2cbd4c02-b74c-4b76-a2d5-58421dfc5bfa",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "1d91c228614d30aa394038fb0c1717dd62e0facc61aa1d307c37f0cd27a9e80f"
   },
   {
@@ -2728,9 +2728,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2382473,
     "steps": 88,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261028-234251-669de20b",
+    "sourceRunId": "autorlbench-20261028-234251-669de20b",
     "sessionId": "f2be224c-ab39-44b5-bbe9-c5eeb1e7e991",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "fff3c4f2aae0a52830cf32b3075881964e3f72b4b164f30e528f325ffe092675"
   },
   {
@@ -2746,9 +2746,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1106180,
     "steps": 56,
     "costUsd": 24.5113,
-    "sourceRunId": "ptdbench-20261029-003730-f778e330",
+    "sourceRunId": "autorlbench-20261029-003730-f778e330",
     "sessionId": "4634a0cd-9b75-4019-a2b6-1d6175f8461c",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "770b0b6d20d4b6a6cc928602cf7a6d3220241c3467588554d1b2353440e0d9be"
   },
   {
@@ -2764,9 +2764,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 6035389,
     "steps": 256,
     "costUsd": 30.7004,
-    "sourceRunId": "ptdbench-20261030-015741-720beee6",
+    "sourceRunId": "autorlbench-20261030-015741-720beee6",
     "sessionId": "5780512c-ac6c-4fbc-9787-ca61f9a73a96",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "f2524e0a53df733f1af70cd20fe5209847d4c6015faedc67043ced1ced672d09"
   },
   {
@@ -2782,9 +2782,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 901430,
     "steps": 25,
     "costUsd": 3.368,
-    "sourceRunId": "ptdbench-20261028-172154-9bed821e",
+    "sourceRunId": "autorlbench-20261028-172154-9bed821e",
     "sessionId": "01a181d2-3a2e-7273-91a2-1bcda3046bae",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "0a7a1720bb2e5531236f74e592dfbf7c70d18d74f14f773a99d33e8026cb71c9"
   },
   {
@@ -2800,9 +2800,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 828805,
     "steps": 24,
     "costUsd": 2.7364,
-    "sourceRunId": "ptdbench-20261028-174946-61caff8a",
+    "sourceRunId": "autorlbench-20261028-174946-61caff8a",
     "sessionId": "01a181ed-4ab8-75f0-92cc-169c72f94f24",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "2afb2fcb657ba2936149881f7b9b821c04a2ec4ec4cd5cd387052a395cce12c2"
   },
   {
@@ -2818,9 +2818,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 782574,
     "steps": 26,
     "costUsd": 4.8173,
-    "sourceRunId": "ptdbench-20261029-024836-6ef57ab4",
+    "sourceRunId": "autorlbench-20261029-024836-6ef57ab4",
     "sessionId": "01a183d9-16d3-7c82-9b9f-d729482000e2",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "e5b2011d6b161553389b75a31721a772d4181d686426d606f479f2597d623ce6"
   },
   {
@@ -2836,9 +2836,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1063606,
     "steps": 29,
     "costUsd": 4.0616,
-    "sourceRunId": "ptdbench-20261028-210418-b26abeb4",
+    "sourceRunId": "autorlbench-20261028-210418-b26abeb4",
     "sessionId": "01a1829e-680a-7640-9dfe-f9546893e277",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "480df872d08ef71bb85e36f19c898b5d014515b2835753caff7c7ecdc9ce383e"
   },
   {
@@ -2854,9 +2854,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 14146012,
     "steps": 566,
     "costUsd": 138.2188,
-    "sourceRunId": "ptdbench-20261030-022053-7de406a7",
+    "sourceRunId": "autorlbench-20261030-022053-7de406a7",
     "sessionId": "01a188e5-0262-7341-a2fa-0e89e9787357",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "bae5b519cdc14fd964c222d2df975a419be9f1cfd6279b699db58cd364387d1e"
   },
   {
@@ -2872,9 +2872,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 682867,
     "steps": 28,
     "costUsd": 0.6121,
-    "sourceRunId": "ptdbench-20261028-202015-7f56aaa4",
+    "sourceRunId": "autorlbench-20261028-202015-7f56aaa4",
     "sessionId": "01a18274-8502-7153-8c61-68c83817507f",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "dc9dfee0e1d4504326b40674f1ba9cc30578e87f12979624c80a530bd788c8b4"
   },
   {
@@ -2890,9 +2890,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 498982,
     "steps": 23,
     "costUsd": 0.4952,
-    "sourceRunId": "ptdbench-20261028-191803-ea21becd",
+    "sourceRunId": "autorlbench-20261028-191803-ea21becd",
     "sessionId": "01a1823b-9e42-7483-bbe8-d163fcbe32e0",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "dbc99803483b3b345644b1c4394f44973f43daac656de5f12c54984a1d30575f"
   },
   {
@@ -2908,9 +2908,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 812519,
     "steps": 28,
     "costUsd": 0.7484,
-    "sourceRunId": "ptdbench-20261028-204439-7a217cfa",
+    "sourceRunId": "autorlbench-20261028-204439-7a217cfa",
     "sessionId": "01a1828b-d37f-7701-8674-3924ae85c3f0",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "7e2700e08174e3c5d678ab1f4040ce9cfadf4f2f790e6128cc7f9ff5483b2935"
   },
   {
@@ -2926,9 +2926,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 629545,
     "steps": 27,
     "costUsd": 0.9622,
-    "sourceRunId": "ptdbench-20261029-030745-d7225233",
+    "sourceRunId": "autorlbench-20261029-030745-d7225233",
     "sessionId": "01a183ea-b138-73f2-b04e-c3b2fd96b6bf",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "fb7448921cce1d1e2fbb34c681f9c3737e347cf5a71856f5eca0971913885b1c"
   },
   {
@@ -2944,9 +2944,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1521854,
     "steps": 51,
     "costUsd": 1.5096,
-    "sourceRunId": "ptdbench-20261030-051149-0aab4bf9",
+    "sourceRunId": "autorlbench-20261030-051149-0aab4bf9",
     "sessionId": "01a18981-8a64-7da2-8fdc-f8ea07767096",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "d41c657b8bf2ebb9beb580c18d99821bccb4de723462757eb72e5ca0f002ab32"
   },
   {
@@ -2962,9 +2962,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 189680,
     "steps": 32,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261028-195016-ba504cef",
+    "sourceRunId": "autorlbench-20261028-195016-ba504cef",
     "sessionId": "a5a22794-63f7-446d-b9d1-6e93d6a9e75b",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "d927607b134f7b86743dcb573763c73571bc39d5dd76ca737726169e2f8c09e2"
   },
   {
@@ -2980,9 +2980,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 263778,
     "steps": 29,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261028-193351-f743da04",
+    "sourceRunId": "autorlbench-20261028-193351-f743da04",
     "sessionId": "c5b23dc4-b898-447e-aaf0-ac9b7d4dc051",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "f376ef5e823ee45cdeb636820c426ed7436e0a3f14c83cf7401106ac0b1f2274"
   },
   {
@@ -2998,9 +2998,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 347098,
     "steps": 29,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261029-140437-b5684fb2",
+    "sourceRunId": "autorlbench-20261029-140437-b5684fb2",
     "sessionId": "78b3bcc3-577b-44a4-bd88-3594a830a2f5",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "f1dd855dbf623c69c75860324592d73d12de425ff773ceec228300641e7ad1f1"
   },
   {
@@ -3016,9 +3016,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 372050,
     "steps": 28,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261029-083218-3bb7b06e",
+    "sourceRunId": "autorlbench-20261029-083218-3bb7b06e",
     "sessionId": "09b81b4d-55e7-4288-9bc9-3260a601a652",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "b56acc2160b58a645fa89e8e2017f2868fc3981a1fc967952b9f80c2e3cd5a00"
   },
   {
@@ -3034,9 +3034,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 207427,
     "steps": 48,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261030-050257-3a24a80e",
+    "sourceRunId": "autorlbench-20261030-050257-3a24a80e",
     "sessionId": "00aa2c5c-42c3-4da3-827b-15284e4654ce",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "c93c7fca89da6c7aab69b3d7a4d928301c9e20a35d2cca04b3e8aae8a2366966"
   },
   {
@@ -3052,9 +3052,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2796563,
     "steps": 26,
     "costUsd": 3.1395,
-    "sourceRunId": "ptdbench-20261028-152546-d281e7a2",
+    "sourceRunId": "autorlbench-20261028-152546-d281e7a2",
     "sessionId": "f1ac986c-459c-4789-8c73-a9b40b847a21",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "ccf0356c302d940b1dc07d40f288765ef9b0bfe9ffc148c2ec2f40614ca54b47"
   },
   {
@@ -3070,9 +3070,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 984267,
     "steps": 19,
     "costUsd": 2.0034,
-    "sourceRunId": "ptdbench-20261029-023952-1fef2ad2",
+    "sourceRunId": "autorlbench-20261029-023952-1fef2ad2",
     "sessionId": "59b6bd12-ff42-4c33-81bd-56682422c9e2",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "7c188900519be8d3cffea3d8fc2d3650d2159ba3e8b0b1e1845108d6f8f79071"
   },
   {
@@ -3088,9 +3088,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2502351,
     "steps": 44,
     "costUsd": 8.2492,
-    "sourceRunId": "ptdbench-20261027-193109-d197a775",
+    "sourceRunId": "autorlbench-20261027-193109-d197a775",
     "sessionId": "05e149b9-619b-49c4-ab26-2254807f2ad6",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "6f8b49c748b98c8c63d5d9dd5ad13530d0b71629eed4dded192ab2b21f1b3f33"
   },
   {
@@ -3106,9 +3106,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 10282877,
     "steps": 94,
     "costUsd": 25.1447,
-    "sourceRunId": "ptdbench-20261028-234128-e5e57e25",
+    "sourceRunId": "autorlbench-20261028-234128-e5e57e25",
     "sessionId": "8102e7e8-9edd-49c4-b15c-83a77bb36b43",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "ed8d2bd1f14aea8f2c78ba1dfcd84b5c7d8366ee557f5fd494cdffe2a74c2eca"
   },
   {
@@ -3124,9 +3124,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 9429589,
     "steps": 87,
     "costUsd": 28.0398,
-    "sourceRunId": "ptdbench-20261029-181847-c43d7f3b",
+    "sourceRunId": "autorlbench-20261029-181847-c43d7f3b",
     "sessionId": "9afdf643-eb89-4297-9bb7-2ec13f298402",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "f061f184d3975dbb303d8e33bc13aa71d7a5b770af98b0c0795e127a71a3907d"
   },
   {
@@ -3142,9 +3142,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1244721,
     "steps": 76,
     "costUsd": 3.8261,
-    "sourceRunId": "ptdbench-20261028-162217-bd194fcf",
+    "sourceRunId": "autorlbench-20261028-162217-bd194fcf",
     "sessionId": "91c80601-1e6d-489c-846f-c1646f6fbab5",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "3732952fa841747b7a42337b941c0a822de30188142f641f01b565b07c202d23"
   },
   {
@@ -3160,9 +3160,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 349537,
     "steps": 24,
     "costUsd": 1.344,
-    "sourceRunId": "ptdbench-20261029-013055-97dc557e",
+    "sourceRunId": "autorlbench-20261029-013055-97dc557e",
     "sessionId": "11ae1cdf-fa59-4684-b89c-307f6d77a41f",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "6dc31057566f461383886dd477fefdac8f66d2fabed67f439bb441a949d8fd83"
   },
   {
@@ -3178,9 +3178,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1745532,
     "steps": 108,
     "costUsd": 10.5624,
-    "sourceRunId": "ptdbench-20261030-014548-cbb5b6f6",
+    "sourceRunId": "autorlbench-20261030-014548-cbb5b6f6",
     "sessionId": "ec0c76b0-df18-4789-adb8-0ec5027516b4",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "c68c6bf18e7ffe9506988b4b2f2901e7aadc30d18bf4b81fb2ccfbc5c127b3eb"
   },
   {
@@ -3196,9 +3196,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2778003,
     "steps": 79,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261028-154025-e924cda8",
+    "sourceRunId": "autorlbench-20261028-154025-e924cda8",
     "sessionId": "e3054698-8c00-4dbd-b460-8d7cb02e69d3",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "df46d8e31eb1a73d286bd5a3f0399bb690b201e7fbc95a3191cca55f9652e573"
   },
   {
@@ -3214,9 +3214,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1955402,
     "steps": 46,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261028-163911-7bd27cff",
+    "sourceRunId": "autorlbench-20261028-163911-7bd27cff",
     "sessionId": "24b6cd3e-6700-4589-9da5-153187960986",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "c60c571286dd8ce1e6a02f3617edcd63b76c839b6a40728da2d69cfae56e1871"
   },
   {
@@ -3232,9 +3232,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 3000244,
     "steps": 49,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261028-194810-0656e63a",
+    "sourceRunId": "autorlbench-20261028-194810-0656e63a",
     "sessionId": "3383fd83-3f6c-442b-9b54-f160951f9b34",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "a38fa190383cfd29fe9899e7dd17fbb69d52267c8ab146d4a65bb2cf091d4db4"
   },
   {
@@ -3250,9 +3250,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 855722,
     "steps": 36,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261029-062507-82f368da",
+    "sourceRunId": "autorlbench-20261029-062507-82f368da",
     "sessionId": "e5e4c6c2-1ac9-4bbd-9555-0069c2af5e19",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "ab743ef9744281135fa95a533ee90776019b6bfe39166cfc6a304ae343a76fe6"
   },
   {
@@ -3268,9 +3268,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1911062,
     "steps": 48,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261030-034607-1440f9c3",
+    "sourceRunId": "autorlbench-20261030-034607-1440f9c3",
     "sessionId": "549f6d4d-f056-433f-9efb-84c0dc66aa3b",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "9634bcc349cf95c003a122a60cb4e6ed62b60228d45fd58b82758163d22352d4"
   },
   {
@@ -3286,9 +3286,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2105852,
     "steps": 86,
     "costUsd": 17.5937,
-    "sourceRunId": "ptdbench-20261027-074255-89b2fdad",
+    "sourceRunId": "autorlbench-20261027-074255-89b2fdad",
     "sessionId": "f56d69cf-15ad-4cf0-81c4-48a96886b72b",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "be86c8ecf292ae9c1df159d093bac4e1a886583eb939c353ff2d134ff24d26c7"
   },
   {
@@ -3304,9 +3304,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2181629,
     "steps": 106,
     "costUsd": 19.1911,
-    "sourceRunId": "ptdbench-20261027-090714-fd18d176",
+    "sourceRunId": "autorlbench-20261027-090714-fd18d176",
     "sessionId": "ce9dd0ce-9aca-4407-a0da-c854f458019c",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "a6365ac9ad850ca3a596d4f35e6eaa388c8aca8ad4395a4a359b2ea0997aec5a"
   },
   {
@@ -3322,9 +3322,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1375075,
     "steps": 64,
     "costUsd": 5.6899,
-    "sourceRunId": "ptdbench-20261027-075126-8907972e",
+    "sourceRunId": "autorlbench-20261027-075126-8907972e",
     "sessionId": "39938e41-92bf-4402-9d2b-8cec717ea317",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "7c2c9444ed6bac0e1594fba1b2199f556d1b18cbaea2c0064b2798fc1f41d36c"
   },
   {
@@ -3340,9 +3340,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 615306,
     "steps": 26,
     "costUsd": 2.9009,
-    "sourceRunId": "ptdbench-20261027-090349-fce88e91",
+    "sourceRunId": "autorlbench-20261027-090349-fce88e91",
     "sessionId": "7c1d14a1-ae6a-4443-a53a-6eebe0bac972",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "59e613b522cabc9b64adde8d94d3a9e62d567dfc8cce6b12e13b481744dbd587"
   },
   {
@@ -3442,9 +3442,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 569895,
     "steps": 23,
     "costUsd": 2.9272,
-    "sourceRunId": "ptdbench-20261031-013910-b9645ecd",
+    "sourceRunId": "autorlbench-20261031-013910-b9645ecd",
     "sessionId": "01a18de5-2ca4-7162-841c-95c02e3bbaa9",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "21108d76a4f7136c892f7dccc5ce742b75773d9b3457e87f94ec3d5f8c8b4ef2"
   },
   {
@@ -3460,9 +3460,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 232308,
     "steps": 24,
     "costUsd": 0.6079,
-    "sourceRunId": "ptdbench-20261031-015155-0b392ec4",
+    "sourceRunId": "autorlbench-20261031-015155-0b392ec4",
     "sessionId": "01a18df0-dbb1-7552-941e-7df1fc637932",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "bbd3cb614eabf7ce8ce6c1116b023e3ca3f179d8f500ce3cce3e9f1f8d16ffa6"
   },
   {
@@ -3478,9 +3478,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 798405,
     "steps": 70,
     "costUsd": 5.8732,
-    "sourceRunId": "ptdbench-20261031-011122-4b205dbe",
+    "sourceRunId": "autorlbench-20261031-011122-4b205dbe",
     "sessionId": "942d2610-75eb-4a89-aeb5-8e97f1707ade",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "6a68b5203057cbde0534f37cd6a8b5c09136cb819ea84cfb04d48ffc7af65b99"
   },
   {
@@ -3496,9 +3496,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1610153,
     "steps": 87,
     "costUsd": 13.6423,
-    "sourceRunId": "ptdbench-20261030-174114-2ef79f3d",
+    "sourceRunId": "autorlbench-20261030-174114-2ef79f3d",
     "sessionId": "8c3df73c-d3f4-4933-8b17-bef264712bcd",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "116e81be1a03d7fa650e63ba3c8d0ca50a4c68610eaa1a498a4cc73448ae0827"
   },
   {
@@ -3514,9 +3514,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2184831,
     "steps": 64,
     "costUsd": 24.3212,
-    "sourceRunId": "ptdbench-20261031-015100-e6ebb20f",
+    "sourceRunId": "autorlbench-20261031-015100-e6ebb20f",
     "sessionId": "68927119-18a3-40ad-8c2f-2a71a121ec1f",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "251bb48bfb6faf24f9978851b3895d2f42d4240af0b7a04746094d09587d4f82"
   },
   {
@@ -3532,9 +3532,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 6506686,
     "steps": 55,
     "costUsd": 12.7296,
-    "sourceRunId": "ptdbench-20261030-223223-2bfce9f5",
+    "sourceRunId": "autorlbench-20261030-223223-2bfce9f5",
     "sessionId": "a6c50e52-697b-4df7-9128-ab3a5d0a3aef",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "ebe14e7756faff22bacf7a81ec0420cf1eb20158fc40e81e6add1537c0fa69d1"
   },
   {
@@ -3550,9 +3550,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 596966,
     "steps": 18,
     "costUsd": 2.2362,
-    "sourceRunId": "ptdbench-20261031-002524-f2f9c499",
+    "sourceRunId": "autorlbench-20261031-002524-f2f9c499",
     "sessionId": "f4e38d3c-96c2-47fe-a47e-0f37ac7e048f",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "0d3230915d375fdd7bc86def9b1ec0eb391f09be2f38dc68118a5d25b94a8acc"
   },
   {
@@ -3568,9 +3568,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 437592,
     "steps": 26,
     "costUsd": 9.1069,
-    "sourceRunId": "ptdbench-20261031-012835-a8ac1664",
+    "sourceRunId": "autorlbench-20261031-012835-a8ac1664",
     "sessionId": "eb09da15-293b-48ad-aacf-63a31eb8cf8b",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "ffba614b10de92d678afc691323262ff189bfa08d73e0e0177d06f7fbeede81b"
   },
   {
@@ -3586,9 +3586,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2385834,
     "steps": 48,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261031-020806-f1227fa2",
+    "sourceRunId": "autorlbench-20261031-020806-f1227fa2",
     "sessionId": "908f6195-e4a2-4a77-a504-9dbd63d40115",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "2a646f669190a55e46198692b9cccdf42394fc119eebe5a04aa110d1e6f05938"
   },
   {
@@ -3604,9 +3604,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 262112,
     "steps": 27,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261031-032602-40808f6f",
+    "sourceRunId": "autorlbench-20261031-032602-40808f6f",
     "sessionId": "bd097318-1dcb-4cad-a47a-22554335aed6",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "af418a22a98db2d2b1437433e18278805b0f96180ea6b4d4b8532476104b5fdb"
   },
   {
@@ -3622,9 +3622,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 4422252,
     "steps": 73,
     "costUsd": 20.6711,
-    "sourceRunId": "ptdbench-20261030-165818-8b2653cf",
+    "sourceRunId": "autorlbench-20261030-165818-8b2653cf",
     "sessionId": "84a7187c-c03f-466c-ab78-eab181d7eefb",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "1de71a536432604a2c42630bc38e71265dcdb77d7e0e801dfea56856b80ef0ab"
   },
   {
@@ -3640,9 +3640,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1958361,
     "steps": 54,
     "costUsd": 8.388,
-    "sourceRunId": "ptdbench-20261030-151553-2379d407",
+    "sourceRunId": "autorlbench-20261030-151553-2379d407",
     "sessionId": "040d3dfc-f66d-4535-9a06-382596dd61d2",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "a1f7eec4fb0e1a0a18d6e58eacea1ca3072eac535f82a3bb5c1fcacacee62df9"
   },
   {
@@ -3658,9 +3658,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 840228,
     "steps": 56,
     "costUsd": 10.0569,
-    "sourceRunId": "ptdbench-20261030-095447-4a4b6478",
+    "sourceRunId": "autorlbench-20261030-095447-4a4b6478",
     "sessionId": "b20bc023-634c-41d1-96ab-8a5b6c533dda",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "e7d1890f98dcf5275f7ccb3d6fd6cf1b1dc4d7a4ad53a7acbd10d5dd75056d46"
   },
   {
@@ -3676,9 +3676,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1870474,
     "steps": 34,
     "costUsd": 5.4527,
-    "sourceRunId": "ptdbench-20261030-155317-33c4f36d",
+    "sourceRunId": "autorlbench-20261030-155317-33c4f36d",
     "sessionId": "244f9b91-9469-4257-957b-e5c6cf8352b4",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "55a7a31e2908acd2c7bc27f1060cdadef55d44d30bc8a8b2e2f983ad9a2e1e28"
   },
   {
@@ -3694,9 +3694,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 383601,
     "steps": 29,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261030-164736-ca329ee8",
+    "sourceRunId": "autorlbench-20261030-164736-ca329ee8",
     "sessionId": "7da2798f-1e9a-4e5c-8583-f5fd9bb3d1c8",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "6864c99121dd87a07e25a06f76f53a08fa58671852263ee8716252122e257bf0"
   },
   {
@@ -3712,9 +3712,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2420298,
     "steps": 21,
     "costUsd": 2.4443,
-    "sourceRunId": "ptdbench-20261030-133441-0a9b823c",
+    "sourceRunId": "autorlbench-20261030-133441-0a9b823c",
     "sessionId": "61410c69-8447-4f84-bae1-1aee1c629d14",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "330f44b48081b72372adba9a308b33eb4b2de7a05abccadd330f9a22b58d0a79"
   },
   {
@@ -3730,9 +3730,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1329528,
     "steps": 49,
     "costUsd": 3.9415,
-    "sourceRunId": "ptdbench-20261030-141817-97d37405",
+    "sourceRunId": "autorlbench-20261030-141817-97d37405",
     "sessionId": "8843bd93-5c1d-46ba-9f37-ea01400e4705",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "8130087598da09abe13567a7e5c3ca6e8e3514629938ac51cb3bd13ae65b3a36"
   },
   {
@@ -3748,9 +3748,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 868922,
     "steps": 25,
     "costUsd": 3.7269,
-    "sourceRunId": "ptdbench-20261030-181603-417b1ad4",
+    "sourceRunId": "autorlbench-20261030-181603-417b1ad4",
     "sessionId": "01a18c4f-7bd4-7340-81ff-a8b3c10110a1",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "12a0d6e45633a59cb8a6e36c0d76a94498d92dbaa3da4992cfd3de8df6305d9d"
   },
   {
@@ -3766,9 +3766,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 827723,
     "steps": 28,
     "costUsd": 0.7405,
-    "sourceRunId": "ptdbench-20261030-183735-6b2ce244",
+    "sourceRunId": "autorlbench-20261030-183735-6b2ce244",
     "sessionId": "01a18c63-267b-7ef0-8ced-1dfa980fd239",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "54a44fdfe30d029640481ff87023d7e96b2f6248063319b59d8f072091d57137"
   },
   {
@@ -3784,9 +3784,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1229641,
     "steps": 43,
     "costUsd": null,
-    "sourceRunId": "ptdbench-20261030-190421-eff4d320",
+    "sourceRunId": "autorlbench-20261030-190421-eff4d320",
     "sessionId": "bf9a9e3d-aa49-4e48-9ee6-379c0a52fe6c",
-    "scoringProtocol": "ptdbench-validation-first-20261031",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "0438920cb6fd9505c0b91b03e6a78077999518564e09cc5b6f865985acb99c5b"
   }
 ];

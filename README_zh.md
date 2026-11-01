@@ -39,7 +39,6 @@ AutoRLBench Leaderboard，issue + solution 双档成绩。
 | 9 | Qwen3.8-Max | Qwen Code | 44.4 % | 42.9 % | **43.6 %** |
 | 10 | DeepSeek-V4-Pro | Claude Code | 16.7 % | 57.1 % | **36.9 %** |
 
-分数为每个模型在 **18 个 issue 任务和最多 7 个已评测 solution 任务**上的通过率；*总分*取两档已展示百分比的均值。agent 提交 `report.md` 后，由 harness 对该提交重跑评测，也可通过远程训练 job 完成。solution 采用 PTDBench validation-first 协议，详见[结果来源记录](page/solution-results.json)。当前 issue **96/180** 通过，solution **45/70** 通过；新增的 search 与 retool solution 任务已计入排名。完整结果见[网站](https://thinking-space.github.io/AutoRLBench/#leaderboard)。
 
 ## 任务
 
