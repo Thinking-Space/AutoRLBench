@@ -66,6 +66,8 @@ def main():
     fig.suptitle('Preserved step-3 checkpoint → reference continuation\nDashed boundary: files relocated before the repair',fontsize=13)
     fig.savefig(args.out/'continuation-curves.png',dpi=170)
     fig.savefig(args.out/'continuation-curves.svg')
+    svg=args.out/'continuation-curves.svg'
+    svg.write_text('\n'.join(line.rstrip() for line in svg.read_text().splitlines())+'\n')
     plt.close(fig)
     print(json.dumps({'curve_steps':8,'resumed_updates_per_role':4,'output':str(args.out)}))
 
