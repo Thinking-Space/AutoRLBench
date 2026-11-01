@@ -43,3 +43,5 @@ Native GPU execution, task preparation and grader replay passed. A second contro
 The bundled issue judge was exercised with Qwen3-4B in bfloat16 on an H100 using Transformers 5.15.1. For each task, a correct diagnosis passed with score 1.0, while an incorrect causal explanation and an incorrect healthy verdict each received score 0.0. The three inputs and detailed judgments are in `evaluations/issue/validation/`. Run `evaluations/issue/verifier/judge.py` with each input, the task oracle and judge prompt to repeat the procedure.
 The recorded control takes about 4.2 minutes for training and held-out evaluation, excluding asset preparation. The verifier allows 30 minutes.
 Preparation downloads approximately 2.6 MB of data and a 1 GB public model separately.
+
+The offline W&B streams for both recorded arms are included beside their text logs. They contain the original metric histories and summaries, with host names and filesystem paths standardized.
