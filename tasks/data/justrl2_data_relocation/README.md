@@ -11,7 +11,7 @@ This task begins with a materialized data incident and preserved native actor an
 | Runtime | Pinned `justrl2-data-relocation` image; three physical GPUs: actor 1, critic 1, inference 1; TP1/CP1/DP1 |
 | Submission | `loader.py` with `resolve(root, record) -> relative_path`, plus `report.md` |
 | Continuation | Checkpoint iteration 3; rollouts 4–7; total schedule remains 8 |
-| Current acceptance status | Full packaged GPU acceptance is pending a fresh audit; see `environment/validation.json` |
+| Current acceptance status | Packaged GPU run 1430440 passed the hidden fresh verifier with score 1; see [validation](environment/validation.json) |
 
 ## Install the pinned local scene before agent entry
 
@@ -71,6 +71,10 @@ Reward improvement, repaired-model capability, zero transient retries, and a fix
 
 Earlier eight-update from-base experiments and their successful repaired-run grading remain historical evidence of the data defect. They do not prove continuation from this incident checkpoint. Their original validation receipt and old source manifest are preserved byte-for-byte under `environment/history/`; historical oracle comparison/grade receipts are under `evaluations/solution/oracle/history/`. Workspace `logs/recorded/` is labeled accordingly.
 
-`environment/source_manifest.json` inventories the current task files and records source/destination hashes and changes. It excludes only itself. `environment/validation.json` distinguishes local packaging checks from pending fresh packaged-runtime acceptance. The scene pin is unchanged; all three task snapshots contain the seven measured model-file pins. Final run/audit receipts will be recorded after packaged-runtime verification. Refresh the manifest after any further metadata additions.
+[Packaged run 1430440](environment/receipts/packaged-reference-grade.json) passed the exact prepared-engine run specification and hidden verifier: 64 generated training samples, four updates per role, both final checkpoint payloads rehashed, seven relocated model-asset files rehashed, and all 16 fixed evaluation examples complete. Its observed final evaluation reward is 0.25; reward quality is not a pass threshold. [Preparation 1430414](environment/receipts/prepare-validation.json) installed the original scene before solver entry without training.
 
-No LLM blind tests or agent evaluations were run. Local synthetic schema tests, checkpoint inventories, and partial restore observations are not presented as completed packaged GPU acceptance.
+[Reference run 1430316 and independent audit 1430462](../../../proposals/justrl2_data_relocation/incident/evidence/README.md) provide separate measured restore events, raw-source hashes and standalone curves. The curves describe that reference run, not the packaged run.
+
+`environment/source_manifest.json` inventories every current task file except itself. `environment/validation.json` records CPU checks, native reference acceptance, actual installation and packaged acceptance separately. All task snapshots retain the same scene and seven model-file pins. Informational validation fields were updated after the run; executed code and input pins are unchanged. The immutable `SCENE.json` remains the original assembly receipt; later restoration proofs are recorded outside it. Refresh the manifest after any further metadata additions.
+
+No LLM blind tests or agent evaluations were run. Synthetic fixtures cover CPU/schema behavior; the recorded GPU runs establish restoration and continuation acceptance. No agent success rate or model-quality advantage is claimed.

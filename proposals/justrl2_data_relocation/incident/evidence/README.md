@@ -7,7 +7,7 @@ validation. No LLM agent was evaluated.
 
 - `native-acceptance.json`: fresh acceptance performed by the native validation
   wrapper, with 64 admitted samples and both final checkpoint payloads rehashed.
-- `independent-audit.json`: successful fresh re-audit by CPU job1430462 using
+- `independent-audit.json`: successful fresh re-audit by CPU job 1430462 using
   frozen verifier `db21b6dd…`, including all seven model-asset files and both
   output checkpoint payload inventories.
 - `provenance.json`: source job, bundle, archive and evidence-file hashes.
@@ -32,3 +32,5 @@ The scene receipt SHA-256 is
 `b48862441e71acd0bbbf6ad3f75c7168e6bd758255ad130e4f73c9ec1262e9ac`.
 Large checkpoints and raw generation logs are distributed separately; they are
 not included in this Git evidence directory.
+
+The separate [packaged-run receipt](../../../../tasks/data/justrl2_data_relocation/environment/receipts/packaged-reference-grade.json) records fresh score 1 for job 1430440. These curves and state-event files continue to identify native reference 1430316.
