@@ -33,28 +33,20 @@ A missing or empty `/workspace/report.md` scores 0.
 
 ## What the system will run
 
-After you submit `report.md`, the harness clears
-`$AUTORLBENCH_RESULTS/experiment_logs` and runs:
+The incident is already materialized before you begin. Inspect `incident/`, the
+recorded logs, and `loader.py`. Submit your change to `loader.py` and `report.md`.
+Its interface is `resolve(root, record) -> relative_path`; the harness reads and
+checks the returned file independently. The requested logical sample must remain
+the same. Transient reads may be retried; substituting a different sample does not
+repair the run.
 
-```bash
-mkdir -p "$AUTORLBENCH_RESULTS/experiment_logs" && bash run.sh
-```
+The harness restores both roles from the preserved checkpoint and continues the
+remaining four updates. It uses the immutable engine and snapshot under
+`$AUTORLBENCH_PREPARED`, consumes only your submitted `loader.py`, and writes fresh
+artifacts to `$AUTORLBENCH_RESULTS/experiment_logs/run-home`. It does not execute
+modified workspace launch scripts, metrics code, reward code or model code.
 
-The environment contains `LOG_DIR=$AUTORLBENCH_RESULTS/experiment_logs` and
-`WANDB_MODE=offline`. The prepared public model and data are under
-`./prepared/`; the run writes `experiment_logs/run-home`.
-
-Keep the original model, all 64 training and 16 fixed evaluation questions,
-question/answer bytes, PPO recipe, eight updates, evaluation interval four,
-8 groups × 2 samples, and 32768-token response budget. The scheduled storage
-migration after the first four updates must remain. Do not change the reward
-function, synthesize outcomes, delete source IDs, disable the migration, or
-suppress required events. Cheap local data-loading checks are allowed.
-
-The grader checks the fresh run's data integrity and completion, not a noisy
-held-out accuracy threshold. It requires both difficulty strata in each
-post-migration training batch, successful backing-file access, all eight real
-actor and critic updates, unchanged original inputs, final optimizer
-checkpoints and all fixed evaluation snapshots. It independently recomputes
-these checks from the recorded events and files. Hiding failed reads or
-changing reported counters does not pass.
+Passing requires the planned logical samples and original content to reach
+training, actual checkpoint/model/Adam/scheduler/RNG restoration, four subsequent
+updates and valid final checkpoints. A reward increase is not required. Keep
+prepared assets unchanged and do not run training yourself.

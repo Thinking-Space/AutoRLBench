@@ -134,14 +134,14 @@ def install_outcome_observer():
 class BackedMathSource:
     """Native datasource contract, storing references instead of prompt bodies."""
     def __init__(self, args):
-        from storage import BackingStore
+        from store import SceneStore
         global _SOURCE
         self.args = args
-        self.store = BackingStore(Path(os.environ['RELOCATION_DATA']))
+        self.store = SceneStore(Path(os.environ['RELOCATION_DATA']))
         self.output = Path(os.environ['RELOCATION_OUTPUT'])
         self.output.mkdir(parents=True, exist_ok=True)
         self.arm = os.environ['RELOCATION_ARM']
-        if self.arm not in ('faulty',):
+        if self.arm != 'incident':
             raise ValueError('Unknown experiment arm')
         self.at = int(os.environ['RELOCATION_AT'])
         if self.at <= 0:
@@ -166,10 +166,6 @@ class BackedMathSource:
     def begin(self, step):
         self.step, self.requests, self.reads = step, 0, []
         self.terminals, self.requested_indices = [], set()
-        if step >= self.at:
-            receipt = self.store.relocate(False)
-            self.dataset = self.store.rows
-            self.emit('relocation', receipt=receipt)
         self.emit('rollout_begin', cursor=self.cursor)
 
     def get_samples(self, num_samples):
@@ -214,9 +210,11 @@ class BackedMathSource:
                 raise RuntimeError('Checkpoint is missing matching datasource state')
             return
         state = json.loads(target.read_text())
-        if state['arm'] != self.arm:
-            raise ValueError('Cannot resume another experiment arm')
         self.cursor, self.sample_index, self.group_index = (state[k] for k in ('cursor', 'sample_index', 'group_index'))
+        self.step = state['step']
+        if self.step != 3 or self.cursor != 32 or self.sample_index != 64:
+            raise ValueError('Unexpected checkpoint datasource cursor')
+        self.emit('datasource_restored', cursor=self.cursor, sample_index=self.sample_index)
 
     def get_metadata(self):
         return self.metadata
@@ -244,7 +242,7 @@ async def generate(args, sample, sampling_params, evaluation=False):
               'group_index': sample.group_index, 'difficulty': reference['difficulty'],
               'path': reference['path']}
     try:
-        payload = source.store.read(reference)
+        payload = source.store.read(reference,sample_index=sample.index,step=source.step)
     except FileNotFoundError as error:
         source.reads.append(source.emit('read', outcome='missing', errno=error.errno, **fields))
         sample.status = Sample.Status.ABORTED
@@ -264,13 +262,15 @@ def generate_rollout(args, rollout_id, data_source, evaluation=False):
     from miles.rollout.sglang_rollout import generate_rollout as native_rollout
     if evaluation:
         output = native_rollout(args, rollout_id, data_source, evaluation=True)
-        # Full native evaluation result is retained in the run directory.
+        # Full native evaluation result is retained in the private run directory.
         write_evaluation(data_source.output, rollout_id, data_source.step, output.data)
         return output
     if args.partial_rollout or args.over_sampling_batch_size != args.rollout_batch_size:
         raise ValueError('This case requires no partial buffers and equal initial/target batch sizes')
     if args.dynamic_sampling_filter_path != 'miles.rollout.filter_hub.dynamic_sampling_filters.check_no_aborted':
         raise ValueError('Use the native aborted-group filter without reward filtering')
+    if rollout_id < 4:
+        raise ValueError('Incident continuation must start from checkpoint3')
     data_source.begin(rollout_id)
     install_outcome_observer()
     output = native_rollout(args, rollout_id, data_source, evaluation=False)

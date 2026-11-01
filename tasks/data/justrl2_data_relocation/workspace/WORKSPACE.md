@@ -1,16 +1,17 @@
-# Experiment workspace
+# Interrupted training workspace
 
-`logs/recorded/` contains the historical run. `run.sh` is the foreground launch
-command; the evaluation harness supplies `LOG_DIR` and runs it after the report
-is submitted. Inspect the actual configuration in the log and the launch files.
+Training has recorded an abrupt change in reward and abort metrics. Inspect the
+logs and mounted incident. Implement the needed data-loading correction in
+`loader.py`, whose API is `resolve(root, record) -> relative_path`, and submit
+`report.md`. The resolver may use the files in the incident dataset to locate
+records. It must return the requested logical sample, not a substitute.
 
-`runtime/` is the task-specific data-loading and training integration. The public
-framework source under `framework/` is a pinned reference for inspecting native
-rollout, grading and optimization; runtime staging rebuilds it from the pinned
-archive with the adapter in `runtime/stage_runtime.py`. Changes to the reference
-copy alone are not applied by the launch command.
+The harness owns model weights, checkpoint restoration, sampling, generation,
+reward and optimization. Only `loader.py` is consumed from your submission;
+editing logs or local launch scripts does not change the experiment. The harness
+continues the preserved training state; do not launch training yourself.
 
-`prepared/dataset` and `prepared/hf-safetensors` are generated from pinned public
-assets during prepare. Reruns create a separate copy of the data; they do not
-mutate the prepared assets. Keep the run budget, dataset identities and event
-schedule specified by the evaluation instruction.
+`incident/` is materialized before you begin and is read-only. The checkpoint,
+data files and current storage metadata belong to the same sealed snapshot.
+`logs/recorded/` contains the earlier historical fault reproduction; it is labeled
+as historical and is not a claim that this new checkpoint produced those logs.

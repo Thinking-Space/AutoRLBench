@@ -1,22 +1,20 @@
-# Reference repair
+# Incident continuation reference
 
-The defect is a stale logical sample-ID-to-file-path manifest after a physical
-directory migration. Catching FileNotFoundError and retrying another sample
-hides the persistent missing hard partition.
+The task begins with checkpoint3 and already-moved data. The reference resolver
+looks up the requested ID and checksum in the current catalog when its cached
+manifest path is unavailable. It returns a path; trusted code loads the file,
+verifies its bytes, scores the generated answer and trains.
 
-Keep the exact midpoint directory move, backing-file bytes, sample IDs and
-mathematical answers. Atomically update every hard record's relative path to
-`archive/hard/<id>.json` and replace the in-memory mapping used by subsequent
-lazy reads. An interrupted update must not leave a partly written manifest.
-The reference implementation is the repair branch in the hidden storage file;
-it is not mounted in the agent stage.
+Only loader.py is submitted. There is no reference patch to training, rewards,
+checkpoint selection, metrics or fault injection. The system resumes steps4–7
+and grades exact logical sample consumption, full native state restoration and
+actual updates. Transient reads may be retried; sample replacement fails.
 
-The solution grade requires completion and data integrity, not raising a model
-accuracy metric: zero missing reads and the intended 50% hard mixture after the
-event, every real actor/critic update, unchanged source content, all fixed eval
-snapshots and final native optimizer checkpoints. Training reward itself may
-fall when difficult examples are restored.
+Earlier eight-step from-base records are historical calibration and are not a
+claim of restoration from this newly sealed checkpoint. New restore evidence is
+recorded separately after verification.
 
-Calibration uses one faulty and one repaired eight-update run, with a separate
-non-migrated control. Fixed evaluation is small and declines across all arms;
-these records establish no repaired-model generalization advantage.
+The historical receipts are explicitly separated in `history/`. The current
+reference resolver is never copied into the prepared runtime or workspace.
+Packaged incident acceptance remains pending a fresh audit; partial restore
+observations and synthetic packaging tests do not replace that audit.

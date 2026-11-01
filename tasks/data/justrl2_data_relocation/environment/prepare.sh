@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-: "${AUTORLBENCH_WORKSPACE:?}"
+: "${AUTORLBENCH_WORKSPACE:?}" "${AUTORLBENCH_PREPARED:?}" "${AUTORLBENCH_ENVIRONMENT:?}"
 workspace="$AUTORLBENCH_WORKSPACE"
 cd "$workspace"
-if [[ -f prepared/.complete ]]; then
-  python3 -B -c 'from prepare_assets import verify_prepared; verify_prepared("prepared")'
-  python3 -B -c 'from prepare_assets import expose_framework_source; expose_framework_source("prepared", "framework")'
-  exit 0
-fi
 mkdir -p "$workspace/cache" "$workspace/public-source"
 
 autorlbench_fetch_hf \
@@ -71,7 +66,9 @@ autorlbench_fetch_url \
   --expect-size Math_part-4-of-4.jsonl=1233160 \
   --dest "$workspace/public-source/Math_part-4-of-4.jsonl"
 
-python3 -B prepare_assets.py --asset-dir "$workspace/cache" \
-  --source-dir "$workspace/public-source" --out "$workspace/prepared"
-python3 -B -c 'from prepare_assets import expose_framework_source; expose_framework_source("prepared", "framework")'
-touch "$workspace/prepared/.complete"
+assets="$AUTORLBENCH_PREPARED/assets"
+if [[ ! -f "$assets/prepared_receipt.json" ]]; then
+  python3 -B "$AUTORLBENCH_ENVIRONMENT/asset_tools/prepare_assets.py" \
+    --asset-dir "$workspace/cache" --source-dir "$workspace/public-source" --out "$assets"
+fi
+python3 -B "$AUTORLBENCH_ENVIRONMENT/setup_incident.py"

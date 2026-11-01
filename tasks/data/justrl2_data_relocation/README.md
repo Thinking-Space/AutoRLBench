@@ -1,79 +1,76 @@
 # Missing difficult examples inflate training reward
 
-Native JustRL2 PPO continues training after a stale file mapping silently drops
-difficult math examples: file-read aborts jump to 50% and admitted-sample reward
-rises from 0.40625 to 0.703125.
+This task begins with a materialized data incident and preserved native actor and critic checkpoints at step 3. The harness consumes the submitted `workspace/loader.py`, restores the saved training state, and continues rollouts 4–7. Setup does not train a prefix or reconstruct an incident from an agent's output.
 
-| | |
+| Item | Contract |
 | --- | --- |
-| Author | panhaoxuan |
-| Domain | data |
-| Model | JustRL-II-base-model |
-| Dataset | UltraData-RL-2609 / Math (frozen public selection); 64 train, 16 fixed evaluation |
-| Framework | miles / JustRL-II, ppo; `run.sh` |
-| Environment | `justrl2-data-relocation`; three GPUs |
-| Evaluations | issue · solution |
-| Recorded runs | One seed per arm: no relocation, stale mapping, updated mapping; eight updates each |
+| Framework | miles / JustRL-II, PPO |
+| Model | Public `openbmb/JustRL-II-base-model`, revision `b558bbc71d9433e7c5869effcbac07d4c7f2c5b4` |
+| Framework source | JustRL-II revision `75814318f243af7e39af337c1173fc3927c9635b` |
+| Dataset | Frozen public UltraData-RL-2609 Math selection: 64 training and 16 fixed evaluation examples |
+| Runtime | Pinned `justrl2-data-relocation` image; three physical GPUs: actor 1, critic 1, inference 1; TP1/CP1/DP1 |
+| Submission | `loader.py` with `resolve(root, record) -> relative_path`, plus `report.md` |
+| Continuation | Checkpoint iteration 3; rollouts 4–7; total schedule remains 8 |
+| Current acceptance status | Full packaged GPU acceptance is pending a fresh audit; see `environment/validation.json` |
 
-## Difficulty
+## Install the pinned local scene before agent entry
 
-This is explicitly constructed fault injection using actual model generations
-and updates. The sample-ID mapping is in the loader, not a mapping-learning
-problem for the model. At the midpoint, hard backing files move while the
-manifest retains their old paths. Missing files become ABORTED samples; the
-native filter drops them and resamples to fill each batch. Reward still uses the
-real math grader, so conventional reward and training-health metrics can look
-normal while the admitted population changes.
+The supported distribution mode is a **pinned local scene directory** mounted through the stock harness dataset cache. Copy the complete verified scene into the host datasets directory at:
 
-| Arm | Reward before → after | Post-event abort | Post-event hard share |
-| --- | --- | ---: | ---: |
-| No relocation | 0.375 → 0.546875 | 0 | 0.5 |
-| Stale mapping | 0.40625 → 0.703125 | 0.5 | 0 |
-| Updated mapping | 0.390625 → 0.53125 | 0 | 0.5 |
+```text
+<datasets-dir>/incidents/b48862441e71acd0bbbf6ad3f75c7168e6bd758255ad130e4f73c9ec1262e9ac/SCENE.json
+```
 
-The faulty fixed evaluation falls from 0.5 to 0.3125; both controls also decline.
-No repaired-model capability advantage or statistical significance is claimed.
-The full records and independent three-arm audit are in the companion proposal.
+The directory must also contain the real step-3 actor/critic checkpoints, datasource state, incident dataset, and provenance. Use a new destination directory and preserve the complete artifact; the cache directory name does not replace receipt and payload verification.
 
-## Reference solution
+For example, an operator can copy the artifact and open the prepared runtime without starting an agent:
 
-The diagnosis must connect the stale mapping, missing-file recovery policy,
-resampling, hard-example disappearance, and the changed reward denominator.
-The repair must preserve the migration and original examples while publishing
-and reading a consistent new mapping. Deleting hard IDs, hiding abort metrics,
-or disabling the migration does not repair the data contract.
+```bash
+incident_datasets=/absolute/path/to/benchmark-datasets
+incident_sha=b48862441e71acd0bbbf6ad3f75c7168e6bd758255ad130e4f73c9ec1262e9ac
+mkdir -p "$incident_datasets/incidents/$incident_sha"
+cp -a /path/to/verified-incident-scene/. "$incident_datasets/incidents/$incident_sha/"
+python3 -m autorlbench harbor-shell tasks/data/justrl2_data_relocation \
+  --datasets-dir "$incident_datasets"
+```
 
-Only the defective side is staged into `workspace/`. Reference changes and
-control evidence are kept under the hidden evaluations; the companion proposal
-is not mounted into the agent workspace. Public preparation reconstructs all
-66 runtime data files byte for byte from pinned public Math shards. Historical
-difficulty assignments are frozen author metadata, not public dataset fields.
+Pass the same `--datasets-dir` on stock Docker or Harbor evaluation commands. The harness mounts that directory and exports its container path as `AUTORLBENCH_DATASETS`; setup selects `$AUTORLBENCH_DATASETS/incidents/<scene_sha256>` automatically. No additional harness flag or arbitrary host environment forwarding is needed.
 
-## Verification
+An explicit `RELOCATION_SCENE_SOURCE` **inside the runtime environment** takes precedence over the cache. This remains available for operator-managed preparation:
 
-Issue grading uses the canonical judge: verdict 1.0, root-cause and evidence
-scores each greater than 0.8; its reported weighted score uses 0.2/0.6/0.2.
-No agent/judge score has been measured for this new task.
+```bash
+export RELOCATION_SCENE_SOURCE=/mounted/pinned-incident-scene
+bash "$AUTORLBENCH_ENVIRONMENT/prepare.sh"
+```
 
-For solution evaluation the agent submits `report.md` and does not train. The
-harness runs the fixed eight-update command, and the hidden grader independently
-checks source identities, physical migration, zero missing-file aborts and 50%
-hard coverage after the event, real actor/critic updates, fixed evaluation
-snapshots and final optimizer checkpoints. This is a structural integrity grade,
-not a noisy accuracy threshold. The baseline hard share is 0 and reference is
-0.5; all four post-event steps must satisfy the contract, so initial good data
-cannot pass without completing the run.
+The source-selection order is explicit environment path, pinned datasets-cache directory, then an optional pinned archive URL. An invalid explicit path or mismatching cached scene fails verification rather than silently selecting another artifact. The current snapshot declares no public scene URL; a source URL is not required for local-artifact mode. Internal scene metadata and tensor files are not uploaded by this package.
 
-The pinned parent image, public preparation, fresh native conversion and live
-three-GPU training are validated by the companion proposal. The task-specific
-linux/amd64 image was built offline and its login-shell/Python smoke check
-passed; its receipt is `environment/image_build.json`. Task execution uses the
-same pinned parent runtime with the canonical tooling installed. A full agent
-harness evaluation, GPU execution of the child image, leaderboard result and
-checkpoint restore are not claimed.
+Preparation verifies the pinned public model, tokenizer, framework source and data inputs, then performs the existing exact CPU conversion to `$AUTORLBENCH_PREPARED/assets/hf-safetensors`. This is asset conversion, not model training. It installs the trusted engine into `$AUTORLBENCH_PREPARED/incident_engine`, copies and verifies the supplied scene into `$AUTORLBENCH_PREPARED/incident`, and exposes the workspace `incident/` link before the agent starts. The receipt pin and complete scene inventory are checked; an absent or mismatching scene fails preparation. No fresh-model fallback or replacement prefix is generated.
 
-The exact packaged preparation and eight-update `run.sh` completed with the
-hidden reference patch in job 1428786. Every post-event batch retained 50% hard
-examples and zero file aborts. Independent CPU job 1428910 ran the fresh hidden
-grader, rehashed both final checkpoint payloads, and returned score 1. The
-receipts are recorded in `environment/validation.json` and the hidden oracle.
+The prepared directory is owned and protected by the harness. The complete scene is approximately 66.7 GB; allow separate storage for its installation, public model assets, and fresh output checkpoints. `materialize.py` also supports an archive only when its hash and size are explicitly pinned; the current snapshot provides the local-directory mode.
+
+## Runtime and evaluation boundaries
+
+`environment/incident_engine` contains an explicit runtime module list and the licensed compatibility/checkpoint helpers. It excludes tests, `build.py`, `prefix.py`, and `reference_loader.py`. The maintainer reference resolver exists only under `evaluations/solution/oracle/`; neither setup nor the run specification installs it into the agent workspace or prepared engine.
+
+The editable workspace starts with the defective resolver and historical observations. Instructions remain neutral about the diagnosis and repair algorithm. The canonical issue-evaluation instruction, judge, prompt, and shell scaffold are unchanged. The solution harness checks the report submission, then runs the immutable prepared driver; it does not execute a modified workspace launcher. Only the submitted resolver is copied into the new run.
+
+The trusted driver keeps checkpoint selection, original logical sampling order, generation, rewards, training, and evidence collection outside the submitted resolver. It independently opens the returned file and checks the requested ID and exact content. A resolver may retry transient reads; substituting a different example is not accepted.
+
+The hidden grader uses a separate copy of the frozen independent auditor, SHA-256 `db21b6dd204f55efb4e4ce06aa65dfb0a7dd76e9ac35caa87fc31223cbfe4286`. It receives the prepared scene separately and always uses fresh-output verification. Passing requires:
+
+- Exact scheduled logical sample groups and original content for rollouts 4–7, with complete read, terminal, admission, and available attempt accounting.
+- Exact native actor/critic model and Adam readback, scheduler and all RNG-family restoration, native iteration 3, Adam counter 4, and scheduler progress 64.
+- Four successful real optimizer updates per role, counters 5–8, and iteration-7 checkpoint readback with step delta 4.
+- Rehashed final checkpoint payloads, unchanged sealed scene inputs, and the complete fixed 16-example final evaluation.
+- Scene-bound model file inventory when prepared HF assets move to the new runtime path. The snapshot contains seven measured `model_files` pins from the verified metadata capture; no pins are invented here.
+
+Reward improvement, repaired-model capability, zero transient retries, and a fixed easy/hard percentage are not pass thresholds. The wrapper emits an integer binary score and retains the auditor's boolean score and detailed proof in `metrics`.
+
+## Evidence status and provenance
+
+Earlier eight-update from-base experiments and their successful repaired-run grading remain historical evidence of the data defect. They do not prove continuation from this incident checkpoint. Their original validation receipt and old source manifest are preserved byte-for-byte under `environment/history/`; historical oracle comparison/grade receipts are under `evaluations/solution/oracle/history/`. Workspace `logs/recorded/` is labeled accordingly.
+
+`environment/source_manifest.json` inventories the current task files and records source/destination hashes and changes. It excludes only itself. `environment/validation.json` distinguishes local packaging checks from pending fresh packaged-runtime acceptance. The scene pin is unchanged; all three task snapshots contain the seven measured model-file pins. Final run/audit receipts will be recorded after packaged-runtime verification. Refresh the manifest after any further metadata additions.
+
+No LLM blind tests or agent evaluations were run. Local synthetic schema tests, checkpoint inventories, and partial restore observations are not presented as completed packaged GPU acceptance.

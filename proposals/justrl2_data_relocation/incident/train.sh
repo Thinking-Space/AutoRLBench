@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-: "${RELOCATION_CODE:?}" "${RELOCATION_DATA:?}" "${RELOCATION_OUTPUT:?}" "${RELOCATION_MODEL:?}" "${RELOCATION_NATIVE:?}"
+: "${BENCH_RESTORE_ROOT:?}" "${BENCH_RESTORE_ITERATION:?}" "${RELOCATION_LOADER:?}" "${RELOCATION_CODE:?}" "${RELOCATION_DATA:?}" "${RELOCATION_OUTPUT:?}" "${RELOCATION_MODEL:?}" "${RELOCATION_NATIVE:?}"
 cd "$RELOCATION_CODE"
 source justrl2/model_args/minicpm5-2b.sh
 export PYTHONPATH="$RELOCATION_PLUGIN:$PWD:$PWD/Megatron-LM:$PWD/sglang/python"
@@ -27,16 +27,17 @@ python3 "$RELOCATION_PLUGIN/run_native.py" \
   --qkv-format thd --attention-backend fused --no-gradient-accumulation-fusion \
   "${MODEL_ARGS[@]}" \
   --hf-checkpoint "$RELOCATION_MODEL" --ref-load "$RELOCATION_NATIVE" \
-  --load "$RELOCATION_OUTPUT/actor" --save "$RELOCATION_OUTPUT/actor" \
+  --load "$BENCH_RESTORE_ROOT/actor" --critic-load "$BENCH_RESTORE_ROOT/critic" \
+  --use-checkpoint-opt_param-scheduler --save "$RELOCATION_OUTPUT/actor" \
   --critic-save "$RELOCATION_OUTPUT/critic" --save-interval "$RELOCATION_AT" \
-  --save-retain-interval 100000 \
+  --save-retain-interval 4 \
   --prompt-data "$RELOCATION_DATA/eval.jsonl" --input-key prompt --label-key label \
   --apply-chat-template --apply-chat-template-kwargs '{"enable_thinking":true}' \
-  --data-source-path relocation_rollout.BackedMathSource \
-  --rollout-function-path relocation_rollout.generate_rollout \
-  --custom-generate-function-path relocation_rollout.generate \
+  --data-source-path rollout.BackedMathSource \
+  --rollout-function-path rollout.generate_rollout \
+  --custom-generate-function-path rollout.generate \
   --dynamic-sampling-filter-path miles.rollout.filter_hub.dynamic_sampling_filters.check_no_aborted \
-  --rm-type math --num-rollout "$STEPS" --start-rollout-id 0 \
+  --rm-type math --num-rollout "$STEPS" \
   --rollout-batch-size "$BATCH" --over-sampling-batch-size "$BATCH" \
   --n-samples-per-prompt "$SAMPLES" --global-batch-size "$((BATCH * SAMPLES))" --micro-batch-size 1 \
   --rollout-max-prompt-len 2048 --rollout-max-response-len "$MAX_RESPONSE" \

@@ -28,10 +28,12 @@ def main():
     if not args.use_critic or args.update_weights_interval != 1:
         raise ValueError('Native PPO with per-step policy refresh is required')
     allowed_env = {key: value for key, value in os.environ.items()
-                   if key.startswith(('RELOCATION_', 'NVTE_', 'SGLANG_')) or key in
+                   if key.startswith(('RELOCATION_', 'NVTE_', 'SGLANG_', 'BENCH_RESTORE_')) or key in
                    ('BENCH_EVIDENCE_DIR', 'PYTHONPATH', 'OMP_NUM_THREADS', 'CUDA_DEVICE_MAX_CONNECTIONS',
                     'MILES_EXPERIMENTAL_ROLLOUT_REFACTOR', 'TOKENIZERS_PARALLELISM', 'RAY_DEDUP_LOGS',
                     'WANDB_MODE', 'TENSORBOARD_DIR', 'HF_HUB_OFFLINE', 'TRANSFORMERS_OFFLINE')}
+    from restore_evidence import validate_restore_args
+    validate_restore_args(args, os.environ['BENCH_RESTORE_ROOT'], 3)
     args.train_env_vars = {**args.train_env_vars, **allowed_env}
     (output / 'effective_config.json').write_text(json.dumps(vars(args), indent=2, default=str) + '\n')
     ray.init(address='local', num_gpus=3, num_cpus=12,

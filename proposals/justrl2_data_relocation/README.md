@@ -1,5 +1,23 @@
 # Missing difficult examples inflate training reward
 
+## Current task: preserved-checkpoint incident continuation
+
+The contributed task now starts from a materialized broken filesystem and a
+preserved step-3 actor/critic checkpoint. A submitted `loader.py` is evaluated
+by resuming steps 4–7 with the immutable engine. Exact logical sample identities,
+original content, full state restoration, real updates and final checkpoint
+readback determine solution acceptance; reward improvement is not a threshold.
+
+See [the incident implementation](incident/README.md) and
+[the packaged task](../../tasks/data/justrl2_data_relocation/README.md). The large
+checkpoint artifact is supplied separately through `RELOCATION_SCENE_SOURCE`,
+pinned by `incident/snapshot.json`; setup does not retrain the prefix. Public
+checkpoint hosting is not claimed. Only maintainer reference and contract
+validation are performed, with no LLM blind evaluation.
+
+The runs and plots below remain the **historical eight-update reproduction**.
+They are not relabeled as the new checkpoint's continuation.
+
 An explicitly injected stale file mapping removes difficult math examples from
 JustRL2 PPO while training continues: file-read aborts rise to 50% and reward
 among admitted samples rises from 0.40625 to 0.703125.

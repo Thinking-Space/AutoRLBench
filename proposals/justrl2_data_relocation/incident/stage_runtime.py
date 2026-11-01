@@ -46,7 +46,7 @@ def instrument(root):
 def upgrade_weight_api(root):
     """Honor the pinned image's explicit session protocol, including finalize.
 
-    The pinned image implements begin(selector,sync_base)
+    Installed-source inspection 1427947 established begin(selector,sync_base)
     and end() semantics. End performs the old post_process_weights lifecycle.
     This adapter applies only to the distributed-transfer path used here.
     """
