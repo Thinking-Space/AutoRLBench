@@ -1,0 +1,32 @@
+title = "PiSSA adapter omitted from vLLM rollout requests"
+license = "Apache-2.0"
+created_date = "2026-11-01"
+domain = "infrastructure"
+tags = ["verl", "grpo", "pissa", "vllm", "policy-sync"]
+
+[submitter]
+name = "Ruijia Zhang"
+email = "rzhan127@jh.edu"
+
+[model]
+name = "Qwen/Qwen2.5-0.5B-Instruct + PiSSA rank 8"
+
+[dataset]
+name = "openai/gsm8k deterministic calibration subset (16 train, 8 validation)"
+
+[training]
+framework = "verl"
+algo = "GRPO"
+script = "run_experiment.sh"
+
+[environment]
+image = "verl-vllm011"
+
+[environment.env]
+WANDB_MODE = "offline"
+CUDA_VISIBLE_DEVICES = "0"
+NVIDIA_VISIBLE_DEVICES = "0"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "vLLM list_loras returns integer adapter IDs, but the defective request path compares that set with the string adapter name. Rollout requests omit the loaded PiSSA adapter while the actor evaluates with it: final actor/rollout agreement is 0.10476 versus 0.89072 after the one-line ID fix."
