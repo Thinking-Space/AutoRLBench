@@ -1,0 +1,65 @@
+{
+  "model": "Qwen/Qwen3-4B",
+  "precision": "bfloat16",
+  "reasoning": false,
+  "seed": 20261101,
+  "transformers": "5.15.1",
+  "torch": "2.6.0+cu124",
+  "hardware": "NVIDIA H100 80GB",
+  "controls": [
+    {
+      "task": "trl_dapo_accumulation_normalization",
+      "control": "correct",
+      "expected_pass": true,
+      "exit_code": 0,
+      "observed": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "Qwen/Qwen3-4B",
+          "reason": "The agent diagnosis accurately identifies the root cause of the unhealthy verdict, correctly attributes it to the DAPO denominator not being scaled properly, and aligns with the observable impact and evidence provided in the canonical oracle.",
+          "root_cause_score": 1.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": true,
+        "score": 1.0
+      }
+    },
+    {
+      "task": "trl_dapo_accumulation_normalization",
+      "control": "wrong_cause",
+      "expected_pass": false,
+      "exit_code": 1,
+      "observed": {
+        "metrics": {
+          "evidence_score": 0.0,
+          "judge_model": "Qwen/Qwen3-4B",
+          "reason": "The agent incorrectly identifies corrupted GSM8K labels as the root cause, whereas the oracle attributes the issue to a loss scaling problem in the GRPOTrainer.",
+          "root_cause_score": 0.0,
+          "status": "judged",
+          "verdict_score": 0.0
+        },
+        "passed": false,
+        "score": 0.0
+      }
+    },
+    {
+      "task": "trl_dapo_accumulation_normalization",
+      "control": "wrong_verdict",
+      "expected_pass": false,
+      "exit_code": 1,
+      "observed": {
+        "metrics": {
+          "evidence_score": 0.0,
+          "judge_model": "Qwen/Qwen3-4B",
+          "reason": "The agent incorrectly concludes the run is healthy, ignoring the documented root cause and evidence of a loss scaling issue.",
+          "root_cause_score": 0.0,
+          "status": "judged",
+          "verdict_score": 0.0
+        },
+        "passed": false,
+        "score": 0.0
+      }
+    }
+  ]
+}

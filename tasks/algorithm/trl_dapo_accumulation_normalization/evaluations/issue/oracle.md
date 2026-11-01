@@ -12,8 +12,7 @@ Both arms complete 24 optimizer steps. On nonzero captured objectives, the defec
 
 ## Trigger conditions
 
-The effective run uses generation batches spanning four microbatches and accumulation windows spanning two.
-The distributed case has two GPU processes and a reward metric emitted only on rank 0.
+The recorded run uses one GPU, generation batches spanning four microbatches and accumulation windows spanning two.
 
 ## Documentation reconciliation
 

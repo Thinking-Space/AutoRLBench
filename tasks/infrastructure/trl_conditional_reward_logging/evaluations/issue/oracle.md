@@ -12,8 +12,7 @@ The defective two-rank run raises a collective fingerprint mismatch before the f
 
 ## Trigger conditions
 
-The effective run uses generation batches spanning four microbatches and accumulation windows spanning two.
-The distributed case has two GPU processes and a reward metric emitted only on rank 0.
+The recorded run has two GPU processes and a reward metric emitted only on rank 0.
 
 ## Documentation reconciliation
 

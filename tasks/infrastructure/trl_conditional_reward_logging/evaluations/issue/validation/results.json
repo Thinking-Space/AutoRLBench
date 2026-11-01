@@ -1,0 +1,65 @@
+{
+  "model": "Qwen/Qwen3-4B",
+  "precision": "bfloat16",
+  "reasoning": false,
+  "seed": 20261101,
+  "transformers": "5.15.1",
+  "torch": "2.6.0+cu124",
+  "hardware": "NVIDIA H100 80GB",
+  "controls": [
+    {
+      "task": "trl_conditional_reward_logging",
+      "control": "correct",
+      "expected_pass": true,
+      "exit_code": 0,
+      "observed": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "Qwen/Qwen3-4B",
+          "reason": "The agent's diagnosis accurately reflects the canonical oracle's conclusion about the unhealthy state, identifies the root cause of process-local key set differences leading to collective fingerprint mismatches, and uses concrete evidence from the observed behavior and fix.",
+          "root_cause_score": 1.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": true,
+        "score": 1.0
+      }
+    },
+    {
+      "task": "trl_conditional_reward_logging",
+      "control": "wrong_cause",
+      "expected_pass": false,
+      "exit_code": 1,
+      "observed": {
+        "metrics": {
+          "evidence_score": 0.0,
+          "judge_model": "Qwen/Qwen3-4B",
+          "reason": "The agent incorrectly identifies GPU out-of-memory as the cause, which is explicitly rejected by the canonical oracle.",
+          "root_cause_score": 0.0,
+          "status": "judged",
+          "verdict_score": 0.0
+        },
+        "passed": false,
+        "score": 0.0
+      }
+    },
+    {
+      "task": "trl_conditional_reward_logging",
+      "control": "wrong_verdict",
+      "expected_pass": false,
+      "exit_code": 1,
+      "observed": {
+        "metrics": {
+          "evidence_score": 0.0,
+          "judge_model": "Qwen/Qwen3-4B",
+          "reason": "The agent incorrectly states the run is healthy, contradicting the canonical oracle's verdict of unhealthy.",
+          "root_cause_score": 0.0,
+          "status": "judged",
+          "verdict_score": 0.0
+        },
+        "passed": false,
+        "score": 0.0
+      }
+    }
+  ]
+}
