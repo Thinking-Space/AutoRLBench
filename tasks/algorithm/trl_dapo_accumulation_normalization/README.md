@@ -30,7 +30,7 @@ The original TRL Apache 2.0 license is retained in `workspace/LICENSE`. GSM8K is
 
 ## Verification
 
-The issue judge scores verdict, root cause and evidence with weights 0.2, 0.6 and 0.2, passing at 0.8.
+The issue judge reports a weighted score for verdict, root cause and evidence, with weights 0.2, 0.6 and 0.2. Passing requires a verdict score of exactly 1.0 and both root-cause and evidence scores strictly greater than 0.8. A weighted score of 0.8 alone does not pass.
 The solution protocol requires `report.md`, followed by a protected fresh training run that imports the agent's repaired trainer.
 For every optimizer step, the verifier recomputes the DAPO objective from the recorded per-token probabilities, advantages and completion masks. Both microbatches must agree with the accumulation-window objective within relative tolerance 0.0005 and absolute tolerance 0.000002. All 24 optimizer steps must pass, with 48 records and at least one nonzero objective comparison.
 

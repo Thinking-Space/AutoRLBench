@@ -30,7 +30,7 @@ The original TRL Apache 2.0 license is retained in `workspace/LICENSE`. GSM8K is
 
 ## Verification
 
-The issue judge scores verdict, root cause and evidence with weights 0.2, 0.6 and 0.2, passing at 0.8.
+The issue judge reports a weighted score for verdict, root cause and evidence, with weights 0.2, 0.6 and 0.2. Passing requires a verdict score of exactly 1.0 and both root-cause and evidence scores strictly greater than 0.8. A weighted score of 0.8 alone does not pass.
 The solution protocol requires `report.md`, followed by a protected fresh training run that imports the agent's repaired trainer.
 Both ranks must complete all 24 optimizer steps. The custom answer_parse_rate metric must remain present at all 12 generation events and equal the fraction of parsed answers on the rank that supplied it, within absolute and relative tolerance 0.000001. Disabling the metric or replacing an absent rank contribution with zero does not satisfy this criterion.
 
