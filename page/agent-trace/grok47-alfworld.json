@@ -25,7 +25,7 @@
     {
       "step_id": 4,
       "source": "user",
-      "message": "<user_query>\n# RL training run diagnosis\n\nReview the staged post-training experiment and determine whether it is healthy\nor unhealthy. Treat the workspace as a historical snapshot: inspect its source,\neffective configuration, launch scripts, data processing, reward logic, logs,\ntracked metrics, and frozen evaluation evidence. Do not assume that an unusual\nsetting or implementation is causal without connecting it to observed behavior.\n\nUse held-out evaluation evidence together with rollout, truncation, runtime,\noptimization, and training signals. Training reward alone does not establish\nheld-out health. A truncated log is not by itself proof of a defect.\n\nDo not launch a full training run, use the network, or modify the historical\nsnapshot. The dataset, held-out set, model, training-step budget, and evaluation\ninterval are fixed.\n\n## Deliverable\n\nWrite one concise UTF-8 diagnosis to:\n\n```text\n$PTDBENCH_RESULTS/agent_answer.md\n```\n\nState the verdict, identify the concrete root cause or causes, and explain the\ncausal chain using specific workspace evidence. Distinguish root causes from\nsymptoms. Do not propose or implement a fix, and do not write other deliverable\nfiles.\n</user_query>"
+      "message": "<user_query>\n# RL training run diagnosis\n\nReview the staged post-training experiment and determine whether it is healthy\nor unhealthy. Treat the workspace as a historical snapshot: inspect its source,\neffective configuration, launch scripts, data processing, reward logic, logs,\ntracked metrics, and frozen evaluation evidence. Do not assume that an unusual\nsetting or implementation is causal without connecting it to observed behavior.\n\nUse held-out evaluation evidence together with rollout, truncation, runtime,\noptimization, and training signals. Training reward alone does not establish\nheld-out health. A truncated log is not by itself proof of a defect.\n\nDo not launch a full training run, use the network, or modify the historical\nsnapshot. The dataset, held-out set, model, training-step budget, and evaluation\ninterval are fixed.\n\n## Deliverable\n\nWrite one concise UTF-8 diagnosis to:\n\n```text\n$AUTORLBENCH_RESULTS/agent_answer.md\n```\n\nState the verdict, identify the concrete root cause or causes, and explain the\ncausal chain using specific workspace evidence. Distinguish root causes from\nsymptoms. Do not propose or implement a fix, and do not write other deliverable\nfiles.\n</user_query>"
     },
     {
       "step_id": 5,
@@ -45,7 +45,7 @@
           "tool_call_id": "call-8add60aa-f7ca-43ba-acdd-e8ad5c606c42-1",
           "function_name": "run_terminal_command",
           "arguments": {
-            "command": "echo \"PTDBENCH_RESULTS=${PTDBENCH_RESULTS:-unset}\"; ls -la; find . -maxdepth 3 -type d -not -path '*/.*' | head -200",
+            "command": "echo \"AUTORLBENCH_RESULTS=${AUTORLBENCH_RESULTS:-unset}\"; ls -la; find . -maxdepth 3 -type d -not -path '*/.*' | head -200",
             "description": "Explore workspace layout and results path"
           }
         }
@@ -58,7 +58,7 @@
           },
           {
             "source_call_id": "call-8add60aa-f7ca-43ba-acdd-e8ad5c606c42-1",
-            "content": "exit: 0\nPTDBENCH_RESULTS=/logs/artifacts\ntotal 3\ndrwxr-xr-x 6  502 staff  4 Oct 22 06:09 .\ndrwxr-xr-x 5 root root   3 Oct 22 06:09 ..\ndrwxr-xr-x 6 root root  10 Oct 22 06:10 .grok\ndrwxr-xr-x 2  502 staff  2 Oct 21 06:22 .ptdbench-environment\ndrwxr-xr-x 3  502 staff  1 Oct 21 06:22 results\ndrwxr-xr-x 5  502 staff  3 Oct 22 06:09 tool_schema\n.\n./results\n./results/baseline63\n./results/baseline63/wandb\n./results/baseline63/rollouts\n./results/baseline63/validation\n./results/baseline63/hydra\n./tool_schema\n./tool_schema/alfworld_case\n./tool_schema/Qwen3-4B\n./tool_schema/vendor\n./tool_schema/vendor/Agent-R1\n"
+            "content": "exit: 0\nAUTORLBENCH_RESULTS=/logs/artifacts\ntotal 3\ndrwxr-xr-x 6  502 staff  4 Oct 22 06:09 .\ndrwxr-xr-x 5 root root   3 Oct 22 06:09 ..\ndrwxr-xr-x 6 root root  10 Oct 22 06:10 .grok\ndrwxr-xr-x 2  502 staff  2 Oct 21 06:22 .autorlbench-environment\ndrwxr-xr-x 3  502 staff  1 Oct 21 06:22 results\ndrwxr-xr-x 5  502 staff  3 Oct 22 06:09 tool_schema\n.\n./results\n./results/baseline63\n./results/baseline63/wandb\n./results/baseline63/rollouts\n./results/baseline63/validation\n./results/baseline63/hydra\n./tool_schema\n./tool_schema/alfworld_case\n./tool_schema/Qwen3-4B\n./tool_schema/vendor\n./tool_schema/vendor/Agent-R1\n"
           }
         ]
       },
@@ -74,7 +74,7 @@
           "tool_call_id": "call-6e4c1aa5-5b94-4ae5-9041-6c9c19e5b436-2",
           "function_name": "list_dir",
           "arguments": {
-            "target_directory": "/user/user1/harbor-runs/aa1cf9240af6/workspace/.ptdbench-environment"
+            "target_directory": "/user/user1/harbor-runs/aa1cf9240af6/workspace/.autorlbench-environment"
           }
         },
         {
@@ -103,7 +103,7 @@
         "results": [
           {
             "source_call_id": "call-6e4c1aa5-5b94-4ae5-9041-6c9c19e5b436-2",
-            "content": "- /user/user1/harbor-runs/aa1cf9240af6/workspace/.ptdbench-environment/\n  - docker-compose.yaml\n  - prepare.sh"
+            "content": "- /user/user1/harbor-runs/aa1cf9240af6/workspace/.autorlbench-environment/\n  - docker-compose.yaml\n  - prepare.sh"
           },
           {
             "source_call_id": "call-6e4c1aa5-5b94-4ae5-9041-6c9c19e5b436-5",
@@ -132,7 +132,7 @@
           "tool_call_id": "call-b832a175-4816-498d-925f-5883c0d6a95c-6",
           "function_name": "run_terminal_command",
           "arguments": {
-            "command": "find results/baseline63 -type f | head -200; echo \"---HYDRA---\"; find results/baseline63/hydra -type f -o -type d | head -100; echo \"---SIZES---\"; du -sh results/baseline63/* results/baseline63/rollouts/* results/baseline63/validation/* results/baseline63/wandb/offline-run-20261018_175025-53wzi2w0/logs/* results/baseline63/wandb/offline-run-20261018_175025-53wzi2w0/files/* 2>/dev/null; echo \"---ENV---\"; ls -la .ptdbench-environment/; wc -l tool_schema/alfworld_case/* results/baseline63/train.log results/baseline63/rollouts/* results/baseline63/validation/* 2>/dev/null",
+            "command": "find results/baseline63 -type f | head -200; echo \"---HYDRA---\"; find results/baseline63/hydra -type f -o -type d | head -100; echo \"---SIZES---\"; du -sh results/baseline63/* results/baseline63/rollouts/* results/baseline63/validation/* results/baseline63/wandb/offline-run-20261018_175025-53wzi2w0/logs/* results/baseline63/wandb/offline-run-20261018_175025-53wzi2w0/files/* 2>/dev/null; echo \"---ENV---\"; ls -la .autorlbench-environment/; wc -l tool_schema/alfworld_case/* results/baseline63/train.log results/baseline63/rollouts/* results/baseline63/validation/* 2>/dev/null",
             "description": "Inventory result files and sizes"
           }
         }
@@ -206,14 +206,14 @@
           "tool_call_id": "call-f23129d0-8753-4595-ba8f-41067ec61283-14",
           "function_name": "read_file",
           "arguments": {
-            "target_file": "/user/user1/harbor-runs/aa1cf9240af6/workspace/.ptdbench-environment/prepare.sh"
+            "target_file": "/user/user1/harbor-runs/aa1cf9240af6/workspace/.autorlbench-environment/prepare.sh"
           }
         },
         {
           "tool_call_id": "call-f23129d0-8753-4595-ba8f-41067ec61283-15",
           "function_name": "read_file",
           "arguments": {
-            "target_file": "/user/user1/harbor-runs/aa1cf9240af6/workspace/.ptdbench-environment/docker-compose.yaml"
+            "target_file": "/user/user1/harbor-runs/aa1cf9240af6/workspace/.autorlbench-environment/docker-compose.yaml"
           }
         }
       ],
@@ -233,7 +233,7 @@
           },
           {
             "source_call_id": "call-f23129d0-8753-4595-ba8f-41067ec61283-15",
-            "content": "1\u2192# GPU wiring for the Harbor backend.\n#\n# The native docker runtime translates metadata.environment.env's\n# NVIDIA_VISIBLE_DEVICES into `--gpus` itself (ptdbench/runtimes/providers/\n# docker.py::_gpu_args). Harbor's path has no equivalent: the generated\n# task.toml carries no `gpus` field, and harbor's local docker environment\n# reports `gpus: False` in its capabilities, so even asking for GPUs there is\n# rejected. What harbor *does* honour is a task-authored compose override on\n# the `main` service, merged after its own build/prebuilt compose\n10\u2192# (harbor/src/harbor/environments/docker/docker.py::_docker_compose_paths).\n# The harbor adapter passes this file to `harbor run --extra-docker-compose`\n# (ptdbench/evaluation/harbor_evaluator.py::HarborRunner._compose_overlay_args);\n# it cannot go into the generated task's environment/, because harbor stops\n# uploading the workspace from there once a compose file is present.\n#\n# This file is inert on the native docker path -- nothing there reads compose.\nservices:\n  main:\n    # ray + sglang pass tensors between workers through /dev/shm and NCCL opens\n20\u2192    # its buffers there. Docker's 64MB default dies on the first rollout with an\n    # opaque bus error. Same value as DEFAULT_SHM_SIZE in the docker runtime.\n    shm_size: \"16gb\"\n    deploy:\n      resources:\n        reservations:\n          devices:\n            - driver: nvidia\n              count: all\n              capabilities: [gpu]\n"
+            "content": "1\u2192# GPU wiring for the Harbor backend.\n#\n# The native docker runtime translates metadata.environment.env's\n# NVIDIA_VISIBLE_DEVICES into `--gpus` itself (autorlbench/runtimes/providers/\n# docker.py::_gpu_args). Harbor's path has no equivalent: the generated\n# task.toml carries no `gpus` field, and harbor's local docker environment\n# reports `gpus: False` in its capabilities, so even asking for GPUs there is\n# rejected. What harbor *does* honour is a task-authored compose override on\n# the `main` service, merged after its own build/prebuilt compose\n10\u2192# (harbor/src/harbor/environments/docker/docker.py::_docker_compose_paths).\n# The harbor adapter passes this file to `harbor run --extra-docker-compose`\n# (autorlbench/evaluation/harbor_evaluator.py::HarborRunner._compose_overlay_args);\n# it cannot go into the generated task's environment/, because harbor stops\n# uploading the workspace from there once a compose file is present.\n#\n# This file is inert on the native docker path -- nothing there reads compose.\nservices:\n  main:\n    # ray + sglang pass tensors between workers through /dev/shm and NCCL opens\n20\u2192    # its buffers there. Docker's 64MB default dies on the first rollout with an\n    # opaque bus error. Same value as DEFAULT_SHM_SIZE in the docker runtime.\n    shm_size: \"16gb\"\n    deploy:\n      resources:\n        reservations:\n          devices:\n            - driver: nvidia\n              count: all\n              capabilities: [gpu]\n"
           },
           {
             "source_call_id": "call-f23129d0-8753-4595-ba8f-41067ec61283-9",
@@ -253,7 +253,7 @@
           },
           {
             "source_call_id": "call-f23129d0-8753-4595-ba8f-41067ec61283-14",
-            "content": "1\u2192#!/usr/bin/env bash\n# ALFWorld tool-use GRPO run: fetch the base model before training.\n#\n# Runs in a separate prepare-stage container: root, the `agent-r1-alfworld`\n# image, **the only networked stage**, and $PTDBENCH_WORKSPACE, $PTDBENCH_MODELS,\n# and $PTDBENCH_DATASETS are all writable.\n#\n# The ALFWorld dataset (parquets + extracted game files) ships inside the\n# workspace at tool_schema/datasets/alfworld, so nothing is fetched for it here.\n10\u2192set -euo pipefail\n\n# --- Base model ---------------------------------------------------------------\n# train.sh reads the policy weights from \"${MODEL_PATH:-$CASE_ROOT/Qwen3-4B}\",\n# where CASE_ROOT is tool_schema/, so the model must land at exactly\n# tool_schema/Qwen3-4B inside the workspace.\n#\n# Sizes are intentionally not pinned with --expect-size: this packaging host had\n# no network to read the revision's Content-Length, and the sha256 digests below\n# (from the delivery's MODEL_SHA256SUMS) already verify the files exactly.\n20\u2192ptdbench_fetch_hf \\\n    --repo Qwen/Qwen3-4B \\\n    --revision 82d62bb073771e7a1ea59435f548908540217d1f \\\n    --allow config.json \\\n    --allow generation_config.json \\\n    --allow merges.txt \\\n    --allow model.safetensors.index.json \\\n    --allow model-00001-of-00003.safetensors \\\n    --allow model-00002-of-00003.safetensors \\\n    --allow model-00003-of-00003.safetensors \\\n30\u2192    --allow tokenizer.json \\\n    --allow tokenizer_config.json \\\n    --allow vocab.json \\\n    --expect config.json=8ba006f74fecfaaeb392872a60f4a480e7ec9860153d2e1b769ec81f9a147f8a \\\n    --expect model.safetensors.index.json=6dc0981b8829fead746441f68f38f24c5ca4a3a66351f652c26c6df0efc43ab2 \\\n    --expect model-00001-of-00003.safetensors=328a91d3122359d5547f9d79521205bc0a46e1f79a792dfe650e99fc2d651223 \\\n    --expect model-00002-of-00003.safetensors=6cd087b316306a68c562436b5492edbcf6e16c6dba3a1308279caa5a58e21ca5 \\\n    --expect model-00003-of-00003.safetensors=e4bf436957184f4eeb86a80e9db394503f1f56446b2e6b7edeac5b81470f4ca1 \\\n    --dest \"$PTDBENCH_WORKSPACE/tool_schema/Qwen3-4B\"\n"
+            "content": "1\u2192#!/usr/bin/env bash\n# ALFWorld tool-use GRPO run: fetch the base model before training.\n#\n# Runs in a separate prepare-stage container: root, the `agent-r1-alfworld`\n# image, **the only networked stage**, and $AUTORLBENCH_WORKSPACE, $AUTORLBENCH_MODELS,\n# and $AUTORLBENCH_DATASETS are all writable.\n#\n# The ALFWorld dataset (parquets + extracted game files) ships inside the\n# workspace at tool_schema/datasets/alfworld, so nothing is fetched for it here.\n10\u2192set -euo pipefail\n\n# --- Base model ---------------------------------------------------------------\n# train.sh reads the policy weights from \"${MODEL_PATH:-$CASE_ROOT/Qwen3-4B}\",\n# where CASE_ROOT is tool_schema/, so the model must land at exactly\n# tool_schema/Qwen3-4B inside the workspace.\n#\n# Sizes are intentionally not pinned with --expect-size: this packaging host had\n# no network to read the revision's Content-Length, and the sha256 digests below\n# (from the delivery's MODEL_SHA256SUMS) already verify the files exactly.\n20\u2192autorlbench_fetch_hf \\\n    --repo Qwen/Qwen3-4B \\\n    --revision 82d62bb073771e7a1ea59435f548908540217d1f \\\n    --allow config.json \\\n    --allow generation_config.json \\\n    --allow merges.txt \\\n    --allow model.safetensors.index.json \\\n    --allow model-00001-of-00003.safetensors \\\n    --allow model-00002-of-00003.safetensors \\\n    --allow model-00003-of-00003.safetensors \\\n30\u2192    --allow tokenizer.json \\\n    --allow tokenizer_config.json \\\n    --allow vocab.json \\\n    --expect config.json=8ba006f74fecfaaeb392872a60f4a480e7ec9860153d2e1b769ec81f9a147f8a \\\n    --expect model.safetensors.index.json=6dc0981b8829fead746441f68f38f24c5ca4a3a66351f652c26c6df0efc43ab2 \\\n    --expect model-00001-of-00003.safetensors=328a91d3122359d5547f9d79521205bc0a46e1f79a792dfe650e99fc2d651223 \\\n    --expect model-00002-of-00003.safetensors=6cd087b316306a68c562436b5492edbcf6e16c6dba3a1308279caa5a58e21ca5 \\\n    --expect model-00003-of-00003.safetensors=e4bf436957184f4eeb86a80e9db394503f1f56446b2e6b7edeac5b81470f4ca1 \\\n    --dest \"$AUTORLBENCH_WORKSPACE/tool_schema/Qwen3-4B\"\n"
           }
         ]
       },

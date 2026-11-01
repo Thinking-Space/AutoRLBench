@@ -25,7 +25,7 @@
     {
       "step_id": 4,
       "source": "user",
-      "message": "<user_query>\nInspect this recorded vision-language GRPO session. Decide whether the training computation is healthy, identify the principal implementation issue if present, and explain its effect using concrete source and logged evidence. Distinguish computation correctness from the observed reward and validation trends. Write the diagnosis to `$PTDBENCH_RESULTS/agent_answer.md`. Use the supplied workspace; additional training is not part of the diagnostic task.\n</user_query>"
+      "message": "<user_query>\nInspect this recorded vision-language GRPO session. Decide whether the training computation is healthy, identify the principal implementation issue if present, and explain its effect using concrete source and logged evidence. Distinguish computation correctness from the observed reward and validation trends. Write the diagnosis to `$AUTORLBENCH_RESULTS/agent_answer.md`. Use the supplied workspace; additional training is not part of the diagnostic task.\n</user_query>"
     },
     {
       "step_id": 5,
@@ -146,7 +146,7 @@
           "tool_call_id": "call-2c4dca7f-4d6c-4be5-8ce3-81536dfd33f6-8",
           "function_name": "grep",
           "arguments": {
-            "pattern": "PTDBENCH|principal|implementation issue|diagnosis",
+            "pattern": "AUTORLBENCH|principal|implementation issue|diagnosis",
             "glob": "*.md",
             "path": "/user/user1/harbor-runs/80fc67107a4c/workspace",
             "head_limit": 30
@@ -1731,7 +1731,7 @@
           "tool_call_id": "call-f915e112-9554-48bd-8d82-627c90f17d9a-97",
           "function_name": "run_terminal_command",
           "arguments": {
-            "command": "echo \"PTDBENCH_RESULTS=${PTDBENCH_RESULTS:-unset}\"; ls -ld \"${PTDBENCH_RESULTS:-/tmp}\" 2>/dev/null || true; env | grep -E 'PTD|BENCH|RESULT' | head -50",
+            "command": "echo \"AUTORLBENCH_RESULTS=${AUTORLBENCH_RESULTS:-unset}\"; ls -ld \"${AUTORLBENCH_RESULTS:-/tmp}\" 2>/dev/null || true; env | grep -E 'PTD|BENCH|RESULT' | head -50",
             "description": "Locate results directory for diagnosis write"
           }
         }
@@ -1740,7 +1740,7 @@
         "results": [
           {
             "source_call_id": "call-f915e112-9554-48bd-8d82-627c90f17d9a-97",
-            "content": "exit: 0\nPTDBENCH_RESULTS=/logs/artifacts\ndrwxrwxrwx 2 root root 0 Oct 28 05:39 /logs/artifacts\nPTDBENCH_STAGE=agent\nPTDBENCH_VISIBLE_TASK=/ptdbench\nPTDBENCH_RESULTS=/logs/artifacts\nPTDBENCH_ENVIRONMENT=/ptdbench/environment\nPTDBENCH_TASK_ROOT=/ptdbench\nPTDBENCH_DATASETS=/ptdbench/datasets\nPTDBENCH_WORKSPACE=/workspace\nPTDBENCH_ACTIVATED=1\nPTDBENCH_EVALUATION_LEVEL=issue\nPTDBENCH_MODELS=/ptdbench/models\nPTDBENCH_PREPARED=/ptdbench/prepared\n"
+            "content": "exit: 0\nAUTORLBENCH_RESULTS=/logs/artifacts\ndrwxrwxrwx 2 root root 0 Oct 28 05:39 /logs/artifacts\nAUTORLBENCH_STAGE=agent\nAUTORLBENCH_VISIBLE_TASK=/autorlbench\nAUTORLBENCH_RESULTS=/logs/artifacts\nAUTORLBENCH_ENVIRONMENT=/autorlbench/environment\nAUTORLBENCH_TASK_ROOT=/autorlbench\nAUTORLBENCH_DATASETS=/autorlbench/datasets\nAUTORLBENCH_WORKSPACE=/workspace\nAUTORLBENCH_ACTIVATED=1\nAUTORLBENCH_EVALUATION_LEVEL=issue\nAUTORLBENCH_MODELS=/autorlbench/models\nAUTORLBENCH_PREPARED=/autorlbench/prepared\n"
           }
         ]
       },
@@ -1776,7 +1776,7 @@
       "step_id": 40,
       "source": "agent",
       "model_name": "grok-4.7-build",
-      "message": "The training computation is not healthy. The GRPO actor scores the wrong tokens because the fused Qwen3-VL log-prob path shifts labels twice, and Ulysses sequence-parallel slicing then pulls the extra shift across ranks.\n\nThe engine builds the correct next-token labels in `input_ids_rmpad_rolled`, and the non-fused path uses them. With `use_fused_kernels=True` and the torch backend, `forward_with_torch_backend` in `framework/verl/models/transformers/qwen3_vl.py` ignores those labels and rolls `input_ids` again. Those rolled ids are sliced across `ulysses_sequence_parallel_size=2` before the model forward, so each rank\u2019s hidden state is scored against a token that belongs on the other rank. Both the old-log-prob pass and the update use this path, so the importance ratio and the advantage refer to different tokens.\n\nThe log matches that defect. `actor/ppo_kl` is 0.420 on step 1 and stays between 0.118 and 0.593 for all 40 one-epoch updates. On a correct on-policy step it would be near zero. `pg_clipfrac` stays high from the first step, while gradients remain finite.\n\nReward and validation are a separate path and are internally consistent. The exact-match boxed reward starts at validation accuracy 0.938 before any update, peaks at 0.954 at step 10, then falls to 0.900 at step 40. That decline is the result of the mis-targeted updates, not a broken reward.\n\nThe diagnosis is in `$PTDBENCH_RESULTS/agent_answer.md`.",
+      "message": "The training computation is not healthy. The GRPO actor scores the wrong tokens because the fused Qwen3-VL log-prob path shifts labels twice, and Ulysses sequence-parallel slicing then pulls the extra shift across ranks.\n\nThe engine builds the correct next-token labels in `input_ids_rmpad_rolled`, and the non-fused path uses them. With `use_fused_kernels=True` and the torch backend, `forward_with_torch_backend` in `framework/verl/models/transformers/qwen3_vl.py` ignores those labels and rolls `input_ids` again. Those rolled ids are sliced across `ulysses_sequence_parallel_size=2` before the model forward, so each rank\u2019s hidden state is scored against a token that belongs on the other rank. Both the old-log-prob pass and the update use this path, so the importance ratio and the advantage refer to different tokens.\n\nThe log matches that defect. `actor/ppo_kl` is 0.420 on step 1 and stays between 0.118 and 0.593 for all 40 one-epoch updates. On a correct on-policy step it would be near zero. `pg_clipfrac` stays high from the first step, while gradients remain finite.\n\nReward and validation are a separate path and are internally consistent. The exact-match boxed reward starts at validation accuracy 0.938 before any update, peaks at 0.954 at step 10, then falls to 0.900 at step 40. That decline is the result of the mis-targeted updates, not a broken reward.\n\nThe diagnosis is in `$AUTORLBENCH_RESULTS/agent_answer.md`.",
       "llm_call_count": 1
     }
   ],
