@@ -19,27 +19,26 @@ A benchmark and open call for valuable, reproducible RL runs. Each task is a rea
 ## 🚀 News 
 
 - **24 Oct 2026** — Call for contributions officially open, and Kimi-K3.1-Pro added to the leaderboard.
-- **22 Oct 2026** — Leaderboard v0.1 released, covering 14 tasks.
 - **19 Oct 2026** — GitHub repo and website released.
 
 ## Leaderboard
 
-AutoRLBench Leaderboard, issue + solution evaluation. *Updated as new agents and tasks are added.*
+AutoRLBench Leaderboard, issue + solution evaluation.
 
 | # | Model | Agent | Issue Score | Solution Score | Overall |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | Claude-Fable-5.1 | Claude Code | 83.3 % | 75.0 % | **79.2 %** |
-| 2 | Kimi-K3.1-Pro | Claude Code | 61.1 % | 75.0 % | **68.0 %** |
-| 3 | Grok-4.7 | Grok Build | 66.7 % | 66.7 % | **66.7 %** |
-| 4 | GPT-6-Astra | Codex | 66.7 % | 50.0 % | **58.4 %** |
-| 5 | Kimi-K3 | Claude Code | 33.3 % | 75.0 % | **54.1 %** |
-| 6 | GPT-6.1-Sol | Codex | 55.6 % | 50.0 % | **52.8 %** |
-| 7 | GLM-5.3 | Claude Code | 55.6 % | 40.0 % | **47.8 %** |
-| 8 | Gemini-4-Argon | Claude Code | 44.4 % | 50.0 % | **47.2 %** |
-| 9 | Qwen3.8-Max | Qwen Code | 44.4 % | 50.0 % | **47.2 %** |
-| 10 | DeepSeek-V4-Pro | Claude Code | 16.7 % | 75.0 % | **45.9 %** |
+| 1 | Claude-Fable-5.1 | Claude Code | 83.3 % | 71.4 % | **77.3 %** |
+| 2 | GPT-6-Astra | Codex | 66.7 % | 71.4 % | **69.1 %** |
+| 2 | Grok-4.7 | Grok Build | 66.7 % | 71.4 % | **69.1 %** |
+| 4 | Kimi-K3.1-Pro | Claude Code | 61.1 % | 71.4 % | **66.3 %** |
+| 5 | GPT-6.1-Sol | Codex | 55.6 % | 71.4 % | **63.5 %** |
+| 6 | Gemini-4-Argon | Claude Code | 50.0 % | 71.4 % | **60.7 %** |
+| 7 | GLM-5.3 | Claude Code | 55.6 % | 57.1 % | **56.4 %** |
+| 8 | Kimi-K3 | Claude Code | 33.3 % | 57.1 % | **45.2 %** |
+| 9 | Qwen3.8-Max | Qwen Code | 44.4 % | 42.9 % | **43.6 %** |
+| 10 | DeepSeek-V4-Pro | Claude Code | 16.7 % | 57.1 % | **36.9 %** |
 
-*Overall* is the average of the issue and solution scores. Solution-level evaluation re-runs the full training to verify each fix; runs are ongoing, so solution scores are updated continuously. Full results: [website](https://thinking-space.github.io/AutoRLBench/#leaderboard).
+Scores are pass rates over **18 issue tasks and up to 7 evaluated solution tasks per model**. *Overall* averages the displayed issue and solution percentages. The agent submits `report.md`; the harness evaluates that submission, including remote training jobs. Solution results follow the PTDBench validation-first protocol recorded in the [result provenance](page/solution-results.json). There are **96/180 issue passes and 45/70 solution passes**; the added search and retool solution tasks are included in the ranking. Full results: [website](https://thinking-space.github.io/AutoRLBench/#leaderboard).
 
 ## Tasks
 
@@ -48,12 +47,12 @@ Six domains, one representative task each. The domains come from where in the RL
 <table>
 <tr>
 <td width="50%" valign="top">
-<a href="tasks/configuration/verl_aime25_single_sample_protocol/">
+<a href="tasks/configuration/trl_gsm8k_eos_mismatch/">
 <img src="assets/task-configuration.jpeg" alt="Configuration" width="100%">
 </a>
-<strong>Configuration</strong> · issue · solution<br>
-<a href="tasks/configuration/verl_aime25_single_sample_protocol/"><b>AIME25 single-sample variance</b></a><br>
-One sample per question makes a 30-question score too noisy to judge the run.
+<strong>Configuration</strong> · issue<br>
+<a href="tasks/configuration/trl_gsm8k_eos_mismatch/"><b>TRL GSM8K EOS mismatch</b></a><br>
+Missing <code>&lt;|im_end|&gt;</code> in <code>eos_token_id</code> lets rollouts continue past the answer.
 </td>
 <td width="50%" valign="top">
 <a href="tasks/reward/slime_retool_length_reward_bonus/">

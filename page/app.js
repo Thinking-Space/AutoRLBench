@@ -23,18 +23,34 @@ const CATEGORY_COUNTS = Object.fromEntries(
     TASK_CATEGORIES.map(family => [family, TASKS.filter(task => task.family === family).length])
 );
 
-const ISSUE_RESULTS = [
-    { model: 'GPT-6-Astra', agent: 'Codex', issue: 66.7, solution: 50.0, logo: 'openai' },
-    { model: 'GPT-6.1-Sol', agent: 'Codex', issue: 55.6, solution: 50.0, logo: 'openai' },
-    { model: 'Claude-Fable-5.1', agent: 'Claude Code', issue: 83.3, solution: 75.0, logo: 'anthropic' },
-    { model: 'GLM-5.3', agent: 'Claude Code', issue: 55.6, solution: 40.0, logo: 'glm' },
-    { model: 'Kimi-K3', agent: 'Claude Code', issue: 33.3, solution: 75.0, logo: 'kimi' },
-    { model: 'DeepSeek-V4-Pro', agent: 'Claude Code', issue: 16.7, solution: 75.0, logo: 'deepseek' },
-    { model: 'Gemini-4-Argon', agent: 'Claude Code', issue: 44.4, solution: 50.0, logo: 'googlegemini' },
-    { model: 'Qwen3.8-Max', agent: 'Qwen Code', issue: 44.4, solution: 50.0, logo: 'qwen' },
-    { model: 'Grok-4.7', agent: 'Grok Build', issue: 66.7, solution: 66.7, logo: 'xai' },
-    { model: 'Kimi-K3.1-Pro', agent: 'Claude Code', issue: 61.1, solution: 75.0, logo: 'kimi' },
+const LEADERBOARD_MODELS = [
+    { model: 'GPT-6-Astra', agent: 'Codex', logo: 'openai' },
+    { model: 'GPT-6.1-Sol', agent: 'Codex', logo: 'openai' },
+    { model: 'Claude-Fable-5.1', agent: 'Claude Code', logo: 'anthropic' },
+    { model: 'GLM-5.3', agent: 'Claude Code', logo: 'glm' },
+    { model: 'DeepSeek-V4-Pro', agent: 'Claude Code', logo: 'deepseek' },
+    { model: 'Kimi-K3', agent: 'Claude Code', logo: 'kimi' },
+    { model: 'Kimi-K3.1-Pro', agent: 'Claude Code', logo: 'kimi' },
+    { model: 'Gemini-4-Argon', agent: 'Claude Code', logo: 'googlegemini' },
+    { model: 'Qwen3.8-Max', agent: 'Qwen Code', logo: 'qwen' },
+    { model: 'Grok-4.7', agent: 'Grok Build', logo: 'xai' }
 ];
+
+// The leaderboard and trace pages share the same pass/fail records. Preserve
+// the published convention of averaging the displayed one-decimal rates.
+function leaderboardResults() {
+    const runs = window.AUTORLBENCH_RUNS || [];
+    return LEADERBOARD_MODELS.map(model => {
+        const rate = level => {
+            const selected = runs.filter(run => run.model === model.model && run.level === level
+                && typeof run.passed === 'boolean');
+            return selected.length
+                ? Number((100 * selected.filter(run => run.passed).length / selected.length).toFixed(1))
+                : null;
+        };
+        return { ...model, issue: rate('issue'), solution: rate('solution') };
+    }).filter(result => result.issue !== null && result.solution !== null);
+}
 
 function tasksForFamily(family) {
     return TASKS.filter(task => task.family === family);
@@ -127,7 +143,7 @@ const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 function renderLeaderboard() {
     const mount = document.querySelector('.leaderboard-list');
     if (!mount) return;
-    const rows = ISSUE_RESULTS
+    const rows = leaderboardResults()
         .map((result, index) => ({ ...result, overall: (result.issue + result.solution) / 2, index }))
         .sort((a, b) => b.overall - a.overall || a.index - b.index);
     let displayedRank = 0;
@@ -137,7 +153,7 @@ function renderLeaderboard() {
         if (result.overall !== prevScore) {
             displayedRank = position + 1;
             prevRank = displayedRank;
-            prevScore = result.score;
+            prevScore = result.overall;
         } else {
             displayedRank = prevRank;
         }

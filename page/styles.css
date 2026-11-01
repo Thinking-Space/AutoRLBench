@@ -1304,6 +1304,13 @@ section {
 }
 
 /* Leaderboard */
+.leaderboard-note {
+    margin-top: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
 .leaderboard-controls {
     display: flex;
     align-items: center;
@@ -2199,7 +2206,7 @@ footer {
     flex-wrap: wrap;
     align-items: center;
     gap: 0.55rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
     color: var(--text-secondary);
     font-size: 0.72rem;
 }
@@ -2225,7 +2232,7 @@ footer {
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.75rem;
 }
 
 .task-header-tags span {
@@ -2241,7 +2248,7 @@ footer {
 
 .task-page-header h1 {
     max-width: 100%;
-    margin-bottom: 0.9rem;
+    margin-bottom: 0.75rem;
     font-size: clamp(1.6rem, 4.5vw, 2.5rem);
     font-weight: 800;
     letter-spacing: -0.035em;
@@ -2306,7 +2313,7 @@ footer {
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, 1fr);
     gap: 1.25rem;
-    margin-top: 1.5rem;
+    margin-top: 1.75rem;
 }
 
 .task-reward-fig {
@@ -2432,7 +2439,7 @@ footer {
     border-bottom-color: var(--text);
 }
 
-.task-tab-panel { padding-top: 1.6rem; }
+.task-tab-panel { padding-top: 1.75rem; }
 
 .task-panel-toolbar {
     display: flex;
@@ -2440,7 +2447,7 @@ footer {
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem 1.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .task-file-bar {
@@ -5565,18 +5572,18 @@ body.traces-page > *:not(#globe-canvas):not(nav):not(.site-toast) {
 }
 
 .traces-view {
-    /* Overrides the global `section { max-width: 1100px }` cap. */
+    /* Same shell as the tasks index: full-bleed section, 1.25rem sides. */
     max-width: none;
     padding: 6.5rem 1.25rem 5rem;
 }
 
 .traces-header {
     max-width: 980px;
-    margin: 0 auto 2.4rem;
+    margin: 0 auto 1.75rem;
 }
 
 .traces-header h1 {
-    margin-bottom: 0.7rem;
+    margin-bottom: 0.75rem;
     font-size: clamp(1.6rem, 4vw, 2.3rem);
     font-weight: 800;
     letter-spacing: -0.035em;
@@ -5590,15 +5597,57 @@ body.traces-page > *:not(#globe-canvas):not(nav):not(.site-toast) {
     line-height: 1.7;
 }
 
-/* ---- Task groups -------------------------------------------------------- */
+/* Full-width header: the search box absorbs the free space so the filter
+   row doesn't trail off next to the selects. */
+.traces-header .tasks-search-wrap {
+    flex: 1 1 auto;
+    max-width: none;
+}
+
+/* ---- Category sections ---------------------------------------------------- */
 
 .traces-list {
-    /* Match the header width so the cards align with the page title. */
+    /* Same 980px measure as the tasks index grid. */
     max-width: 980px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
+    gap: 1.25rem;
+}
+
+/* The category is a <section> in traces.js, so it must explicitly reset
+   the global `section { max-width: 1100px; margin: 0 auto; padding:
+   6rem 3rem }` rule — otherwise every group inside gets re-capped and
+   re-padded (this is the bug `display: contents` worked around). */
+.traces-category {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+.traces-category-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0 0.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.traces-category-title {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.traces-category-meta {
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .traces-group {
@@ -5609,11 +5658,26 @@ body.traces-page > *:not(#globe-canvas):not(nav):not(.site-toast) {
     overflow: hidden;
 }
 
+/* Cards stack with no gap: collapsed borders and squared inner corners
+   turn each category into one segmented list — the first card keeps its
+   top corners, the last keeps its bottom corners. */
+.traces-group + .traces-group {
+    margin-top: -1px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.traces-group:not(:last-of-type) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
 .traces-group > summary {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    padding: 0.85rem 1.1rem;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.7rem;
+    padding: 0.7rem 1rem;
     cursor: pointer;
     list-style: none;
     user-select: none;
@@ -5641,19 +5705,6 @@ body.traces-page > *:not(#globe-canvas):not(nav):not(.site-toast) {
     overflow-wrap: anywhere;
 }
 
-.traces-group-tag {
-    flex: 0 0 auto;
-    padding: 0.1rem 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
 .traces-group-meta {
     margin-left: auto;
     flex: 0 0 auto;
@@ -5676,8 +5727,6 @@ body.traces-page > *:not(#globe-canvas):not(nav):not(.site-toast) {
 }
 
 .traces-empty--page {
-    max-width: 1160px;
-    margin: 0 auto;
     border: 1px dashed var(--border-strong);
     border-radius: 10px;
     text-align: center;
@@ -5688,6 +5737,8 @@ body.traces-page > *:not(#globe-canvas):not(nav):not(.site-toast) {
 .traces-table-scroll { overflow-x: auto; }
 
 .traces-table {
+    /* Fill the group box — an auto-width table leaves a large empty
+       margin on the right of the wide layout. */
     width: 100%;
     border-collapse: collapse;
     font-size: 0.8rem;
@@ -5701,7 +5752,7 @@ body.traces-page > *:not(#globe-canvas):not(nav):not(.site-toast) {
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    text-align: center;
+    text-align: left;
     white-space: nowrap;
 }
 
@@ -5709,20 +5760,37 @@ body.traces-page > *:not(#globe-canvas):not(nav):not(.site-toast) {
     padding: 0.65rem 0.7rem;
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
-    text-align: center;
+    text-align: left;
     color: var(--text);
 }
 
 .traces-table tbody tr:last-child td { border-bottom: 0; }
 
+/* Numbers right-aligned; marks and links centered. */
 .traces-table th.traces-col-num,
 .traces-table td.traces-col-num {
-    text-align: center;
+    text-align: right;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
+.traces-table th.traces-col-level,
+.traces-table td.traces-col-level,
+.traces-table th.traces-col-result,
+.traces-table td.traces-col-result,
+.traces-table th.traces-col-open,
+.traces-table td.traces-col-open {
+    text-align: center;
+}
+
 tr.traces-row-link { cursor: pointer; }
+
+/* Level chip in the run table reuses the task-card chip, tightened for
+   row density. */
+.traces-table .task-level-tag {
+    padding: 0.18rem 0.5rem;
+    font-size: 0.55rem;
+}
 
 tr.traces-row-link:hover td { background: rgba(236, 232, 227, 0.4); }
 
@@ -5784,7 +5852,7 @@ tr.traces-row-link:hover td { background: rgba(236, 232, 227, 0.4); }
 
 @media (max-width: 768px) {
     .traces-view { padding: 6.5rem 1rem 4rem; }
-    .traces-group > summary { flex-wrap: wrap; padding: 0.75rem 0.9rem; }
+    .traces-group > summary { padding: 0.75rem 0.9rem; }
     .traces-group-meta { margin-left: 0; width: 100%; order: 5; flex-basis: 100%; }
     .traces-group-body { padding: 0.2rem 0.6rem 0.7rem; }
     .traces-table th, .traces-table td { padding: 0.55rem 0.5rem; }
@@ -5956,6 +6024,29 @@ body.tasks-page > *:not(#globe-canvas):not(nav):not(.site-toast) {
 .tasks-view .tasks-grid {
     max-width: 980px;
     margin: 0 auto;
+}
+
+/* Evaluation-level chips beside the family tag on a card: Issue / Solution. */
+.task-tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.task-level-tag {
+    display: inline-block;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--brick-ink);
+    background: rgba(154, 64, 56, 0.08);
+    border: 1px solid var(--brick);
+    padding: 0.24rem 0.6rem;
+    border-radius: 20px;
+    width: fit-content;
+    font-weight: 500;
+    line-height: 1;
 }
 
 /* ---- Responsive ------------------------------------------------------------ */

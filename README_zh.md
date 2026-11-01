@@ -20,27 +20,26 @@
 ## 🚀 新闻
 
 - **2026 年 10 月 24 日** — 正式开始征集贡献（call for contributions），并在 leaderboard 中加入 Kimi-K3.1-Pro 评测结果。
-- **2026 年 10 月 22 日** — 发布 Leaderboard v0.1，包含 14 个任务。
 - **2026 年 10 月 19 日** — 发布 GitHub 仓库与网站。
 
 ## Leaderboard
 
-AutoRLBench Leaderboard，issue + solution 双档成绩。*会随新 agent 与新任务持续更新。*
+AutoRLBench Leaderboard，issue + solution 双档成绩。
 
 | # | 模型 | Agent | Issue 分数 | Solution 分数 | 总分 |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | Claude-Fable-5.1 | Claude Code | 83.3 % | 75.0 % | **79.2 %** |
-| 2 | Kimi-K3.1-Pro | Claude Code | 61.1 % | 75.0 % | **68.0 %** |
-| 3 | Grok-4.7 | Grok Build | 66.7 % | 66.7 % | **66.7 %** |
-| 4 | GPT-6-Astra | Codex | 66.7 % | 50.0 % | **58.4 %** |
-| 5 | Kimi-K3 | Claude Code | 33.3 % | 75.0 % | **54.1 %** |
-| 6 | GPT-6.1-Sol | Codex | 55.6 % | 50.0 % | **52.8 %** |
-| 7 | GLM-5.3 | Claude Code | 55.6 % | 40.0 % | **47.8 %** |
-| 8 | Gemini-4-Argon | Claude Code | 44.4 % | 50.0 % | **47.2 %** |
-| 9 | Qwen3.8-Max | Qwen Code | 44.4 % | 50.0 % | **47.2 %** |
-| 10 | DeepSeek-V4-Pro | Claude Code | 16.7 % | 75.0 % | **45.9 %** |
+| 1 | Claude-Fable-5.1 | Claude Code | 83.3 % | 71.4 % | **77.3 %** |
+| 2 | GPT-6-Astra | Codex | 66.7 % | 71.4 % | **69.1 %** |
+| 2 | Grok-4.7 | Grok Build | 66.7 % | 71.4 % | **69.1 %** |
+| 4 | Kimi-K3.1-Pro | Claude Code | 61.1 % | 71.4 % | **66.3 %** |
+| 5 | GPT-6.1-Sol | Codex | 55.6 % | 71.4 % | **63.5 %** |
+| 6 | Gemini-4-Argon | Claude Code | 50.0 % | 71.4 % | **60.7 %** |
+| 7 | GLM-5.3 | Claude Code | 55.6 % | 57.1 % | **56.4 %** |
+| 8 | Kimi-K3 | Claude Code | 33.3 % | 57.1 % | **45.2 %** |
+| 9 | Qwen3.8-Max | Qwen Code | 44.4 % | 42.9 % | **43.6 %** |
+| 10 | DeepSeek-V4-Pro | Claude Code | 16.7 % | 57.1 % | **36.9 %** |
 
-*总分*为 issue 与 solution 两档分数的均值。solution 档评测会重跑完整训练以验证修复效果，目前仍在持续运行，solution 分数也在持续更新。完整结果见[网站](https://thinking-space.github.io/AutoRLBench/#leaderboard)。
+分数为每个模型在 **18 个 issue 任务和最多 7 个已评测 solution 任务**上的通过率；*总分*取两档已展示百分比的均值。agent 提交 `report.md` 后，由 harness 对该提交重跑评测，也可通过远程训练 job 完成。solution 采用 PTDBench validation-first 协议，详见[结果来源记录](page/solution-results.json)。当前 issue **96/180** 通过，solution **45/70** 通过；新增的 search 与 retool solution 任务已计入排名。完整结果见[网站](https://thinking-space.github.io/AutoRLBench/#leaderboard)。
 
 ## 任务
 
@@ -49,12 +48,12 @@ AutoRLBench Leaderboard，issue + solution 双档成绩。*会随新 agent 与�
 <table>
 <tr>
 <td width="50%" valign="top">
-<a href="tasks/configuration/verl_aime25_single_sample_protocol/">
+<a href="tasks/configuration/trl_gsm8k_eos_mismatch/">
 <img src="assets/task-configuration.jpeg" alt="Configuration" width="100%">
 </a>
-<strong>Configuration</strong> · issue · solution<br>
-<a href="tasks/configuration/verl_aime25_single_sample_protocol/"><b>AIME25 单样本方差</b></a><br>
-每题只采样一次，30 题的分数噪声大到无法判断这次运行。
+<strong>Configuration</strong> · issue<br>
+<a href="tasks/configuration/trl_gsm8k_eos_mismatch/"><b>TRL GSM8K EOS 不匹配</b></a><br>
+<code>eos_token_id</code> 缺少 <code>&lt;|im_end|&gt;</code>，导致 rollout 在答案后继续生成。
 </td>
 <td width="50%" valign="top">
 <a href="tasks/reward/slime_retool_length_reward_bonus/">

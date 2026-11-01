@@ -3,8 +3,10 @@
 
     /* Tasks index (tasks.html). Lists every task in the benchmark with the
        same card idiom as the home page's sample grid, but without images.
-       A search box filters by title, and a category dropdown filters by
-       failure category. Cards link to the task detail page. */
+       A search box filters by title, a category dropdown filters by failure
+       category, and a level dropdown filters by evaluation level (all tasks
+       support issue-level evaluation; non-issue-only tasks also support
+       solution-level evaluation). Cards link to the task detail page. */
 
     const TASKS = window.AUTORLBENCH_TASKS || [];
 
@@ -19,6 +21,7 @@
 
     let query = '';
     let category = 'all';
+    let level = 'all';
 
     function escHtml(s) {
         return String(s)
@@ -29,11 +32,17 @@
     }
 
     function taskCard(task) {
+        const levels = task.tags && task.tags.includes('issue-only')
+            ? '<span class="task-level-tag">Issue</span>'
+            : '<span class="task-level-tag">Issue</span><span class="task-level-tag">Solution</span>';
         return `
             <a href="task.html?id=${encodeURIComponent(task.id)}" class="task-card task-card--noimage">
                 <div class="task-card-body">
                     <h3>${escHtml(task.title)}</h3>
-                    <span class="task-tag">${escHtml(task.family)}</span>
+                    <div class="task-tag-row">
+                        <span class="task-tag">${escHtml(task.family)}</span>
+                        ${levels}
+                    </div>
                     <p>${escHtml(task.brief || task.issue)}</p>
                     <div class="task-card-meta">
                         <span>${escHtml(task.framework || '—')}</span>
@@ -43,10 +52,19 @@
             </a>`;
     }
 
+    function matchesLevel(task) {
+        // Every task has an issue-level evaluation; only non-issue-only
+        // tasks also support solution-level evaluation.
+        return level === 'solution'
+            ? !(task.tags && task.tags.includes('issue-only'))
+            : true;
+    }
+
     function filteredTasks() {
         const q = query.trim().toLowerCase();
         return TASKS.filter(task =>
             (category === 'all' || task.family === category)
+            && matchesLevel(task)
             && (task.title.toLowerCase().includes(q)
                 || String(task.brief || task.issue).toLowerCase().includes(q)));
     }
@@ -63,7 +81,7 @@
         }
         mount.innerHTML = tasks.length
             ? tasks.map(taskCard).join('')
-            : '<div class="tasks-empty">No tasks match the current search and category filters.</div>';
+            : '<div class="tasks-empty">No tasks match the current search and filters.</div>';
     }
 
     function renderFilters() {
@@ -78,6 +96,13 @@
         if (select) {
             select.addEventListener('change', event => {
                 category = event.target.value;
+                renderCards();
+            });
+        }
+        const levelSelect = document.getElementById('tasks-level-select');
+        if (levelSelect) {
+            levelSelect.addEventListener('change', event => {
+                level = event.target.value;
                 renderCards();
             });
         }
@@ -104,6 +129,11 @@
                     <select id="tasks-category-select" class="tasks-category-select" aria-label="Filter by failure category">
                         <option value="all">All Categories</option>
                         ${TASK_CATEGORIES.map(family => `<option value="${escHtml(family)}">${escHtml(family)}</option>`).join('')}
+                    </select>
+                    <select id="tasks-level-select" class="tasks-category-select" aria-label="Filter by evaluation level">
+                        <option value="all">All Levels</option>
+                        <option value="issue">Issue</option>
+                        <option value="solution">Solution</option>
                     </select>
                 </div>
             </div>`;

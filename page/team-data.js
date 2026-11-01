@@ -13,8 +13,9 @@ const TEAM = [
     { name: 'Zixuan Fu', handle: 'Zixuan-Fu', affiliation: 'Tsinghua University' },
     { name: 'Yuan Gao', handle: 'Zaogezi', affiliation: 'Tsinghua University' },
     { name: 'Xin Huang', handle: 'NaCresp', affiliation: 'Tsinghua University' },
-    { name: 'Junlin Yang', handle: 'YangJL2003', affiliation: 'Tsinghua University' },
     { name: 'Yaxuan Li', handle: 'YaxuanLi-cn', affiliation: 'Tsinghua University' },
     { name: 'Zixi Chen', handle: 'Jccc1025', affiliation: 'Tsinghua University' },
-    { name: 'Shouzheng Huang', handle: 'Huangsz2021', affiliation: 'Harbin Institute of Technology (Shenzhen)' }
+    { name: 'Shouzheng Huang', handle: 'Huangsz2021', affiliation: 'Harbin Institute of Technology (Shenzhen)' },
+    { name: 'Jinyang Wu', handle: 'jinyangwu', affiliation: 'Tsinghua University' },
+    { name: 'Junlin Yang', handle: 'YangJL2003', affiliation: 'Tsinghua University' },
 ];
