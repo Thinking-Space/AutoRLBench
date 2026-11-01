@@ -402,7 +402,7 @@ class TaskEvaluator:
         """Re-run the experiment on the workspace the agent left behind, per run_spec.json.
 
         Returns None when the task has no run_spec.json (a verifier that drives the work itself, or
-        a pure protocol repair such as verl_aime25_single_sample_protocol): those tasks go straight
+        a pure protocol repair): those tasks go straight
         from the submitted report to the verifier, and the agent-side constraints are carried by
         instruction.md alone. A run_spec.json that exists but is invalid is a task-definition bug,
         and load_run_spec raises RunSpecError on the spot -- not halfway into a training run.

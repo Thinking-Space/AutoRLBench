@@ -1,0 +1,20 @@
+STANDARD_ANSWER_V1
+CASE_ID: verl_gsm8k_flat_eval
+BENCHMARK_GROUP: verl_algorithm
+EXPECTED_VERDICT: unhealthy
+EXPECTED_ATTRIBUTION: The vLLM rollout config loop forwards the configured seed into the shared SamplingParams object, repeating the sampling seed across rollout generation calls and suppressing GRPO's within-group learning signal.
+PRIMARY_METRIC: val-core/openai/gsm8k/reward/mean@1
+
+REQUIRED_ALL:
+- Identify verl/workers/rollout/vllm_rollout/vllm_rollout_spmd.py and the generic SamplingParams config loop as the root cause.
+- State that the observed condition forwards the rollout seed to SamplingParams, while the baseline excludes the seed key.
+- Connect the repeated seed to reduced rollout sampling diversity / weak within-group GRPO learning signal.
+- Support the diagnosis with the flat observed validation curve and/or zero actor gradients, and contrast it with the changing baseline curve.
+
+GLOBAL_JUDGE_POLICY:
+- The score must be exactly 0 or 1.
+- Agent A must explicitly classify the run as healthy or unhealthy.
+- Every REQUIRED_ALL item must be satisfied.
+- A verdict mismatch forces score 0.
+- Equivalent technical wording in any language is acceptable.
+- task.yaml may clarify targets and aliases but may not relax REQUIRED_ALL.

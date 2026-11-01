@@ -1,0 +1,38 @@
+# Override only the required agent config fields.
+# Other fields are inherited from verl defaults.
+
+# Use async mode.
+mode: async
+
+# [Experimental] AgentFlow-based rollout configs that override verl's AgentLoopConfig.
+agent:
+
+  # Use agent_r1's AgentFlowConfig instead of verl's AgentLoopConfig.
+  _target_: agent_r1.config.AgentFlowConfig
+
+  # Number of agent flow workers
+  num_workers: 8
+
+  # default agent flow to use if `agent_name` not set in RL dataset
+  default_agent_flow: single_step_agent
+
+  # custom agent flow config path
+  agent_flow_config_path: null
+
+  # max interaction steps for AgentEnvLoop
+  max_steps: 10
+
+  # whether to skip special tokens when decoding LLM response
+  skip_special_tokens: true
+
+  # custom async server configs
+  custom_async_server:
+
+    # Required when using verl.utils.omega_conf_to_dataclass to instantiate dataclass configs
+    _target_: verl.workers.config.CustomAsyncServerConfig
+
+    # Path to the custom async server implementation
+    path: null
+
+    # Class name of the custom async server class (e.g. AsyncvLLMServer)
+    name: null

@@ -15,7 +15,7 @@ learning signal. Both parts are essential:
    test passes). On the training problems the policy almost never earns a 1,
    so nearly every GRPO group of 8 rollouts is all-zero, its group-normalized
    advantage is exactly 0, and the policy-gradient term vanishes on most steps.
-   Training does not learn, and held-out accuracy never moves off its step-0
+   Held-out accuracy fluctuates without a clear improvement over its step-0
    level.
 
 The train/validation difficulty mismatch is how the agent can tell the
@@ -82,3 +82,11 @@ From `workspace/logs/qwen2_5_1.5b_instruct_taco_fsdp_20261021_080557.log`
   be established from the problem statements and from the train/validation
   pass-rate gap under the same model and scorer. Citing a `difficulty` field is
   not required.
+
+Audit note (2026-10-31): all 51,200 training records parse when read as
+LF-delimited JSONL. One response in `workspace/rollout_data/380.jsonl` contains
+a legal Unicode U+2028 character; `str.splitlines()` incorrectly splits that
+record. Group by prompt, not adjacent blocks of eight: the intact evidence
+has 6,223 all-zero, 175 mixed and 2 all-correct groups, each with eight samples.
+Exact `VERY_HARD`/`EASY` labels are not required for a diagnosis that establishes
+excessive difficulty and the GRPO signal chain.

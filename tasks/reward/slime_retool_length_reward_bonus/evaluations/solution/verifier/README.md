@@ -7,8 +7,9 @@ rules, or rubrics. It strips ANSI escapes and reconstructs `eval/aime` from
 
 ## Which space `eval/aime` is read in
 
-The math_dapo **score** space, `[-1, 1]`, exactly as `slime_retool` grades the
-same recipe — and exactly the space the frozen historical trace was logged in
+The reward **score** channel. Without the length bonus, correctness plus
+tool-call shaping ranges over `[-1.1, 1]`. The frozen trace uses this channel
+with the defective length bonus included
 (`eval_reward_key: score` in `workspace/wandb/latest-run/files/config.yaml`).
 No `--eval-reward-key` is involved.
 
@@ -17,13 +18,13 @@ discriminator:
 
 - `reward_func`'s score channel is where the injected defect lives, so a run
   that still carries `5 * length_ratio` reports an `eval/aime` **outside**
-  `[-1, 1]` — the historical defective run logs `+0.822` at step 0 rising to
+  the healthy range at later points — the historical defective run logs `+0.822` at step 0 rising to
   `+3.841` at step 99.
 - A run with the length term removed reports the correctness signal, which
   cannot exceed `+1` and in practice sits well below `0`.
 
-So "did the agent remove the length bonus" is read directly off the metric,
-rather than inferred from a second-order accuracy collapse.
+These curves distinguish the recorded runs. A score in the accepted interval
+does not independently establish removal of the length bonus.
 
 ## Bounds and how they are calibrated
 
@@ -53,9 +54,8 @@ the last one is a poor proxy for that.
   `5 * 4042 / 16384 = +1.233`, so an unrepaired step 0 lands near `+0.65` —
   `0.15` above the bound, and every later point is `+1.3` or more above it.
   In the other direction `0.5` is `0.92` above the repaired run's best point;
-  clearing it legitimately would take roughly 75% AIME accuracy, which this
-  recipe is nowhere near in 70 steps. The bound therefore cannot fail a correct
-  repair.
+  neither recorded reference approaches it. This empirical margin does not
+  guarantee that a better legitimate repair cannot exceed it.
 
 Verified against both real traces: the repaired log scores `1`
 (best `-0.4246` at step 59); the historical defective trace scores `0`
@@ -74,11 +74,12 @@ from false negatives.
 
 ## Accuracy is deliberately not graded
 
-`reward_func` floors an incorrect sample at `min(-0.6, …)` rather than `-1`, so
-a mean score of `-0.4861` does **not** convert to `(score + 1) / 2 = 25.7%`
-accuracy; it only bounds accuracy to `[7.1%, 25.7%]`. No measured accuracy
-exists for the repaired recipe, so no accuracy threshold can be calibrated.
-Grade the score channel, which is measured.
+Incorrect scores range from -1.1 to -0.6 after tool-call shaping. A mean of
+-0.4861 therefore bounds accuracy only to approximately [7.1%, 29.2%];
+`(score + 1) / 2` is neither exact accuracy nor a general upper bound.
+No exact accuracy was recorded for the repaired recipe. An independent
+accuracy gate requires new calibration; the current verifier grades the
+measured score channel.
 
 The verifier writes `experiment_metrics.json`, `metrics.json`, and
 `result.json`. `test.sh` runs `tests/grade_submission.py`, which reads

@@ -1,0 +1,60 @@
+hydra:
+  searchpath:
+    - file://verl/trainer/config
+
+defaults:
+  - ppo_trainer
+  - _self_
+
+data:
+  gen_batch_size: ${data.train_batch_size}
+
+reward:
+  reward_manager:
+    name: dapo
+  reward_kwargs:
+    overlong_buffer_cfg:
+      enable: False
+      len: 0
+      penalty_factor: 0.0
+      log: False
+    max_resp_len: null
+
+algorithm:
+  reward_noise:
+    enable: False
+    flip_prob: 0.0
+    seed: 0
+    mode: "group_flip_binary_score"
+  filter_groups:
+    _target_: verl.trainer.config.FilterGroupsConfig
+    enable: False
+    metric: null
+    max_num_gen_batches: 0
+
+vimpo_config:
+  use_vimpo_loss: True
+  value_type: 'raw' # 'soft' or 'raw'
+  vimpo_value_loss_type: "squared_error" # "squared_error" or "huber"
+  vimpo_value_huber_delta: 0.5
+  vimpo_value_loss_normalized: False
+  vimpo_value_loss_coeff: 1.0
+  vimpo_ppo_whiten_adv: True
+  vimpo_beta: 0.0005
+  vimpo_actor_coeff: 0.005
+  vimpo_adaptive_actor_coeff: False
+  vimpo_adaptive_actor_alpha: 0.15
+  vimpo_adaptive_actor_ema_decay: 0.9
+  vimpo_adaptive_actor_eps: 1.0e-12
+  vimpo_cap_v0: null # null disables capping; numeric caps prompt-level V0 from above
+  vimpo_detach_kl: True
+  vimpo_update_ref_freq: 0 # 0 means never update
+  vimpo_kl_estimator: 'exact' # raw: 'exact', 'candidate_set', 'k2', 'k3'; soft also supports 'k1'
+  vocab_chunk_size: 4096
+  candidate_kl_topk: 128
+  candidate_kl_M: 0 # not implemented
+  use_grpo_actor: False
+  use_ppo_actor: True
+
+trainer:
+  project_name: vimpo

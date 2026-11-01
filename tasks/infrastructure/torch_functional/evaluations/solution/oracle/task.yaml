@@ -1,0 +1,27 @@
+task_id: torch_functional
+category: verl_implementation
+hollow_file: verl/workers/engine/fsdp/transformer_impl.py
+hollow_symbols:
+- prepare_model_inputs
+hollowed_symbols:
+- prepare_model_inputs
+baseline_path: hidden/baseline/verl/workers/engine/fsdp/transformer_impl.py
+experiment_name: taco_qwen2_5_1.5b_torch_functional
+created_at: '2026-09-09T09:40:00+00:00'
+note: verl GRPO/TACO diagnosis copied from task_function_call; taco.py restored
+  from lyh tasks_coding_pass_01. Injected defect re-targeted (2026-10-05) to the
+  live FSDP log-prob path. prepare_model_inputs in
+  verl/workers/engine/fsdp/transformer_impl.py drops the causal roll
+  (input_ids_rmpad_rolled = input_ids_rmpad instead of
+  torch.roll(input_ids_rmpad, shifts=-1, dims=1)), so the un-rolled labels fed to
+  logprobs_from_logits (and the fused shift_labels) make every recomputed response
+  log-prob off-by-one. The downstream no_padding_2_padding left-shift slice in
+  verl/workers/utils/padding.py stays healthy and cannot recover the alignment on
+  its own. Prior framings (dead-code verl/utils/torch_functional.py and the
+  padding.py slice) were inert on this engine and have been reverted. Hidden
+  baseline transformer_impl.py is the healthy version with the roll restored.
+  Agent cannot read oracle/baseline.
+val_baseline_paste:
+- hidden/baseline/** (all sealed .py; includes hollow + val stack)
+baselines:
+  verl/workers/engine/fsdp/transformer_impl.py: 684eaf25ba49669b6301565ff3631533656aa1b40f1a1a42cf9d0f544111a915

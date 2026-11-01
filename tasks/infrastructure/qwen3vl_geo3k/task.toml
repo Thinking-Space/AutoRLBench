@@ -1,0 +1,33 @@
+title = "verl_implementation diagnosis: qwen3vl_geo3k"
+license = "Apache-2.0"
+created_date = "2026-10-22"
+domain = "infrastructure"
+tags = ["verl", "grpo", "qwen3-vl", "multimodal", "rope", "log-prob"]
+
+[submitter]
+name = "benchmark_evaluation"
+
+[model]
+name = "Qwen3-VL-8B-Instruct"
+
+[dataset]
+name = "geometry3k (2101 train / 601 held-out)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_qwen3vl_geo3k_grpo.sh"
+
+[environment]
+# A dedicated verl image is required: Qwen3-VL needs vLLM 0.24 / torch 2.11 /
+# CUDA 13, newer than what the shared `verl` environment ships. The image
+# is not yet published (see README.md, Environment requirement).
+image = "verl-qwen3vl-cu130"
+
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+NVIDIA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "HFModelConfig uses raw AutoProcessor instead of the verl adapter, so missing multimodal RoPE capability triggers flat image positions in training; the recorded mean training-rollout KL is 0.006591 rather than 0.000623 nat/token with the adapter restored."

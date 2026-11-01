@@ -26,8 +26,8 @@ only TACO `VERY_HARD` rows and `test.parquet` is the existing `EASY` split.
 The TACO reward is binary (1 only when every test passes). On the training
 problems the policy almost never earns a 1, so nearly every GRPO group of 8
 rollouts is all-zero, its group-normalized advantage is exactly 0, and the
-policy-gradient term vanishes on most steps. Training does not learn, and
-held-out accuracy never moves off its step-0 level. The train/validation
+policy-gradient term vanishes on most steps. The policy-gradient signal is sparse, and held-out accuracy fluctuates
+without a clear improvement over its step-0 level. The train/validation
 difficulty mismatch is evidence for "too hard", not the mechanism.
 
 `workspace/rollout_data/` holds the per-step training rollout dumps (400 files
@@ -78,5 +78,14 @@ rises 0.69 -> ~1.0-1.1 (a symptom of zero-advantage steps, not a cause).
 
 Known limitation: the task directory name describes the answer. The dataset
 repo name also states it, but it is base64-encoded inside `prepare.sh` and
-cached under a neutral `--cache-as` alias, so neither channel shows it to the
-agent.
+cached under a neutral `--cache-as` alias. This hides the literal name from
+simple searches but does not prevent disclosure: the agent can read and decode
+`prepare.sh`. Base64 is not an access boundary.
+
+Audit note (2026-10-31): all 51,200 training records parse when read as
+LF-delimited JSONL. One response in `workspace/rollout_data/380.jsonl` contains
+a legal Unicode U+2028 character; `str.splitlines()` incorrectly splits that
+record. Group by prompt, not adjacent blocks of eight: the intact evidence
+has 6,223 all-zero, 175 mixed and 2 all-correct groups, each with eight samples.
+Exact `VERY_HARD`/`EASY` labels are not required for a diagnosis that establishes
+excessive difficulty and the GRPO signal chain.

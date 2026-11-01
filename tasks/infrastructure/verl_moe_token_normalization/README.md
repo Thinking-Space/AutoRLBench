@@ -12,7 +12,7 @@ auxiliary losses, so the z-loss gradients are never divided back.
 | **Model** | Qwen/Qwen1.5-MoE-A2.7B-Chat |
 | **Dataset** | openai/gsm8k main; 7473 train rows, 64 held-out validation rows from the official 1319-row test split |
 | **Framework** | verl, Megatron engine, `scripts/train.sh` |
-| **Environment** | `verl-moe-token` (not yet built) · 2 GPUs with at least 56 GiB free per card |
+| **Environment** | `verl-moe-token` (image not yet published) · 2 GPUs with at least 56 GiB free per card |
 | **Evaluations** | issue · solution |
 | **Recorded runs** | 1 defective + 1 repaired run, 150 steps each |
 
@@ -52,7 +52,7 @@ the observed gap without establishing cross-seed variance.
 ## Verification
 
 - **issue**: an LLM judge scores verdict / root cause / evidence, weighted
-  0.2 / 0.6 / 0.2. Passing requires ≥ 0.8.
+  0.2 / 0.6 / 0.2. Passing requires `verdict_score == 1.0`, `root_cause_score > 0.8`, and `evidence_score > 0.8`; the weighted total alone is not sufficient.
 - **solution**: the agent repairs the workspace and submits `report.md` without
   training; a missing report scores 0. The harness then reruns
   `scripts/train.sh` per `run_spec.json` and requires

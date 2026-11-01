@@ -41,10 +41,14 @@ truncate ratio.
 Because `eval/aime` is the mean of `reward_func`, the length term is inside
 the logged metric. Subtracting `5 * min(mean_effective_len / 16384, 1)`
 reconstructs decontaminated scores of about −0.417 at step 0 and −0.831 at
-step 99. `reward_func` floors an incorrect sample at `min(-0.6, …)` rather than
-`-1`, so those scores bound exact-match accuracy at no more than about 29.2%
-and 8.4%; the true values are lower. Either way the held-out signal collapses
-while the polluted metric rises.
+step 99. An incorrect sample scores `min(-0.6, -1 + 0.05 * (tool_calls - 2))`,
+so its score ranges from -1.1 to -0.6. The conservative accuracy upper bound
+is `(score + 1.1) / 2.1`, about 32.5% and 12.8%, respectively. No exact
+accuracy curve was recorded, and a decline in these bounds does not prove
+an actual accuracy decline. The archived `held_out_accuracy_*` fields in
+`historical_evidence_manifest.json` and `dirty_reference/historical_metrics.json`
+used the invalid `(score + 1) / 2` conversion; they are retained as historical
+metadata and must not be used as accuracy measurements or calibration targets.
 
 ## Why it is unhealthy
 
@@ -93,7 +97,8 @@ cause:
 
 Machine grading reads only the new experiment logs under
 `$AUTORLBENCH_RESULTS/experiment_logs`. The required held-out metric is
-`eval/aime`, read in the math_dapo **score** space `[-1, 1]` — the space the
+`eval/aime`, read from the correctness-plus-tool-shaping **score** channel
+(healthy range `[-1.1, 1]`) — the channel the
 frozen trace was logged in (`eval_reward_key: score`) and the space
 `slime_retool` grades the same recipe in. No `--eval-reward-key` is involved;
 the instruction fixes `--num-rollout 70` and `--eval-interval 10`, so the run
@@ -102,7 +107,7 @@ has eval points 0, 9, …, 69.
 Grading the score channel is the discriminator, because that channel is where
 the defect lives:
 
-- the length term is still present → `eval/aime` leaves `[-1, 1]`
+- the historical run with the length term eventually exceeds the healthy maximum of 1
   (historically `+0.822` at step 0 up to `+3.841` at step 99)
 - the length term is removed → `eval/aime` is the correctness signal, which
   cannot exceed `+1`
@@ -121,16 +126,15 @@ with the length term removed, same image and assets, `--num-rollout 70`
 
 The lower bound fails an untrained step 0 (`-0.5808`) while the best point
 (step 59, `-0.4246`) clears it by `0.125`. The upper bound sits below every
-eval point an unrepaired run can produce — the thinnest case is step 0, where
+recorded eval point of the unrepaired run — the thinnest case is step 0, where
 the length bonus alone is `5 * 4042 / 16384 = +1.233` and the total lands near
-`+0.65` — yet `0.92` above the repaired run's best point, so it cannot fail a
-correct repair. `historical_final_baseline` in `grader_spec.json` is the
+`+0.65` — yet `0.92` above the repaired run's best point. This margin does
+not prove every legitimate repair will stay below the upper bound. `historical_final_baseline` in `grader_spec.json` is the
 *defective* run's step-69 value (`+3.580`): here a repaired run must come in
 below the baseline, not above it.
 
-Do not quote an accuracy threshold for this level. `reward_func` floors an
-incorrect sample at `min(-0.6, …)` rather than `-1`, so mean score does not
-convert to accuracy by `(score + 1) / 2`; `-0.4861` only bounds the repaired
-run's accuracy to `[7.1%, 25.7%]`, and no accuracy was ever measured for the
-repaired recipe. The score channel is what was measured, so the score channel
-is what is graded.
+Do not quote an accuracy threshold for this level. For correct score 1 and
+incorrect scores in [-1.1, -0.6], a mean of -0.4861 bounds accuracy only to
+approximately [7.1%, 29.2%]. No exact accuracy was recorded for the repaired
+recipe. The current verifier grades the measured score channel; independent
+correctness scoring requires a new calibrated protocol.

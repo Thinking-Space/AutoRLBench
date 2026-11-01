@@ -1,0 +1,34 @@
+title = "Checkpoint saving exhausts host memory at step 10"
+license = "Apache-2.0"
+created_date = "2026-10-27"
+domain = "infrastructure"
+tags = ["verl", "grpo", "fsdp", "checkpoint", "optimizer-offload", "host-memory"]
+
+[submitter]
+name = "Jinyang Wu"
+
+[model]
+name = "Qwen/Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "openai/gsm8k main (7473 train / 1319 test rows)"
+
+[training]
+framework = "verl 0.3.0.post1 / Ray 2.40.0 / vLLM 0.7.4"
+algo = "GRPO"
+script = "scripts/train.sh"
+
+[environment]
+image = "verl_checkpoint_host_memory_oom"
+
+[environment.env]
+NVIDIA_VISIBLE_DEVICES = "all"
+CONTAINER_MEMORY_LIMIT_BYTES = "21474836480"
+PYTHONDONTWRITEBYTECODE = "1"
+PYTHONPATH = "/workspace"
+VLLM_USE_V1 = "0"
+OMP_NUM_THREADS = "2"
+
+[outcome]
+failure_type = "resource_exhaustion"
+failure_reason = "CPU-offloaded Adam state leaves insufficient host-memory headroom for native checkpoint serialization at step 10. Retaining optimizer state on GPU reduces host-memory pressure under the same container budget."

@@ -258,8 +258,8 @@ _rerun_status=$?
 unset AUTORLBENCH_STAGE PYTHONUSERBASE PIP_USER PIP_BREAK_SYSTEM_PACKAGES
 export AUTORLBENCH_STAGE=verifier
 echo "autorlbench: rerun exit=$_rerun_status" >&2
-# Grade even when the rerun failed: against empty or partial logs the grading script scores 0 by
-# itself, which matches the docker backend, where the verifier always runs.
+# Still run the verifier for diagnostics. A failed rerun overrides its score below,
+# matching the native evaluator even if partial logs happen to clear a metric gate.
 
 '''
         return f'''#!/usr/bin/env bash
@@ -286,6 +286,29 @@ if [ "$AUTORLBENCH_EVALUATION_LEVEL" = "solution" ]; then
 fi
 {rerun_section}bash "$AUTORLBENCH_VERIFIER/test.sh"
 verifier_status=$?
+
+# Partial logs can contain passing metrics even though training crashed or timed out.
+# Keep the diagnostic result, but the completed experiment is a prerequisite for credit.
+if [ "${{_rerun_status:-0}}" -ne 0 ]; then
+  python3 - "$AUTORLBENCH_RESULTS/result.json" "$_rerun_status" <<'PY'
+import json
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+try:
+    previous = json.loads(path.read_text())
+except (OSError, ValueError):
+    previous = None
+path.write_text(json.dumps({{
+    "passed": False, "score": 0.0,
+    "metrics": {{"failure": "system rerun failed", "rerun_exit_code": int(sys.argv[2]),
+                "verifier_result": previous}}
+}}) + "\\n")
+PY
+  cp "$AUTORLBENCH_RESULTS/result.json" /logs/verifier/autorlbench-result.json
+  printf '0\\n' > /logs/verifier/reward.txt
+  exit 1
+fi
 
 # Put the structured result in the verifier log so remote Harbor environments download it too.
 result_file="$AUTORLBENCH_RESULTS/result.json"
