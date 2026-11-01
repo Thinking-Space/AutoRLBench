@@ -1,0 +1,32 @@
+title = "PiSSA residual base used as the KL reference"
+license = "Apache-2.0"
+created_date = "2026-11-01"
+domain = "algorithm"
+tags = ["verl", "grpo", "pissa", "lora", "kl-reference"]
+
+[submitter]
+name = "Ruijia Zhang"
+email = "rzhan127@jh.edu"
+
+[model]
+name = "Qwen/Qwen2.5-0.5B-Instruct + PiSSA rank 8"
+
+[dataset]
+name = "openai/gsm8k deterministic calibration subset (16 train, 8 validation)"
+
+[training]
+framework = "verl"
+algo = "GRPO"
+script = "run_experiment.sh"
+
+[environment]
+image = "verl-vllm011"
+
+[environment.env]
+WANDB_MODE = "offline"
+CUDA_VISIBLE_DEVICES = "0"
+NVIDIA_VISIBLE_DEVICES = "0"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "For a PiSSA residual-base checkpoint, disabling the adapter exposes W_residual rather than the original pretrained weights. The defective base-reference path therefore computes KL against the residual checkpoint: final base-reference consistency is 0.04578, while the repaired path reconstructing the frozen initial PiSSA adapter reaches 1.0 under the same four-update run."
