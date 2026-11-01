@@ -1,0 +1,17 @@
+category: infrastructure
+framework: verl
+task: verl_pissa_vllm_adapter_request
+verdict: unhealthy
+root_cause:
+- name: lora_request_id_type
+  where: verl/workers/rollout/vllm_rollout/vllm_async_server.py
+  observed: integer IDs from list_loras are tested against the string adapter name, so generation omits LoRARequest
+  expected: test VLLM_LORA_INT_ID and attach the loaded PiSSA adapter to each request
+evidence_metrics:
+- final actor/rollout policy agreement is 0.10476375009925555 and MAE is 2.2560474629304847
+- base-reference consistency is 1.0
+- the integer-ID control reaches agreement 0.8907221660212565
+fix:
+  must:
+  - target: lora_request_id_type
+    direction: use_integer_id

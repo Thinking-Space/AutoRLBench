@@ -1,0 +1,27 @@
+diff --git a/verl/workers/fsdp_workers.py b/verl/workers/fsdp_workers.py
+--- a/verl/workers/fsdp_workers.py
++++ b/verl/workers/fsdp_workers.py
+@@ -1547,10 +1547,19 @@ class ActorRolloutRefWorker(Worker, DistProfilerExtension):
+     def _compute_base_log_prob_from_actor(self, data: DataProto, output_key: str) -> DataProto:
+         if self._is_lora:
+             if self._is_svd_init:
+-                # Defect: disabling a PiSSA adapter exposes W_residual, not W_pretrained.
+-                data.meta_info["is_lora"] = True
+-                data = self.compute_log_prob(data)
+-                return DataProto.from_dict(tensors={output_key: data.batch["old_log_probs"]})
++                # SVD-init (PiSSA/MiLoRA): base = W_pretrained = W_res + A_init @ B_init.
++                with self._svd_init_adapter_ctx():
++                    data.meta_info["micro_batch_size"] = self.config.rollout.log_prob_micro_batch_size_per_gpu
++                    data.meta_info["max_token_len"] = self.config.rollout.log_prob_max_token_len_per_gpu
++                    data.meta_info["use_dynamic_bsz"] = self.config.rollout.log_prob_use_dynamic_bsz
++                    data.meta_info["temperature"] = self.config.rollout.temperature
++                    if self._is_offload_param:
++                        load_fsdp_model_to_gpu(self.actor_module_fsdp)
++                    with self.ulysses_sharding_manager:
++                        output, _ = self.actor.compute_log_prob(data=data, calculate_entropy=False)
++                    if self._is_offload_param:
++                        offload_fsdp_model_to_cpu(self.actor_module_fsdp)
++                return DataProto.from_dict(tensors={output_key: output.to("cpu")})
+ 
+             # Standard LoRA/plus/b0: disable_adapter() exposes the underlying base model.
+             data.meta_info["is_lora"] = True
