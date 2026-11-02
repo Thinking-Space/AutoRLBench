@@ -1,0 +1,12 @@
+category: implementation
+framework: verl
+task: verl_lora_merge_base_weight_sync
+verdict: unhealthy
+root_cause:
+  - FSDPEngine.get_per_tensor_param (merged-LoRA branch) captures state_dict() inside merged_lora_context but the lazy per_tensor_param generator calls full_tensor() after the context has restored the base weights, so vLLM receives base weights without the LoRA delta at every sync
+evidence_metrics:
+  - val-core/openai/gsm8k/acc/mean@1 stays at the base level (0.0857 at step 0, 0.0842 at step 60) while the repaired recipe reaches 0.78
+  - rollout_corr/kl grows from 0.0004 (step 1) to 81.5 (step 60) and rollout_corr/rollout_ppl stays at the base value (~1.5) while actor/kl_loss reaches 7.8
+fix:
+  must:
+    - materialize every merged tensor (full_tensor for DTensors, clone for plain tensors) before merged_lora_context restores the base weights, e.g. yield from inside the context

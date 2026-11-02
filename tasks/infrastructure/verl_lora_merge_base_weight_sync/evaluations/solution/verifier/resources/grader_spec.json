@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "task_id": "verl_lora_merge_base_weight_sync",
+  "metric_key": "val-core/openai/gsm8k/acc/mean@1",
+  "final_step": 60,
+  "historical_final_baseline": "0.08415",
+  "required_final_score": "0.4",
+  "required_final_score_max": "1.0",
+  "score_mode": "final",
+  "validation_dump": "val_generations/{step}.jsonl",
+  "validation_recheck_tolerance": "0.002",
+  "answer_key": "gsm8k_test_answer_key.json",
+  "required_log_patterns": [
+    {
+      "pattern": "'lora_rank':\\s*32(?!\\d)",
+      "description": "LoRA rank must remain 32"
+    },
+    {
+      "pattern": "'lora_alpha':\\s*64(?!\\d)",
+      "description": "LoRA alpha must remain 64"
+    },
+    {
+      "pattern": "'merge':\\s*True(?!\\w)",
+      "description": "the LoRA adapter must remain merged into the rollout weights"
+    },
+    {
+      "pattern": "'strategy':\\s*'fsdp2'(?!\\w)",
+      "description": "the actor strategy must remain FSDP2"
+    }
+  ],
+  "log_roots": [
+    "experiment_logs"
+  ]
+}
