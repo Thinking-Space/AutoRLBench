@@ -1,0 +1,13 @@
+category: implementation
+framework: verl
+task: verl_full_determinism_identical_group_samples
+verdict: unhealthy
+root_cause:
+  - with rollout.full_determinism=True, vLLMHttpServer.generate seeds every request on a replica with the same value (replica_rank + rollout.seed); under vLLM batch invariance the n samples of a prompt are byte-identical, so every GRPO group has zero reward variance and zero advantage and the policy never updates
+evidence_metrics:
+  - val-core/openai/gsm8k/acc/mean@1 is 0.08719 at every validation from step 0 to step 30, while the same recipe with a per-sample seed reaches 0.7384 at step 30
+  - critic/advantages/max and /min, actor/pg_loss, actor/grad_norm and actor/kl_loss are exactly 0 at all 30 steps while actor/entropy stays between 0.33 and 0.68
+  - every prompt's 8 responses in the rollout dumps are identical (64 of 64 groups at every step)
+fix:
+  must:
+    - derive the sampling seed per sample (different for the n copies of a prompt, stable across restarts, e.g. from the batch row priority and the prompt tokens) while keeping full determinism on

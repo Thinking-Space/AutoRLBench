@@ -1,0 +1,23 @@
+--- a/verl/workers/rollout/vllm_rollout/vllm_async_server.py
++++ b/verl/workers/rollout/vllm_rollout/vllm_async_server.py
+@@ -18,6 +18,7 @@
+ import logging
+ import os
+ import uuid
++import zlib
+ from pprint import pprint
+ from typing import Any, Callable, Optional
+ 
+@@ -597,7 +598,11 @@
+         sampling_params.setdefault("ignore_eos", self.config.get("ignore_eos", False))
+         # Inject per-request seed for deterministic sampling when full_determinism is enabled.
+         if self.config.full_determinism:
+-            sampling_params.setdefault("seed", self.replica_rank + self.config.seed)
++            # Seed per sample, not per replica: with a replica-wide seed the n samples of a prompt are identical.
++            # priority is the sample's row in the batch (unique per sample, stable across restarts); request_id is
++            # a fresh uuid4 per turn and cannot be used.
++            sample_key = f"{priority}:{zlib.crc32(','.join(map(str, prompt_ids)).encode())}"
++            sampling_params.setdefault("seed", (self.config.seed + zlib.crc32(sample_key.encode())) & 0x7FFFFFFF)
+ 
+         if kv_transfer_params is not None:
+             extra_args = dict(sampling_params.pop("extra_args", None) or {})
