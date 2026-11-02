@@ -18,3 +18,5 @@ The historical receipts are explicitly separated in `history/`. The current
 reference resolver is never copied into the prepared runtime or workspace.
 Packaged incident acceptance remains pending a fresh audit; partial restore
 observations and synthetic packaging tests do not replace that audit.
+
+For the assessment-first protocol, start report.md with `Verdict: unhealthy`: it describes the received stale resolver even after repair. Explain the current read failure and the chosen change. The paired healthy implementation instead requires `Verdict: healthy` and can be submitted unchanged.

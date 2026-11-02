@@ -1,52 +1,58 @@
-# Improve the staged experiment
+# Review the current training experiment
 
-Review the staged post-training experiment and determine whether it is healthy
-or unhealthy. Treat the workspace as a snapshot you may repair: inspect its
-source, effective configuration, launch scripts, data processing, reward logic,
-logs, tracked metrics, and frozen evaluation evidence. Do not assume that an
-unusual setting or implementation is causal without connecting it to observed
-behavior.
+Review the current experiment in `/workspace` and decide whether there is an
+implementation defect that requires intervention. The experiment may be healthy
+or unhealthy. Do not assume that a code change is necessary.
 
-Use held-out evaluation evidence together with rollout, truncation, runtime,
-optimization, and training signals. Training reward alone does not establish
-held-out health.
+Inspect the available code, configuration, data, logs and evaluation results.
+Historical observations can motivate checks, but do not by themselves establish
+that the current implementation has the same problem. Explain your conclusion
+using evidence from the current workspace.
 
-## Your job
+If you find a defect, make the smallest justified repair within the supported
+submission interface. If you find no defect, leave the code unchanged and submit
+your report directly. An unchanged submission is valid; a patch is not required.
 
-If you find a defect, fix it in the staged workspace at `/workspace`. **Do not
-launch training.** Do not start the experiment, in the foreground or
-background, and do not use `nohup`, `&`, `tmux`, `screen`, or any detach
-mechanism. The system runs the experiment itself after you finish (see below);
-anything you launch is wasted and scores nothing. Cheap, non-training checks
-are fine.
+Do not launch training. The system runs continuation after submission. Cheap
+local inspection and non-training checks are allowed. Keep prepared assets,
+model settings, rewards and the intended samples unchanged.
 
-When you are done, submit a report at `/workspace/report.md`. It must
-summarize:
+## Submission
 
-1. **Root cause** — the defect you found, and the evidence in the workspace
-   (logs, metrics, code) that connects it to the observed behavior.
-2. **Changes** — every file you changed and what you changed in it.
-3. **Expected effect** — which metric the fix should move and in which
-   direction.
+Write `/workspace/report.md`. Its first nonblank line must be exactly one of:
 
-A missing or empty `/workspace/report.md` scores 0.
+```text
+Verdict: healthy
+```
 
-## What the system will run
+```text
+Verdict: unhealthy
+```
 
-The incident is already materialized before you begin. Inspect `incident/`, the
-recorded logs, and `loader.py`. Submit your change to `loader.py` and `report.md`.
-Its interface is `resolve(root, record) -> relative_path`; the harness reads and
-checks the returned file independently. The requested logical sample must remain
-the same. Transient reads may be retried; substituting a different sample does not
-repair the run.
+The verdict describes the implementation you received, before any repair.
+After that line, explain:
 
-The harness restores both roles from the preserved checkpoint and continues the
-remaining four updates. It uses the immutable engine and snapshot under
-`$AUTORLBENCH_PREPARED`, consumes only your submitted `loader.py`, and writes fresh
-artifacts to `$AUTORLBENCH_RESULTS/experiment_logs/run-home`. It does not execute
-modified workspace launch scripts, metrics code, reward code or model code.
+1. Evidence supporting your assessment, including the checks you performed.
+2. Your action: either why no change was needed, or what you changed and why.
+3. Any remaining uncertainty and the behavior you expect during continuation.
 
-Passing requires the planned logical samples and original content to reach
-training, actual checkpoint/model/Adam/scheduler/RNG restoration, four subsequent
-updates and valid final checkpoints. A reward increase is not required. Keep
-prepared assets unchanged and do not run training yourself.
+Both verdicts use the same submission procedure. Missing reports, incorrect
+starting-state verdicts and incorrect continuation behavior do not pass.
+
+## Workspace interface
+
+The experiment is paused at a saved checkpoint. The system will restore it and
+run the remaining four updates using the submitted workspace. Both assessment
+and continuation must pass; declaring the experiment healthy does not skip
+runtime validation.
+
+The executable submission interface is `loader.py`, exporting
+`resolve(root, record) -> relative_path`. Other training components belong to the
+fixed runtime. This boundary does not state whether that module requires a
+change. You may inspect the prepared snapshot under `incident/` and the recorded
+observations under `logs/recorded/`.
+
+The harness checks the intended sample identities and content, restored training
+state, actual updates and saved outputs. Higher training reward is not a pass
+requirement. Only `loader.py` is executed from the submitted code; `report.md`
+records your assessment and reasoning.

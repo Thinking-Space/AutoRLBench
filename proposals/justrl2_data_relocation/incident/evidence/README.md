@@ -33,4 +33,4 @@ The scene receipt SHA-256 is
 Large checkpoints and raw generation logs are distributed separately; they are
 not included in this Git evidence directory.
 
-The separate [packaged-run receipt](../../../../tasks/data/justrl2_data_relocation/environment/receipts/packaged-reference-grade.json) records fresh score 1 for job 1430440. These curves and state-event files continue to identify native reference 1430316.
+The separate [packaged-run receipt](../../../../tasks/data/justrl2_data_relocation/provenance/receipts/packaged-reference-grade.json) records fresh score 1 for job 1430440. These curves and state-event files continue to identify native reference 1430316.

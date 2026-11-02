@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Grade only the resumed run against the immutable prepared incident."""
+"""Require a starting-state review and fresh checkpoint-continuation evidence."""
 import hashlib
 import importlib.util
 import json
@@ -8,10 +8,47 @@ import os
 from pathlib import Path
 
 
+def assess_report(results, workspace, resources):
+    """Assess the starting implementation; later repairs do not change its verdict."""
+    assessment = {'reported': None, 'expected': None, 'verdict_correct': False,
+                  'report_valid': False, 'report_path': None, 'errors': []}
+    try:
+        metadata = json.loads((resources / 'expected_verdict.json').read_text(encoding='utf-8'))
+        if (not isinstance(metadata, dict) or type(metadata.get('schema_version')) is not int
+                or metadata['schema_version'] != 1
+                or metadata.get('expected_verdict') not in ('healthy', 'unhealthy')):
+            raise ValueError('Expected verdict metadata requires schema_version 1 and healthy/unhealthy')
+        assessment['expected'] = metadata['expected_verdict']
+    except (OSError, ValueError, TypeError) as error:
+        assessment['errors'].append('Expected verdict: ' + str(error))
+    try:
+        archived = results / 'report.md'
+        path = archived if archived.exists() else workspace / 'report.md'
+        assessment['report_path'] = str(path)
+        lines = path.read_text(encoding='utf-8-sig').splitlines()
+        first = next((index for index, line in enumerate(lines) if line.strip()), None)
+        if first is None:
+            raise ValueError('Report is empty')
+        verdict = {'Verdict: healthy': 'healthy', 'Verdict: unhealthy': 'unhealthy'}.get(lines[first].strip())
+        if verdict is None:
+            raise ValueError('First nonblank line must be Verdict: healthy or Verdict: unhealthy')
+        assessment['reported'] = verdict
+        if not any(line.strip() for line in lines[first + 1:]):
+            raise ValueError('Report requires a nonempty evidence body after the verdict')
+        assessment['report_valid'] = True
+    except (OSError, ValueError, TypeError) as error:
+        assessment['errors'].append('Report: ' + str(error))
+    assessment['verdict_correct'] = (assessment['reported'] is not None
+                                     and assessment['reported'] == assessment['expected'])
+    return assessment
+
+
 def main():
     results=Path(os.environ.get('AUTORLBENCH_RESULTS','/results'))
     prepared=Path(os.environ.get('AUTORLBENCH_PREPARED','/autorlbench/prepared'))
+    workspace=Path(os.environ.get('AUTORLBENCH_WORKSPACE',str(Path.cwd())))
     resources=Path(__file__).resolve().parent.parent/'resources'
+    assessment=assess_report(results,workspace,resources)
     try:
         path=resources/'incident_audit/verify_resume.py'
         spec=importlib.util.spec_from_file_location('_hidden_incident_resume',path)
@@ -24,10 +61,11 @@ def main():
         proof=engine.verify_resume(scene,results/'experiment_logs/run-home',fresh=True)
     except (OSError, ValueError, KeyError, TypeError, ImportError) as error:
         proof={'schema_version':3,'score':False,'errors':[str(error)]}
-    result={'passed':proof['score'] is True,'score':int(proof['score'] is True),'metrics':proof}
+    passed=proof.get('score') is True and assessment['report_valid'] and assessment['verdict_correct']
+    result={'passed':passed,'score':int(passed),'metrics':proof,'assessment':assessment}
     results.mkdir(parents=True,exist_ok=True)
     (results/'result.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
-    (results/'metrics.json').write_text(json.dumps(proof,indent=2,allow_nan=False)+'\n')
+    (results/'metrics.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
     print(json.dumps(result,allow_nan=False))
     return 0 if result['passed'] else 1
 

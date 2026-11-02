@@ -61,7 +61,7 @@ and bytes. These 64 dataset reads are distinct from the 64 generated continuatio
 samples: four updates × eight logical IDs × two generations.
 
 Packaged continuation 1430440 also passed the exact run specification and hidden
-fresh verifier with score 1. The task's `environment/validation.json` records it
+fresh verifier with score 1. The task's `provenance/validation.json` records it
 separately from native reference run 1430316 and independent audit 1430462.
 All seven HF asset files were rehashed at the newly installed model path, and
 both final checkpoint payload inventories passed. The fixed evaluation mean

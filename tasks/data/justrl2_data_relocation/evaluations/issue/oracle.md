@@ -50,3 +50,10 @@ deleting difficult IDs or disabling migration is not the reference repair.
 Partial credit is appropriate for identifying the lost difficult-data
 population without tracing both the stale mapping and recovery/resampling path;
 a complete diagnosis names both and connects them to the observed bias.
+
+For the diagnosis-first protocol, assess the current starting implementation.
+Its loader.py still returns the stale manifest path without resolving current
+storage metadata, so the unhealthy verdict remains correct. The paired control
+has the same historical observations but a current resolver that already handles
+the file state; that control is healthy. The report should establish the current
+behavior rather than infer the label from the presence of old error logs.

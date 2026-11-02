@@ -104,13 +104,13 @@ class TaskPackaging(unittest.TestCase):
         self.assertEqual((TASK / 'workspace/loader.py').read_bytes(), (SOURCE / 'loader.py').read_bytes())
 
     def test_manifest_describes_every_current_task_file(self):
-        manifest = json.loads((TASK / 'environment/source_manifest.json').read_text())
+        manifest = json.loads((TASK / 'provenance/source_manifest.json').read_text())
         self.assertEqual(manifest['schema_version'], 2)
         self.assertEqual(manifest['scene_sha256'], SCENE_SHA)
         rows = manifest['files']
         by_destination = {r['destination']: r for r in rows}
         self.assertEqual(len(rows), len(by_destination))
-        self.assertEqual(set(by_destination), set(files(TASK)) - {'environment/source_manifest.json'})
+        self.assertEqual(set(by_destination), set(files(TASK)) - {'provenance/source_manifest.json'})
         for name, row in by_destination.items():
             with self.subTest(name=name):
                 self.assertEqual(sha(TASK / name), row['after_sha256'])
@@ -118,7 +118,7 @@ class TaskPackaging(unittest.TestCase):
                     self.assertEqual(sha(ROOT / row['source']), row['before_sha256'])
 
     def test_historical_validation_cannot_claim_incident_acceptance(self):
-        current = json.loads((TASK / 'environment/validation.json').read_text())
+        current = json.loads((TASK / 'provenance/validation.json').read_text())
         self.assertEqual(current['phase'], 'incident_checkpoint_continuation')
         verified = current['incident_gpu_acceptance_verified']
         self.assertIs(type(verified), bool)
@@ -129,7 +129,7 @@ class TaskPackaging(unittest.TestCase):
             self.assertIs(type(run['score']), int)
             self.assertEqual(run['score'], 1)
             receipt = run['receipt']
-            self.assertEqual(receipt['path'], 'environment/receipts/packaged-reference-grade.json')
+            self.assertEqual(receipt['path'], 'provenance/receipts/packaged-reference-grade.json')
             self.assertRegex(receipt['sha256'], r'^[0-9a-f]{64}$')
             receipt_path = TASK / receipt['path']
             self.assertEqual(sha(receipt_path), receipt['sha256'])
@@ -188,7 +188,7 @@ class TaskPackaging(unittest.TestCase):
 
     def test_canonical_scaffolds_and_image_tooling_are_preserved(self):
         canonical = ROOT / 'tasks/reward/slime_retool_length_reward_bonus/evaluations'
-        for name in ['instruction.md', 'verifier/test.sh', 'verifier/judge.py', 'verifier/judge_prompt.md']:
+        for name in ['verifier/test.sh', 'verifier/judge.py', 'verifier/judge_prompt.md']:
             self.assertEqual((TASK / 'evaluations/issue' / name).read_bytes(), (canonical / 'issue' / name).read_bytes())
         self.assertEqual((TASK / 'evaluations/solution/verifier/test.sh').read_bytes(),
                          (canonical / 'solution/verifier/test.sh').read_bytes())
@@ -300,6 +300,7 @@ class TaskPackaging(unittest.TestCase):
             (results / 'experiment_logs/run-home').symlink_to(fixture.home)
             pin = dict(scene_sha256=sha(fixture.scene / 'SCENE.json'), synthetic_fixture=True)
             (verifier / 'resources/snapshot.json').write_text(json.dumps(pin))
+            (results / 'report.md').write_text('Verdict: unhealthy\n\nChecked the current resolver and repaired missing-path resolution.\n')
             before = {name: sha(path) for name, path in files(fixture.scene).items()}
             for accepted in (True, False):
                 if not accepted:
@@ -313,7 +314,7 @@ class TaskPackaging(unittest.TestCase):
                 self.assertIs(type(result['score']), int)
                 self.assertEqual(result['score'], int(accepted))
                 self.assertIs(result['metrics']['score'], accepted)
-                self.assertEqual(json.loads((results / 'metrics.json').read_text()), result['metrics'])
+                self.assertEqual(json.loads((results / 'metrics.json').read_text()), result)
                 if accepted:
                     self.assertEqual(result['metrics']['checkpoint_payloads_rehashed'], {'actor': True, 'critic': True})
             self.assertEqual(before, {name: sha(path) for name, path in files(fixture.scene).items()})

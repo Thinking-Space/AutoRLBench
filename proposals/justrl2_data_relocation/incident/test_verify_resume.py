@@ -777,6 +777,8 @@ def test_task_wrapper_reads_parent_snapshot_pins_and_converts_boolean_score(case
     (prepared / 'incident').symlink_to(case.scene, target_is_directory=True)
     (results / 'experiment_logs').mkdir(parents=True)
     (results / 'experiment_logs/run-home').symlink_to(case.home, target_is_directory=True)
+    write(resources / 'expected_verdict.json', dict(schema_version=1, expected_verdict='unhealthy'))
+    (results / 'report.md').write_text('Verdict: unhealthy\n\nChecked the synthetic resolver and repaired its missing-path behavior.\n')
     env = dict(os.environ, AUTORLBENCH_PREPARED=str(prepared), AUTORLBENCH_RESULTS=str(results))
     before = inventory(case.scene)
     for accepted in (True, False):

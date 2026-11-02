@@ -1,19 +1,28 @@
 # Missing difficult examples inflate training reward
 
-## Current task: preserved-checkpoint incident continuation
+## Current tasks: assess the experiment, then repair only if needed
 
-The contributed task now starts from a materialized broken filesystem and a
-preserved step-3 actor/critic checkpoint. A submitted `loader.py` is evaluated
-by resuming steps 4–7 with the immutable engine. Exact logical sample identities,
-original content, full state restoration, real updates and final checkpoint
-readback determine solution acceptance; reward improvement is not a threshold.
+Two task packages now share a neutral prompt, historical logs, a preserved
+step-3 checkpoint and the same dataset. The agent first assesses the current
+implementation. A healthy verdict supports an unchanged-code report; an
+unhealthy verdict requires a justified repair. Both the starting-state verdict
+and actual continuation behavior are checked.
 
-See [the incident implementation](incident/README.md) and
-[the packaged task](../../tasks/data/justrl2_data_relocation/README.md). The large
-checkpoint artifact is supplied separately through `RELOCATION_SCENE_SOURCE`,
-pinned by `incident/snapshot.json`; setup does not retrain the prefix. Public
-checkpoint hosting is not claimed. Only maintainer reference and contract
-validation are performed, with no LLM blind evaluation.
+The [faulty case](../../tasks/data/justrl2_data_relocation/README.md) starts with
+stale-path resolution. Its [healthy companion](../../tasks/data/justrl2_data_review_control/README.md)
+already resolves current locations correctly. The agent-facing files contain no
+case label or author success receipt. Historical errors are shared evidence,
+not a statement that the current implementation is defective.
+
+The fixed engine still restores the sealed state and runs steps4–7. See the
+[protocol design](review_protocol/DESIGN.md),
+[measured dataset checks](review_protocol/dataset_validation.json), and
+[incident implementation](incident/README.md). The existing GPU acceptance is
+preserved as inherited execution evidence. The new report gate is tested
+separately; no new LLM blind test or agent success rate is claimed.
+
+The large checkpoint is supplied as a pinned local artifact; setup does not
+retrain its prefix. Public checkpoint hosting is not claimed.
 
 The runs and plots below remain the **historical eight-update reproduction**.
 They are not relabeled as the new checkpoint's continuation.

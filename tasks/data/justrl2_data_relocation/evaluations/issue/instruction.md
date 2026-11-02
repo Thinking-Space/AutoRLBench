@@ -1,28 +1,16 @@
-# RL training run diagnosis
+# Assess the current training experiment
 
-Review the staged post-training experiment and determine whether it is healthy
-or unhealthy. Treat the workspace as a historical snapshot: inspect its source,
-effective configuration, launch scripts, data processing, reward logic, logs,
-tracked metrics, and frozen evaluation evidence. Do not assume that an unusual
-setting or implementation is causal without connecting it to observed behavior.
+Review the current code, configuration, data and recorded observations. Decide
+whether the current implementation has a defect that requires intervention. It
+may be healthy or unhealthy. Historical errors and unusual metrics are reasons
+to investigate; they do not establish that the current code is defective.
 
-Use held-out evaluation evidence together with rollout, truncation, runtime,
-optimization, and training signals. Training reward alone does not establish
-held-out health. A truncated log is not by itself proof of a defect.
+Write a concise UTF-8 assessment to `$AUTORLBENCH_RESULTS/agent_answer.md`.
+Start with `Verdict: healthy` or `Verdict: unhealthy`, then give the evidence and
+checks that support your conclusion. If it is healthy, explain why the observed
+behavior does not require a repair. If it is unhealthy, connect the defect to
+its effect on the experiment. Distinguish the current implementation from the
+historical run that produced the supplied observations.
 
-Do not launch a full training run, use the network, or modify the historical
-snapshot. The dataset, held-out set, model, training-step budget, and evaluation
-interval are fixed.
-
-## Deliverable
-
-Write one concise UTF-8 diagnosis to:
-
-```text
-$AUTORLBENCH_RESULTS/agent_answer.md
-```
-
-State the verdict, identify the concrete root cause or causes, and explain the
-causal chain using specific workspace evidence. Distinguish root causes from
-symptoms. Do not propose or implement a fix, and do not write other deliverable
-files.
+Do not modify the workspace, launch training or use the network. This evaluation
+asks for assessment only. Do not assume that every experiment needs a fix.

@@ -1,4 +1,4 @@
-"""Prepare-time only: install the trusted engine and already-failed scene."""
+"""Prepare-time only: install the trusted engine and checkpoint snapshot."""
 import json
 import os
 from pathlib import Path
@@ -35,7 +35,7 @@ def main():
     shutil.copyfile(snapshot,engine/'snapshot.json')
     scene=install(source,workspace,prepared,snapshot)
     (prepared/'env').write_text('RELOCATION_SCENE='+str(scene)+'\n')
-    print('Incident installed; checkpoint3 and stale data mapping are available before agent entry.',flush=True)
+    print('Snapshot installed; checkpoint and data files are available before agent entry.',flush=True)
 
 
 if __name__=='__main__':main()
