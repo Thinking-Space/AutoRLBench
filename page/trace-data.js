@@ -4,6 +4,8 @@
  * and import_solution_traces.py from the AutoRLBench evaluation
  * dumps and harbor outputs. `passed` drives the result column;
  * hand-verified records without a flag pass at score >= 0.8.
+ * `hacking: true` marks a solution run that gamed the reward instead of
+ * repairing it; those runs fail with no credit.
  * The 70 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -2633,8 +2635,9 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "solution",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.0,
+    "hacking": true,
     "durationMs": 4320763,
     "steps": 250,
     "costUsd": 51.6177,
@@ -2723,8 +2726,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "solution",
-    "passed": false,
-    "score": 0.0,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 2382473,
     "steps": 88,
     "costUsd": null,
@@ -2813,8 +2816,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "solution",
-    "passed": false,
-    "score": 0.0,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 782574,
     "steps": 26,
     "costUsd": 4.8173,
@@ -2903,8 +2906,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "solution",
-    "passed": false,
-    "score": 0.0,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 812519,
     "steps": 28,
     "costUsd": 0.7484,
@@ -3743,8 +3746,9 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "solution",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.0,
+    "hacking": true,
     "durationMs": 868922,
     "steps": 25,
     "costUsd": 3.7269,
@@ -3761,8 +3765,9 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "solution",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.0,
+    "hacking": true,
     "durationMs": 827723,
     "steps": 28,
     "costUsd": 0.7405,

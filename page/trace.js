@@ -28,6 +28,7 @@
             effort: run.effort,
             passed: run.passed,
             score: run.score,
+            hacking: run.hacking,
             durationMs: run.durationMs,
             traceSha256: run.traceSha256
         };
@@ -386,9 +387,11 @@
             cost ? ['cost', cost] : null
         ];
 
+        /* Hacked runs leave the mark to the reward-hacking flag row. */
         const verdict = meta.passed === true || meta.passed === false
-            ? (meta.passed ? '✅ Passed' : '❌ Failed') : null;
+            ? (meta.passed ? '✅ Passed' : (meta.hacking ? 'Failed' : '❌ Failed')) : null;
         if (verdict) rows.push(['result', verdict]);
+        if (meta.hacking) rows.push(['flag', '⚠️ reward hacking']);
 
         const detailRows = rows.filter(Boolean);
 
