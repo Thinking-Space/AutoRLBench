@@ -28,7 +28,8 @@ for asset in json.loads((here/'assets.json').read_text()):
         if cached:
             with cached.open('rb') as src,temp.open('wb') as dst:shutil.copyfileobj(src,dst)
         else:
-            url='https://huggingface.co/'+asset['repository']+'/resolve/'+asset['revision']+'/'+urllib.parse.quote(row['path'],safe='/')
+            prefix='datasets/' if asset['kind']=='dataset' else ''
+            url='https://huggingface.co/'+prefix+asset['repository']+'/resolve/'+asset['revision']+'/'+urllib.parse.quote(row['path'],safe='/')
             with urllib.request.urlopen(url,timeout=120) as src,temp.open('wb') as dst:shutil.copyfileobj(src,dst,1024*1024)
         if temp.stat().st_size!=row['bytes'] or sha(temp)!=row['sha256']:raise ValueError('download checksum '+row['path'])
         temp.replace(path)

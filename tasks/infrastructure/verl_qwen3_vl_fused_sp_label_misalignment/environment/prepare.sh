@@ -2,4 +2,4 @@
 set -euo pipefail
 HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 export PYTHONDONTWRITEBYTECODE=1
-exec /opt/recorded-runtime/bin/python "$HERE/fetch_assets.py"
+exec python3 "$HERE/fetch_assets.py"
