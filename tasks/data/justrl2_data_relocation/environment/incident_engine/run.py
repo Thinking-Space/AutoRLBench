@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import stat
 import sys
 
 from scene import verify_scene
@@ -44,8 +45,11 @@ def run(args):
     pin=json.loads(pin_path.read_text())
     if sha(incident/'SCENE.json')!=pin['scene_sha256']:
         raise ValueError('Incident differs from the sealed benchmark snapshot')
-    loader=Path(args.loader).resolve()
-    if not loader.is_file():raise ValueError('Missing submitted loader.py')
+    loader=Path(args.loader)
+    if not stat.S_ISREG(loader.lstat().st_mode) or loader.is_symlink():
+        raise ValueError('Submit a regular loader.py file, not a symlink')
+    if loader.stat().st_size > 65536:raise ValueError('Submitted loader.py is too large')
+    loader=loader.resolve()
     home.mkdir(parents=True)
     checkpoints=incident/'checkpoints'
     rows=json.loads((incident/'dataset/manifest.json').read_text())['rows']
@@ -59,8 +63,8 @@ def run(args):
           'samples_per_prompt':2,'source_revision':'75814318f243af7e39af337c1173fc3927c9635b',
           'model_revision':'b558bbc71d9433e7c5869effcbac07d4c7f2c5b4'})
     code=stage_source(HERE,prepared,home/'source')
-    env={k:v for k,v in os.environ.items() if not k.startswith(('RELOCATION_','BENCH_RESTORE_'))
-         and k not in ('PYTHONPATH','WORLD_SIZE','RANK','LOCAL_RANK','MASTER_ADDR','MASTER_PORT')}
+    env={k:v for k,v in os.environ.items() if not k.startswith(('RELOCATION_','BENCH_RESTORE_','PYTHON'))
+         and k not in ('WORLD_SIZE','RANK','LOCAL_RANK','MASTER_ADDR','MASTER_PORT','BASH_ENV','ENV','CDPATH','LD_PRELOAD')}
     env.update(PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',RELOCATION_CODE=str(code),RELOCATION_PLUGIN=str(HERE),
                RELOCATION_OUTPUT=str(home/'run'),RELOCATION_DATA=str(incident/'dataset'),
                RELOCATION_LOADER=str(home/'submitted/loader.py'),RELOCATION_ARM='incident',

@@ -92,6 +92,9 @@ class TaskEvaluator:
         package = self.load(task_root, strict=strict)
         if not package.report.ok:
             raise SchemaError("task package failed validation")
+        isolated_stages = package.metadata.get("security", {}).get("requires_isolated_stages", False)
+        if isolated_stages and self.backend != "docker":
+            raise SchemaError("This task requires separate Docker stages; local execution is unsupported")
         evaluation = self._select_evaluation(package, config.evaluation_level)
 
         agent_spec = config.agent
@@ -143,6 +146,16 @@ class TaskEvaluator:
             # runs -- above all for tasks whose verifier drives the work itself, where skipping this
             # check would let a workspace that submitted nothing still collect a score.
             report_file = run.workspace / REPORT_FILENAME
+            if isolated_stages:
+                # Never dereference agent-created report links inside a hidden verifier mount.
+                if report_file.is_symlink():
+                    raise SchemaError('The submission report must be a regular file')
+                for output in ('report.md', 'result.json', 'metrics.json'):
+                    path = run.results / output
+                    if path.is_symlink() or path.is_file():
+                        path.unlink()
+                    elif path.exists():
+                        shutil.rmtree(path)
             has_report = report_file.is_file() and report_file.stat().st_size > 0
             rerun_result = None
             verifier_result = None
@@ -170,7 +183,10 @@ class TaskEvaluator:
                     agent_spec=agent_spec,
                 )
             workspace_after_hash = tree_digest(run.workspace)
-            metrics = self._extract_metrics(run.results, verifier_result)
+            metrics = self._extract_metrics(
+                run.results, verifier_result,
+                require_success=isolated_stages and evaluation.level == "solution",
+            )
             rerun_ok = rerun_result is None or rerun_result.returncode == 0
             if evaluation.level == "solution" and not has_report:
                 metrics["passed"] = False
@@ -584,7 +600,9 @@ class TaskEvaluator:
     def _write_report(self, path: Path, result: EvaluationResult) -> None:
         write_text(path, json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
 
-    def _extract_metrics(self, results_dir: Path, verifier_result: Any) -> Dict[str, Any]:
+    def _extract_metrics(
+        self, results_dir: Path, verifier_result: Any, *, require_success: bool = False
+    ) -> Dict[str, Any]:
         """Prefer the verifier's JSON result; otherwise fall back to the exit code."""
         metrics: Dict[str, Any] = {}
         for filename in ("result.json", "metrics.json"):
@@ -610,6 +628,11 @@ class TaskEvaluator:
                     metrics[key] = value
         if verifier_result is None:
             metrics["passed"] = False
+            if require_success:
+                metrics["score"] = 0
+        elif require_success and verifier_result.returncode != 0:
+            metrics["passed"] = False
+            metrics["score"] = 0
         else:
             metrics.setdefault("passed", verifier_result.returncode == 0)
         return metrics

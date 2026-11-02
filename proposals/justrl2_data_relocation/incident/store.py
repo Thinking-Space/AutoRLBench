@@ -15,9 +15,9 @@ class SceneStore:
         self.loader = Path(os.environ['RELOCATION_LOADER'])
 
     def resolve(self, root, record):
-        call=subprocess.run([sys.executable,'-I',str(Path(__file__).with_name('resolve_worker.py')),str(self.loader)],
+        call=subprocess.run([sys.executable,'-I','-S',str(Path(__file__).with_name('resolve_worker.py')),str(self.loader)],
                             input=json.dumps({'root':root,'record':record}),text=True,capture_output=True,
-                            timeout=30)
+                            timeout=10,env={'PATH':os.defpath,'LANG':'C.UTF-8'},cwd='/')
         if call.returncode:
             raise RuntimeError('Resolver process failed: '+call.stderr[-2000:])
         result=json.loads(call.stdout)

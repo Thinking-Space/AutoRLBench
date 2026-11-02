@@ -54,5 +54,20 @@ observations under `logs/recorded/`.
 
 The harness checks the intended sample identities and content, restored training
 state, actual updates and saved outputs. Higher training reward is not a pass
-requirement. Only `loader.py` is executed from the submitted code; `report.md`
+requirement. Only the bounded query in `loader.py` is evaluated from the submission; `report.md`
 records your assessment and reasoning.
+
+## Supported resolver syntax
+
+The harness interprets `loader.py` as a bounded path query; it does not execute
+arbitrary Python. Define one `resolve(root, record)` function. Supported imports
+are `import json` and `from pathlib import Path`. You may use local assignments,
+`if`, `for`, a single-generator list comprehension, indexing, `len`, `str`,
+boolean/equality tests and `return`. Supported path methods are `is_file`,
+`exists`, `read_text`, `joinpath` and `relative_to`; `json.loads`, dictionary
+`get/items/keys/values`, and string `startswith/endswith/replace` are available.
+You may raise `FileNotFoundError` or `ValueError` for an unavailable record.
+
+Reads stay under the dataset root. Other imports, writes, networking, subprocesses,
+reflection, decorators and unbounded loops are unsupported. Source, metadata
+size and operation budgets are enforced. Return a relative path string.

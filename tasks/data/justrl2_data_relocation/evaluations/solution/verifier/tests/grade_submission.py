@@ -5,6 +5,8 @@ import hashlib
 import importlib.util
 import json
 import os
+import stat
+import tempfile
 from pathlib import Path
 
 
@@ -23,8 +25,11 @@ def assess_report(results, workspace, resources):
         assessment['errors'].append('Expected verdict: ' + str(error))
     try:
         archived = results / 'report.md'
-        path = archived if archived.exists() else workspace / 'report.md'
+        path = archived if archived.exists() or archived.is_symlink() else workspace / 'report.md'
         assessment['report_path'] = str(path)
+        if path.is_symlink() or not stat.S_ISREG(path.lstat().st_mode):
+            raise ValueError('Report must be a regular file, not a symlink')
+        if path.stat().st_size > 65536:raise ValueError('Report exceeds 64 KiB')
         lines = path.read_text(encoding='utf-8-sig').splitlines()
         first = next((index for index, line in enumerate(lines) if line.strip()), None)
         if first is None:
@@ -41,6 +46,18 @@ def assess_report(results, workspace, resources):
     assessment['verdict_correct'] = (assessment['reported'] is not None
                                      and assessment['reported'] == assessment['expected'])
     return assessment
+
+
+def write_result(path, value):
+    # Replace agent-created output links rather than following them.
+    with tempfile.NamedTemporaryFile(mode='w',dir=path.parent,delete=False) as stream:
+        temporary=Path(stream.name)
+        json.dump(value,stream,indent=2,allow_nan=False)
+        stream.write('\n')
+    try:
+        os.replace(temporary,path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def main():
@@ -64,8 +81,8 @@ def main():
     passed=proof.get('score') is True and assessment['report_valid'] and assessment['verdict_correct']
     result={'passed':passed,'score':int(passed),'metrics':proof,'assessment':assessment}
     results.mkdir(parents=True,exist_ok=True)
-    (results/'result.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
-    (results/'metrics.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
+    write_result(results/'result.json',result)
+    write_result(results/'metrics.json',result)
     print(json.dumps(result,allow_nan=False))
     return 0 if result['passed'] else 1
 

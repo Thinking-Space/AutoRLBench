@@ -24,7 +24,7 @@ def instrument_load(text):
 def stage_source(bundle, prepared, output):
     bundle,prepared,output=map(Path,(bundle,prepared,output))
     # Copies are pinned as a whole into read-only AUTORLBENCH_PREPARED at setup.
-    subprocess.run([sys.executable,str(bundle/'stage_runtime.py'),
+    subprocess.run([sys.executable,'-I','-S',str(bundle/'stage_runtime.py'),
                     '--source-archive',str(prepared/'source.tar.gz'),
                     '--helpers',str(bundle/'runtime_support'),'--output',str(output)],check=True)
     root=output/'JustRL-II-75814318f243af7e39af337c1173fc3927c9635b'
