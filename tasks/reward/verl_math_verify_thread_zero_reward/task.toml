@@ -1,0 +1,32 @@
+title = "Math-Verify scores zero inside reward workers"
+license = "Apache-2.0"
+created_date = "2026-10-25"
+domain = "reward"
+tags = ["verl", "grpo", "math-verify", "reward-loop", "threading"]
+
+[submitter]
+name = "Jianing Yin"
+
+[model]
+name = "Qwen/Qwen2.5-1.5B-Instruct"
+
+[dataset]
+name = "openai/gsm8k main + DigitalLearningGmbH/MATH-lighteval (7473 + 7500 train rows); validation GSM8K test (1319) + MATH-500 (497 of 500)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo.sh"
+
+[environment]
+image = "verl"
+
+# The recorded run uses two GPUs (two vLLM replicas at TP=1, FSDP world size 2).
+[environment.env]
+WANDB_MODE = "offline"
+CUDA_VISIBLE_DEVICES = "0,1"
+NVIDIA_VISIBLE_DEVICES = "0,1"
+
+[outcome]
+failure_type = "silent_reward_failure"
+failure_reason = "verl/utils/reward_score/math_verify.py::compute_score relies on math-verify's signal-based timeout, whose signal.signal(SIGALRM) call raises ValueError in the reward loop's run_in_executor worker thread, and its bare `except Exception: pass` turns that into a 0.0 reward for every MATH sample: val MATH-500 accuracy logs exactly 0.0 at all 21 validation points (an offline main-thread re-grade gives 0.563 at step 0) while GSM8K accuracy rises from 0.081 to 0.766 and training reward from 0.068 to 0.424."

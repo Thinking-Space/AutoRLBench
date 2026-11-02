@@ -1,0 +1,27 @@
+math-verify 0.9.0, latex2sympy2_extended 1.11.0
+main thread: score=1.0
+run_in_executor: swallowed by `except Exception: pass`:
+Traceback (most recent call last):
+  File "/workspace/third_party/python/math_verify/parser.py", line 702, in parse
+    return timeout(timeout_seconds=parsing_timeout)(extract_target_from_pred)(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/third_party/python/math_verify/utils.py", line 60, in wrapper
+    signal.signal(signal.SIGALRM, handler)
+  File "/usr/lib/python3.12/signal.py", line 58, in signal
+    handler = _signal.signal(_enum_to_int(signalnum), _enum_to_int(handler))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: signal only works in main thread of the main interpreter
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/reference/scripts/capture_stack.py", line 22, in body
+    score, _ = verify_func(["\\boxed{\\frac{1}{2}}"], ["The answer is \\boxed{\\frac{1}{2}}"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/third_party/python/math_verify/metric.py", line 56, in sample_level_fn
+    parse(pred, pred_extraction_target) for pred in predictions
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/third_party/python/math_verify/parser.py", line 711, in parse
+    raise ValueError(
+ValueError: Math-Verify 'parse' function doesn't support threaded environment due to usage of signal.alarm() in timeout mechanism. If you need to run in multithreaded environment it's recommended to set the parsing_timeout=None, which will run without timeout (and signal handling). In this case you need to handle the timeouting yourself.
+
