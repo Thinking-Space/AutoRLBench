@@ -18,6 +18,7 @@ A benchmark and open call for valuable, reproducible RL runs. Each task is a rea
 
 ## 🚀 News 
 
+- **2 Nov 2026** — We release the first version of the task list: 18 tasks, 13 of which support solution-level evaluation.
 - **24 Oct 2026** — Call for contributions officially open, and Kimi-K3.1-Pro added to the leaderboard.
 - **19 Oct 2026** — GitHub repo and website released.
 
