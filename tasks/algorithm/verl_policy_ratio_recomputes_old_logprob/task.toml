@@ -1,0 +1,37 @@
+difficulty = "medium"
+difficulty_status = "gsm8k_validated_medium_unconfirmed"
+title = "GRPO policy ratio ignores rollout log probabilities"
+license = "Apache-2.0"
+created_date = "2026-10-27"
+domain = "algorithm"
+tags = ["verl", "grpo", "fsdp", "vllm", "free-generation", "gsm8k"]
+
+[submitter]
+name = "AutoRLBench"
+
+[model]
+name = "Qwen/Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "openai/gsm8k main; first 256 official train rows / 100 official test rows sampled with seed 42"
+
+[training]
+timeout_s = 7200
+framework = "verl 0.3.0.post1 / Ray 2.40.0 / vLLM 0.7.4"
+algo = "GRPO, full-parameter FSDP"
+script = "scripts/train.sh"
+
+[environment]
+image = "verl_policy_ratio_recomputes_old_logprob"
+
+[environment.env]
+NVIDIA_VISIBLE_DEVICES = "all"
+CONTAINER_MEMORY_LIMIT_BYTES = "42949672960"
+PYTHONDONTWRITEBYTECODE = "1"
+PYTHONPATH = "/workspace"
+VLLM_USE_V1 = "0"
+OMP_NUM_THREADS = "2"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "The native compute_policy_loss subtracts detached current log probabilities instead of frozen behavior log probabilities; clipping becomes inactive during four optimizer passes over each rollout."
