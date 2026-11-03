@@ -1,0 +1,32 @@
+title = "Fully-async GRPO in-flight rollouts kept alive across weight sync"
+license = "Apache-2.0"
+created_date = "2026-10-10"
+domain = "infrastructure"
+tags = ["miles", "grpo", "async-rollout", "weight-sync", "sglang", "throughput"]
+
+[submitter]
+name = "heqingfeng"
+
+[model]
+name = "Qwen3-1.7B"
+
+[dataset]
+name = "DAPO-Math-17k (dedup, 17917 prompts)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/train_grpo.sh"
+
+[environment]
+image = "miles-async-rollout"
+
+# scripts/train_grpo.sh pins the 4-GPU split (actor 2 + rollout 2); the
+# recorded defective/control runs used 4xH800 under a fixed 8h wall clock.
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0,1,2,3"
+NVIDIA_VISIBLE_DEVICES = "0,1,2,3"
+
+[outcome]
+failure_type = "throughput_regression"
+failure_reason = "DistBucketedWeightUpdateMixin._pause_and_prepare_engines overrides the configured pause_generation_mode from abort to in_place, so interrupted in-flight rollout requests are kept alive across each weight sync (and flush_cache is skipped), decode to full length against stale weights, and are then dropped by the max-weight-staleness 0 filter; the engine wastes full-length decode on groups that never train, so the fixed 8h wall clock completes 92 training steps vs the control's 148 and the end-of-window solve rate is 0.460 vs 0.539."

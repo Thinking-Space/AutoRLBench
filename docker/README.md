@@ -31,6 +31,7 @@ Evaluation images and the in-container tooling shared by every task.
 | `verl-moe-token` | `verlai/verl:vllm017.latest` + `verl-moe-token/mcore5047-minimal.patch` | `infrastructure/verl_moe_token_normalization` |
 | `verl_checkpoint_host_memory_oom` | `hiyouga/verl` (pinned digest) | `infrastructure/verl_checkpoint_host_memory_oom` |
 | `slime-v0.3.2` | `slimerl/slime:v0.3.2-cu129` | `infrastructure/slime_critic_value_head_random_init` |
+| `miles-async-rollout` | `radixark/miles` (pinned digest) | `infrastructure/miles_async_rollout_inflight_not_evicted` |
 
 An image shared by several tasks is part of each task's ground truth. If you change a
 Dockerfile, rerun every task that uses it. A task that needs a different stack gets a new

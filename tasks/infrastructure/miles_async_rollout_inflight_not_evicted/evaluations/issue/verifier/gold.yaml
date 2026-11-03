@@ -1,0 +1,18 @@
+category: implementation
+framework: miles
+task: miles_async_rollout_inflight_not_evicted
+verdict: unhealthy
+root_cause:
+- name: inflight_not_aborted
+  where: miles/backends/megatron_utils/update_weight/update_weight_from_distributed/mixin.py::DistBucketedWeightUpdateMixin._pause_and_prepare_engines
+  observed: when pause_generation_mode == "abort", the method overrides mode to "in_place" before pausing the rollout engines, so in-flight requests are kept alive across the weight update (and flush_cache is skipped), decode to full length against stale weights, and are then dropped by the max-weight-staleness 0 filter
+  expected: mode is left at the configured pause_generation_mode (abort), so the engines abort in-flight requests at weight sync and flush the cache
+evidence_metrics:
+- per-step rollout/fully_async/stale_groups_recycled is about 32 every step while aborted_groups_recycled stays 0, i.e. a full rollout batch is recycled as stale (decoded then dropped) rather than aborted mid-flight
+- the fixed wall-clock budget completes far fewer training steps (92) than the single-commit control (148), because engine decode is spent on trajectories that never train
+- end-of-window solve rate is lower (0.460 vs 0.539) as a downstream consequence of fewer completed steps, not of worse per-step learning
+- the logged pause_generation_mode = abort config line is not evidence of health: the code ignores it and runs in_place
+fix:
+  must:
+  - target: inflight_not_aborted
+    direction: remove

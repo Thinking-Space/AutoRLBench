@@ -437,5 +437,25 @@ window.AUTORLBENCH_TASKS = [
         "license": "Apache-2.0",
         "brief": "The critic's value head starts from random weights, inflating value loss ~77x.",
         "issue": "Training Qwen3-1.7B with Multi-Turn PPO on Endless Terminals. The critic's value head is drawn from a normal distribution instead of zeroed, so it opens with arbitrary value predictions and the critic value loss is inflated roughly 77x across the warmup window, most visibly after a reload where it reads like checkpoint corruption."
+    },
+    {
+        "id": "infrastructure/miles_async_rollout_inflight_not_evicted",
+        "title": "Fully-async GRPO in-flight rollouts kept alive across weight sync",
+        "family": "Infrastructure",
+        "tags": [
+            "miles",
+            "grpo",
+            "async-rollout",
+            "weight-sync",
+            "throughput"
+        ],
+        "model": "Qwen3-1.7B",
+        "dataset": "DAPO-Math-17k (dedup, 17917 prompts)",
+        "framework": "miles",
+        "image": "miles-async-rollout",
+        "created": "2026-10-10",
+        "license": "Apache-2.0",
+        "brief": "In-flight rollouts decode to full length against stale weights, then never train.",
+        "issue": "Training Qwen3-1.7B with fully-async GRPO on DAPO-Math-17k. The distributed weight-update mixin silently rewrites the configured abort pause mode to in_place, so in-flight rollout requests are kept alive across every weight sync, decode to full length against stale weights, and are then dropped — the engine burns decode on trajectories that never train, and the fixed 8-hour wall clock completes 92 training steps instead of 148."
     }
 ];

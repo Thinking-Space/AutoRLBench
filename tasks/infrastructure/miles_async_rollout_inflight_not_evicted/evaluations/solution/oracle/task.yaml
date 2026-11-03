@@ -1,0 +1,38 @@
+task_id: miles_async_rollout_inflight_not_evicted
+category: miles_infrastructure
+framework: miles
+launch_script: scripts/train_grpo.sh
+model: Qwen3-1.7B
+dataset: DAPO-Math-17k (dedup, 17917 prompts)
+algo: grpo
+expected_verdict: unhealthy
+evidence_kind: historical_run
+buggy_commit: 9824cec7931ffc984679920452906dcd15cbf6a1
+baseline_commit: 64b15e2cc7c5026fb7f53791b0439ca78f0f25c2
+eval_metric_key: train_steps
+secondary_metric_key: rollout_solve_rate_last_window
+train_seconds: 28800
+causes:
+- path: miles/backends/megatron_utils/update_weight/update_weight_from_distributed/mixin.py
+  symbol: DistBucketedWeightUpdateMixin._pause_and_prepare_engines
+  kind: symbol
+  observed: overrides pause_generation_mode from "abort" to "in_place" when it is "abort", keeping in-flight requests alive across weight sync and skipping flush_cache
+  expected: honors the configured pause_generation_mode (abort), aborting in-flight requests and flushing the cache at weight sync
+key_files:
+- miles/backends/megatron_utils/update_weight/update_weight_from_distributed/mixin.py
+- scripts/train_grpo.sh
+- outputs/driver.log
+- outputs/rollout_data/0.pt
+- outputs/rollout_data/45.pt
+- outputs/rollout_data/91.pt
+external_assets_not_in_git:
+- Qwen3-1.7B HF checkpoint (Qwen/Qwen3-1.7B) and its Megatron torch_dist conversion, fetched/converted by environment/prepare.sh
+note: >-
+  Defect task on fully-async GRPO. The defect commit silently turns the
+  configured abort-at-weight-sync into in_place, so interrupted rollout groups
+  decode to full length and are then dropped as stale (max-weight-staleness 0).
+  Per matched step the two arms are comparable; the defect costs throughput, so
+  over a fixed 8h wall clock the defective arm completes 92 steps vs the control
+  148, and ends at a lower solve rate (0.460 vs 0.539). Solution grading reads
+  both train-step throughput (primary, >= 120) and the last-10%-window solve
+  rate (secondary, >= 0.48) from the fresh experiment_logs; both must pass.
