@@ -10,7 +10,7 @@
  * Four issue records were re-graded on 3 Nov 2026 under the tightened
  * judge rule (verdict 1.0, root cause and evidence > 0.8); see
  * regrade_issue_new_rule.py for the ledger evidence.
- * The 100 solution records are reconciled against AutoRLBench validation-first
+ * The 90 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -780,10 +780,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": true,
-    "score": 1.0,
-    "durationMs": 1724561,
-    "steps": 44,
-    "costUsd": null
+    "score": 0.98,
+    "durationMs": 880000,
+    "steps": 76,
+    "costUsd": 13.9391
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -961,11 +961,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 3293339,
-    "steps": 44,
-    "costUsd": null
+    "passed": false,
+    "score": 0.94,
+    "durationMs": 2729000,
+    "steps": 71,
+    "costUsd": 20.0949
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -1101,11 +1101,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1457582,
-    "steps": 68,
-    "costUsd": 14.3961
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 628000,
+    "steps": 66,
+    "costUsd": 12.4129
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -1283,11 +1283,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 690887,
-    "steps": 44,
-    "costUsd": null
+    "passed": false,
+    "score": 0.933333,
+    "durationMs": 1467000,
+    "steps": 41,
+    "costUsd": 14.7935
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -1465,11 +1465,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 462527,
-    "steps": 18,
-    "costUsd": 1.8846
+    "passed": false,
+    "score": 0.89,
+    "durationMs": 512000,
+    "steps": 25,
+    "costUsd": 2.7846
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -1634,10 +1634,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.0,
-    "durationMs": 784481,
-    "steps": 25,
-    "costUsd": 0.4025
+    "score": 0.88,
+    "durationMs": 520000,
+    "steps": 27,
+    "costUsd": 0.6214
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -1801,10 +1801,10 @@ window.AUTORLBENCH_RUNS = [
     "agent": "grok-build",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1582807,
-    "steps": 34,
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 607000,
+    "steps": 69,
     "costUsd": null
   },
   {
@@ -1983,11 +1983,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 824485,
-    "steps": 13,
-    "costUsd": 1.2604
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 3112000,
+    "steps": 18,
+    "costUsd": 1.9505
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -1997,8 +1997,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.33,
     "durationMs": 4176169,
     "steps": 48,
     "costUsd": 12.234
@@ -2165,11 +2165,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1317749,
-    "steps": 23,
-    "costUsd": 5.1021
+    "passed": false,
+    "score": 0.866,
+    "durationMs": 780000,
+    "steps": 24,
+    "costUsd": 2.0739
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -2333,10 +2333,10 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1385125,
-    "steps": 29,
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 751000,
+    "steps": 30,
     "costUsd": null
   },
   {
@@ -2470,24 +2470,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "2b695ceefe6bbf58e14f84ce96abac0a349ba0e32bc5e8aa6fb2263c7646004a"
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "fable51-reward-parser-sol",
-    "file": "agent-trace/fable51-reward-parser-sol.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1955810,
-    "steps": 165,
-    "costUsd": 14.9292,
-    "sourceRunId": "autorlbench-20261028-192644-e19a4112",
-    "sessionId": "80f95c29-afc6-4411-8ba3-9acacaa0afc9",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "f4f4031bf799ce1382e567e49d06e6daf3c53fe229b021706c69929e8cb8cfb6"
-  },
-  {
     "task": "reward/task_function_call",
     "slug": "fable51-func-call-sol",
     "file": "agent-trace/fable51-func-call-sol.json",
@@ -2558,24 +2540,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "3f6dbbc8-20b4-4ff7-985b-084fd6e0630f",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "1d0bac3e04cc94722d7be680e5011e9ef162c62f774533c690e85214ed83b8b4"
-  },
-  {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "dsv4-reward-parser-sol",
-    "file": "agent-trace/dsv4-reward-parser-sol.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1060928,
-    "steps": 37,
-    "costUsd": 6.3438,
-    "sourceRunId": "autorlbench-20261029-123804-119f9aac",
-    "sessionId": "1a60e0d2-aeca-4857-87fb-3a44b1ca9bbe",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "328d4a99a38fe3e404c85912051b1a868cfd7cfd0b6b8eca36e28180a840509a"
   },
   {
     "task": "reward/task_function_call",
@@ -2651,24 +2615,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "f504d0e001a33b3a1510cbf697ec1ddc0859947d0c13ea3f4b5e3f7baf33e32d"
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "glm53-reward-parser-sol",
-    "file": "agent-trace/glm53-reward-parser-sol.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 2753214,
-    "steps": 106,
-    "costUsd": 23.978,
-    "sourceRunId": "autorlbench-20261026-141327-f0244c57",
-    "sessionId": "2ff60384-5d22-4e7f-b0b6-f8ef04754921",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "7ea76d1b31476836a3a0341a639e49129b86fdb3aeaaa5998dc4eccf4bc0a6e9"
-  },
-  {
     "task": "infrastructure/verl_moe_token_normalization",
     "slug": "glm53-moe-token-sol",
     "file": "agent-trace/glm53-moe-token-sol.json",
@@ -2703,24 +2649,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "1b6e8eb6-8dd2-4aed-a961-5383e3193abf",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "cbc6be6bbcc3ec2d07eb53c2edcf8e72c15a1ce02ec58a5f651403e595857d10"
-  },
-  {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "gemini4-reward-parser-sol",
-    "file": "agent-trace/gemini4-reward-parser-sol.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 385958,
-    "steps": 30,
-    "costUsd": 7.1654,
-    "sourceRunId": "autorlbench-20261028-152547-c1b3fbe7",
-    "sessionId": "2cbd4c02-b74c-4b76-a2d5-58421dfc5bfa",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "01e26f50ee13d972634b7584da4fb8a261aad4cfdea3d2d750cdcd30a26c9388"
   },
   {
     "task": "reward/task_function_call",
@@ -2795,24 +2723,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "8d877fadd3d6c2c6b3f0bcdb1f987f6c523d5aa83b57d55adf63807c6b046644"
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "gpt6astra-reward-parser-sol",
-    "file": "agent-trace/gpt6astra-reward-parser-sol.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 828805,
-    "steps": 24,
-    "costUsd": 2.7364,
-    "sourceRunId": "autorlbench-20261028-174946-61caff8a",
-    "sessionId": "01a181ed-4ab8-75f0-92cc-169c72f94f24",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "872750b12e78cb358263ae39c78bd654c7dcdf347d7e6083f9d2c8c5481608ab"
-  },
-  {
     "task": "reward/task_function_call",
     "slug": "gpt6astra-func-call-sol",
     "file": "agent-trace/gpt6astra-func-call-sol.json",
@@ -2883,24 +2793,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "01a18274-8502-7153-8c61-68c83817507f",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "6b767111a1a1a2253539e0fa347e2bd1f18ff8862264b4fb8093d8aceb7b6d99"
-  },
-  {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "gpt61sol-reward-parser-sol",
-    "file": "agent-trace/gpt61sol-reward-parser-sol.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 498982,
-    "steps": 23,
-    "costUsd": 0.4952,
-    "sourceRunId": "autorlbench-20261028-191803-ea21becd",
-    "sessionId": "01a1823b-9e42-7483-bbe8-d163fcbe32e0",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "4dd38ee15a177ec90d2f50e66e9ce28b3460c4cf3b0cecc1f2116282ab603569"
   },
   {
     "task": "reward/task_function_call",
@@ -2975,24 +2867,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "1f648b3f765a2e8be87217feb1e80401516866b998c2dc69711724f96de80111"
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "grok47-reward-parser-sol",
-    "file": "agent-trace/grok47-reward-parser-sol.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 263778,
-    "steps": 29,
-    "costUsd": null,
-    "sourceRunId": "autorlbench-20261028-193351-f743da04",
-    "sessionId": "c5b23dc4-b898-447e-aaf0-ac9b7d4dc051",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c06e0198cb5ecd4278e0d2389e0c575c95dae6bda674b7d5aa5d4d946f46b5a5"
-  },
-  {
     "task": "reward/task_function_call",
     "slug": "grok47-func-call-sol",
     "file": "agent-trace/grok47-func-call-sol.json",
@@ -3063,24 +2937,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "f1ac986c-459c-4789-8c73-a9b40b847a21",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "6fd429ce7f8e45d8f55196feea08f066b851f8aaca4d93e2fd46318dcafb859b"
-  },
-  {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "kimi-reward-parser-sol",
-    "file": "agent-trace/kimi-reward-parser-sol.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 984267,
-    "steps": 19,
-    "costUsd": 2.0034,
-    "sourceRunId": "autorlbench-20261029-023952-1fef2ad2",
-    "sessionId": "59b6bd12-ff42-4c33-81bd-56682422c9e2",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "9de55d84350400651006179d0d3d2ba8c840350a7172ddfea4c7479ac8e20fea"
   },
   {
     "task": "reward/task_function_call",
@@ -3155,24 +3011,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "adf2b0aa3ed3ca1205a5346c43ce5dbbed4bbc083a8063b04230a1cc9cdce980"
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "kimi31-reward-parser-sol",
-    "file": "agent-trace/kimi31-reward-parser-sol.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 349537,
-    "steps": 24,
-    "costUsd": 1.344,
-    "sourceRunId": "autorlbench-20261029-013055-97dc557e",
-    "sessionId": "11ae1cdf-fa59-4684-b89c-307f6d77a41f",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "61ed0a149086969f314d1a14b3ef14b13e72adbdf13de405cf5c3fa0abab7128"
-  },
-  {
     "task": "infrastructure/verl_moe_token_normalization",
     "slug": "kimi31-moe-token-sol",
     "file": "agent-trace/kimi31-moe-token-sol.json",
@@ -3207,24 +3045,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "e3054698-8c00-4dbd-b460-8d7cb02e69d3",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "372a868e02351d24be9175bbf9eaed6ec59a13ee3c544c94c65a89c284e13686"
-  },
-  {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "qwen38-reward-parser-sol",
-    "file": "agent-trace/qwen38-reward-parser-sol.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1955402,
-    "steps": 46,
-    "costUsd": null,
-    "sourceRunId": "autorlbench-20261028-163911-7bd27cff",
-    "sessionId": "24b6cd3e-6700-4589-9da5-153187960986",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c82d23411b42f108e47bf3518341e5054c56469fb7bdfa6b3110bda3f4e6c2db"
   },
   {
     "task": "reward/task_function_call",
@@ -4752,31 +4572,272 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "541619f0-f784-4969-8f17-513e1d2c84ef",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "94a6cab08609527757767930f0976b16d068bae44668809bc8de4002d5a314d0"
-  }
-];
-window.AUTORLBENCH_TRACE_TASKS = [
-  {
-    "id": "infrastructure/verl_full_determinism_identical_group_samples",
-    "title": "Full determinism makes every GRPO group identical",
-    "family": "Infrastructure",
-    "model": "Qwen/Qwen2.5-1.5B-Instruct",
-    "dataset": "openai/gsm8k main (7473 train rows, 1319 test rows)",
-    "framework": "verl"
   },
   {
-    "id": "infrastructure/verl_lora_merge_base_weight_sync",
-    "title": "Merged LoRA never reaches the rollout engine",
-    "family": "Infrastructure",
-    "model": "Qwen/Qwen2.5-1.5B-Instruct",
-    "dataset": "openai/gsm8k main (7473 train rows, 1319 test rows)",
-    "framework": "verl"
+    "task": "infrastructure/slime_critic_value_head_random_init",
+    "slug": "fable51-critic-value-head",
+    "file": "agent-trace/fable51-critic-value-head.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.23,
+    "durationMs": 432914,
+    "steps": 38,
+    "costUsd": 4.864
   },
   {
-    "id": "reward/verl_math_verify_thread_zero_reward",
-    "title": "Math-Verify scores zero inside reward workers",
-    "family": "Reward",
-    "model": "Qwen/Qwen2.5-1.5B-Instruct",
-    "dataset": "openai/gsm8k main + DigitalLearningGmbH/MATH-lighteval (7473 + 7500 train rows); validation GSM8K test (1319) + MATH-500 (497 of 500)",
-    "framework": "verl"
+    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
+    "slug": "dsv4-policy-ratio",
+    "file": "agent-trace/dsv4-policy-ratio.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.94,
+    "durationMs": 2060923,
+    "steps": 54,
+    "costUsd": 16.7584
+  },
+  {
+    "task": "infrastructure/slime_critic_value_head_random_init",
+    "slug": "dsv4-critic-value-head",
+    "file": "agent-trace/dsv4-critic-value-head.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.22,
+    "durationMs": 1112163,
+    "steps": 30,
+    "costUsd": 11.3939
+  },
+  {
+    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
+    "slug": "glm53-policy-ratio",
+    "file": "agent-trace/glm53-policy-ratio.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 617692,
+    "steps": 26,
+    "costUsd": 5.7056
+  },
+  {
+    "task": "infrastructure/slime_critic_value_head_random_init",
+    "slug": "glm53-critic-value-head",
+    "file": "agent-trace/glm53-critic-value-head.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.92,
+    "durationMs": 1982103,
+    "steps": 93,
+    "costUsd": 18.734
+  },
+  {
+    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
+    "slug": "gemini4-policy-ratio",
+    "file": "agent-trace/gemini4-policy-ratio.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1039914,
+    "steps": 23,
+    "costUsd": 8.5067
+  },
+  {
+    "task": "infrastructure/slime_critic_value_head_random_init",
+    "slug": "gemini4-critic-value-head",
+    "file": "agent-trace/gemini4-critic-value-head.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.61,
+    "durationMs": 2246570,
+    "steps": 48,
+    "costUsd": 22.781
+  },
+  {
+    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
+    "slug": "gpt6astra-policy-ratio",
+    "file": "agent-trace/gpt6astra-policy-ratio.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 393512,
+    "steps": 17,
+    "costUsd": 1.9311
+  },
+  {
+    "task": "infrastructure/slime_critic_value_head_random_init",
+    "slug": "gpt6astra-critic-value-head",
+    "file": "agent-trace/gpt6astra-critic-value-head.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.92,
+    "durationMs": 474909,
+    "steps": 23,
+    "costUsd": 3.8787
+  },
+  {
+    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
+    "slug": "gpt61sol-policy-ratio",
+    "file": "agent-trace/gpt61sol-policy-ratio.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 387454,
+    "steps": 20,
+    "costUsd": 0.3847
+  },
+  {
+    "task": "infrastructure/slime_critic_value_head_random_init",
+    "slug": "gpt61sol-critic-value-head",
+    "file": "agent-trace/gpt61sol-critic-value-head.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.984,
+    "durationMs": 624402,
+    "steps": 27,
+    "costUsd": 0.7637
+  },
+  {
+    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
+    "slug": "grok47-policy-ratio",
+    "file": "agent-trace/grok47-policy-ratio.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.98,
+    "durationMs": 501053,
+    "steps": 30,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/slime_critic_value_head_random_init",
+    "slug": "grok47-critic-value-head",
+    "file": "agent-trace/grok47-critic-value-head.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.984,
+    "durationMs": 604849,
+    "steps": 29,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
+    "slug": "kimi-policy-ratio",
+    "file": "agent-trace/kimi-policy-ratio.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 2156665,
+    "steps": 13,
+    "costUsd": 1.8791
+  },
+  {
+    "task": "infrastructure/slime_critic_value_head_random_init",
+    "slug": "kimi-critic-value-head",
+    "file": "agent-trace/kimi-critic-value-head.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.22,
+    "durationMs": 9320718,
+    "steps": 27,
+    "costUsd": 6.7902
+  },
+  {
+    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
+    "slug": "kimi31-policy-ratio",
+    "file": "agent-trace/kimi31-policy-ratio.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 382375,
+    "steps": 12,
+    "costUsd": 1.072
+  },
+  {
+    "task": "infrastructure/slime_critic_value_head_random_init",
+    "slug": "kimi31-critic-value-head",
+    "file": "agent-trace/kimi31-critic-value-head.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.42,
+    "durationMs": 752280,
+    "steps": 20,
+    "costUsd": 3.0101
+  },
+  {
+    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
+    "slug": "qwen38-policy-ratio",
+    "file": "agent-trace/qwen38-policy-ratio.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 898181,
+    "steps": 20,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/slime_critic_value_head_random_init",
+    "slug": "qwen38-critic-value-head",
+    "file": "agent-trace/qwen38-critic-value-head.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.88,
+    "durationMs": 2026516,
+    "steps": 38,
+    "costUsd": null
   }
 ];
+window.AUTORLBENCH_TRACE_TASKS = [];

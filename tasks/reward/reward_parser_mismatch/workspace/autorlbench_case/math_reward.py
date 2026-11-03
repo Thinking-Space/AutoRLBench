@@ -1,14 +1,11 @@
 """
-Controlled AutoRLBench candidate bug.
+Custom reward for the GuruMath smoke runs.
 
-The training prompt requires:
-    \boxed{...}
-
-but this scorer incorrectly expects:
-    <answer>...</answer>
-
-The mismatch is silent: a missing <answer> tag receives score 0
-instead of raising an exception.
+Grading reuses grade_answer from verl.utils.reward_score.naive_dapo so
+on-policy scores stay comparable with the offline evaluator. Answer
+extraction follows the QA answer-tag contract (see
+verl.utils.reward_score.search_r1_like_qa_em) that the shared scoring
+stack was built around.
 """
 
 import re
@@ -26,9 +23,6 @@ def compute_score(
     solution_str = str(solution_str)
     ground_truth = str(ground_truth)
 
-    # BUG:
-    # Training prompts require \boxed{...}, but this parser was
-    # accidentally changed to an XML-style answer contract.
     match = re.search(
         r"<answer>\s*(.*?)\s*</answer>",
         solution_str,

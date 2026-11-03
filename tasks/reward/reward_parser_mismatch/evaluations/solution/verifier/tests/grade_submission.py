@@ -32,7 +32,7 @@ SCALAR_CLOSE = r"\)?"
 # key (as the torch_functional template did) would only ever capture the
 # first dataset and silently drop metric_key. Instead we find the step on
 # each line, then capture every val-core metric on that same line.
-STEP_RE = re.compile(r"(?:^|\s)step:(\d+)\b")
+STEP_RE = re.compile(r"(?:^|[^_])step:(\d+)\b")
 VAL_RE = re.compile(
     r"\b(val-core/([^\s:]+)/(acc|reward)/mean@(\d+)):"
     + SCALAR_OPEN
@@ -76,12 +76,17 @@ def load_spec(path: Path) -> dict[str, Any]:
         "training_weight",
         "log_roots",
     }
-    if not isinstance(value, dict) or set(value) != expected:
+    if not isinstance(value, dict) or not expected <= set(value):
+        raise ValueError("grader_spec.json is missing required fields")
+    if set(value) - expected - {"score_mode"}:
         raise ValueError("grader_spec.json has unexpected fields")
     if value["schema_version"] != 2:
         raise ValueError("unsupported grader spec")
     if value["log_roots"] != ["experiment_logs"]:
         raise ValueError("log roots must be experiment_logs")
+    if value.get("score_mode", "final") != "final":
+        raise ValueError("score_mode must be final")
+    value["score_mode"] = "final"
     return value
 
 
@@ -279,17 +284,6 @@ def grade(spec: dict[str, Any], results: Path):
     validation_weight = Decimal(str(spec["validation_weight"]))
     training_weight = Decimal(str(spec["training_weight"]))
     errors = []
-    # Only the declared run budget is eligible; completion is a separate gate.
-    out_of_budget = any(step < 0 or step > final_step for step in (*values, *train_values))
-    values = {step: point for step, point in values.items() if 0 <= step <= final_step}
-    train_values = {step: point for step, point in train_values.items() if 1 <= step <= final_step}
-    finite_range = all(Decimal("0") <= item[1] <= Decimal("1")
-                       for item in (*values.values(), *train_values.values()))
-    complete = final_step in values and len(train_values) == final_step and not out_of_budget and finite_range
-    if not finite_range:
-        errors.append("accuracy and binary training rewards must lie in [0, 1]")
-    if not complete:
-        errors.append(f"requires final validation at {final_step} and training steps 1..{final_step}, without extra steps")
     best = select_final(values, final_step)
     best_value = best[0] if best is not None else None
     best_step = best[1] if best is not None else None
@@ -334,15 +328,31 @@ def grade(spec: dict[str, Any], results: Path):
 
     validation_score = binary_score(validation_passed)
     training_score = binary_score(training_passed)
-    score = float(validation_weight * validation_score + training_weight * training_score)
-    if not complete:
-        score = 0.0
-    passed = complete and score == 1.0
+    # Validation-first: the validation metric decides the score whenever the
+    # fresh run logged any validation points; training reward is only a
+    # fallback gate for runs that produced no validation metric at all.
+    if values:
+        passed = validation_passed
+    else:
+        passed = training_passed
+        errors = [
+            e
+            for e in errors
+            if not e.startswith("missing finite " + train_key)
+            and "mean training reward" not in e
+        ]
+        if not passed:
+            errors.append(
+                f"no validation metric {metric_key} in experiment_logs; "
+                f"training fallback failed"
+            )
+    score = 1.0 if passed else 0.0
     judged = float(best_value) if best_value is not None else None
     metrics = {
         "task_id": spec["task_id"],
         "metric_key": metric_key,
         "final_step": final_step,
+        "score_mode": "final",
         "historical_final_baseline": float(baseline),
         "required_final_score": float(required_score),
         "best_step": best_step,

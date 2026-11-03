@@ -18,6 +18,7 @@ If you find a defect, fix it in the staged workspace at `/workspace`. **Do not
 launch training.** Do not start the experiment, in the foreground or
 background, and do not use `nohup`, `&`, `tmux`, `screen`, or any detach
 mechanism. The system runs the experiment itself after you finish (see below);
+mechanism. The system runs the experiment itself after you finish (see below);
 anything you launch is wasted and scores nothing. Cheap, non-training checks
 are fine.
 
@@ -39,7 +40,7 @@ After you submit the report, the system deletes everything under
 repaired workspace as a foreground process, using the launch script:
 
 ```text
-run_buggy.sh
+run_main.sh
 ```
 
 with this environment:
@@ -61,11 +62,6 @@ reads **only this fresh run's** files under `$AUTORLBENCH_RESULTS/experiment_log
 and scores the key metrics; logs written anywhere else are ignored. Make sure
 your repaired workspace still writes its training and evaluation logs into
 `$AUTORLBENCH_RESULTS/experiment_logs`. Do not copy, edit, or fabricate log
-metrics. You may repair `autorlbench_case/buggy_reward_fn.py`. Keep the frozen
-assets and historical logs under `autorlbench_case/` unchanged, and do not modify
-held-out labels or the evaluation protocol. Otherwise the run is scored 0.
-
-Completion is required independently of metric quality: validation at the
-declared final step must be present, and evaluation beyond the fixed horizon
-is not accepted. Where training reward is graded, every training step must be
-logged. Accuracy and binary rewards must remain in their valid [0, 1] range.
+metrics. Do not modify the preserved evidence under
+`workspace/autorlbench_case/assets/` or any evaluation file. Otherwise the run is
+scored 0.

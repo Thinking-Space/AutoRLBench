@@ -10,6 +10,12 @@ if [ -f "${PROJECT_ROOT}/.env" ]; then
 fi
 export WANDB_API_KEY="${WANDB_API_KEY:-}"
 
+# Smoke-budget lane: scoring selection (see config/scoring.env).
+if [ "${SMOKE_SCORING:-0}" = 1 ]; then
+    # shellcheck disable=SC1091
+    source "${SCRIPT_DIR}/config/scoring.env"
+fi
+
 if [ -f "${HOME}/miniconda3/etc/profile.d/conda.sh" ]; then
     # shellcheck disable=SC1091
     source "${HOME}/miniconda3/etc/profile.d/conda.sh"
@@ -207,6 +213,7 @@ python3 -m recipe.vimpo.main_vimpo \
     reward.reward_manager.name=dapo \
     reward.reward_kwargs.overlong_buffer_cfg.enable=False \
     reward.reward_kwargs.max_resp_len=${max_response_length} \
+    ${REWARD_OVERRIDE:-} \
     vimpo_config.use_vimpo_loss=${use_vimpo_loss} \
     vimpo_config.value_type=${value_type} \
     vimpo_config.vimpo_value_loss_type=${vimpo_value_loss_type} \

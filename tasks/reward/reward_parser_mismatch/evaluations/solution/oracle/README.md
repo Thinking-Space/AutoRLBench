@@ -2,12 +2,16 @@
 
 ## Root cause
 
-- `autorlbench_case/buggy_reward_fn.py::compute_score`
+- `autorlbench_case/math_reward.py::compute_score`
   - kind: `symbol`
   - observed: answer extracted with `re.search(r"<answer>\s*(.*?)\s*</answer>", solution_str, re.DOTALL)` — never matches the boxed GuruMath answers, so every sample scores `0.0`
   - expected: extract the boxed answer and grade it against ground truth
-  - note: this is the reward actually wired into training by `run_buggy.sh`
-    (`reward.custom_reward_function.path`/`name=compute_score`).
+  - note: this is the reward actually wired into training — `run_main.sh` sets
+    `SMOKE_SCORING=1`, the recipe script sources `recipe/vimpo/config/scoring.env`
+    under that flag, and its `REWARD_OVERRIDE` carries
+    `reward.custom_reward_function.path`/`name=compute_score` onto the Hydra
+    command line (superseding the `gurumath_qa_em.py` default in
+    `vimpo_trainer.yaml`).
 
 ## Observable impact
 
@@ -17,7 +21,7 @@
 
 ## Trigger conditions
 
-- `autorlbench_case/buggy_reward_fn.py` uses the `<answer>...</answer>` parser while
+- `autorlbench_case/math_reward.py` uses the `<answer>...</answer>` parser while
   prompts and ground truth are boxed (`\boxed{...}`).
 
 ## Required remediation
@@ -31,17 +35,17 @@
   `16`, `\boxed{16}` must score `1` and `\boxed{17}` must score `0`.
   (`grade_answer` comes from `verl.utils.reward_score.naive_dapo`, unchanged.)
 
-Machine grading reads only the new experiment logs. Scoring is weighted:
+Machine grading reads only the new experiment logs. Scoring is validation-first
+(`score_mode: final` in `grader_spec.json`):
 
 - validation: the terminal (final-step) `val-core/math__math/acc/mean@1` must be
   at least `required_final_score` (see `grader_spec.json`); the terminal value is
-  used, not a peak. The historical final baseline is `0.0`.
-- training reward: mean `critic/rewards/mean` over training steps must be
-  strictly above `required_training_reward`.
-- final `score = 0.8 * validation + 0.2 * training_reward`.
-
-Pass requires both components (`score == 1.0`). The framework still records the
-weighted float when only one component passes.
+  used, not a peak. The historical final baseline is `0.0`. Whenever the fresh
+  run logged any validation point, this gate alone decides the outcome.
+- training reward: mean `critic/rewards/mean` over training steps strictly above
+  `required_training_reward` is only a fallback gate for runs that produced no
+  validation metric at all.
+- final `score = 1.0` on pass and `0.0` otherwise.
 
 The reference extraction reuses `_last_boxed_only_string` from the bundled
 math scorer. Correct fractions and radicals such as `\boxed{\frac{17}{8}}`

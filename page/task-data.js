@@ -271,7 +271,7 @@ window.AUTORLBENCH_TASKS = [
         "model": "Qwen3-4B-Base",
         "dataset": "GuruMath controlled smoke (1024 rows)",
         "framework": "verl",
-        "image": "vimpo-cu128-recorded",
+        "image": "ppo-critic-vimpo",
         "created": "2026-08-18",
         "license": "MIT",
         "brief": "The parser never matches, so every reward is zero.",
@@ -416,5 +416,46 @@ window.AUTORLBENCH_TASKS = [
         "license": "Apache-2.0",
         "brief": "Every rollout of a prompt gets the same sampling seed, so GRPO groups have zero variance.",
         "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on GSM8K with full_determinism=True. Every request on a replica gets the same sampling seed while vLLM runs batch invariant, so the n samples of a prompt come back byte-identical: every group has zero reward variance, all advantages and losses are exactly 0, and held-out accuracy stays at 0.08719 at every validation."
+    },
+    {
+        "id": "algorithm/verl_policy_ratio_recomputes_old_logprob",
+        "title": "GRPO policy ratio ignores rollout log probabilities",
+        "family": "Algorithm",
+        "tags": [
+            "verl",
+            "grpo",
+            "fsdp",
+            "vllm",
+            "free-generation",
+            "gsm8k"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "dataset": "openai/gsm8k main; first 256 official train rows / 100 official test rows sampled with seed 42",
+        "framework": "verl",
+        "image": "verl_policy_ratio_recomputes_old_logprob",
+        "created": "2026-10-27",
+        "license": "Apache-2.0",
+        "brief": "The policy ratio is forced to one, so clipping never engages.",
+        "issue": "Training Qwen/Qwen2.5-0.5B-Instruct with GRPO on GSM8K. compute_policy_loss subtracts detached current log probabilities instead of frozen rollout probabilities, so the probability ratio stays one and clipping is inactive across four optimizer passes per rollout; accuracy falls from 47% to 0% while the repaired run reaches 50%."
+    },
+    {
+        "id": "infrastructure/slime_critic_value_head_random_init",
+        "title": "PPO critic value head randomly initialised instead of zeroed",
+        "family": "Infrastructure",
+        "tags": [
+            "slime",
+            "ppo",
+            "critic",
+            "value-head",
+            "initialization"
+        ],
+        "model": "Qwen3-1.7B",
+        "dataset": "Endless Terminals (1489 of 2492 tasks admitted; train 1039 / val 150 / test 300)",
+        "framework": "slime",
+        "image": "slime-v0.3.2",
+        "created": "2026-10-14",
+        "license": "Apache-2.0",
+        "brief": "The critic's value head starts from random weights, inflating value loss ~77x.",
+        "issue": "Training Qwen3-1.7B with Multi-Turn PPO on Endless Terminals. The critic's value head is drawn from a normal distribution instead of zeroed, so it opens with arbitrary value predictions and the critic value loss is inflated roughly 77x across the warmup window, most visibly after a reload where it reads like checkpoint corruption."
     }
 ];

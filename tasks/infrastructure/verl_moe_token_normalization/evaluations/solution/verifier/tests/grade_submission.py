@@ -1,9 +1,25 @@
 #!/usr/bin/env python3
-"""Extract the target veRL metric from fresh logs and assign a binary score."""
+"""Extract the target veRL metric from fresh logs and assign a binary score.
+
+Beyond the metric bar itself, two spec-driven checks pin the run's integrity:
+
+- `required_log_patterns`: each regex must appear somewhere in the fresh run's text
+  logs. This anchors the run's trigger configuration (whichever keys the spec
+  lists), so a repair that merely avoids the defective code path fails even when
+  its metric clears the bar.
+- `validation_dump` + `answer_key`: the final-step validation generations are
+  re-graded with the verifier's own copy of the reward scorer (gsm8k_reference.py,
+  not the workspace's) against the verifier's protected answer key (one entry per
+  test problem). Every problem of the key must appear in the dump exactly once,
+  answers come from the key rather than the dump's own `gts`, and the logged metric
+  must agree with that re-grade. A workspace whose reward, scorer, dump writer or
+  logged numbers were edited cannot pass on its own data.
+"""
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -30,7 +46,14 @@ REQUIRED_SPEC_KEYS = {
     "required_final_score",
     "log_roots",
 }
-OPTIONAL_SPEC_KEYS = {"required_final_score_max", "score_mode"}
+OPTIONAL_SPEC_KEYS = {
+    "required_final_score_max",
+    "score_mode",
+    "required_log_patterns",
+    "validation_dump",
+    "validation_recheck_tolerance",
+    "answer_key",
+}
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
@@ -68,6 +91,20 @@ def load_spec(path: Path) -> dict[str, Any]:
     if mode not in {"best", "final"}:
         raise ValueError("score_mode must be best or final")
     value["score_mode"] = mode
+    patterns = value.get("required_log_patterns", [])
+    if not isinstance(patterns, list) or not all(
+        isinstance(entry, dict)
+        and set(entry) == {"pattern", "description"}
+        and isinstance(entry["pattern"], str)
+        and isinstance(entry["description"], str)
+        for entry in patterns
+    ):
+        raise ValueError("required_log_patterns must be objects with pattern and description")
+    for entry in patterns:
+        try:
+            re.compile(entry["pattern"])
+        except re.error as exc:
+            raise ValueError(f"invalid required log pattern: {exc}")
     return value
 
 
@@ -123,6 +160,11 @@ def extract(spec: dict[str, Any], results: Path):
     values: dict[int, tuple[Any, Decimal, str]] = {}
     keys_seen: set[str] = {expected_key}
     source_logs = []
+    required_patterns = [
+        (entry, re.compile(entry["pattern"]))
+        for entry in spec.get("required_log_patterns", [])
+    ]
+    matched_patterns: list[str | None] = [None] * len(required_patterns)
     for path in log_files(results, spec["log_roots"]):
         try:
             data = path.read_bytes()
@@ -133,6 +175,9 @@ def extract(spec: dict[str, Any], results: Path):
         except OSError:
             continue
         relative = path.relative_to(results).as_posix()
+        for index, (_, required) in enumerate(required_patterns):
+            if matched_patterns[index] is None and required.search(text):
+                matched_patterns[index] = relative
         matched = False
         for pattern in (step_line, eval_dict):
             for order, match in enumerate(pattern.finditer(text)):
@@ -171,6 +216,16 @@ def extract(spec: dict[str, Any], results: Path):
     experiment = {
         "task_id": spec["task_id"],
         "logs": {"source_logs": sorted(set(source_logs))},
+        "config_integrity": {
+            "required_patterns": [
+                {
+                    "pattern": entry["pattern"],
+                    "description": entry["description"],
+                    "matched_log": matched,
+                }
+                for (entry, _), matched in zip(required_patterns, matched_patterns)
+            ]
+        },
         "metrics": {
             "metric_key": expected_key,
             "metric_status": "available" if points else "missing",
@@ -203,6 +258,77 @@ def judged_value(spec: dict[str, Any], values: dict[int, tuple[Any, Decimal, str
     return best[0], best[1], best[3]
 
 
+def user_message(decoded_input: str) -> str | None:
+    """The user turn of a verl validation dump's decoded prompt ("system ... user <message> assistant")."""
+    start = decoded_input.find("\nuser\n")
+    end = decoded_input.rfind("\nassistant")
+    if start < 0 or end <= start:
+        return None
+    return decoded_input[start + len("\nuser\n"):end]
+
+
+def question_key(text: str) -> str:
+    return hashlib.sha256(" ".join(text.split()).encode("utf-8")).hexdigest()
+
+
+def load_answer_key(spec: dict[str, Any]) -> dict[str, str]:
+    path = Path(__file__).resolve().parent.parent / "resources" / spec["answer_key"]
+    problems = json.loads(path.read_text(encoding="utf-8"))["problems"]
+    answers = {p["question_sha256"]: str(p["answer"]) for p in problems}
+    if len(answers) != len(problems):
+        raise ValueError("answer key has duplicate questions")
+    return answers
+
+
+def recheck_validation(spec: dict[str, Any], results: Path):
+    """Re-grade the final-step validation dump against the protected answer key.
+
+    Each dump row is matched to a key entry by its question; unknown, missing or repeated problems fail. The score
+    uses the key's answers, never the dump's own `gts`.
+    """
+    relative = spec.get("validation_dump")
+    if relative is None:
+        return None, 0, []
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import gsm8k_reference  # noqa: E402
+    answers = load_answer_key(spec)
+    root = results / spec["log_roots"][0]
+    path = root / relative.format(step=spec["final_step"])
+    label = path.relative_to(results).as_posix()
+    if path.is_symlink() or not path.is_file():
+        return None, 0, [f"missing validation dump {label}"]
+    seen: dict[str, int] = {}
+    unknown = 0
+    correct = Decimal(0)
+    # Split on \n only: dumps keep characters such as U+2028 unescaped, and str.splitlines() would break a row there.
+    for line in path.read_text(encoding="utf-8").split("\n"):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        message = user_message(str(row.get("input", "")))
+        key = question_key(message) if message is not None else None
+        if key not in answers:
+            unknown += 1
+            continue
+        seen[key] = seen.get(key, 0) + 1
+        if seen[key] == 1:
+            correct += Decimal(
+                str(gsm8k_reference.compute_score(str(row.get("output", "")), answers[key]))
+            )
+    errors = []
+    if unknown:
+        errors.append(f"validation dump {label} has {unknown} rows matching no protected test problem")
+    missing = len(answers) - len(seen)
+    if missing:
+        errors.append(f"validation dump {label} is missing {missing} of the {len(answers)} test problems")
+    repeated = sum(n - 1 for n in seen.values())
+    if repeated:
+        errors.append(f"validation dump {label} repeats {repeated} test problems")
+    if errors:
+        return None, len(seen), errors
+    return correct / Decimal(len(answers)), len(seen), []
+
+
 def grade(spec: dict[str, Any], results: Path):
     experiment, values, keys_seen = extract(spec, results)
     metric_key = spec["metric_key"]
@@ -221,6 +347,11 @@ def grade(spec: dict[str, Any], results: Path):
     if any(step < 0 or step > final_step for step in values):
         errors.append(f"validation outside the declared 0..{final_step} budget")
     values = {step: point for step, point in values.items() if 0 <= step <= final_step}
+    for entry in experiment["config_integrity"]["required_patterns"]:
+        if entry["matched_log"] is None:
+            errors.append(
+                f"run logs do not show required configuration: {entry['description']}"
+            )
     judged, judged_step, judged_source = judged_value(spec, values)
     improvement = judged - baseline if judged is not None else None
     if judged is None:
@@ -240,6 +371,20 @@ def grade(spec: dict[str, Any], results: Path):
             f"score {judged} at step {judged_step} is above "
             f"required maximum {required_max_value}"
         )
+    recheck, recheck_rows, recheck_errors = recheck_validation(spec, results)
+    errors.extend(recheck_errors)
+    if recheck is not None:
+        tolerance = Decimal(str(spec.get("validation_recheck_tolerance", "0.002")))
+        if judged is not None and abs(recheck - judged) > tolerance:
+            errors.append(
+                f"logged {metric_key}={judged} disagrees with the verifier's re-grade "
+                f"{recheck:.6f} of the step-{final_step} validation dump"
+            )
+        elif recheck < required_score:
+            errors.append(
+                f"re-graded step-{final_step} validation accuracy {recheck:.6f} is below "
+                f"required score {required_score}"
+            )
     passed = not errors
     score = 1.0 if passed else 0.0
     judged_float = float(judged) if judged is not None else None
@@ -261,6 +406,8 @@ def grade(spec: dict[str, Any], results: Path):
             float(improvement) if improvement is not None else None
         ),
         "source_logs": experiment["logs"]["source_logs"],
+        "validation_recheck_score": float(recheck) if recheck is not None else None,
+        "validation_recheck_rows": recheck_rows,
         "errors": errors,
         "passed": passed,
         "score": score,
