@@ -9,8 +9,9 @@
        dropdown keeps only passed or failed runs inside each table. Rows link
        to the trace viewer (trace.html?trace=…). */
 
-    const TASKS = window.AUTORLBENCH_TASKS || [];
-    /* Only runs of publicly listed tasks are shown. */
+    const TASKS = (window.AUTORLBENCH_TASKS || [])
+        .concat(window.AUTORLBENCH_TRACE_TASKS || []);
+    /* Only runs of listed tasks (catalog plus trace-only tasks) are shown. */
     const KNOWN = new Set(TASKS.map(t => t.id));
     const RUNS = (window.AUTORLBENCH_RUNS || []).filter(r => KNOWN.has(r.task));
 
