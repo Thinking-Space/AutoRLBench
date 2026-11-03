@@ -19,9 +19,17 @@ Evaluation images and the in-container tooling shared by every task.
 | `verl` | `verlai/verl:vllm017.latest` | `data/verl_taco_difficulty_mismatch` |
 | `slime-v0.3.2` | `slimerl/slime:v0.3.2-cu129` | `reward/slime_retool_length_reward_bonus` |
 | `search-r1-verl` | `nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04` + `search-r1-runtime/uv.lock` | `environment/search_r1_zero_query_embedding` |
-| `ppo-critic-vimpo` | `nvidia/cuda:12.8.1-devel-ubuntu24.04` | `configuration/verl_aime25_single_sample_protocol` |
+| `ppo-critic-vimpo` | `nvidia/cuda:12.8.1-devel-ubuntu24.04` | `reward/proxy_reward_misalignment`, `reward/reward_parser_mismatch` |
 | `verl` | `verlai/verl:vllm017.latest` | `algorithm/verl_grpo_uid_after_repeat` |
+| `verl` | `verlai/verl:vllm017.latest` | `algorithm/verl_grpo_advantage_broadcast` |
+| `verl` | `verlai/verl:vllm017.latest` | `algorithm/verl_gsm8k_flat_eval` |
+| `verl` | `verlai/verl:vllm017.latest` | `configuration/trl_gsm8k_eos_mismatch` |
+| `verl` | `verlai/verl:vllm017.latest` | `environment/alfworld_tool_schema_mismatch` |
+| `verl` | `verlai/verl:vllm017.latest` | `infrastructure/torch_functional` |
+| `verl` | `verlai/verl:vllm017.latest` | `reward/task_function_call` |
+| `slime-v0.3.2` | `slimerl/slime:v0.3.2-cu129` | `reward/slime_search_r1_nomask` |
 | `verl-moe-token` | `verlai/verl:vllm017.latest` + `verl-moe-token/mcore5047-minimal.patch` | `infrastructure/verl_moe_token_normalization` |
+| `verl_checkpoint_host_memory_oom` | `hiyouga/verl` (pinned digest) | `infrastructure/verl_checkpoint_host_memory_oom` |
 
 An image shared by several tasks is part of each task's ground truth. If you change a
 Dockerfile, rerun every task that uses it. A task that needs a different stack gets a new

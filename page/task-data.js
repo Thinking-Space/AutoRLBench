@@ -6,23 +6,24 @@
  */
 window.AUTORLBENCH_TASKS = [
     {
-        "id": "configuration/verl_aime25_single_sample_protocol",
-        "title": "AIME25 single-sample variance",
+        "id": "configuration/trl_gsm8k_eos_mismatch",
+        "title": "TRL GSM8K GRPO with mismatched EOS configuration",
         "family": "Configuration",
         "tags": [
-            "verl",
-            "ppo",
-            "sampling",
-            "aime25"
+            "trl",
+            "grpo",
+            "eos",
+            "gsm8k",
+            "issue-only"
         ],
-        "model": "Qwen3-4B-Base",
-        "dataset": "AIME 2025",
-        "framework": "verl",
-        "image": "ppo-critic-vimpo",
-        "created": "2026-08-18",
-        "license": "MIT",
-        "brief": "One sample per question makes evaluation too noisy.",
-        "issue": "Evaluating Qwen3-4B-Base on AIME 2025. One sample per question makes the score too noisy to judge the run."
+        "model": "Qwen3-1.7B-Base (GSM8K SFT)",
+        "dataset": "openai/gsm8k",
+        "framework": "trl",
+        "image": "verl",
+        "created": "2026-10-24",
+        "license": "Apache-2.0",
+        "brief": "Wrong EOS token id lets rollouts run past the answer.",
+        "issue": "Training a GSM8K-SFT Qwen3-1.7B-Base with TRL GRPO. eos_token_id lists only endoftext (151643) and not <|im_end|> (151645), so rollouts continue past the answer and evaluation drops from 0.787 to 0.486."
     },
     {
         "id": "reward/slime_retool_length_reward_bonus",
@@ -59,10 +60,10 @@ window.AUTORLBENCH_TASKS = [
         "dataset": "TACO",
         "framework": "verl",
         "image": "verl:vllm017.latest",
-        "created": "2026-10-10",
+        "created": "2026-10-21",
         "license": "MIT",
-        "brief": "Training set is very hard while validation set is easy.",
-        "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO. The training set is very hard while the validation set is easy."
+        "brief": "Training set is very hard while validation set is easy, so GRPO gets almost no learning signal.",
+        "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO. The training problems are too hard for the model under the all-tests-pass reward, so training never learns and held-out accuracy stays flat."
     },
     {
         "id": "environment/search_r1_zero_query_embedding",
@@ -91,7 +92,8 @@ window.AUTORLBENCH_TASKS = [
             "verl",
             "grpo",
             "advantage",
-            "uid"
+            "uid",
+            "issue-only"
         ],
         "model": "Llama-3.2-1B-Instruct",
         "dataset": "DAPO-Math-17k",
@@ -120,5 +122,238 @@ window.AUTORLBENCH_TASKS = [
         "license": "Apache-2.0",
         "brief": "MoE z-loss gradients skip token normalization.",
         "issue": "Training Qwen1.5-MoE-A2.7B-Chat with GRPO on GSM8K. The per-token loss callback omits the token count, so MoE z-loss gradients are never divided back."
+    },
+    {
+        "id": "algorithm/verl_grpo_advantage_broadcast",
+        "title": "GRPO advantage broadcast along the sequence axis",
+        "family": "Algorithm",
+        "tags": [
+            "verl",
+            "grpo",
+            "advantage",
+            "taco"
+        ],
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "dataset": "TACO EASY (8368 train / 184 test)",
+        "framework": "verl",
+        "image": "verl",
+        "created": "2026-09-24",
+        "license": "MIT",
+        "brief": "Per-sequence advantages broadcast over tokens, flattening training.",
+        "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO EASY. compute_grpo_outcome_advantage broadcasts the per-sequence advantage along the sequence axis, so held-out accuracy stays flat around noise level for the whole run."
+    },
+    {
+        "id": "algorithm/verl_gsm8k_flat_eval",
+        "title": "Flat held-out GSM8K score in verl GRPO",
+        "family": "Algorithm",
+        "tags": [
+            "verl",
+            "grpo",
+            "sampling",
+            "gsm8k",
+            "eval"
+        ],
+        "model": "Qwen/Qwen3-1.7B",
+        "dataset": "GSM8K main (7473 train / 256 held-out)",
+        "framework": "verl",
+        "image": "verl",
+        "created": "2026-10-23",
+        "license": "NOASSERTION",
+        "brief": "A forwarded rollout seed freezes the held-out evaluation.",
+        "issue": "Training Qwen3-1.7B with GRPO on GSM8K. The rollout seed is forwarded into a shared SamplingParams object, so every held-out evaluation samples identical completions and the score stays flat while a control run keeps improving."
+    },
+    {
+        "id": "environment/alfworld_tool_schema_mismatch",
+        "title": "ALFWorld tool-schema name mismatch",
+        "family": "Environment",
+        "tags": [
+            "agent-r1",
+            "grpo",
+            "alfworld",
+            "tool-schema"
+        ],
+        "model": "Qwen/Qwen3-4B",
+        "dataset": "ALFWorld difficulty-v1-s42 train (1008 draws) + balanced1008-s42 validation",
+        "framework": "agent-r1",
+        "image": "verl",
+        "created": "2026-10-20",
+        "license": "MIT",
+        "brief": "Renamed tool calls are never accepted by the executor.",
+        "issue": "Training Qwen3-4B with GRPO on ALFWorld. The tool schema renames clean/heat/cool to clean_object/heat_object/cool_object, but the executor registry only knows the original names, so those action families stay at zero success."
+    },
+    {
+        "id": "infrastructure/qwen3vl_geo3k",
+        "title": "Flat image positions from a raw AutoProcessor",
+        "family": "Infrastructure",
+        "tags": [
+            "verl",
+            "grpo",
+            "qwen3-vl",
+            "geometry3k"
+        ],
+        "model": "Qwen/Qwen3-VL-8B-Instruct",
+        "dataset": "geometry3k (2101 train / 601 held-out)",
+        "framework": "verl",
+        "image": "verl-qwen3vl-cu130",
+        "created": "2026-10-22",
+        "license": "Apache-2.0",
+        "brief": "Image position ids are computed outside the processor, skewing training.",
+        "issue": "Training Qwen3-VL-8B-Instruct with GRPO on geometry3k. A raw AutoProcessor is used instead of the model's preprocessor, so image position ids come out flat and the KL against the reference model is an order of magnitude too high."
+    },
+    {
+        "id": "infrastructure/torch_functional",
+        "title": "Missing torch.roll in rm-pad log-prob computation",
+        "family": "Infrastructure",
+        "tags": [
+            "verl",
+            "grpo",
+            "log-prob",
+            "rm-pad"
+        ],
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "dataset": "TACO EASY (8368 train / 184 test)",
+        "framework": "verl",
+        "image": "verl",
+        "created": "2026-09-09",
+        "license": "MIT",
+        "brief": "Log-probs are computed one token off after rm-pad.",
+        "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO EASY. input_ids_rmpad_rolled is assigned as input_ids_rmpad instead of torch.roll(..., shifts=-1, dims=1), so old log-probs are shifted one token and dominate the surrogate loss."
+    },
+    {
+        "id": "infrastructure/verl_qwen3_vl_grpo_training_case_v8k2",
+        "title": "Qwen3-VL GRPO training case v8k2",
+        "family": "Infrastructure",
+        "tags": [
+            "verl",
+            "grpo",
+            "qwen3-vl",
+            "sequence-parallel",
+            "issue-only"
+        ],
+        "model": "Qwen/Qwen3-VL-8B-Instruct",
+        "dataset": "derek-thomas/ScienceQA",
+        "framework": "verl",
+        "image": "vl-grpo-cu129-recorded",
+        "created": "2026-10-24",
+        "license": "Apache-2.0",
+        "brief": "Fused FSDP path drops the globally shifted SP labels.",
+        "issue": "Training Qwen3-VL-8B-Instruct with GRPO on ScienceQA. The fused FSDP path does not consume the globally shifted sequence-parallel labels, so vLLM applies the wrong loss mask; correcting it is worth 5.35 percentage points of validation accuracy."
+    },
+    {
+        "id": "reward/proxy_reward_misalignment",
+        "title": "Brevity proxy reward misalignment",
+        "family": "Reward",
+        "tags": [
+            "verl",
+            "ppo",
+            "proxy-reward",
+            "gurumath"
+        ],
+        "model": "Qwen3-4B-Base",
+        "dataset": "GuruMath fixed-16 controlled set",
+        "framework": "verl",
+        "image": "vimpo-cu128-recorded",
+        "created": "2026-08-18",
+        "license": "MIT",
+        "brief": "A brevity proxy optimizes for short, worse answers.",
+        "issue": "Training Qwen3-4B-Base with PPO on GuruMath. The reward uses a brevity proxy (1 - n_chars/4000), so training reward climbs while held-out math accuracy falls from 0.781 to 0.594 and responses shorten from ~677 to ~474 tokens."
+    },
+    {
+        "id": "reward/reward_parser_mismatch",
+        "title": "Reward parser vs ground-truth format mismatch",
+        "family": "Reward",
+        "tags": [
+            "verl",
+            "ppo",
+            "reward-parsing",
+            "gurumath"
+        ],
+        "model": "Qwen3-4B-Base",
+        "dataset": "GuruMath controlled smoke (1024 rows)",
+        "framework": "verl",
+        "image": "vimpo-cu128-recorded",
+        "created": "2026-08-18",
+        "license": "MIT",
+        "brief": "The parser never matches, so every reward is zero.",
+        "issue": "Training Qwen3-4B-Base with PPO on GuruMath. The reward parser extracts XML <answer> tags while ground truth is \\boxed{} format, so both training reward and validation accuracy stay at exactly zero for the whole run."
+    },
+    {
+        "id": "reward/slime_search_r1_nomask",
+        "title": "Search-R1 observations trained without a loss mask",
+        "family": "Reward",
+        "tags": [
+            "slime",
+            "grpo",
+            "search-r1",
+            "loss-mask"
+        ],
+        "model": "Qwen2.5-3B",
+        "dataset": "Search-R1 nq_hotpotqa_train",
+        "framework": "slime",
+        "image": "slime-v0.3.2",
+        "created": "2026-08-19",
+        "license": "Apache-2.0",
+        "brief": "Retrieved documents get gradient, so the model stops searching.",
+        "issue": "Training Qwen2.5-3B with GRPO on Search-R1 NQ/HotpotQA. Retrieved <information> tokens are trained (loss_mask=1), so response length collapses from ~1751 to single digits and NQ test accuracy lands at 16.5% versus a 40.8% baseline."
+    },
+    {
+        "id": "reward/idea_awm_reward_diagnosis",
+        "title": "Inaccurate rule-based task rewards in IDEA AWM OPSD",
+        "family": "Reward",
+        "tags": [
+            "idea",
+            "verl",
+            "awm",
+            "opsd",
+            "issue-only"
+        ],
+        "model": "locaszzz/IDEA_sft",
+        "dataset": "locaszzz/IDEA_training_data; locaszzz/AgentWorldModel-1K",
+        "framework": "idea",
+        "image": "idea-issue",
+        "created": "2026-10-22",
+        "license": "LicenseRef-IDEA4AutoRLBench-Composite",
+        "brief": "The rule-based verifier awards full reward to trajectories that never complete the task.",
+        "issue": "Training IDEA_sft with OPSD on the AgentWorldModel suite. The generated completion verifiers use incomplete acceptance predicates, so trajectories that do not satisfy the requested task still score full reward while held-out test score drifts down."
+    },
+    {
+        "id": "infrastructure/verl_checkpoint_host_memory_oom",
+        "title": "Checkpoint saving exhausts host memory at step 10",
+        "family": "Infrastructure",
+        "tags": [
+            "verl",
+            "grpo",
+            "fsdp",
+            "checkpoint",
+            "optimizer-offload",
+            "host-memory"
+        ],
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "dataset": "openai/gsm8k main (7473 train / 1319 test rows)",
+        "framework": "verl",
+        "image": "verl_checkpoint_host_memory_oom",
+        "created": "2026-10-27",
+        "license": "Apache-2.0",
+        "brief": "CPU-offloaded optimizer state leaves no headroom for the step-10 checkpoint save.",
+        "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. CPU-offloaded Adam state leaves insufficient host-memory headroom for native checkpoint serialization at step 10, so container memory hits the fixed 20 GiB limit and the run dies."
+    },
+    {
+        "id": "reward/task_function_call",
+        "title": "Function-call problems always score zero",
+        "family": "Reward",
+        "tags": [
+            "verl",
+            "grpo",
+            "taco",
+            "function-call"
+        ],
+        "model": "Qwen2.5-1.5B-Instruct",
+        "dataset": "TACO EASY",
+        "framework": "verl",
+        "image": "verl",
+        "created": "2026-08-21",
+        "license": "MIT",
+        "brief": "The reward ignores fn_name, deleting call-based scoring.",
+        "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO EASY. The taco.py reward function ignores fn_name and deletes call-based execution, so every function-call problem scores exactly zero."
     }
 ];

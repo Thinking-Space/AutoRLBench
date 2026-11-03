@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import tempfile
 import unittest
 import subprocess
@@ -171,7 +172,6 @@ class SandboxLifecycleTests(unittest.TestCase):
                     {
                         "task_id": "task",
                         "environment": EnvironmentPlan(),
-                        # _environment_mount reads paths.environment.
                         "paths": type("Paths", (), {"environment": root / "environment"})(),
                     },
                 )(),
@@ -195,6 +195,8 @@ class SandboxLifecycleTests(unittest.TestCase):
                         "prepared": root / "prepared",
                         "models": root / "models",
                         "datasets": root / "datasets",
+                        # The staged environment/ copy _prepare_run links into the run directory.
+                        "environment": root / "environment",
                     },
                 )(),
                 EvaluationConfig(
@@ -314,10 +316,14 @@ class SandboxLifecycleTests(unittest.TestCase):
             "swe_slugfix/001: trial",
             "issue",
         )
+        # The prefix is the bind-mount source the agent can read from /proc/mounts, so it
+        # carries the task id only as a digest -- task ids often spell out the diagnosis.
         self.assertRegex(
             prefix,
-            r"^autorlbench-run-swe_slugfix-001-trial-issue-\d{8}-\d{6}-\d{6}-$",
+            rf"^autorlbench-run-{hashlib.sha256('swe_slugfix/001: trial'.encode()).hexdigest()[:8]}"
+            r"-issue-\d{8}-\d{6}-\d{6}-$",
         )
+        self.assertNotIn("swe_slugfix", prefix)
 
     def test_huggingface_mirror_reaches_the_prepare_stage_as_hf_endpoint(self):
         # Downloads happen in the prepare stage, so mirror settings can only enter through that stage's env vars.

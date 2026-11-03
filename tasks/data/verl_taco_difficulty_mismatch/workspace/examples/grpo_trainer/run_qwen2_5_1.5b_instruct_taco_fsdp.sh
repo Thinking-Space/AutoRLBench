@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# GRPO | Qwen2.5-1.5B-Instruct | TACO | 8 GPUs
+# GRPO | Qwen2.5-1.5B-Instruct | TACO | g37 GPU 4-7 (4 GPUs)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 LOG_DIR="${LOG_DIR:-${VERL_ROOT}/logs}"
-mkdir -p "${LOG_DIR}"
+ROLLOUT_DATA_DIR="${ROLLOUT_DATA_DIR:-${VERL_ROOT}/rollout_data}"
+VALIDATION_DATA_DIR="${VALIDATION_DATA_DIR:-${VERL_ROOT}/validation_data}"
+mkdir -p "${LOG_DIR}" "${ROLLOUT_DATA_DIR}" "${VALIDATION_DATA_DIR}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="${LOG_DIR}/qwen2_5_1.5b_instruct_taco_fsdp_${TIMESTAMP}.log"
 
@@ -23,8 +25,8 @@ TEST_FILE="${TEST_FILE:-${VERL_ROOT}/taco_verl/test.parquet}"
 TACO_REWARD_PATH="${TACO_REWARD_PATH:-${VERL_ROOT}/verl/utils/reward_score/taco.py}"
 
 NNODES=${NNODES:-1}
-NGPUS_PER_NODE=${NGPUS_PER_NODE:-8}
-CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
+NGPUS_PER_NODE=${NGPUS_PER_NODE:-4}
+CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-4,5,6,7}"
 export CUDA_VISIBLE_DEVICES
 
 TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE:-16}
@@ -36,9 +38,9 @@ MAX_RESPONSE_LENGTH=${MAX_RESPONSE_LENGTH:-4096}
 MAX_MODEL_LEN=$((MAX_PROMPT_LENGTH + MAX_RESPONSE_LENGTH))
 
 ACTOR_LR=${ACTOR_LR:-1e-6}
-KL_LOSS_COEF=${KL_LOSS_COEF:-0}
-USE_KL_LOSS=${USE_KL_LOSS:-False}
-ENTROPY_COEFF=${ENTROPY_COEFF:-0}
+KL_LOSS_COEF=${KL_LOSS_COEF:-0.02}
+USE_KL_LOSS=${USE_KL_LOSS:-True}
+ENTROPY_COEFF=${ENTROPY_COEFF:-0.001}
 
 ROLLOUT_TP=${ROLLOUT_TP:-1}
 ROLLOUT_GPU_MEM_UTIL=${ROLLOUT_GPU_MEM_UTIL:-0.4}
@@ -129,6 +131,8 @@ TRAINER=(
     trainer.logger='["console","wandb"]'
     trainer.project_name=${PROJECT_NAME}
     trainer.experiment_name=${EXPERIMENT_NAME}
+    trainer.rollout_data_dir=${ROLLOUT_DATA_DIR}
+    trainer.validation_data_dir=${VALIDATION_DATA_DIR}
     trainer.n_gpus_per_node=${NGPUS_PER_NODE}
     trainer.nnodes=${NNODES}
     trainer.save_freq=${SAVE_FREQ}

@@ -18,28 +18,26 @@ A benchmark and open call for valuable, reproducible RL runs. Each task is a rea
 
 ## 🚀 News 
 
+- **2 Nov 2026** — We release the first version of the task list: 18 tasks, 13 of which support solution-level evaluation.
 - **24 Oct 2026** — Call for contributions officially open, and Kimi-K3.1-Pro added to the leaderboard.
-- **22 Oct 2026** — Leaderboard v0.1 released, covering 14 tasks.
 - **19 Oct 2026** — GitHub repo and website released.
 
 ## Leaderboard
 
-AutoRLBench Leaderboard 0.1, issue evaluation. *First release; updated as new agents and tasks are added.*
+AutoRLBench Leaderboard, issue + solution evaluation.
 
-| # | Model | Agent | Issue score | |
-| ---: | --- | --- | ---: | :--- |
-| 1 | Claude-Fable-5.1 | Claude Code | 85.7 % | █████████████████░░░ |
-| 2 | Grok-4.7 | Grok Build | 78.6 % | ████████████████░░░░ |
-| 3 | Kimi-K3.1-Pro | Claude Code | 71.4 % | ██████████████░░░░░░ |
-| 4 | GPT-6-Astra | Codex | 64.3 % | █████████████░░░░░░░ |
-| 4 | GLM-5.3 | Claude Code | 64.3 % | █████████████░░░░░░░ |
-| 6 | GPT-6.1-Sol | Codex | 57.1 % | ███████████░░░░░░░░░ |
-| 6 | Qwen3.8-Max | Qwen Code | 57.1 % | ███████████░░░░░░░░░ |
-| 8 | Kimi-K3 | Claude Code | 42.9 % | █████████░░░░░░░░░░░ |
-| 8 | Gemini-4-Argon | Claude Code | 42.9 % | █████████░░░░░░░░░░░ |
-| 10 | DeepSeek-V4-Pro | Claude Code | 21.4 % | ████░░░░░░░░░░░░░░░░ |
-
-Solution evaluation (repair and rerun) is coming soon. Full results: [website](https://thinking-space.github.io/AutoRLBench/#leaderboard).
+| # | Model | Agent | Issue Score | Solution Score | Overall |
+| ---: | --- | --- | ---: | ---: | ---: |
+| 1 | Claude-Fable-5.1 | Claude Code | 83.3 % | 71.4 % | **77.3 %** |
+| 2 | GPT-6-Astra | Codex | 66.7 % | 71.4 % | **69.1 %** |
+| 2 | Grok-4.7 | Grok Build | 66.7 % | 71.4 % | **69.1 %** |
+| 4 | Gemini-4-Argon | Claude Code | 50.0 % | 85.7 % | **67.8 %** |
+| 5 | Kimi-K3.1-Pro | Claude Code | 61.1 % | 71.4 % | **66.3 %** |
+| 6 | GPT-6.1-Sol | Codex | 55.6 % | 71.4 % | **63.5 %** |
+| 7 | GLM-5.3 | Claude Code | 55.6 % | 42.9 % | **49.3 %** |
+| 8 | Kimi-K3 | Claude Code | 33.3 % | 57.1 % | **45.2 %** |
+| 9 | Qwen3.8-Max | Qwen Code | 44.4 % | 42.9 % | **43.6 %** |
+| 10 | DeepSeek-V4-Pro | Claude Code | 16.7 % | 57.1 % | **36.9 %** |
 
 ## Tasks
 
@@ -48,12 +46,12 @@ Six domains, one representative task each. The domains come from where in the RL
 <table>
 <tr>
 <td width="50%" valign="top">
-<a href="tasks/configuration/verl_aime25_single_sample_protocol/">
+<a href="tasks/configuration/trl_gsm8k_eos_mismatch/">
 <img src="assets/task-configuration.jpeg" alt="Configuration" width="100%">
 </a>
-<strong>Configuration</strong> · issue · solution<br>
-<a href="tasks/configuration/verl_aime25_single_sample_protocol/"><b>AIME25 single-sample variance</b></a><br>
-One sample per question makes a 30-question score too noisy to judge the run.
+<strong>Configuration</strong> · issue<br>
+<a href="tasks/configuration/trl_gsm8k_eos_mismatch/"><b>TRL GSM8K EOS mismatch</b></a><br>
+Missing <code>&lt;|im_end|&gt;</code> in <code>eos_token_id</code> lets rollouts continue past the answer.
 </td>
 <td width="50%" valign="top">
 <a href="tasks/reward/slime_retool_length_reward_bonus/">

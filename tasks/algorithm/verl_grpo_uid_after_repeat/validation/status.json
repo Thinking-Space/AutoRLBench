@@ -42,7 +42,7 @@
     "command": "grep -rIilE 'task_dapo_math_021|task_monkey_patch_011|uid|required_final_score|grader_spec' environment evaluations/issue/instruction.md",
     "result": "no hits",
     "workspace_scan": "grep -rIilE 'task_dapo_math_021|required_final_score|grader_spec|oracle' workspace returns three files: verl/utils/vllm/vllm_fp8_utils.py, verl/utils/qat/vllm_patch.py, verl/utils/modelopt/vllm_modelopt_patch.py. All three are upstream imports of vllm.model_executor.layers.fused_moe.oracle.*, i.e. legitimate near-misses that must stay.",
-    "finding_acted_on": "environment/source_manifest.json was moved to validation/source_manifest.json. autorlbench/agents/base.py mounts the entire environment/ directory read-only at /ptdbench/environment, so the manifest's description of the injected defect would have been fully agent-visible. skills/package-task/SKILL.md's directory listing places this file under environment/; that placement is unsafe for any task with an injected defect and the skill should be amended.",
+    "finding_acted_on": "environment/source_manifest.json was moved to validation/source_manifest.json. runtimes/providers/docker.py mounts the entire environment/ directory read-only at /autorlbench/environment, so the manifest's description of the injected defect would have been fully agent-visible. skills/package-task/SKILL.md's directory listing places this file under environment/; that placement is unsafe for any task with an injected defect and the skill should be amended.",
     "experiment_name_placeholder": "Launch script defaults EXPERIMENT_NAME to ${BENCH_TASK_LEAF_ID:-__BENCH_TASK_ID__}; no harness code sets BENCH_TASK_LEAF_ID, so a recorded run emits the literal placeholder.",
     "known_residual": "The parent directory name verl_implementation states the defect class. Inherited from the existing family; does not reach the agent through the harness, since TaskPackage.task_id is paths.root.name (the leaf only).",
     "recorded_artifact_sanitisation": {
@@ -55,7 +55,7 @@
         "cluster username -> REDACTED"
       ],
       "metric_values_touched": "none; metrics_*.jsonl is byte-identical before and after (sha256 95bc72f37ea9... unchanged)",
-      "final_scan": "grep -rioE 'chenyinghao|harbor-runs|__stage__env|devspace-job|record_defect|control_workspace' over workspace/logs/ returns no hits",
+      "final_scan": "grep -rioE 'user2|harbor-runs|__stage__env|devspace-job|record_defect|control_workspace' over workspace/logs/ returns no hits",
       "legitimate_near_misses": "the string `record_file` appears in the launch log and ray worker log; it is a verl profiler config key, not a leak"
     }
   },
@@ -68,7 +68,7 @@
     "llm_judge_acceptance": {
       "status": "not_run",
       "why": "No judge credentials used during packaging; no agent evaluation was performed.",
-      "next_step": "Run the issue verifier with PTDBENCH_JUDGE_MODEL / OPENAI_BASE_URL / OPENAI_API_KEY against a correct answer and against each wrong attribution listed in oracle.md's Documentation reconciliation section. The incomplete-answer case ('group size is 1' with no uid location) is the one worth checking first.",
+      "next_step": "Run the issue verifier with AUTORLBENCH_JUDGE_MODEL / OPENAI_BASE_URL / OPENAI_API_KEY against a correct answer and against each wrong attribution listed in oracle.md's Documentation reconciliation section. The incomplete-answer case ('group size is 1' with no uid location) is the one worth checking first.",
       "agent_trace_json": "not_generated"
     },
     "solution_level": {
@@ -84,7 +84,7 @@
   },
   "recorded_runs": {
     "status": "both_arms_recorded",
-    "where": "Cybertron devspace job 1250006, cluster beijing, resource_pool model-infra, 2x NVIDIA H800, image 25607123 (ptdbench-verl-vllm017)",
+    "where": "Cybertron devspace job 1250006, cluster beijing, resource_pool model-infra, 2x NVIDIA H800, image 25607123 (verl-vllm017)",
     "date": "2026-10-16",
     "budget": "60 steps, TEST_FREQ 20, TRAIN_BATCH_SIZE 8, ROLLOUT_N 8",
     "wall_clock_per_arm": "about 13.5 minutes",

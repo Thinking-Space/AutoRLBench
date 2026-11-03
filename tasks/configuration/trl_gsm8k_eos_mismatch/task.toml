@@ -1,0 +1,33 @@
+title = "TRL GSM8K GRPO with mismatched EOS configuration"
+license = "Apache-2.0"
+created_date = "2026-10-24"
+domain = "configuration"
+tags = ["trl", "grpo", "gsm8k", "eos"]
+
+[submitter]
+name = "PostTrainBench contributor"
+
+[model]
+name = "Qwen3-1.7B-Base + GSM8K SFT"
+
+[dataset]
+name = "openai/gsm8k"
+
+[training]
+framework = "trl"
+algo = "GRPO"
+script = "scripts/run_training.sh"
+
+[environment]
+image = "verl"
+
+[environment.env]
+# Offline task: the issue tier reads the frozen evidence only; no model is
+# loaded and nothing is rerun. The GPU pinning only matches the recorded
+# recipe's environment.
+CUDA_VISIBLE_DEVICES = "0"
+NVIDIA_VISIBLE_DEVICES = "0"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "GRPO inherits an EOS configuration that does not recognize the chat template end-of-turn token (<|im_end|> = 151645, while generation_config eos_token_id only lists endoftext 151643); rollouts continue past completed answers and held-out performance regresses despite training reward."

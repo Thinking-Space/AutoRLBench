@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -299,7 +300,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "directory where the staged workspace and state file are stored "
-            "across runs; defaults to outputs/harbor-shell/<task-id>"
+            "across runs; defaults to outputs/harbor-shell/<sha256 of task dir name>"
         ),
     )
     s.add_argument(
@@ -458,10 +459,16 @@ def main(argv=None) -> int:
         if len(task_roots) != 1:
             raise SystemExit("harbor-shell accepts exactly one task directory")
         task_root = task_roots[0]
+        # Digest-named on purpose: the workspace_dir is an ancestor of the docker bind-mount
+        # sources (the staged workspace/prepared/environment), and /proc/mounts inside the
+        # container shows the full source path -- task dir names often spell out the diagnosis.
+        # The state file inside records the task id for tracing a directory back to its task.
         workspace_dir = (
             Path(args.workspace_dir)
             if args.workspace_dir is not None
-            else Path("outputs") / "harbor-shell" / task_root.name
+            else Path("outputs")
+            / "harbor-shell"
+            / hashlib.sha256(task_root.name.encode("utf-8")).hexdigest()[:8]
         )
         HarborShell().shell(
             task_root,

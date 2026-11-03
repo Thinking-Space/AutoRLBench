@@ -37,11 +37,15 @@
     const dirCache = new Map();
 
     /* Canonical task layout — probed directly when the contents API is
-       unavailable. Keys are paths relative to the task directory. */
+       unavailable (i.e. when the page is served from a local checkout,
+       where listDir skips the GitHub API). Keys are paths relative to the
+       task directory. Older tasks carry README.md / gold.yaml at the root
+       of the verifier; newer ones ship test.sh plus a resources/ spec
+       directory instead. */
     const PROBE_FILES = {
         'environment': ['prepare.sh', 'docker-compose.yaml', 'data_manifest.json', 'source_manifest.json', 'build_index.py'],
-        'evaluations/issue/verifier': ['judge_prompt.md', 'judge.py'],
-        'evaluations/solution/verifier': ['README.md', 'gold.yaml', 'tests/grade_submission.py']
+        'evaluations/issue/verifier': ['README.md', 'judge_prompt.md', 'judge.py', 'test.sh', 'gold.yaml'],
+        'evaluations/solution/verifier': ['README.md', 'gold.yaml', 'test.sh', 'resources/README.md', 'resources/grader_spec.json', 'resources/run_spec.json', 'tests/grade_submission.py']
     };
 
     const FILE_RANK = ['README.md', 'instruction.md', 'judge_prompt.md', 'judge.py', 'prepare.sh', 'docker-compose.yaml', 'test.sh', 'gold.yaml'];
@@ -77,9 +81,57 @@
             file: 'infrastructure-verl_moe_token_normalization',
             alt: 'Held-out accuracy per checkpoint, defective and repaired'
         },
-        'configuration/verl_aime25_single_sample_protocol': {
-            file: 'configuration-verl_aime25_single_sample_protocol',
-            alt: 'Accuracy of each of the 32 repeated evaluations of the same checkpoint'
+        'algorithm/verl_grpo_advantage_broadcast': {
+            file: 'algorithm-verl_grpo_advantage_broadcast',
+            alt: 'Held-out TACO accuracy per checkpoint for the issue run'
+        },
+        'algorithm/verl_gsm8k_flat_eval': {
+            file: 'algorithm-verl_gsm8k_flat_eval',
+            alt: 'Held-out GSM8K reward, observed run vs control'
+        },
+        'configuration/trl_gsm8k_eos_mismatch': {
+            file: 'configuration-trl_gsm8k_eos_mismatch',
+            alt: 'Training reward with held-out GSM8K score before and after training'
+        },
+        'environment/alfworld_tool_schema_mismatch': {
+            file: 'environment-alfworld_tool_schema_mismatch',
+            alt: 'ALFWorld success rate on seen and unseen validation suites'
+        },
+        'infrastructure/qwen3vl_geo3k': {
+            file: 'infrastructure-qwen3vl_geo3k',
+            alt: 'Held-out geometry3k accuracy, recorded run vs control'
+        },
+        'infrastructure/torch_functional': {
+            file: 'infrastructure-torch_functional',
+            alt: 'Training reward per step for the issue run'
+        },
+        'infrastructure/verl_qwen3_vl_grpo_training_case_v8k2': {
+            file: 'infrastructure-verl_qwen3_vl_grpo_training_case_v8k2',
+            alt: 'Held-out ScienceQA accuracy, defective vs repaired run'
+        },
+        'reward/proxy_reward_misalignment': {
+            file: 'reward-proxy_reward_misalignment',
+            alt: 'Held-out math accuracy declining under the brevity proxy reward'
+        },
+        'reward/reward_parser_mismatch': {
+            file: 'reward-reward_parser_mismatch',
+            alt: 'Training reward pinned at zero by the parser mismatch'
+        },
+        'reward/slime_search_r1_nomask': {
+            file: 'reward-slime_search_r1_nomask',
+            alt: 'Held-out NQ test accuracy as response length collapses'
+        },
+        'reward/task_function_call': {
+            file: 'reward-task_function_call',
+            alt: 'Training reward per step, capped by zero-scored function-call problems'
+        },
+        'reward/idea_awm_reward_diagnosis': {
+            file: 'reward-idea_awm_reward_diagnosis',
+            alt: 'Training score rising while held-out test score drifts down'
+        },
+        'infrastructure/verl_checkpoint_host_memory_oom': {
+            file: 'infrastructure-verl_checkpoint_host_memory_oom',
+            alt: 'Container host-memory usage climbing to the fixed 20 GiB limit at the step-10 checkpoint save'
         }
     };
 

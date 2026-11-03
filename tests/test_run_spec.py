@@ -222,6 +222,8 @@ class RerunStageTests(unittest.TestCase):
                     "prepared": self.root / "prepared",
                     "models": self.root / "models",
                     "datasets": self.root / "datasets",
+                    # The staged environment/ copy _prepare_run links into the run directory.
+                    "environment": self.root / "environment",
                 },
             )(),
             EvaluationConfig(backend="local"),
@@ -357,7 +359,7 @@ class ShippedRunSpecTests(unittest.TestCase):
                     continue
                 self.assertTrue(spec.command.strip())
                 # log_roots may legitimately be empty for a protocol-check task that produces
-                # no experiment logs to clear (e.g. verl_aime25_single_sample_protocol).
+                # no experiment logs to clear (for pure protocol-check tasks).
                 self.assertIsInstance(spec.log_roots, list)
                 # A rerun that trains needs a real budget; falling back to the generic
                 # EvaluationConfig timeout would cut a multi-hour run off at the knees.

@@ -17,8 +17,7 @@ with which environment, how long it may take, and where the logs land.
 A solution task without a run_spec.json is still bound by the agent-side half
 of the protocol -- repair, submit report.md, do not train -- the harness simply
 does not run an extra experiment for it. That is the case for tasks whose
-verifier drives the work itself, and for pure protocol repairs such as
-verl_aime25_single_sample_protocol.
+verifier drives the work itself, and for pure protocol-repair tasks.
 """
 
 from __future__ import annotations

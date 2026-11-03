@@ -322,6 +322,15 @@ class NetworkPolicyEnvTests(unittest.TestCase):
             # Some frameworks still exit immediately in offline mode when no key is set.
             self.assertTrue(env["WANDB_API_KEY"])
 
+    def test_agent_stage_does_not_see_the_task_id(self) -> None:
+        # Task ids often spell out the diagnosis (e.g. "context_parallel_oom"); printenv in
+        # the sandbox must not hand over the answer. The other stages keep the real id --
+        # no task-side script consumes it, but it is part of prepare.sh's interface.
+        self.assertEqual(DockerRuntime().standard_env(make_request("agent"))["AUTORLBENCH_TASK_ID"], "task")
+        for stage in ("prepare", "verifier", "rerun"):
+            env = DockerRuntime().standard_env(make_request(stage))
+            self.assertEqual(env["AUTORLBENCH_TASK_ID"], "task_001", stage)
+
 
 class PrepareScriptTests(unittest.TestCase):
     """How the evaluator translates prepare.sh into a container path."""

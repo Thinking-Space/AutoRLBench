@@ -97,8 +97,8 @@ def metric_patterns(metric_key: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
     key = re.escape(metric_key)
     number = NUMBER
     step_line = re.compile(
-        rf"(?:^|\s)step:(\d+)\s+-.*?\b{key}:({number})(?![\w./])",
-        re.IGNORECASE | re.DOTALL,
+        rf"(?:^|\n)[^\n]*?\bstep:(\d+)\s+-[^\n]*?\b{key}:({number})(?![\w./])",
+        re.IGNORECASE,
     )
     eval_dict = re.compile(
         rf"""eval\s+(\d+):\s*\{{[^{{}}]*['"]{key}['"]\s*:\s*({number})""",
@@ -214,6 +214,13 @@ def grade(spec: dict[str, Any], results: Path):
         Decimal(str(required_max)) if required_max is not None else None
     )
     errors = []
+    if any(not Decimal("0") <= point[1] <= Decimal("1") for point in values.values()):
+        errors.append("all observed accuracy values must lie in [0, 1]")
+    if final_step not in values:
+        errors.append(f"missing final validation at declared step {final_step}")
+    if any(step < 0 or step > final_step for step in values):
+        errors.append(f"validation outside the declared 0..{final_step} budget")
+    values = {step: point for step, point in values.items() if 0 <= step <= final_step}
     judged, judged_step, judged_source = judged_value(spec, values)
     improvement = judged - baseline if judged is not None else None
     if judged is None:

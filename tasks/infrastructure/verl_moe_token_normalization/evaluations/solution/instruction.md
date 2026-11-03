@@ -67,3 +67,8 @@ unchanged. Do not disable configured loss terms or parallelism to avoid an
 implementation defect. Do not copy, edit, or fabricate metrics or replay frozen
 historical logs as a new run. Otherwise the run is scored 0. Leave frozen
 evidence under `observed_run/` intact.
+
+Completion is required independently of metric quality: validation at the
+declared final step must be present, and evaluation beyond the fixed horizon
+is not accepted. Where training reward is graded, every training step must be
+logged. Accuracy and binary rewards must remain in their valid [0, 1] range.

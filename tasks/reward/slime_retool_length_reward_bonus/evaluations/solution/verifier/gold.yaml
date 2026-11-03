@@ -12,7 +12,7 @@ evidence_metrics:
 - the length term is applied to every sample, not only failing ones, so a wrong-but-long rollout can outscore a correct-but-short one
 - GRPO advantages then favor longer generations, so response length grows and the policy reward-hacks the length term instead of improving accuracy
 - historical logged eval/aime rises to +3.841 by step 99 while eval response_len is about 15310 and truncate is 82.5%; train response_len at step 100 is about 15159 with 78.5% truncate
-- after subtracting 5*length_ratio, the decontaminated held-out score falls from about -0.417 at step 0 to -0.831 at step 99, bounding exact-match accuracy at no more than about 29.2% and 8.4% respectively
+- after subtracting 5*length_ratio, the decontaminated held-out score falls from about -0.417 at step 0 to -0.831 at step 99, bounding exact-match accuracy at no more than about 32.5% and 12.8% respectively using the shaped-reward minimum -1.1
 - the math_dapo exact-match reward and the bounded tool-call shaping are otherwise correct; the length bonus is the injected defect
 fix:
   must:
@@ -26,7 +26,7 @@ solution_metric:
   required_final_score: -0.55
   required_final_score_max: 0.5
   note: >-
-    eval/aime is graded in the math_dapo score space [-1, 1], the space the
+    eval/aime is graded in the correctness-plus-tool-shaping score space [-1.1, 1], the space the
     frozen trace was logged in (eval_reward_key: score) and the space
     slime_retool grades the same recipe in. No --eval-reward-key is involved.
     The score channel is where the defect lives, so the bounds read the repair
@@ -37,7 +37,7 @@ solution_metric:
     while a repaired run cannot exceed +1. score_mode is best because a single
     eval point over 30 AIME problems is noisy. Calibrated on the repaired
     reference run (devspace 1177503
-    /user/chenyinghao/harbor-runs/manual-slime-retool, same recipe with the
+    /user/user2/harbor-runs/manual-slime-retool, same recipe with the
     length term removed, --num-rollout 70, 8 eval points): step 0 is -0.5808
     and fails the -0.55 lower bound, the best point is step 59 at -0.4246
     (0.125 clear) and the last eval (step 69) is -0.4861. Pass is score 1 if

@@ -23,18 +23,34 @@ const CATEGORY_COUNTS = Object.fromEntries(
     TASK_CATEGORIES.map(family => [family, TASKS.filter(task => task.family === family).length])
 );
 
-const ISSUE_RESULTS = [
-    { model: 'GPT-6-Astra', agent: 'Codex', score: 64.3, logo: 'openai' },
-    { model: 'GPT-6.1-Sol', agent: 'Codex', score: 57.1, logo: 'openai' },
-    { model: 'Claude-Fable-5.1', agent: 'Claude Code', score: 85.7, logo: 'anthropic' },
-    { model: 'GLM-5.3', agent: 'Claude Code', score: 64.3, logo: 'glm' },
-    { model: 'Kimi-K3', agent: 'Claude Code', score: 42.9, logo: 'kimi' },
-    { model: 'DeepSeek-V4-Pro', agent: 'Claude Code', score: 21.4, logo: 'deepseek' },
-    { model: 'Gemini-4-Argon', agent: 'Claude Code', score: 42.9, logo: 'googlegemini' },
-    { model: 'Qwen3.8-Max', agent: 'Qwen Code', score: 57.1, logo: 'qwen' },
-    { model: 'Grok-4.7', agent: 'Grok Build', score: 78.6, logo: 'xai' },
-    { model: 'Kimi-K3.1-Pro', agent: 'Claude Code', score: 71.4, logo: 'kimi' },
+const LEADERBOARD_MODELS = [
+    { model: 'GPT-6-Astra', agent: 'Codex', logo: 'openai' },
+    { model: 'GPT-6.1-Sol', agent: 'Codex', logo: 'openai' },
+    { model: 'Claude-Fable-5.1', agent: 'Claude Code', logo: 'anthropic' },
+    { model: 'GLM-5.3', agent: 'Claude Code', logo: 'glm' },
+    { model: 'DeepSeek-V4-Pro', agent: 'Claude Code', logo: 'deepseek' },
+    { model: 'Kimi-K3', agent: 'Claude Code', logo: 'kimi' },
+    { model: 'Kimi-K3.1-Pro', agent: 'Claude Code', logo: 'kimi' },
+    { model: 'Gemini-4-Argon', agent: 'Claude Code', logo: 'googlegemini' },
+    { model: 'Qwen3.8-Max', agent: 'Qwen Code', logo: 'qwen' },
+    { model: 'Grok-4.7', agent: 'Grok Build', logo: 'xai' }
 ];
+
+// The leaderboard and trace pages share the same pass/fail records. Preserve
+// the published convention of averaging the displayed one-decimal rates.
+function leaderboardResults() {
+    const runs = window.AUTORLBENCH_RUNS || [];
+    return LEADERBOARD_MODELS.map(model => {
+        const rate = level => {
+            const selected = runs.filter(run => run.model === model.model && run.level === level
+                && typeof run.passed === 'boolean');
+            return selected.length
+                ? Number((100 * selected.filter(run => run.passed).length / selected.length).toFixed(1))
+                : null;
+        };
+        return { ...model, issue: rate('issue'), solution: rate('solution') };
+    }).filter(result => result.issue !== null && result.solution !== null);
+}
 
 function tasksForFamily(family) {
     return TASKS.filter(task => task.family === family);
@@ -47,7 +63,7 @@ function renderCategoryStrip() {
     const categoryCount = document.getElementById('category-count');
     const activeCount = document.getElementById('active-task-count');
     if (categoryCount) categoryCount.textContent = String(TASK_CATEGORIES.length);
-    if (activeCount) activeCount.textContent = '10'; // total tasks in the benchmark; only one sample per category is listed below
+    if (activeCount) activeCount.textContent = '18'; // total tasks in the benchmark; only one sample per category is listed below
     const heroTasks = document.getElementById('hero-task-count');
     if (heroTasks) heroTasks.textContent = String(TASKS.length);
 
@@ -127,17 +143,17 @@ const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 function renderLeaderboard() {
     const mount = document.querySelector('.leaderboard-list');
     if (!mount) return;
-    const rows = ISSUE_RESULTS
-        .map((result, index) => ({ ...result, index }))
-        .sort((a, b) => b.score - a.score || a.index - b.index);
+    const rows = leaderboardResults()
+        .map((result, index) => ({ ...result, overall: (result.issue + result.solution) / 2, index }))
+        .sort((a, b) => b.overall - a.overall || a.index - b.index);
     let displayedRank = 0;
     let prevScore = null;
     let prevRank = 0;
     mount.innerHTML = rows.map((result, position) => {
-        if (result.score !== prevScore) {
+        if (result.overall !== prevScore) {
             displayedRank = position + 1;
             prevRank = displayedRank;
-            prevScore = result.score;
+            prevScore = result.overall;
         } else {
             displayedRank = prevRank;
         }
@@ -151,8 +167,9 @@ function renderLeaderboard() {
                 <td class="lb-model-cell"><img class="lb-model-logo" src="images/logos/${result.logo}.png" alt="" width="18" height="18" loading="lazy"><span class="lb-model-name">${result.model}</span></td>
                 <td class="lb-cell-agent"><span class="lb-agent-name">${result.agent}</span></td>
                 <td class="lb-cell-effort"><span class="lb-max-tag">MAX</span></td>
-                <td class="lb-cell-score"><span class="lb-issue-score">${result.score.toFixed(1)} %</span></td>
-                <td class="lb-cell-soon"><span class="lb-soon">Coming Soon</span></td>
+                <td class="lb-cell-score"><span class="lb-score-value">${result.issue.toFixed(1)} %</span></td>
+                <td class="lb-cell-score"><span class="lb-score-value">${result.solution.toFixed(1)} %</span></td>
+                <td class="lb-cell-score"><span class="lb-score-value is-avg">${result.overall.toFixed(1)} %</span></td>
             </tr>
         `}).join('');
 }
