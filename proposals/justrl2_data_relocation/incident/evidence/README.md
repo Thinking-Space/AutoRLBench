@@ -15,6 +15,10 @@ validation. No LLM agent was evaluated.
   final-save events. Only `load_root` and `save_root` paths were removed; all
   numeric observations and state digests are preserved. Original event-file
   hashes are recorded in the file.
+- `reward-diagnosis.png`: a compact comparison of the recorded healthy, faulty,
+  and repaired historical replay. It shows that the faulty arm's survivor reward
+  rises while read aborts reach 50% and admitted hard samples fall to 0%; these
+  are diagnostic observations, not task pass criteria.
 - `curves.json` and `continuation-curves.{png,svg}`: actual prefix0–3 and its
   accepted reference continuation4–7. The prefix event file is checked against
   the sealed scene inventory. Reward and hard-sample fraction are observations,
