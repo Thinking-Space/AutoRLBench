@@ -63,7 +63,7 @@ function renderCategoryStrip() {
     const categoryCount = document.getElementById('category-count');
     const activeCount = document.getElementById('active-task-count');
     if (categoryCount) categoryCount.textContent = String(TASK_CATEGORIES.length);
-    if (activeCount) activeCount.textContent = '23'; // total tasks in the benchmark; only one sample per category is listed below
+    if (activeCount) activeCount.textContent = '22'; // total tasks in the benchmark; only one sample per category is listed below
     const heroTasks = document.getElementById('hero-task-count');
     if (heroTasks) heroTasks.textContent = String(TASKS.length);
 

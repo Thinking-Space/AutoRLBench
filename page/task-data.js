@@ -398,26 +398,6 @@ window.AUTORLBENCH_TASKS = [
         "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on a GSM8K + MATH mixture. math-verify's signal-based timeout raises ValueError in the reward loop's worker thread, and the bare except turns that into a 0.0 reward for every MATH sample, so MATH-500 logs exactly 0.0 at all 21 validations while GSM8K accuracy rises from 0.081 to 0.766."
     },
     {
-        "id": "infrastructure/verl_full_determinism_identical_group_samples",
-        "title": "Full determinism makes every GRPO group identical",
-        "family": "Infrastructure",
-        "tags": [
-            "verl",
-            "grpo",
-            "vllm",
-            "determinism",
-            "sampling-seed"
-        ],
-        "model": "Qwen/Qwen2.5-1.5B-Instruct",
-        "dataset": "openai/gsm8k main (7473 train rows, 1319 test rows)",
-        "framework": "verl",
-        "image": "verl",
-        "created": "2026-10-25",
-        "license": "Apache-2.0",
-        "brief": "Every rollout of a prompt gets the same sampling seed, so GRPO groups have zero variance.",
-        "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on GSM8K with full_determinism=True. Every request on a replica gets the same sampling seed while vLLM runs batch invariant, so the n samples of a prompt come back byte-identical: every group has zero reward variance, all advantages and losses are exactly 0, and held-out accuracy stays at 0.08719 at every validation."
-    },
-    {
         "id": "algorithm/verl_policy_ratio_recomputes_old_logprob",
         "title": "GRPO policy ratio ignores rollout log probabilities",
         "family": "Algorithm",
