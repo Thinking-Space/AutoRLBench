@@ -1,0 +1,20 @@
+category: implementation
+framework: slime
+task: slime_retool
+verdict: unhealthy
+root_cause:
+- name: length_reward
+  where: examples/retool/generate_with_retool.py::reward_func
+  observed: reward_func adds 5 * min(sample.response_length / args.rollout_max_response_len, 1.0) to result["score"] for every sample, unconditionally, on top of the math_dapo exact-match score
+  expected: reward depends only on answer correctness (math_dapo exact-match with strict_box_verify) plus the bounded tool-call shaping that nudges already-failing samples; generation length must not add reward
+evidence_metrics:
+- reward_func unconditionally adds 5*min(response_length/rollout_max_response_len,1.0) to the score regardless of correctness (examples/retool/generate_with_retool.py::reward_func)
+- the length term is applied to every sample, not only failing ones, so a wrong-but-long rollout can outscore a correct-but-short one
+- GRPO advantages then favor longer generations, so response length grows and the policy reward-hacks the length term instead of improving accuracy
+- historical logged eval/aime rises to +3.841 by step 99 while eval response_len is about 15310 and truncate is 82.5%; train response_len at step 100 is about 15159 with 78.5% truncate
+- after subtracting 5*length_ratio, decontaminated held-out accuracy falls from about 29.2% at step 0 to 8.4% at step 99
+- the math_dapo exact-match reward and the bounded tool-call shaping are otherwise correct; the length bonus is the injected defect
+fix:
+  must:
+  - target: length_reward
+    direction: remove

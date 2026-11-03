@@ -1,0 +1,16 @@
+--- a/case/reward.py
++++ b/case/reward.py
+@@ -12,10 +12,12 @@
+ 
+ def reward_callback(solution_strs, ground_truths):
+     values = [answer_matches(text, truth) for text, truth in zip(solution_strs, ground_truths, strict=True)]
+-    return [sum(values) / len(values)]
++    return values
+ 
+ 
+ def collect_rewards(values, batch_size):
++    if len(values) != batch_size:
++        raise ValueError(f"Reward callback returned {len(values)} values for {batch_size} completions")
+     rewards = torch.empty(batch_size, dtype=torch.float32)
+     rewards[:] = torch.tensor(values, dtype=torch.float32)
+     return rewards.tolist()

@@ -1,0 +1,1 @@
+Apply fix.patch: change only the effective data.max_prompt_length in case/recorded_config.yaml from64 to2048. Validation stays2048. Historical case/config.json defaults are not the effective staged launch configuration.

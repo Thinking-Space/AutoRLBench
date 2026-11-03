@@ -1,0 +1,1 @@
+Apply fix.patch to restore vanilla policy loss, token-mean aggregation and remove_padding=true. Native actor.use_remove_padding follows the model interpolation. This is a composite restoration to the shared standard-GRPO target, not a one-line mask intervention.

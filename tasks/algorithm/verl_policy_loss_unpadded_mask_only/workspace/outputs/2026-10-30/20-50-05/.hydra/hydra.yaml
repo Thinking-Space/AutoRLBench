@@ -1,0 +1,314 @@
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  launcher:
+    _target_: hydra._internal.core_plugins.basic_launcher.BasicLauncher
+  sweeper:
+    _target_: hydra._internal.core_plugins.basic_sweeper.BasicSweeper
+    max_batch_size: null
+    params: null
+  help:
+    app_name: ${hydra.job.name}
+    header: '${hydra.help.app_name} is powered by Hydra.
+
+      '
+    footer: 'Powered by Hydra (https://hydra.cc)
+
+      Use --hydra-help to view Hydra specific help
+
+      '
+    template: '${hydra.help.header}
+
+      == Configuration groups ==
+
+      Compose your configuration from those groups (group=option)
+
+
+      $APP_CONFIG_GROUPS
+
+
+      == Config ==
+
+      Override anything in the config (foo.bar=value)
+
+
+      $CONFIG
+
+
+      ${hydra.help.footer}
+
+      '
+  hydra_help:
+    template: 'Hydra (${hydra.runtime.version})
+
+      See https://hydra.cc for more info.
+
+
+      == Flags ==
+
+      $FLAGS_HELP
+
+
+      == Configuration groups ==
+
+      Compose your configuration from those groups (For example, append hydra/job_logging=disabled
+      to command line)
+
+
+      $HYDRA_CONFIG_GROUPS
+
+
+      Use ''--cfg hydra'' to Show the Hydra config.
+
+      '
+    hydra_help: ???
+  hydra_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][HYDRA] %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+    root:
+      level: INFO
+      handlers:
+      - console
+    loggers:
+      logging_example:
+        level: DEBUG
+    disable_existing_loggers: false
+  job_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+      file:
+        class: logging.FileHandler
+        formatter: simple
+        filename: ${hydra.runtime.output_dir}/${hydra.job.name}.log
+    root:
+      level: INFO
+      handlers:
+      - console
+      - file
+    disable_existing_loggers: false
+  env: {}
+  mode: RUN
+  searchpath: []
+  callbacks: {}
+  output_subdir: .hydra
+  overrides:
+    hydra:
+    - hydra.mode=RUN
+    task:
+    - algorithm.adv_estimator=grpo
+    - algorithm.use_kl_in_reward=False
+    - data.train_files=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/data/train.parquet
+    - data.val_files=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/data/val.parquet
+    - data.train_batch_size=16
+    - data.val_batch_size=32
+    - data.max_prompt_length=256
+    - data.max_response_length=128
+    - data.filter_overlong_prompts=True
+    - data.truncation=error
+    - +data.apply_chat_template_kwargs.enable_thinking=false
+    - data.dataloader_num_workers=0
+    - data.seed=42
+    - actor_rollout_ref.model.path=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/model
+    - actor_rollout_ref.model.external_lib=case.loss
+    - actor_rollout_ref.model.use_remove_padding=False
+    - +actor_rollout_ref.model.override_config.attn_implementation=sdpa
+    - actor_rollout_ref.model.enable_gradient_checkpointing=True
+    - actor_rollout_ref.actor.policy_loss.loss_mode=luspo_token
+    - actor_rollout_ref.actor.loss_agg_mode=seq-mean-token-sum
+    - actor_rollout_ref.actor.optim.lr=1e-6
+    - actor_rollout_ref.actor.ppo_mini_batch_size=16
+    - actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2
+    - actor_rollout_ref.actor.ppo_epochs=1
+    - actor_rollout_ref.actor.use_kl_loss=False
+    - actor_rollout_ref.actor.entropy_coeff=0
+    - actor_rollout_ref.actor.use_torch_compile=False
+    - actor_rollout_ref.actor.fsdp_config.param_offload=False
+    - actor_rollout_ref.actor.fsdp_config.optimizer_offload=False
+    - actor_rollout_ref.rollout.name=vllm
+    - actor_rollout_ref.rollout.mode=sync
+    - actor_rollout_ref.rollout.n=4
+    - actor_rollout_ref.rollout.tensor_model_parallel_size=1
+    - actor_rollout_ref.rollout.gpu_memory_utilization=0.35
+    - actor_rollout_ref.rollout.enforce_eager=True
+    - actor_rollout_ref.rollout.max_model_len=384
+    - actor_rollout_ref.rollout.max_num_batched_tokens=1024
+    - actor_rollout_ref.rollout.max_num_seqs=64
+    - actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=2
+    - actor_rollout_ref.rollout.val_kwargs.do_sample=False
+    - actor_rollout_ref.rollout.val_kwargs.n=1
+    - custom_reward_function.path=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/case/reward.py
+    - custom_reward_function.name=compute_score
+    - reward_model.enable=False
+    - trainer.logger=[console,file]
+    - trainer.project_name=autorlbench_candidates
+    - trainer.experiment_name=arithmetic_length_weighted
+    - trainer.nnodes=1
+    - trainer.n_gpus_per_node=1
+    - trainer.total_epochs=150
+    - trainer.total_training_steps=150
+    - trainer.test_freq=5
+    - trainer.save_freq=-1
+    - trainer.val_before_train=True
+    - trainer.resume_mode=disable
+    - trainer.default_local_dir=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/checkpoints
+    - trainer.rollout_data_dir=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/rollouts
+    - trainer.validation_data_dir=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/validation
+    - trainer.log_val_generations=4
+    - data.train_batch_size=512
+    - data.val_batch_size=8
+    - data.max_response_length=8192
+    - data.filter_overlong_prompts=false
+    - data.truncation="left"
+    - data.train_max_samples=-1
+    - data.val_max_samples=-1
+    - data.dataloader_num_workers=0
+    - algorithm.use_kl_in_reward=false
+    - actor_rollout_ref.actor.use_kl_loss=false
+    - actor_rollout_ref.model.use_remove_padding=true
+    - actor_rollout_ref.actor.ppo_mini_batch_size=32
+    - actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=null
+    - actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=null
+    - actor_rollout_ref.rollout.name="vllm"
+    - actor_rollout_ref.rollout.mode="async"
+    - actor_rollout_ref.rollout.tensor_model_parallel_size=1
+    - actor_rollout_ref.rollout.n=8
+    - actor_rollout_ref.rollout.max_model_len=10240
+    - actor_rollout_ref.rollout.max_num_batched_tokens=10240
+    - actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=null
+    - custom_reward_function.name="compute_score"
+    - trainer.n_gpus_per_node=4
+    - trainer.nnodes=2
+    - trainer.total_epochs=1
+    - trainer.total_training_steps=150
+    - trainer.test_freq=10
+    - trainer.val_before_train=true
+    - trainer.save_freq=150
+    - trainer.resume_mode="disable"
+    - trainer.logger=["console","file","tensorboard","swanlab"]
+    - trainer.project_name="autorlbench_dapo"
+    - trainer.experiment_name="verl_luspo_padding_mask-distributed_2x4-unpadded_control-20261029T185721Z-8063a6-reference"
+    - data.validation_shuffle=false
+    - actor_rollout_ref.model.enable_gradient_checkpointing=true
+    - actor_rollout_ref.actor.fsdp_config.param_offload=false
+    - actor_rollout_ref.actor.fsdp_config.optimizer_offload=false
+    - actor_rollout_ref.ref.fsdp_config.param_offload=false
+    - actor_rollout_ref.rollout.gpu_memory_utilization=0.7
+    - actor_rollout_ref.rollout.max_num_seqs=256
+    - actor_rollout_ref.rollout.val_kwargs.n=32
+    - actor_rollout_ref.rollout.val_kwargs.do_sample=true
+    - actor_rollout_ref.rollout.val_kwargs.temperature=0.6
+    - actor_rollout_ref.rollout.val_kwargs.top_p=0.95
+    - actor_rollout_ref.rollout.val_kwargs.top_k=20
+    - actor_rollout_ref.actor.checkpoint.save_contents=["model","optimizer","extra","hf_model"]
+    - actor_rollout_ref.actor.checkpoint.load_contents=["model","optimizer","extra"]
+    - trainer.max_actor_ckpt_to_keep=1
+    - trainer.max_critic_ckpt_to_keep=1
+    - actor_rollout_ref.actor.optim.lr=1e-06
+    - actor_rollout_ref.actor.optim.weight_decay=0.01
+    - actor_rollout_ref.actor.use_torch_compile=true
+    - actor_rollout_ref.actor.kl_loss_coef=0.001
+    - actor_rollout_ref.actor.kl_loss_type="low_var_kl"
+    - actor_rollout_ref.rollout.temperature=0.7
+    - trainer.log_val_generations=4
+    - actor_rollout_ref.model.override_config.attn_implementation="flash_attention_2"
+    - actor_rollout_ref.actor.use_dynamic_bsz=true
+    - actor_rollout_ref.actor.ppo_max_token_len_per_gpu=10240
+    - actor_rollout_ref.rollout.log_prob_use_dynamic_bsz=true
+    - actor_rollout_ref.rollout.log_prob_max_token_len_per_gpu=10240
+    - actor_rollout_ref.ref.log_prob_use_dynamic_bsz=true
+    - actor_rollout_ref.ref.log_prob_max_token_len_per_gpu=10240
+    - actor_rollout_ref.actor.strategy="fsdp2"
+    - actor_rollout_ref.ref.strategy="fsdp2"
+    - actor_rollout_ref.actor.fsdp_config.offload_policy=false
+    - actor_rollout_ref.rollout.enforce_eager=false
+    - data.max_prompt_length=2048
+    - +ray_kwargs.ray_init.address="auto"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.PYTHONPATH="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.HF_HOME="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/.cache/huggingface"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.HF_DATASETS_CACHE="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/.cache/huggingface/datasets"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.HF_HUB_OFFLINE="1"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.TRANSFORMERS_OFFLINE="1"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.SWANLAB_MODE="cloud"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.SWANLAB_LOG_DIR="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/swanlab"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.TENSORBOARD_DIR="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/tensorboard"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.WANDB_DIR="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/wandb"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.VLLM_USE_V1="1"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.TOKENIZERS_PARALLELISM="false"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.TORCHINDUCTOR_CACHE_DIR="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/.cache/torchinductor"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.TRITON_CACHE_DIR="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/.cache/triton"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.VLLM_CACHE_ROOT="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/.cache/vllm"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.CASE_SYNC_TRACE="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/sync_trace.jsonl"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.VERL_FILE_LOGGER_PATH="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/metrics.jsonl"
+    - +ray_kwargs.ray_init.runtime_env.env_vars.MLP_CURRENT_CAPACITY_BLOCK_EXPIRATION_TIMESTAMP=""
+    - +ray_kwargs.ray_init.runtime_env.env_vars.SAGEMAKER_CURRENT_CAPACITY_BLOCK_EXPIRATION_TIMESTAMP=""
+    - custom_reward_function.path="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/case/dapo_reward.py"
+  job:
+    name: main_ppo
+    chdir: null
+    override_dirname: +actor_rollout_ref.model.override_config.attn_implementation=sdpa,+data.apply_chat_template_kwargs.enable_thinking=false,+ray_kwargs.ray_init.address="auto",+ray_kwargs.ray_init.runtime_env.env_vars.CASE_SYNC_TRACE="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/sync_trace.jsonl",+ray_kwargs.ray_init.runtime_env.env_vars.HF_DATASETS_CACHE="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/.cache/huggingface/datasets",+ray_kwargs.ray_init.runtime_env.env_vars.HF_HOME="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/.cache/huggingface",+ray_kwargs.ray_init.runtime_env.env_vars.HF_HUB_OFFLINE="1",+ray_kwargs.ray_init.runtime_env.env_vars.MLP_CURRENT_CAPACITY_BLOCK_EXPIRATION_TIMESTAMP="",+ray_kwargs.ray_init.runtime_env.env_vars.PYTHONPATH="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace",+ray_kwargs.ray_init.runtime_env.env_vars.SAGEMAKER_CURRENT_CAPACITY_BLOCK_EXPIRATION_TIMESTAMP="",+ray_kwargs.ray_init.runtime_env.env_vars.SWANLAB_LOG_DIR="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/swanlab",+ray_kwargs.ray_init.runtime_env.env_vars.SWANLAB_MODE="cloud",+ray_kwargs.ray_init.runtime_env.env_vars.TENSORBOARD_DIR="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/tensorboard",+ray_kwargs.ray_init.runtime_env.env_vars.TOKENIZERS_PARALLELISM="false",+ray_kwargs.ray_init.runtime_env.env_vars.TORCHINDUCTOR_CACHE_DIR="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/.cache/torchinductor",+ray_kwargs.ray_init.runtime_env.env_vars.TRANSFORMERS_OFFLINE="1",+ray_kwargs.ray_init.runtime_env.env_vars.TRITON_CACHE_DIR="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/.cache/triton",+ray_kwargs.ray_init.runtime_env.env_vars.VERL_FILE_LOGGER_PATH="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/metrics.jsonl",+ray_kwargs.ray_init.runtime_env.env_vars.VLLM_CACHE_ROOT="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/.cache/vllm",+ray_kwargs.ray_init.runtime_env.env_vars.VLLM_USE_V1="1",+ray_kwargs.ray_init.runtime_env.env_vars.WANDB_DIR="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/wandb",actor_rollout_ref.actor.checkpoint.load_contents=["model","optimizer","extra"],actor_rollout_ref.actor.checkpoint.save_contents=["model","optimizer","extra","hf_model"],actor_rollout_ref.actor.entropy_coeff=0,actor_rollout_ref.actor.fsdp_config.offload_policy=false,actor_rollout_ref.actor.fsdp_config.optimizer_offload=False,actor_rollout_ref.actor.fsdp_config.optimizer_offload=false,actor_rollout_ref.actor.fsdp_config.param_offload=False,actor_rollout_ref.actor.fsdp_config.param_offload=false,actor_rollout_ref.actor.kl_loss_coef=0.001,actor_rollout_ref.actor.kl_loss_type="low_var_kl",actor_rollout_ref.actor.loss_agg_mode=seq-mean-token-sum,actor_rollout_ref.actor.optim.lr=1e-06,actor_rollout_ref.actor.optim.lr=1e-6,actor_rollout_ref.actor.optim.weight_decay=0.01,actor_rollout_ref.actor.policy_loss.loss_mode=luspo_token,actor_rollout_ref.actor.ppo_epochs=1,actor_rollout_ref.actor.ppo_max_token_len_per_gpu=10240,actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2,actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=null,actor_rollout_ref.actor.ppo_mini_batch_size=16,actor_rollout_ref.actor.ppo_mini_batch_size=32,actor_rollout_ref.actor.strategy="fsdp2",actor_rollout_ref.actor.use_dynamic_bsz=true,actor_rollout_ref.actor.use_kl_loss=False,actor_rollout_ref.actor.use_kl_loss=false,actor_rollout_ref.actor.use_torch_compile=False,actor_rollout_ref.actor.use_torch_compile=true,actor_rollout_ref.model.enable_gradient_checkpointing=True,actor_rollout_ref.model.enable_gradient_checkpointing=true,actor_rollout_ref.model.external_lib=case.loss,actor_rollout_ref.model.override_config.attn_implementation="flash_attention_2",actor_rollout_ref.model.path=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/model,actor_rollout_ref.model.use_remove_padding=False,actor_rollout_ref.model.use_remove_padding=true,actor_rollout_ref.ref.fsdp_config.param_offload=false,actor_rollout_ref.ref.log_prob_max_token_len_per_gpu=10240,actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=null,actor_rollout_ref.ref.log_prob_use_dynamic_bsz=true,actor_rollout_ref.ref.strategy="fsdp2",actor_rollout_ref.rollout.enforce_eager=True,actor_rollout_ref.rollout.enforce_eager=false,actor_rollout_ref.rollout.gpu_memory_utilization=0.35,actor_rollout_ref.rollout.gpu_memory_utilization=0.7,actor_rollout_ref.rollout.log_prob_max_token_len_per_gpu=10240,actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=2,actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=null,actor_rollout_ref.rollout.log_prob_use_dynamic_bsz=true,actor_rollout_ref.rollout.max_model_len=10240,actor_rollout_ref.rollout.max_model_len=384,actor_rollout_ref.rollout.max_num_batched_tokens=1024,actor_rollout_ref.rollout.max_num_batched_tokens=10240,actor_rollout_ref.rollout.max_num_seqs=256,actor_rollout_ref.rollout.max_num_seqs=64,actor_rollout_ref.rollout.mode="async",actor_rollout_ref.rollout.mode=sync,actor_rollout_ref.rollout.n=4,actor_rollout_ref.rollout.n=8,actor_rollout_ref.rollout.name="vllm",actor_rollout_ref.rollout.name=vllm,actor_rollout_ref.rollout.temperature=0.7,actor_rollout_ref.rollout.tensor_model_parallel_size=1,actor_rollout_ref.rollout.tensor_model_parallel_size=1,actor_rollout_ref.rollout.val_kwargs.do_sample=False,actor_rollout_ref.rollout.val_kwargs.do_sample=true,actor_rollout_ref.rollout.val_kwargs.n=1,actor_rollout_ref.rollout.val_kwargs.n=32,actor_rollout_ref.rollout.val_kwargs.temperature=0.6,actor_rollout_ref.rollout.val_kwargs.top_k=20,actor_rollout_ref.rollout.val_kwargs.top_p=0.95,algorithm.adv_estimator=grpo,algorithm.use_kl_in_reward=False,algorithm.use_kl_in_reward=false,custom_reward_function.name="compute_score",custom_reward_function.name=compute_score,custom_reward_function.path="/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/case/dapo_reward.py",custom_reward_function.path=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/case/reward.py,data.dataloader_num_workers=0,data.dataloader_num_workers=0,data.filter_overlong_prompts=True,data.filter_overlong_prompts=false,data.max_prompt_length=2048,data.max_prompt_length=256,data.max_response_length=128,data.max_response_length=8192,data.seed=42,data.train_batch_size=16,data.train_batch_size=512,data.train_files=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/data/train.parquet,data.train_max_samples=-1,data.truncation="left",data.truncation=error,data.val_batch_size=32,data.val_batch_size=8,data.val_files=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/data/val.parquet,data.val_max_samples=-1,data.validation_shuffle=false,reward_model.enable=False,trainer.default_local_dir=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/checkpoints,trainer.experiment_name="verl_luspo_padding_mask-distributed_2x4-unpadded_control-20261029T185721Z-8063a6-reference",trainer.experiment_name=arithmetic_length_weighted,trainer.log_val_generations=4,trainer.log_val_generations=4,trainer.logger=["console","file","tensorboard","swanlab"],trainer.logger=[console,file],trainer.max_actor_ckpt_to_keep=1,trainer.max_critic_ckpt_to_keep=1,trainer.n_gpus_per_node=1,trainer.n_gpus_per_node=4,trainer.nnodes=1,trainer.nnodes=2,trainer.project_name="autorlbench_dapo",trainer.project_name=autorlbench_candidates,trainer.resume_mode="disable",trainer.resume_mode=disable,trainer.rollout_data_dir=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/rollouts,trainer.save_freq=-1,trainer.save_freq=150,trainer.test_freq=10,trainer.test_freq=5,trainer.total_epochs=1,trainer.total_epochs=150,trainer.total_training_steps=150,trainer.total_training_steps=150,trainer.val_before_train=True,trainer.val_before_train=true,trainer.validation_data_dir=/project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/validation
+    id: ???
+    num: ???
+    config_name: ppo_trainer
+    env_set: {}
+    env_copy: []
+    config:
+      override_dirname:
+        kv_sep: '='
+        item_sep: ','
+        exclude_keys: []
+  runtime:
+    version: 1.3.2
+    version_base: '1.3'
+    cwd: /project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace
+    config_sources:
+    - path: hydra.conf
+      schema: pkg
+      provider: hydra
+    - path: /project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/verl/trainer/config
+      schema: file
+      provider: main
+    - path: ''
+      schema: structured
+      provider: schema
+    output_dir: /project/runs/dapo17k/20261027-212715-364590/verl_luspo_padding_mask/reference/workspace/outputs/2026-10-30/20-50-05
+    choices:
+      algorithm@algorithm.rollout_correction: rollout_correction
+      reward_model: dp_reward_model
+      critic: dp_critic
+      critic/../engine@critic.model.fsdp_config: fsdp
+      critic/../optim@critic.optim: fsdp
+      model@actor_rollout_ref.model: hf_model
+      rollout@actor_rollout_ref.rollout: rollout
+      ref@actor_rollout_ref.ref: dp_ref
+      ref/../engine@actor_rollout_ref.ref.fsdp_config: fsdp
+      data: legacy_data
+      actor@actor_rollout_ref.actor: dp_actor
+      actor/../engine@actor_rollout_ref.actor.fsdp_config: fsdp
+      actor/../optim@actor_rollout_ref.actor.optim: fsdp
+      hydra/env: default
+      hydra/callbacks: null
+      hydra/job_logging: default
+      hydra/hydra_logging: default
+      hydra/hydra_help: default
+      hydra/help: default
+      hydra/sweeper: basic
+      hydra/launcher: basic
+      hydra/output: default
+  verbose: false
