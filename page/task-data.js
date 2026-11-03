@@ -355,5 +355,66 @@ window.AUTORLBENCH_TASKS = [
         "license": "MIT",
         "brief": "The reward ignores fn_name, deleting call-based scoring.",
         "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO EASY. The taco.py reward function ignores fn_name and deletes call-based execution, so every function-call problem scores exactly zero."
+    },
+    {
+        "id": "infrastructure/verl_lora_merge_base_weight_sync",
+        "title": "Merged LoRA never reaches the rollout engine",
+        "family": "Infrastructure",
+        "tags": [
+            "verl",
+            "grpo",
+            "lora",
+            "fsdp2",
+            "weight-sync"
+        ],
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "dataset": "openai/gsm8k main (7473 train rows, 1319 test rows)",
+        "framework": "verl",
+        "image": "verl",
+        "created": "2026-10-25",
+        "license": "Apache-2.0",
+        "brief": "Every weight sync ships the base weights, not the merged LoRA.",
+        "issue": "Training Qwen2.5-1.5B-Instruct with GRPO and a merged LoRA adapter on GSM8K. The merged tensors are gathered only after merged_lora_context has restored the base weights, so vLLM loads the base weights at every sync and held-out accuracy stays at the base level while the actor keeps training."
+    },
+    {
+        "id": "reward/verl_math_verify_thread_zero_reward",
+        "title": "Math-Verify scores zero inside reward workers",
+        "family": "Reward",
+        "tags": [
+            "verl",
+            "grpo",
+            "math-verify",
+            "reward-loop",
+            "threading",
+            "issue-only"
+        ],
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "dataset": "openai/gsm8k main + DigitalLearningGmbH/MATH-lighteval (7473 + 7500 train rows); validation GSM8K test (1319) + MATH-500 (497 of 500)",
+        "framework": "verl",
+        "image": "verl",
+        "created": "2026-10-25",
+        "license": "Apache-2.0",
+        "brief": "The math verifier dies silently in reward worker threads, scoring every MATH answer 0.0.",
+        "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on a GSM8K + MATH mixture. math-verify's signal-based timeout raises ValueError in the reward loop's worker thread, and the bare except turns that into a 0.0 reward for every MATH sample, so MATH-500 logs exactly 0.0 at all 21 validations while GSM8K accuracy rises from 0.081 to 0.766."
+    },
+    {
+        "id": "infrastructure/verl_full_determinism_identical_group_samples",
+        "title": "Full determinism makes every GRPO group identical",
+        "family": "Infrastructure",
+        "tags": [
+            "verl",
+            "grpo",
+            "vllm",
+            "determinism",
+            "sampling-seed"
+        ],
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "dataset": "openai/gsm8k main (7473 train rows, 1319 test rows)",
+        "framework": "verl",
+        "image": "verl",
+        "created": "2026-10-25",
+        "license": "Apache-2.0",
+        "brief": "Every rollout of a prompt gets the same sampling seed, so GRPO groups have zero variance.",
+        "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on GSM8K with full_determinism=True. Every request on a replica gets the same sampling seed while vLLM runs batch invariant, so the n samples of a prompt come back byte-identical: every group has zero reward variance, all advantages and losses are exactly 0, and held-out accuracy stays at 0.08719 at every validation."
     }
 ];
