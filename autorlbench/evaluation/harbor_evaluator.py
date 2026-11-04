@@ -112,6 +112,10 @@ class HarborTaskMaterializer:
     ) -> None:
         package = unit.package
         evaluation = unit.evaluation
+        if package.metadata.get("security", {}).get("requires_isolated_stages"):
+            raise HarborAdapterError(
+                "This task requires separate Docker stages; shared Harbor execution is unsupported"
+            )
         ensure_dir(task_dir)
 
         self._write_instruction(evaluation, task_dir)
