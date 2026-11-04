@@ -85,10 +85,6 @@
             file: 'algorithm-verl_grpo_advantage_broadcast',
             alt: 'Held-out TACO accuracy per checkpoint for the issue run'
         },
-        'algorithm/verl_gsm8k_flat_eval': {
-            file: 'algorithm-verl_gsm8k_flat_eval',
-            alt: 'Held-out GSM8K reward, observed run vs control'
-        },
         'configuration/trl_gsm8k_eos_mismatch': {
             file: 'configuration-trl_gsm8k_eos_mismatch',
             alt: 'Training reward with held-out GSM8K score before and after training'
