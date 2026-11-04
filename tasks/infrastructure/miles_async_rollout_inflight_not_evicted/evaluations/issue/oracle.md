@@ -34,16 +34,24 @@ Expected verdict: **unhealthy**.
 
 ## Observable impact
 
-- Primary source metric: train-step throughput over the fixed wall-clock budget
-  (number of `rollout N:` steps completed). The defective run completes far
-  fewer steps in the same wall clock than the control.
+Every item in this section is derivable from the shipped workspace
+(`outputs/driver.log` plus `outputs/rollout_data/*.pt`). The counterfactual
+control-run figures are author-side reference and live in Documentation
+reconciliation below.
+
+- Primary source metric: train-step throughput over the fixed wall-clock
+  budget. Only 92 `rollout N:` steps complete inside the fixed ~8-hour window
+  (14:33 → 22:23), and most of each step is spent waiting on rollout decode:
+  `perf/wait_time_ratio` averages ~0.82 across the run.
 - Per-step `rollout/fully_async/stale_groups_recycled` sits at ~32 (a full
   rollout batch) every step while `rollout/fully_async/aborted_groups_recycled`
   stays at 0: interrupted groups are recycled as **stale** (decoded to full
   length, then dropped) rather than **aborted** (evicted mid-flight).
-- Because fewer steps are completed per unit time, the raw solve rate (fraction
-  of samples with `reward.acc`) reaches a lower value by the end of the fixed
-  wall-clock window, even though per matched step the two arms are comparable.
+- The raw solve rate (fraction of rollouts with a correct final answer; readable
+  from `rollout/raw_reward` in driver.log as (1 + raw_reward)/2, or computed by
+  `extract_acc.py` on `rollout_data/*.pt`) rises from ~0.10–0.17 at step 0 to
+  only ~0.40–0.45 by the end of the window — a downstream symptom of the
+  throughput loss, not an independent failure.
 - Frozen evidence is in `outputs/driver.log` and `outputs/rollout_data/*.pt`.
 
 ## Trigger conditions
@@ -54,6 +62,13 @@ Expected verdict: **unhealthy**.
 
 ## Documentation reconciliation
 
+- Control reference (author-side; same code, config, data and budget, only the
+  `pause_generation_mode` override removed so the configured `abort` is
+  honored). Rebuttal context only — the control run is not shipped in the
+  workspace and comparisons to it are not evidence items: the control completes
+  148 steps in the same window and reaches an end-of-window raw solve rate of
+  ~0.54; per matched step the two arms learn comparably, the defective arm
+  simply completes fewer steps per wall clock.
 - The logged `pause_generation_mode ... abort` config line is **not** evidence
   of health: the defect is that the code ignores it and runs `in_place`. The
   symptom is visible only in the recycling counters and throughput, not in the

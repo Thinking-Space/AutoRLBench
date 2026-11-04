@@ -473,5 +473,38 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "A rank-0-only metric makes the two ranks issue different collectives.",
     "issue": "Training Qwen2.5-0.5B-Instruct with two-rank distributed GRPO on GSM8K. Each rank iterates its own pending metric and extra-column keys before invoking collectives, while the reward function emits answer_parse_rate only on rank 0, so the ranks call different collectives at the same sequence number and torch.distributed reports a collective fingerprint mismatch before the first optimizer step."
+  },
+  {
+    "id": "data/justrl2_data_relocation",
+    "title": "Missing difficult examples inflate training reward",
+    "family": "Data",
+    "tags": [
+      "justrl2",
+      "miles",
+      "ppo",
+      "data-relocation"
+    ],
+    "model": "JustRL-II-base-model",
+    "dataset": "UltraData-RL-2609 / Math (frozen public selection)",
+    "framework": "miles / JustRL-II",
+    "image": "justrl2-data-relocation",
+    "created": "2026-10-31",
+    "license": "Apache-2.0",
+    "brief": "A moved hard-example directory leaves the training manifest stale, and reward climbs on the survivors.",
+    "issue": "Training JustRL-II-base-model with PPO on a Math selection of UltraData-RL-2609. At the configured midpoint a storage migration moves the hard-example backing directory from live/hard to archive/hard without updating the manifest, so every hard sample is attempted, fails at the file-read boundary, and is dropped as ABORTED while the rollout loop refills the batch with easy examples — training, checkpointing and evaluation all stay alive, and observed reward rises because the surviving population is easier."
+  },
+  {
+    "id": "reward/verl_grpo_gsm8k_any_number_reward",
+    "title": "GSM8K reward credits the gold number anywhere in the response",
+    "family": "Reward",
+    "tags": ["verl", "grpo", "gsm8k", "reward-hacking", "lenient-verifier", "answer-extraction"],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "GSM8K train 7,473 / held-out test 1,319",
+    "framework": "verl / GRPO",
+    "image": "verl-0.9-vllm0.28",
+    "created": "2026-10-27",
+    "license": "Apache-2.0",
+    "brief": "A hand-written reward gives full credit whenever the gold number appears anywhere in the response, and the run climbs while the policy stops committing to any final answer.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. The custom reward rewards/gsm8k_reward.py — loaded through reward.custom_reward_function and also reused for the logged validation metric — returns 1.0 whenever the gold answer is among all numbers in the response, so GRPO rewards mentioning more numbers and longer enumerations instead of a committed final answer: the logged training score rises 0.54 -> 0.81 and logged validation accuracy 0.594 -> 0.684 over 100 steps, while the same held-out responses re-scored strictly are 0.000 from step 10 on and format-free accuracy falls from 0.462 to 0.130; distinct numbers per response grow 9.4 -> 14.3 and '####' disappears from the rollouts."
   }
 ];

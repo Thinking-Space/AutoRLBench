@@ -8,13 +8,32 @@ Expected verdict: **unhealthy**.
 
 ## Observable impact
 
-Both arms complete 24 optimizer steps. On nonzero captured objectives, the defective loss/reference ratio is approximately 0.5 and the control ratio is approximately 1.0. The independent objective comparison passes 12/24 optimizer steps in the defective run and 24/24 in the control. The held-out rewards are 0.1953125 and 0.20703125 respectively. This single paired run does not establish a general accuracy effect.
+Every item in this section is derivable from the shipped workspace
+(`results/`). The counterfactual control run is author-side reference and
+lives in Documentation reconciliation below.
+
+- The recorded run completes all 24 optimizer steps (`metrics_rank0.jsonl`,
+  train.log).
+- Captured objectives are zero on 12 of the 24 optimizer steps; on the 12
+  nonzero steps the recorded loss is ≈ 0.5× the accumulation-window objective
+  recomputed from the recorded per-token data (`token_records/`).
+- Held-out evaluation reward of the recorded run: 0.1953125
+  (`final_metrics.json`).
+
+This single paired run does not establish a general accuracy effect.
 
 ## Trigger conditions
 
 The recorded run uses one GPU, generation batches spanning four microbatches and accumulation windows spanning two.
 
 ## Documentation reconciliation
+
+- Control reference (author-side; the same reproduction with the training
+  denominator correction restored — not shipped in the workspace, and
+  comparisons to it are not evidence items): the control completes all 24
+  optimizer steps with the loss/reference ratio at approximately 1.0 on every
+  nonzero step, the independent objective comparison passes 24/24 steps, and
+  its held-out evaluation reward is 0.20703125.
 
 Reject diagnoses of no learning, corrupted GSM8K labels, an incorrect numerical-answer reward, insufficient model size, or a guaranteed twofold Adam parameter update. Adam adaptation and gradient clipping can compensate for loss scaling. The strongest evidence is the exact objective discrepancy, not the small held-out reward gap.
 

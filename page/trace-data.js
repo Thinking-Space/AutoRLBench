@@ -10,6 +10,13 @@
  * Four issue records were re-graded on 3 Nov 2026 under the tightened
  * judge rule (verdict 1.0, root cause and evidence > 0.8); see
  * regrade_issue_new_rule.py for the ledger evidence.
+ * Forty issue records across async_rollout_inflight_not_evicted,
+ * trl_dapo_accumulation_normalization, trl_conditional_reward_logging and
+ * justrl2_data_relocation were re-judged on 4 Nov 2026 under the
+ * oracle-anchored boolean-fraction judge (same runs, seven pass flips);
+ * their values come from the evaluation ledger joined by run_id (see
+ * update_rejudged_issue_records.py), and the in-run wrapper reports are
+ * stale pre-re-judge snapshots.
  * The 90 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -4568,7 +4575,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.05,
+    "score": 0.12,
     "durationMs": 556991,
     "steps": 32,
     "costUsd": 5.4833
@@ -4582,7 +4589,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.333333,
+    "score": 0.3,
     "durationMs": 1776929,
     "steps": 46,
     "costUsd": 12.7856
@@ -4595,8 +4602,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.933333,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1062663,
     "steps": 59,
     "costUsd": 11.7439
@@ -4610,7 +4617,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.933333,
+    "score": 0.95,
     "durationMs": 1494825,
     "steps": 34,
     "costUsd": 9.297
@@ -4623,8 +4630,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.866,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 692543,
     "steps": 22,
     "costUsd": 3.0802
@@ -4637,8 +4644,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.866667,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 566810,
     "steps": 22,
     "costUsd": 0.6245
@@ -4652,7 +4659,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.333333,
+    "score": 0.4,
     "durationMs": 790454,
     "steps": 24,
     "costUsd": null
@@ -4666,7 +4673,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.3,
+    "score": 0.334,
     "durationMs": 12000072,
     "steps": 39,
     "costUsd": 6.787
@@ -4680,7 +4687,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.333333,
+    "score": 0.4,
     "durationMs": 2337129,
     "steps": 84,
     "costUsd": 11.6475
@@ -4708,7 +4715,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.88,
+    "score": 0.908,
     "durationMs": 224790,
     "steps": 16,
     "costUsd": 1.4537
@@ -4722,7 +4729,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.24,
+    "score": 0.3,
     "durationMs": 261170,
     "steps": 18,
     "costUsd": 3.6337
@@ -4736,7 +4743,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.92,
+    "score": 0.938462,
     "durationMs": 3021424,
     "steps": 53,
     "costUsd": 13.1136
@@ -4750,7 +4757,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.24,
+    "score": 0.3,
     "durationMs": 2750945,
     "steps": 47,
     "costUsd": 16.469
@@ -4764,7 +4771,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.92,
+    "score": 0.95,
     "durationMs": 2006501,
     "steps": 64,
     "costUsd": 14.9225
@@ -4778,7 +4785,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.24,
+    "score": 0.32,
     "durationMs": 1093845,
     "steps": 51,
     "costUsd": 10.7656
@@ -4792,7 +4799,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.9,
+    "score": 0.95,
     "durationMs": 875556,
     "steps": 13,
     "costUsd": 2.3141
@@ -4806,7 +4813,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.05,
+    "score": 0.133333,
     "durationMs": 2660898,
     "steps": 29,
     "costUsd": 18.8608
@@ -4820,7 +4827,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.9,
+    "score": 0.9375,
     "durationMs": 299263,
     "steps": 13,
     "costUsd": 1.1374
@@ -4834,7 +4841,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.88,
+    "score": 0.96,
     "durationMs": 487702,
     "steps": 19,
     "costUsd": 2.3646
@@ -4847,8 +4854,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.866667,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 306073,
     "steps": 15,
     "costUsd": 0.2554
@@ -4862,7 +4869,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.85,
+    "score": 0.95,
     "durationMs": 437224,
     "steps": 20,
     "costUsd": 0.8757
@@ -4876,7 +4883,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.9,
+    "score": 0.95,
     "durationMs": 149650,
     "steps": 15,
     "costUsd": null
@@ -4890,7 +4897,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.88,
+    "score": 0.95,
     "durationMs": 1655181,
     "steps": 14,
     "costUsd": null
@@ -4904,7 +4911,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.9,
+    "score": 0.95,
     "durationMs": 1823981,
     "steps": 10,
     "costUsd": 1.1794
@@ -4918,7 +4925,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.234,
+    "score": 0.35,
     "durationMs": 1772234,
     "steps": 13,
     "costUsd": 1.8782
@@ -4932,7 +4939,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.9,
+    "score": 0.958,
     "durationMs": 339493,
     "steps": 10,
     "costUsd": 0.7267
@@ -4946,7 +4953,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.22,
+    "score": 0.257143,
     "durationMs": 672002,
     "steps": 17,
     "costUsd": 1.7949
@@ -4960,7 +4967,7 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.866667,
+    "score": 0.95,
     "durationMs": 962846,
     "steps": 20,
     "costUsd": null
@@ -4973,8 +4980,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.88,
+    "passed": true,
+    "score": 0.971429,
     "durationMs": 1713595,
     "steps": 33,
     "costUsd": null
@@ -4992,6 +4999,286 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 586662,
     "steps": 17,
     "costUsd": 4.2922
+  },
+  {
+    "task": "data/justrl2_data_relocation",
+    "slug": "fable51-justrl2-relocation",
+    "file": "agent-trace/fable51-justrl2-relocation.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.385714,
+    "durationMs": 598446,
+    "steps": 21,
+    "costUsd": 1.6327
+  },
+  {
+    "task": "data/justrl2_data_relocation",
+    "slug": "dsv4-justrl2-relocation",
+    "file": "agent-trace/dsv4-justrl2-relocation.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.585714,
+    "durationMs": 743141,
+    "steps": 19,
+    "costUsd": 4.0809
+  },
+  {
+    "task": "data/justrl2_data_relocation",
+    "slug": "glm53-justrl2-relocation",
+    "file": "agent-trace/glm53-justrl2-relocation.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.885714,
+    "durationMs": 966464,
+    "steps": 34,
+    "costUsd": 6.7524
+  },
+  {
+    "task": "data/justrl2_data_relocation",
+    "slug": "gemini4-justrl2-relocation",
+    "file": "agent-trace/gemini4-justrl2-relocation.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.942857,
+    "durationMs": 1129755,
+    "steps": 16,
+    "costUsd": 4.1039
+  },
+  {
+    "task": "data/justrl2_data_relocation",
+    "slug": "gpt6astra-justrl2-relocation",
+    "file": "agent-trace/gpt6astra-justrl2-relocation.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.942857,
+    "durationMs": 612561,
+    "steps": 17,
+    "costUsd": 1.3863
+  },
+  {
+    "task": "data/justrl2_data_relocation",
+    "slug": "gpt61sol-justrl2-relocation",
+    "file": "agent-trace/gpt61sol-justrl2-relocation.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.914286,
+    "durationMs": 1049332,
+    "steps": 22,
+    "costUsd": 0.4846
+  },
+  {
+    "task": "data/justrl2_data_relocation",
+    "slug": "grok47-justrl2-relocation",
+    "file": "agent-trace/grok47-justrl2-relocation.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.972,
+    "durationMs": 541240,
+    "steps": 18,
+    "costUsd": null
+  },
+  {
+    "task": "data/justrl2_data_relocation",
+    "slug": "kimi-justrl2-relocation",
+    "file": "agent-trace/kimi-justrl2-relocation.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.642857,
+    "durationMs": 912283,
+    "steps": 22,
+    "costUsd": 2.8632
+  },
+  {
+    "task": "data/justrl2_data_relocation",
+    "slug": "kimi31-justrl2-relocation",
+    "file": "agent-trace/kimi31-justrl2-relocation.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.942857,
+    "durationMs": 798513,
+    "steps": 13,
+    "costUsd": 1.7162
+  },
+  {
+    "task": "data/justrl2_data_relocation",
+    "slug": "qwen38-justrl2-relocation",
+    "file": "agent-trace/qwen38-justrl2-relocation.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.171429,
+    "durationMs": 1203837,
+    "steps": 27,
+    "costUsd": null
+  },
+  {
+    "task": "reward/verl_grpo_gsm8k_any_number_reward",
+    "slug": "fable51-any-number",
+    "file": "agent-trace/fable51-any-number.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.89412,
+    "durationMs": 280066,
+    "steps": 19,
+    "costUsd": 7.5034
+  },
+  {
+    "task": "reward/verl_grpo_gsm8k_any_number_reward",
+    "slug": "dsv4-any-number",
+    "file": "agent-trace/dsv4-any-number.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.8778,
+    "durationMs": 885989,
+    "steps": 33,
+    "costUsd": 5.4022
+  },
+  {
+    "task": "reward/verl_grpo_gsm8k_any_number_reward",
+    "slug": "glm53-any-number",
+    "file": "agent-trace/glm53-any-number.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.917647,
+    "durationMs": 615754,
+    "steps": 28,
+    "costUsd": 5.0833
+  },
+  {
+    "task": "reward/verl_grpo_gsm8k_any_number_reward",
+    "slug": "gemini4-any-number",
+    "file": "agent-trace/gemini4-any-number.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.91764,
+    "durationMs": 611285,
+    "steps": 27,
+    "costUsd": 6.1075
+  },
+  {
+    "task": "reward/verl_grpo_gsm8k_any_number_reward",
+    "slug": "gpt6astra-any-number",
+    "file": "agent-trace/gpt6astra-any-number.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.894118,
+    "durationMs": 411276,
+    "steps": 15,
+    "costUsd": 1.7996
+  },
+  {
+    "task": "reward/verl_grpo_gsm8k_any_number_reward",
+    "slug": "gpt61sol-any-number",
+    "file": "agent-trace/gpt61sol-any-number.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.894118,
+    "durationMs": 430873,
+    "steps": 18,
+    "costUsd": 0.413
+  },
+  {
+    "task": "reward/verl_grpo_gsm8k_any_number_reward",
+    "slug": "grok47-any-number",
+    "file": "agent-trace/grok47-any-number.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.942857,
+    "durationMs": 460596,
+    "steps": 33,
+    "costUsd": null
+  },
+  {
+    "task": "reward/verl_grpo_gsm8k_any_number_reward",
+    "slug": "kimi-any-number",
+    "file": "agent-trace/kimi-any-number.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.894118,
+    "durationMs": 1148129,
+    "steps": 14,
+    "costUsd": 1.8853
+  },
+  {
+    "task": "reward/verl_grpo_gsm8k_any_number_reward",
+    "slug": "kimi31-any-number",
+    "file": "agent-trace/kimi31-any-number.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.917647,
+    "durationMs": 1228372,
+    "steps": 60,
+    "costUsd": 6.7217
+  },
+  {
+    "task": "reward/verl_grpo_gsm8k_any_number_reward",
+    "slug": "qwen38-any-number",
+    "file": "agent-trace/qwen38-any-number.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.918,
+    "durationMs": 1029809,
+    "steps": 27,
+    "costUsd": null
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

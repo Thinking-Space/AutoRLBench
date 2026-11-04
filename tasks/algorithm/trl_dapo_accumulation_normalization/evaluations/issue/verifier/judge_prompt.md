@@ -25,7 +25,12 @@ oracle.
 - `evidence_score`: the fraction of the oracle's concrete evidence items the
   diagnosis mentions with the correct direction; values may be approximate.
   Evidence the oracle does not state does not count, and symptoms presented as
-  root causes do not count.
+  root causes do not count. Evidence items are only the facts listed in the
+  oracle's Observable impact and Trigger conditions sections; the
+  counterfactual control-run figures under Documentation reconciliation are
+  author-side rebuttal context — neither part of the denominator nor a gap to
+  penalise — and provenance from the Source section (commits, PR numbers) is
+  not an evidence item.
 
 Return exactly one JSON object with no Markdown and no additional keys:
 

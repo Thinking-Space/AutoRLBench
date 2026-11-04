@@ -32,13 +32,29 @@ missing-data alarms or a retry budget also prevent silent failures, but merely
 hiding abort metrics or averaging over a different denominator does not restore
 training coverage.
 
-Evidence should link the logical event time to missing-file errno 2, the
-attempted/admitted hard counts, separately classified generation cancellation,
-the successful-sample reward numerator/denominator, and fixed evaluation.
-Reference numeric measurements are supplied by the recorded evidence bundle;
-do not infer unrecorded values. The repaired and non-migrated controls are
-separate sources of causal evidence. Parameter-update receipts rule out an
-explanation that training stopped before the symptom.
+Evidence items — each bullet is one item; reference numeric measurements are
+supplied by the recorded evidence bundle and may be approximate, do not infer
+unrecorded values:
+
+- the logical event time of the migration (the configured midpoint, step 4 in
+  the recorded bundle) linked to missing-file read failures
+  (`FileNotFoundError`, errno 2) on the hard-difficulty population;
+- the attempted/admitted hard counts: hard samples continue to be attempted
+  every step while none are admitted after the midpoint;
+- generation cancellation classified separately from missing-data aborts;
+- observed reward conditional on the surviving easy-only population — the
+  successful-sample reward numerator/denominator, equivalently the survivor
+  reward mean versus reward per read attempt;
+- fixed evaluation on the unchanged held-out set, which does not move with the
+  training-reward rise;
+- the shipped non-migrated control: the recorded healthy prefix before the
+  midpoint;
+- parameter-update receipts (optimizer updates continuing), which rule out an
+  explanation that training stopped before the symptom.
+
+The repaired control is maintainer-side reference material rather than a
+scored benchmark run: comparisons to it are rebuttal context, not evidence
+items, and are not part of the evidence denominator.
 
 Wrong diagnoses include changing the model's task to learn a mapping, a reward
 bonus or fabricated reward, optimizer divergence as the primary event, treating
