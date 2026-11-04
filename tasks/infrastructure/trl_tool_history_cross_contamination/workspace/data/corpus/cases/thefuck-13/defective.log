@@ -1,0 +1,41 @@
+.F..FF                                                                   [100%]
+=================================== FAILURES ===================================
+_______________________ test_match[git checkout bar-bar] _______________________
+
+stderr = "fatal: A branch named 'bar' already exists."
+script = 'git checkout bar', branch_name = 'bar'
+
+    @pytest.mark.parametrize('script, branch_name', [
+        ('git branch foo', 'foo'), ('git checkout bar', 'bar')])
+    def test_match(stderr, script, branch_name):
+>       assert match(Command(script=script, stderr=stderr))
+E       AssertionError
+
+tests/rules/test_git_branch_exists.py:23: AssertionError
+___________________ test_get_new_command[git branch foo-foo] ___________________
+
+stderr = "fatal: A branch named 'foo' already exists."
+new_command = ['git branch -d foo && git branch foo', 'git branch -d foo && git checkout -b foo', 'git branch -D foo && git branch foo', 'git branch -D foo && git checkout -b foo', 'git checkout foo']
+script = 'git branch foo', branch_name = 'foo'
+
+    @pytest.mark.parametrize('script, branch_name, ', [
+        ('git branch foo', 'foo'), ('git checkout bar', 'bar')])
+    def test_get_new_command(stderr, new_command, script, branch_name):
+>       assert get_new_command(Command(script=script, stderr=stderr)) == new_command
+E       AssertionError
+
+tests/rules/test_git_branch_exists.py:34: AssertionError
+__________________ test_get_new_command[git checkout bar-bar] __________________
+
+stderr = "fatal: A branch named 'bar' already exists."
+new_command = ['git branch -d bar && git branch bar', 'git branch -d bar && git checkout -b bar', 'git branch -D bar && git branch bar', 'git branch -D bar && git checkout -b bar', 'git checkout bar']
+script = 'git checkout bar', branch_name = 'bar'
+
+    @pytest.mark.parametrize('script, branch_name, ', [
+        ('git branch foo', 'foo'), ('git checkout bar', 'bar')])
+    def test_get_new_command(stderr, new_command, script, branch_name):
+>       assert get_new_command(Command(script=script, stderr=stderr)) == new_command
+E       AssertionError
+
+tests/rules/test_git_branch_exists.py:34: AssertionError
+3 failed, 3 passed in 0.02 seconds

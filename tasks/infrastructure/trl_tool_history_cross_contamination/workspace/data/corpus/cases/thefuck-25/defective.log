@@ -1,0 +1,31 @@
+.........FF                                                              [100%]
+=================================== FAILURES ===================================
+________ test_get_new_command[command1-hdfs dfs -mkdir -p foo/bar/baz] _________
+
+command = Command(script='hdfs dfs -mkdir foo/bar/baz', stdout='', stderr='')
+new_command = 'hdfs dfs -mkdir -p foo/bar/baz'
+
+    @pytest.mark.parametrize('command, new_command', [
+        (Command('mkdir foo/bar/baz'), 'mkdir -p foo/bar/baz'),
+        (Command('hdfs dfs -mkdir foo/bar/baz'), 'hdfs dfs -mkdir -p foo/bar/baz'),
+        (Command('./bin/hdfs dfs -mkdir foo/bar/baz'), './bin/hdfs dfs -mkdir -p foo/bar/baz')])
+    def test_get_new_command(command, new_command):
+>       assert get_new_command(command, None) == new_command
+E       AssertionError
+
+tests/rules/test_mkdir_p.py:30: AssertionError
+_____ test_get_new_command[command2-./bin/hdfs dfs -mkdir -p foo/bar/baz] ______
+
+command = Command(script='./bin/hdfs dfs -mkdir foo/bar/baz', stdout='', stderr='')
+new_command = './bin/hdfs dfs -mkdir -p foo/bar/baz'
+
+    @pytest.mark.parametrize('command, new_command', [
+        (Command('mkdir foo/bar/baz'), 'mkdir -p foo/bar/baz'),
+        (Command('hdfs dfs -mkdir foo/bar/baz'), 'hdfs dfs -mkdir -p foo/bar/baz'),
+        (Command('./bin/hdfs dfs -mkdir foo/bar/baz'), './bin/hdfs dfs -mkdir -p foo/bar/baz')])
+    def test_get_new_command(command, new_command):
+>       assert get_new_command(command, None) == new_command
+E       AssertionError
+
+tests/rules/test_mkdir_p.py:30: AssertionError
+2 failed, 9 passed in 0.04 seconds
