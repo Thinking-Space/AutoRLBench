@@ -4315,20 +4315,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 4.864
   },
   {
-    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "slug": "dsv4-policy-ratio",
-    "file": "agent-trace/dsv4-policy-ratio.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.94,
-    "durationMs": 2060923,
-    "steps": 54,
-    "costUsd": 16.7584
-  },
-  {
     "task": "infrastructure/slime_critic_value_head_random_init",
     "slug": "dsv4-critic-value-head",
     "file": "agent-trace/dsv4-critic-value-head.json",
@@ -4341,20 +4327,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1112163,
     "steps": 30,
     "costUsd": 11.3939
-  },
-  {
-    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "slug": "glm53-policy-ratio",
-    "file": "agent-trace/glm53-policy-ratio.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 617692,
-    "steps": 26,
-    "costUsd": 5.7056
   },
   {
     "task": "infrastructure/slime_critic_value_head_random_init",
@@ -4371,20 +4343,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 18.734
   },
   {
-    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "slug": "gemini4-policy-ratio",
-    "file": "agent-trace/gemini4-policy-ratio.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1039914,
-    "steps": 23,
-    "costUsd": 8.5067
-  },
-  {
     "task": "infrastructure/slime_critic_value_head_random_init",
     "slug": "gemini4-critic-value-head",
     "file": "agent-trace/gemini4-critic-value-head.json",
@@ -4397,20 +4355,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2246570,
     "steps": 48,
     "costUsd": 22.781
-  },
-  {
-    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "slug": "gpt6astra-policy-ratio",
-    "file": "agent-trace/gpt6astra-policy-ratio.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 393512,
-    "steps": 17,
-    "costUsd": 1.9311
   },
   {
     "task": "infrastructure/slime_critic_value_head_random_init",
@@ -4427,20 +4371,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 3.8787
   },
   {
-    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "slug": "gpt61sol-policy-ratio",
-    "file": "agent-trace/gpt61sol-policy-ratio.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 387454,
-    "steps": 20,
-    "costUsd": 0.3847
-  },
-  {
     "task": "infrastructure/slime_critic_value_head_random_init",
     "slug": "gpt61sol-critic-value-head",
     "file": "agent-trace/gpt61sol-critic-value-head.json",
@@ -4453,20 +4383,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 624402,
     "steps": 27,
     "costUsd": 0.7637
-  },
-  {
-    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "slug": "grok47-policy-ratio",
-    "file": "agent-trace/grok47-policy-ratio.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.98,
-    "durationMs": 501053,
-    "steps": 30,
-    "costUsd": null
   },
   {
     "task": "infrastructure/slime_critic_value_head_random_init",
@@ -4483,20 +4399,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": null
   },
   {
-    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "slug": "kimi-policy-ratio",
-    "file": "agent-trace/kimi-policy-ratio.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 2156665,
-    "steps": 13,
-    "costUsd": 1.8791
-  },
-  {
     "task": "infrastructure/slime_critic_value_head_random_init",
     "slug": "kimi-critic-value-head",
     "file": "agent-trace/kimi-critic-value-head.json",
@@ -4511,20 +4413,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 6.7902
   },
   {
-    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "slug": "kimi31-policy-ratio",
-    "file": "agent-trace/kimi31-policy-ratio.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 382375,
-    "steps": 12,
-    "costUsd": 1.072
-  },
-  {
     "task": "infrastructure/slime_critic_value_head_random_init",
     "slug": "kimi31-critic-value-head",
     "file": "agent-trace/kimi31-critic-value-head.json",
@@ -4537,20 +4425,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 752280,
     "steps": 20,
     "costUsd": 3.0101
-  },
-  {
-    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "slug": "qwen38-policy-ratio",
-    "file": "agent-trace/qwen38-policy-ratio.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 898181,
-    "steps": 20,
-    "costUsd": null
   },
   {
     "task": "infrastructure/slime_critic_value_head_random_init",
@@ -4985,20 +4859,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1713595,
     "steps": 33,
     "costUsd": null
-  },
-  {
-    "task": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "slug": "fable51-policy-ratio",
-    "file": "agent-trace/fable51-policy-ratio.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.27,
-    "durationMs": 586662,
-    "steps": 17,
-    "costUsd": 4.2922
   },
   {
     "task": "data/justrl2_data_relocation",

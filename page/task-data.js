@@ -378,27 +378,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on a GSM8K + MATH mixture. math-verify's signal-based timeout raises ValueError in the reward loop's worker thread, and the bare except turns that into a 0.0 reward for every MATH sample, so MATH-500 logs exactly 0.0 at all 21 validations while GSM8K accuracy rises from 0.081 to 0.766."
   },
   {
-    "id": "algorithm/verl_policy_ratio_recomputes_old_logprob",
-    "title": "GRPO policy ratio ignores rollout log probabilities",
-    "family": "Algorithm",
-    "tags": [
-      "verl",
-      "grpo",
-      "fsdp",
-      "vllm",
-      "free-generation",
-      "gsm8k"
-    ],
-    "model": "Qwen/Qwen2.5-0.5B-Instruct",
-    "dataset": "openai/gsm8k main; first 256 official train rows / 100 official test rows sampled with seed 42",
-    "framework": "verl",
-    "image": "verl_policy_ratio_recomputes_old_logprob",
-    "created": "2026-10-27",
-    "license": "Apache-2.0",
-    "brief": "The policy ratio is forced to one, so clipping never engages.",
-    "issue": "Training Qwen/Qwen2.5-0.5B-Instruct with GRPO on GSM8K. compute_policy_loss subtracts detached current log probabilities instead of frozen rollout probabilities, so the probability ratio stays one and clipping is inactive across four optimizer passes per rollout; accuracy falls from 47% to 0% while the repaired run reaches 50%."
-  },
-  {
     "id": "infrastructure/slime_critic_value_head_random_init",
     "title": "PPO critic value head randomly initialised instead of zeroed",
     "family": "Infrastructure",
@@ -497,7 +476,14 @@ window.AUTORLBENCH_TASKS = [
     "id": "reward/verl_grpo_gsm8k_any_number_reward",
     "title": "GSM8K reward credits the gold number anywhere in the response",
     "family": "Reward",
-    "tags": ["verl", "grpo", "gsm8k", "reward-hacking", "lenient-verifier", "answer-extraction"],
+    "tags": [
+      "verl",
+      "grpo",
+      "gsm8k",
+      "reward-hacking",
+      "lenient-verifier",
+      "answer-extraction"
+    ],
     "model": "Qwen2.5-0.5B-Instruct",
     "dataset": "GSM8K train 7,473 / held-out test 1,319",
     "framework": "verl / GRPO",
