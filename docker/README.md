@@ -22,7 +22,6 @@ Evaluation images and the in-container tooling shared by every task.
 | `ppo-critic-vimpo` | `nvidia/cuda:12.8.1-devel-ubuntu24.04` | `reward/proxy_reward_misalignment`, `reward/reward_parser_mismatch` |
 | `verl` | `verlai/verl:vllm017.latest` | `algorithm/verl_grpo_uid_after_repeat` |
 | `verl` | `verlai/verl:vllm017.latest` | `algorithm/verl_grpo_advantage_broadcast` |
-| `verl` | `verlai/verl:vllm017.latest` | `algorithm/verl_gsm8k_flat_eval` |
 | `verl` | `verlai/verl:vllm017.latest` | `configuration/trl_gsm8k_eos_mismatch` |
 | `verl` | `verlai/verl:vllm017.latest` | `environment/alfworld_tool_schema_mismatch` |
 | `verl` | `verlai/verl:vllm017.latest` | `infrastructure/torch_functional` |
