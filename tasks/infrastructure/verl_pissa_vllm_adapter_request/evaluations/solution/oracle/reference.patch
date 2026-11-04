@@ -1,0 +1,15 @@
+diff --git a/verl/workers/rollout/vllm_rollout/vllm_async_server.py b/verl/workers/rollout/vllm_rollout/vllm_async_server.py
+--- a/verl/workers/rollout/vllm_rollout/vllm_async_server.py
++++ b/verl/workers/rollout/vllm_rollout/vllm_async_server.py
+@@ -459,10 +459,7 @@ class vLLMHttpServer(RolloutReplica):
+         if self.model_config.lora_rank > 0:
+             # Make sure we also check that the lora is already loaded in the engine
+             loaded_loras = await self.engine.list_loras()
+-            # Defect: list_loras() returns integer IDs, but this path compares the
+-            # string adapter name. The loaded PiSSA adapter is therefore omitted
+-            # from every vLLM generation request while the actor still uses it.
+-            lora_loaded = VLLM_LORA_NAME in loaded_loras
++            lora_loaded = VLLM_LORA_INT_ID in loaded_loras
+             if lora_loaded:
+                 lora_request = LoRARequest(
+                     lora_name=VLLM_LORA_NAME, lora_int_id=VLLM_LORA_INT_ID, lora_path=VLLM_LORA_PATH

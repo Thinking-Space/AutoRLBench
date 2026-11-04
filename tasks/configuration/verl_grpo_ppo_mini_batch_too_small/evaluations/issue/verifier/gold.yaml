@@ -1,0 +1,19 @@
+category: configuration
+framework: verl
+task: verl_grpo_ppo_mini_batch_too_small
+verdict: unhealthy
+root_cause:
+- name: ppo_mini_batch_far_below_rollout_batch
+  where: run_gsm8k_grpo.sh PPO_MINI_BATCH_SIZE=4 -> actor_rollout_ref.actor.ppo_mini_batch_size=4 with data.train_batch_size=128 and rollout.n=8
+  observed: verl multiplies ppo_mini_batch_size by rollout.n, so each 1,024-sample rollout batch is consumed in 32 optimizer updates (recipe 4). Later updates are off-policy (ppo_kl 0.003-0.004 vs 0.0002-0.0005, grad_norm 1.0-2.0 vs 0.6-0.9, kl_loss 0.28 vs 0.09), entropy rises 0.35 -> 0.73 instead of decaying to 0.06, truncation 0.07 -> 0.37, training score peaks 0.62 at step 30 then 0.48 (control 0.75), held-out accuracy peaks 0.494 at step 20 and ends 0.361 boxed / 0.387 Math-Verify (control 0.565 / 0.566), below its own step 0
+  expected: ppo_mini_batch_size on the order of the rollout batch (32 prompts = 4 updates per step). Memory belongs to ppo_micro_batch_size_per_gpu / dynamic batching
+  required: the number of optimizer updates per rollout batch (mini-batch << train batch) must be named as the cause. "Entropy rises", "responses truncate", "reward peaks then declines" alone are symptoms. Calling the run healthy, or blaming learning rate alone, KL/entropy coefficients, clip ratio, the reward, data, prompt or model size, is wrong
+evidence_metrics:
+- held-out boxed re-score 0.482 -> 0.494 (step 20) -> 0.361 (step 100) vs control 0.487 -> 0.565. Dose arm ppo_mini_batch_size=8 0.541
+- actor/ppo_kl 10x and actor/grad_norm 2-3x the control. Actor/pg_clipfrac 0.006-0.010 (small). Actor/entropy 0.73 at step 100 vs 0.06
+- response_length/clip_ratio 0.37 vs 0.026. Critic/score/mean 0.48 vs 0.75 at step 100. Timing_s/update_actor 35 s vs 27 s
+- logged val-core/openai/gsm8k/acc/mean@1 under-reports at step 0 (0.391 / 0.398 vs re-score 0.482 / 0.487) because of the Math-Verify process-pool timeout on a busy host. Both arms affected, not the defect
+fix:
+  must:
+  - target: ppo_mini_batch_far_below_rollout_batch
+    direction: raise actor_rollout_ref.actor.ppo_mini_batch_size to the recipe's 32 (or any value giving a few updates per rollout batch) without changing the rollout batch, epochs or learning rate

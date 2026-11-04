@@ -492,5 +492,26 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "A hand-written reward gives full credit whenever the gold number appears anywhere in the response, and the run climbs while the policy stops committing to any final answer.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. The custom reward rewards/gsm8k_reward.py — loaded through reward.custom_reward_function and also reused for the logged validation metric — returns 1.0 whenever the gold answer is among all numbers in the response, so GRPO rewards mentioning more numbers and longer enumerations instead of a committed final answer: the logged training score rises 0.54 -> 0.81 and logged validation accuracy 0.594 -> 0.684 over 100 steps, while the same held-out responses re-scored strictly are 0.000 from step 10 on and format-free accuracy falls from 0.462 to 0.130; distinct numbers per response grow 9.4 -> 14.3 and '####' disappears from the rollouts."
+  },
+  {
+    "id": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "title": "GRPO mini-batch far below the rollout batch: 32 updates per step",
+    "family": "Configuration",
+    "tags": [
+      "verl",
+      "grpo",
+      "gsm8k",
+      "ppo_mini_batch_size",
+      "off-policy",
+      "hyperparameter"
+    ],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "GSM8K train 7,473 / held-out GSM8K test 1,319 (\\boxed{} prompt, Math-Verify reward)",
+    "framework": "verl / GRPO",
+    "image": "verl-0.9-vllm0.28",
+    "created": "2026-10-29",
+    "license": "Apache-2.0",
+    "brief": "A 'smaller mini-batches to fit memory' setting multiplies optimizer updates per rollout batch eight-fold, and every later update trains on data from a policy that has already moved.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. run_gsm8k_grpo.sh sets PPO_MINI_BATCH_SIZE=4 ('smaller mini-batches to fit memory') against TRAIN_BATCH_SIZE=128 and ROLLOUT_N=8; verl multiplies ppo_mini_batch_size by rollout.n, so each 1,024-sample rollout batch is consumed in 32 optimizer updates of 32 samples instead of the recipe's 4 updates of 256. The later updates of every step are computed on a policy that has already moved: actor/ppo_kl stays 0.003-0.004 instead of settling near zero, entropy rises 0.35 -> 0.73 instead of decaying, responses lengthen and truncate (clip ratio 0.07 -> 0.37), the training score peaks at 0.62 (step 30) and falls back to 0.48 (control 0.75), and held-out accuracy peaks at 0.494 (step 20) and ends at 0.361 under the grader's boxed rule (0.387 by Math-Verify), below its own step 0; with ppo_mini_batch_size=32 the same workspace reaches 0.565, with 8 it reaches 0.541. No crash, no NaN, RUN_EXIT 0."
   }
 ];
