@@ -1,0 +1,12 @@
+category: reward
+framework: verl
+task: verl_math_verify_thread_zero_reward
+verdict: unhealthy
+root_cause:
+  - verl/utils/reward_score/math_verify.py::compute_score relies on math-verify's signal-based timeout (signal.signal(SIGALRM) in parse), which raises ValueError when verl's reward loop calls it from a worker thread via loop.run_in_executor; the bare `except Exception: pass` turns that into a 0.0 reward for every MATH sample
+evidence_metrics:
+  - val-core/HuggingFaceH4/MATH-500/acc/mean@1 is exactly 0.0 at all 21 validation points including step 0, while an offline main-thread re-grade of the same generations gives 0.56 at step 0
+  - val-core/openai/gsm8k/acc/mean@1 rises 0.081 -> 0.766 and critic/score/mean 0.068 -> 0.424, so training otherwise proceeds
+fix:
+  must:
+    - make MATH scoring work off the main thread (parse/verify without the signal-based timeout, or in a subprocess) and stop swallowing grader exceptions as zero reward

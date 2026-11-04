@@ -1,6 +1,6 @@
 title = "Training data is too hard"
 license = "MIT"
-created_date = "2026-10-10"
+created_date = "2026-10-21"
 domain = "data"
 tags = ["verl", "grpo", "taco", "data-difficulty", "issue-only"]
 
@@ -24,8 +24,8 @@ image = "verl"
 # No GPUs declared on purpose: this task is issue-only, so neither the agent nor
 # the verifier stage starts training. Declaring NVIDIA_VISIBLE_DEVICES would add
 # --gpus to both containers and break on GPU-less hosts. To rerun the recorded
-# 8-GPU experiment, set AUTORLBENCH_DOCKER_GPUS on the host.
+# 4-GPU experiment, set AUTORLBENCH_DOCKER_GPUS on the host.
 
 [outcome]
 failure_type = "data_difficulty_mismatch"
-failure_reason = "The training parquet contains only TACO VERY_HARD rows while the validation parquet contains only TACO EASY rows, so the training set is too hard and the train/validation difficulty does not match."
+failure_reason = "The training parquet contains only TACO VERY_HARD rows (validation is TACO EASY), which are too hard for Qwen2.5-1.5B-Instruct under the all-tests-pass binary reward: training rollouts succeed 0.78% of the time, 97% of GRPO groups are all-zero, and 256/400 steps have all-zero advantages, so the policy receives almost no learning signal; training reward stays ~0.008 and held-out acc stays flat (0.0707 at step 0, 0.0761 at step 400, 0.065-0.092 throughout)."

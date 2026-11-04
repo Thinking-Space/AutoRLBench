@@ -18,6 +18,11 @@ rules:
   re-applies that check on a hit. Data that does not match what the task recorded
   is either corrupt or altered; turning that into a retry line in a log is how a
   poisoned or truncated weight file reaches a training run nobody is watching.
+* **A repo name can leak a task's answer.** The shared cache roots are mounted
+  read-only into the agent sandbox on some backends, and HF keys its cache layout
+  by repo id, so a repo called `<org>/autorlbench-data-<answer>-dataset` puts the
+  answer in the agent's field of view. `--cache-as OWNER/NAME` lands the cache
+  under a neutral alias instead; pins still apply, only the dir name changes.
 
 It is deliberately standalone -- no `autorlbench` import. It runs inside the
 evaluation image the task declared (docker/images/<name>.Dockerfile), and that
@@ -276,14 +281,19 @@ def materialize(source: Path, dest: Path) -> None:
 # --------------------------------------------------------------------------
 
 
-def hf_repo_dir(repo: str, repo_type: str) -> Path:
+def hf_repo_dir(repo: str, repo_type: str, cache_as: str | None = None) -> Path:
     prefix = "datasets--" if repo_type == "dataset" else "models--"
-    slug = prefix + repo.replace("/", "--")
+    # A repo whose name would give away a task's answer passes --cache-as and
+    # lands under this neutral alias instead: the shared cache is mounted
+    # read-only into the agent sandbox on some backends, and that name must not
+    # show up there. Only the cache dir name changes -- bytes, pins, and
+    # downloads are unaffected.
+    slug = prefix + (cache_as or repo).replace("/", "--")
     return root_for(repo_type) / "hf" / "hub" / slug
 
 
-def hf_cache_dir(repo: str, revision: str, repo_type: str) -> Path:
-    return hf_repo_dir(repo, repo_type) / "snapshots" / revision
+def hf_cache_dir(repo: str, revision: str, repo_type: str, cache_as: str | None = None) -> Path:
+    return hf_repo_dir(repo, repo_type, cache_as) / "snapshots" / revision
 
 
 def find_local_blobs(
@@ -360,7 +370,8 @@ def seed_hf_cache(repo: str, revision: str, repo_type: str, local_blobs: Dict[st
 def fetch_hf(args: argparse.Namespace) -> Path:
     expect, sizes = parse_expectations(args)
     repo_type = args.type
-    cached = hf_cache_dir(args.repo, args.revision, repo_type)
+    cache_as = getattr(args, "cache_as", None)
+    cached = hf_cache_dir(args.repo, args.revision, repo_type, cache_as)
 
     # A snapshot dir that EXISTS is not the same as a snapshot that is COMPLETE:
     # an interrupted snapshot_download leaves the `snapshots/<rev>/` tree (and its
@@ -451,6 +462,24 @@ def fetch_hf(args: argparse.Namespace) -> Path:
         )
         require_verified(downloaded, expect, sizes, f"downloaded {args.repo}@{args.revision[:12]}")
         cached = downloaded
+        if cache_as:
+            # snapshot_download always lays the tree under the repo's own slug
+            # (HF keys its cache layout by repo_id), so the revealing name has
+            # to be relocated after the fact: move the whole repo dir to the
+            # neutral alias. The snapshots/<rev>/<file> -> ../../blobs/<sha>
+            # symlinks are relative and survive the rename.
+            real_dir = hf_repo_dir(args.repo, repo_type)
+            alias_dir = hf_repo_dir(args.repo, repo_type, cache_as)
+            if real_dir != alias_dir:
+                if alias_dir.exists():
+                    # An incomplete earlier alias dir is why we fell through to
+                    # download. Anything seeded from it was hardlinked into
+                    # real_dir (same inode), so removing the alias now loses no
+                    # bytes; copyfile-seeded files live in real_dir too.
+                    shutil.rmtree(alias_dir)
+                os.rename(real_dir, alias_dir)
+                print(f"[fetch] cached under neutral alias {alias_dir.name}")
+                cached = alias_dir / "snapshots" / args.revision
 
     materialize(cached, args.dest)
     return args.dest
@@ -622,6 +651,16 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     hf.add_argument("--workers", type=int, default=8)
+    hf.add_argument(
+        "--cache-as",
+        metavar="OWNER/NAME",
+        default=None,
+        help=(
+            "cache under this neutral name instead of --repo, for a repo whose "
+            "name would reveal a task's answer to the agent. Downloads are "
+            "unaffected -- only the cache dir name changes, so pins still apply."
+        ),
+    )
     add_common(hf)
 
     url = subparsers.add_parser("url", help="fetch a file or archive over http(s)")

@@ -26,11 +26,30 @@ def copy_tree(src: Path, dst: Path, ignore: Optional[Iterable[str]] = None) -> P
     """Copy a directory tree; if the destination exists, clear it first so the result is deterministic.
 
     Copies with symlinks=True, preserving symlinks as-is (including dangling ones), matching
-    HarborTaskMaterializer._link_tree.
+    link_tree below.
     """
     if dst.exists():
         shutil.rmtree(dst)
     shutil.copytree(src, dst, symlinks=True, ignore=shutil.ignore_patterns(*(ignore or [])))
+    return dst
+
+
+def link_tree(src: Path, dst: Path) -> Path:
+    """Copy a directory tree with hard links, falling back to a regular copy across filesystems.
+
+    For staging a directory whose contents are large or read-only but whose original path must not
+    be exposed: a bind mount shows its source in /proc/mounts, and repo paths carry the task id.
+    Unlike copy_tree, an existing destination is an error -- staging sites always write into a
+    fresh run directory, and silently reusing a stale copy would hide that.
+    """
+
+    def link_or_copy(source: str, destination: str) -> None:
+        try:
+            os.link(source, destination)
+        except OSError:
+            shutil.copy2(source, destination)
+
+    shutil.copytree(src, dst, symlinks=True, copy_function=link_or_copy)
     return dst
 
 

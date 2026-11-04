@@ -1,0 +1,15 @@
+--- a/miles/backends/megatron_utils/update_weight/update_weight_from_distributed/mixin.py
++++ b/miles/backends/megatron_utils/update_weight/update_weight_from_distributed/mixin.py
+@@ -310,12 +310,6 @@
+         self._weight_update_selector = weight_update_selector(self.args)
+         if dist.get_rank() == 0:
+             mode = self.args.pause_generation_mode
+-            if mode == "abort":
+-                # The rollout side recycles interrupted groups anyway, so killing the
+-                # in-flight requests here only throws away prefill work the engine has
+-                # already paid for. Freeze them in place across the update and let
+-                # them drain naturally instead.
+-                mode = "in_place"
+             ray.get([engine.pause_generation.remote(mode=mode) for engine in self.rollout_engines])
+             if mode != "in_place":
+                 ray.get([engine.flush_cache.remote() for engine in self.rollout_engines])

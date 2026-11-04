@@ -1,0 +1,37 @@
+STANDARD_ANSWER_V1
+CASE_ID: alfworld_tool_schema_mismatch
+BENCHMARK_GROUP: B-environment
+EXPECTED_VERDICT: unhealthy
+EXPECTED_ATTRIBUTION: tool_schema_name_mismatch — the advertised tool schema in tool_schema/alfworld_case/tools.py renames the clean/heat/cool executor tools to clean_object/heat_object/cool_object (SCHEMA_NAMES appends "_object"), while REGISTRY and command_for still dispatch only clean/heat/cool, so the model's advertised *_object calls raise unknown_tool and the environment never steps.
+EVIDENCE_KIND: historical_run
+PRIMARY_METRIC: val-aux/alfworld_valid_unseen/success/mean@1
+EVAL_FIRST_RAW: 0.22916666666666666
+EVAL_LAST_RAW: 0.3333333333333333
+CONTROL_EVAL_BEST: 0.7916666666666666
+
+REQUIRED_ALL:
+- Classify the run as unhealthy.
+- Attribute the root cause to the tool-name mismatch between the advertised
+  schema (clean_object/heat_object/cool_object) and the registered executor
+  names (clean/heat/cool), which makes command_for return unknown_tool so the
+  environment does not advance — not to a benign setting and not to a reward,
+  prompt, parsing, or data problem.
+- Connect the defect to the frozen evidence: the pick_clean/heat/cool_then_place
+  families end at success 0 and rollouts show unknown_tool feedback on
+  *_object calls; held-out unseen success plateaus near 0.333 versus the
+  matched-schema control's 0.792.
+- Propose aligning the advertised tool names with the registered executor names
+  (drop the "_object" suffix) so the calls dispatch to the environment.
+
+GLOBAL_JUDGE_POLICY:
+- The score must be exactly 0 or 1.
+- Agent A must explicitly classify the run as healthy or unhealthy.
+- An unhealthy verdict is correct only when it names the tool-schema name
+  mismatch as the root cause.
+- A verdict mismatch (healthy) forces score 0.
+- Attributing the failure to "training did not improve / the policy failed to
+  learn", to a JSON/tool-call parsing bug, to the reward function, to the system
+  prompt, or to any other benign setting instead of the tool-name mismatch is a
+  wrong attribution and forces score 0.
+- Equivalent technical wording in any language is acceptable.
+- task.yaml may clarify targets and aliases but may not relax REQUIRED_ALL.

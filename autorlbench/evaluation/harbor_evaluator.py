@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
 import os
 import re
@@ -44,7 +45,7 @@ from .run_spec import (
     RunSpecError,
     load_run_spec,
 )
-from ..utils.filesystem import copy_tree, ensure_dir, tree_digest, write_text
+from ..utils.filesystem import copy_tree, ensure_dir, link_tree, tree_digest, write_text
 
 
 # Location of the activate hook in the image; see the tooling layer in docker/images/*.Dockerfile.
@@ -53,6 +54,20 @@ ACTIVATE_HOOK = "/etc/profile.d/autorlbench-activate.sh"
 
 class HarborAdapterError(RuntimeError):
     """Configuration or result error at the boundary between AutoRLBench and Harbor."""
+
+
+def _environment_mount(unit: HarborTaskUnit) -> Optional[Path]:
+    """Host directory to mount at /autorlbench/environment: the staged copy when there is one.
+
+    The repo path spells out the task id, and bind-mount sources are readable from /proc/mounts
+    inside the container -- so every agent-facing flow stages the directory inside the digest-named
+    run directory first (HarborPreparer does it as part of _prepare_run). The repo fallback only
+    covers units that were never staged.
+    """
+    if unit.environment is not None:
+        return unit.environment
+    repo = unit.package.paths.environment
+    return repo if repo.is_dir() else None
 
 
 class HarborTaskMaterializer:
@@ -97,6 +112,10 @@ class HarborTaskMaterializer:
     ) -> None:
         package = unit.package
         evaluation = unit.evaluation
+        if package.metadata.get("security", {}).get("requires_isolated_stages"):
+            raise HarborAdapterError(
+                "This task requires separate Docker stages; shared Harbor execution is unsupported"
+            )
         ensure_dir(task_dir)
 
         self._write_instruction(evaluation, task_dir)
@@ -130,22 +149,10 @@ class HarborTaskMaterializer:
                     f"workspace of {unit.package.task_id!r} contains {name}; Harbor "
                     "would build it instead of using the prebuilt image"
                 )
-        self._link_tree(source, environment_dir)
+        link_tree(source, environment_dir)
         if not any(environment_dir.iterdir()):
             # Harbor does not upload an empty directory, so /workspace would not exist; leave a placeholder file.
             write_text(environment_dir / ".autorlbench-workspace", "")
-
-    @staticmethod
-    def _link_tree(source: Path, destination: Path) -> None:
-        """Hard link where possible, falling back to a regular copy across filesystems."""
-
-        def link_or_copy(src: str, dst: str) -> None:
-            try:
-                os.link(src, dst)
-            except OSError:
-                shutil.copy2(src, dst)
-
-        shutil.copytree(source, destination, symlinks=True, copy_function=link_or_copy)
 
     def _write_tests(self, unit: HarborTaskUnit, task_dir: Path) -> None:
         evaluation = unit.evaluation
@@ -255,8 +262,8 @@ _rerun_status=$?
 unset AUTORLBENCH_STAGE PYTHONUSERBASE PIP_USER PIP_BREAK_SYSTEM_PACKAGES
 export AUTORLBENCH_STAGE=verifier
 echo "autorlbench: rerun exit=$_rerun_status" >&2
-# Grade even when the rerun failed: against empty or partial logs the grading script scores 0 by
-# itself, which matches the docker backend, where the verifier always runs.
+# Still run the verifier for diagnostics. A failed rerun overrides its score below,
+# matching the native evaluator even if partial logs happen to clear a metric gate.
 
 '''
         return f'''#!/usr/bin/env bash
@@ -283,6 +290,29 @@ if [ "$AUTORLBENCH_EVALUATION_LEVEL" = "solution" ]; then
 fi
 {rerun_section}bash "$AUTORLBENCH_VERIFIER/test.sh"
 verifier_status=$?
+
+# Partial logs can contain passing metrics even though training crashed or timed out.
+# Keep the diagnostic result, but the completed experiment is a prerequisite for credit.
+if [ "${{_rerun_status:-0}}" -ne 0 ]; then
+  python3 - "$AUTORLBENCH_RESULTS/result.json" "$_rerun_status" <<'PY'
+import json
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+try:
+    previous = json.loads(path.read_text())
+except (OSError, ValueError):
+    previous = None
+path.write_text(json.dumps({{
+    "passed": False, "score": 0.0,
+    "metrics": {{"failure": "system rerun failed", "rerun_exit_code": int(sys.argv[2]),
+                "verifier_result": previous}}
+}}) + "\\n")
+PY
+  cp "$AUTORLBENCH_RESULTS/result.json" /logs/verifier/autorlbench-result.json
+  printf '0\\n' > /logs/verifier/reward.txt
+  exit 1
+fi
 
 # Put the structured result in the verifier log so remote Harbor environments download it too.
 result_file="$AUTORLBENCH_RESULTS/result.json"
@@ -365,7 +395,6 @@ exit "$verifier_status"
         # Shared by both stages: mount paths, offline switches, and BASH_ENV so `bash -c` also loads
         # the activate hook (Harbor does not start a login shell).
         shared_env = {
-            "AUTORLBENCH_TASK_ID": package.task_id,
             "AUTORLBENCH_EVALUATION_LEVEL": evaluation.level,
             "AUTORLBENCH_WORKSPACE": "/workspace",
             "AUTORLBENCH_RESULTS": "/logs/artifacts",
@@ -374,18 +403,24 @@ exit "$verifier_status"
             "AUTORLBENCH_MODELS": MODELS_DIR,
             "AUTORLBENCH_DATASETS": DATASETS_DIR,
             "AUTORLBENCH_ENVIRONMENT": (
-                AUTORLBENCH_ENVIRONMENT_DIR if package.paths.environment.is_dir() else ""
+                AUTORLBENCH_ENVIRONMENT_DIR if _environment_mount(unit) is not None else ""
             ),
             "BASH_ENV": ACTIVATE_HOOK,
             **self._OFFLINE_ENV,
         }
+        # AUTORLBENCH_TASK_ID is deliberately NOT in shared_env: many task ids spell out the
+        # diagnosis (e.g. "context_parallel_oom"), and shared_env reaches the agent container.
+        # The agent stage gets a neutral placeholder; the verifier stage keeps the real id --
+        # the trial-to-task result mapping reads Harbor task names, not this variable.
         agent_env = {
             **shared_env,
+            "AUTORLBENCH_TASK_ID": "task",
             "AUTORLBENCH_TASK_ROOT": "/autorlbench",
             "AUTORLBENCH_STAGE": "agent",
         }
         verifier_env = {
             **shared_env,
+            "AUTORLBENCH_TASK_ID": package.task_id,
             "AUTORLBENCH_TASK_ROOT": "/tests",
             "AUTORLBENCH_ORACLE": oracle_path,
             "AUTORLBENCH_VERIFIER": "/tests/verifier",
@@ -653,8 +688,9 @@ class HarborRunner:
         pairs = []
         if unit.prepared is not None:
             pairs.append((unit.prepared, PREPARED_DIR))
-        if unit.package.paths.environment.is_dir():
-            pairs.append((unit.package.paths.environment, AUTORLBENCH_ENVIRONMENT_DIR))
+        environment = _environment_mount(unit)
+        if environment is not None:
+            pairs.append((environment, AUTORLBENCH_ENVIRONMENT_DIR))
         pairs.append((config.models_dir, MODELS_DIR))
         pairs.append((config.datasets_dir, DATASETS_DIR))
         return [
@@ -1078,7 +1114,12 @@ class HarborPreparer:
                 f"task {package.task_id!r}: prepare failed with exit {result.returncode}"
                 + (f"\n{tail}" if tail else "")
             )
-        return dataclasses.replace(unit, workspace=run.workspace, prepared=run.prepared)
+        return dataclasses.replace(
+            unit,
+            workspace=run.workspace,
+            prepared=run.prepared,
+            environment=run.environment,
+        )
 
 
 class HarborShell:
@@ -1137,6 +1178,7 @@ class HarborShell:
                 unit,
                 workspace=Path(state["workspace"]),
                 prepared=Path(state["prepared"]) if state.get("prepared") else None,
+                environment=Path(state["environment"]) if state.get("environment") else None,
             )
             print(
                 f"[autorlbench] Reusing staged workspace at {unit.workspace}",
@@ -1150,6 +1192,7 @@ class HarborShell:
                 "task_id": package.task_id,
                 "workspace": str(unit.workspace),
                 "prepared": str(unit.prepared) if unit.prepared else None,
+                "environment": str(unit.environment) if unit.environment else None,
             }
             write_text(state_path, json.dumps(state_data, indent=2, ensure_ascii=False))
 
@@ -1197,9 +1240,10 @@ class HarborShell:
         argv.extend(["-v", f"{unit.workspace}:/workspace"])
         if unit.prepared is not None and Path(unit.prepared).is_dir():
             argv.extend(["-v", f"{unit.prepared}:{PREPARED_DIR}:ro"])
-        if package.paths.environment.is_dir():
+        environment = _environment_mount(unit)
+        if environment is not None:
             argv.extend(
-                ["-v", f"{package.paths.environment.resolve()}:{AUTORLBENCH_ENVIRONMENT_DIR}:ro"]
+                ["-v", f"{environment.resolve()}:{AUTORLBENCH_ENVIRONMENT_DIR}:ro"]
             )
         argv.extend(["-v", f"{config.models_dir}:{MODELS_DIR}:ro"])
         argv.extend(["-v", f"{config.datasets_dir}:{DATASETS_DIR}:ro"])
@@ -1208,8 +1252,10 @@ class HarborShell:
 
         # Same setup as agent_env in _write_task_config(). AUTORLBENCH_RESULTS points to a
         # writable location under /workspace (/logs/artifacts does not exist).
+        # AUTORLBENCH_TASK_ID is a neutral placeholder for the same reason as there:
+        # task ids often spell out the diagnosis.
         env: Dict[str, str] = {
-            "AUTORLBENCH_TASK_ID": package.task_id,
+            "AUTORLBENCH_TASK_ID": "task",
             "AUTORLBENCH_EVALUATION_LEVEL": unit.evaluation.level,
             "AUTORLBENCH_WORKSPACE": "/workspace",
             "AUTORLBENCH_RESULTS": "/workspace/autorlbench-results",
@@ -1219,7 +1265,7 @@ class HarborShell:
             "AUTORLBENCH_MODELS": MODELS_DIR,
             "AUTORLBENCH_DATASETS": DATASETS_DIR,
             "AUTORLBENCH_ENVIRONMENT": (
-                AUTORLBENCH_ENVIRONMENT_DIR if package.paths.environment.is_dir() else ""
+                AUTORLBENCH_ENVIRONMENT_DIR if _environment_mount(unit) is not None else ""
             ),
             "BASH_ENV": ACTIVATE_HOOK,
             **self._OFFLINE_ENV,
@@ -1381,9 +1427,13 @@ class HarborEvaluator:
     ) -> Path:
         if len(units) == 1:
             unit = units[0]
-            safe_id = re.sub(r"[^A-Za-z0-9_.-]+", "-", unit.package.task_id).strip("-.")
-            prefix = f"autorlbench-harbor-{safe_id or 'task'}-{unit.evaluation.level}-"
+            # Same rule as TaskEvaluator._run_directory_prefix: this directory is an ancestor of
+            # every bind-mount source (workspace, prepared, environment), and /proc/mounts inside
+            # the containers shows the full source path -- the task id appears only as its digest.
+            digest = hashlib.sha256(unit.package.task_id.encode("utf-8")).hexdigest()[:8]
+            prefix = f"autorlbench-harbor-{digest}-{unit.evaluation.level}-"
         else:
+            # Batch runs carry no single task id; the mapping back lives in the report.
             prefix = f"autorlbench-harbor-batch-{len(units)}-"
         parent = ensure_dir(temp_dir).resolve() if temp_dir is not None else None
         return Path(

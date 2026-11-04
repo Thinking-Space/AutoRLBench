@@ -1,0 +1,32 @@
+title = "GRPO advantage broadcast along the sequence axis"
+license = "MIT"
+created_date = "2026-09-24"
+domain = "algorithm"
+tags = ["verl", "grpo", "advantage", "reward-design"]
+
+[submitter]
+name = "benchmark_evaluation"
+
+[model]
+name = "Qwen/Qwen2.5-1.5B-Instruct"
+
+[dataset]
+name = "TACO EASY snapshot (8368 train / 184 test rows, verl-format parquet)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "examples/grpo_trainer/run_qwen2_5_1.5b_instruct_taco_fsdp.sh"
+
+[environment]
+image = "verl"
+
+# The launch script fixes 8 GPUs: run_qwen2_5_1.5b_instruct_taco_fsdp.sh:26
+# sets NGPUS_PER_NODE=8; the FSDP actor and vLLM rollout share those cards.
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+NVIDIA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "compute_grpo_outcome_advantage lays the length-B GRPO advantages along the sequence axis (reshape to [1, B], pad to the response length, expand across rows) instead of giving each row its own sample's scalar advantage. The tensor stays [B, S] so nothing crashes, but every row's tokens carry column-indexed advantages (position j gets sample j's value, positions past 128 get 0); the policy gradient is decoupled from each sample's reward. The recorded run keeps critic/rewards/mean near 0.12 while held-out acc stays flat (0.076 at step 0, 0.043-0.071 through step 250), and the token-weighted critic/advantages/mean collapses to ~0 (median |mean| 4.9e-4, 8-19x below correct TACO runs)."

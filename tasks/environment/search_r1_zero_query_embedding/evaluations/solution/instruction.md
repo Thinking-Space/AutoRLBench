@@ -75,3 +75,8 @@ script then reads **only this fresh run's** files under
 `$AUTORLBENCH_RESULTS/experiment_logs` and scores the key metrics; logs written
 anywhere else are ignored. Do not copy, edit, or fabricate log metrics.
 Otherwise the run is scored 0.
+
+Completion is required independently of metric quality: validation at the
+declared final step must be present, and evaluation beyond the fixed horizon
+is not accepted. Where training reward is graded, every training step must be
+logged. Accuracy and binary rewards must remain in their valid [0, 1] range.

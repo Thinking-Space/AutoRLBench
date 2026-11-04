@@ -1,0 +1,39 @@
+category: environment
+framework: agent-r1
+task: alfworld_tool_schema_mismatch
+verdict: unhealthy
+root_cause:
+- name: tool_schema_name_mismatch
+  where: tool_schema/alfworld_case/tools.py (SCHEMA_NAMES / tool_schemas)
+  observed: the advertised tool schema renames clean/heat/cool to clean_object/heat_object/cool_object while REGISTRY and command_for dispatch only clean/heat/cool, so advertised *_object calls raise unknown_tool and the environment never steps
+  expected: the advertised tool names equal the registered executor names (clean/heat/cool)
+evidence_metrics:
+- held-out unseen success (val-aux/alfworld_valid_unseen/success/mean@1) plateaus 0.229 -> 0.333 over 63 steps vs the matched-schema control 0.458 -> 0.792
+- the pick_clean_then_place, pick_heat_then_place and pick_cool_then_place families end at success rate 0
+- rollouts show assistant clean_object/heat_object/cool_object calls answered by "unknown_tool. The environment state did not change."
+- tasks not needing clean/heat/cool still succeed and still improve, so the run learns on unaffected families
+fix:
+  must:
+  - target: tool_schema_name_mismatch
+    direction: align advertised schema names with the registered executor names (drop the _object suffix)
+solution_metric:
+  key: val-aux/alfworld_valid_unseen/success/mean@1
+  final_step: 63
+  score_mode: best
+  historical_final_baseline: 0.3333333333333333
+  required_final_score: 0.6
+  required_final_score_max: 1.0
+  note: >-
+    val-aux/alfworld_valid_unseen/success/mean@1 is the held-out unseen
+    validation success rate in [0, 1]. The defect makes the clean/heat/cool task
+    families unsolvable, so unseen success plateaus near 0.333; removing the
+    _object suffix so the advertised names match the registry lets the control
+    reach 0.792. score_mode is best because a single eval over 48 unseen games
+    is noisy and the verl log interleaves per-progress step:N lines (the
+    extracted value is reliable, its step label is not). The best finite unseen
+    success must fall within [0.6, 1.0]. Calibrated on the matched-schema control
+    (same recipe, aligned names, 63 steps, one run per side): step 0 is 0.458
+    and fails the 0.6 lower bound, the best point is step 63 at 0.792; the
+    defective run's best is 0.333 and fails. historical_final_baseline is the
+    defective run's step-63 value (0.333); a repaired run must come in above it.
+    Pass is score 1 if the best finite point is within [0.6, 1.0]; otherwise 0.

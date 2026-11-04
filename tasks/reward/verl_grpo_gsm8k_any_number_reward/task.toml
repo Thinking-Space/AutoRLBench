@@ -1,0 +1,37 @@
+title = "GSM8K reward credits the gold number anywhere in the response"
+license = "Apache-2.0"
+created_date = "2026-10-27"
+domain = "reward"
+tags = ["verl", "grpo", "gsm8k", "reward-hacking", "lenient-verifier", "answer-extraction"]
+
+[submitter]
+name = "Ziqi Zhou"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K train 7,473 / held-out GSM8K test 1,319"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_gsm8k_grpo.sh"
+
+[environment]
+image = "verl-0.9-vllm0.28"
+
+# Single-GPU task: FSDP actor and vLLM rollout are colocated on one GPU (recorded on 1x RTX A6000 48 GB).
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0"
+NVIDIA_VISIBLE_DEVICES = "0"
+WANDB_MODE = "offline"
+WANDB_API_KEY = "autorlbench-offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "lenient_reward_exploited"
+failure_reason = "rewards/gsm8k_reward.py::compute_score (loaded through reward.custom_reward_function and also used for the logged validation metric) returns 1.0 whenever the gold answer is among all numbers in the response, so GRPO rewards mentioning more numbers and longer enumerations instead of a committed final answer: the logged training score rises 0.54 -> 0.81 and the logged val-core/openai/gsm8k/acc/mean@1 0.594 -> 0.684 over 100 steps, while the same held-out responses re-scored strictly (last '#### N' equals gold) are 0.000 from step 10 on (control 0.557 at step 100) and format-free (last number) accuracy falls from 0.462 to 0.130 (control 0.557). Distinct numbers per response grow 9.4 -> 14.3, responses lengthen 306 -> 431 tokens (clip_ratio 0.10 -> 0.43) and '####' disappears from the rollouts."
+
+[security]
+requires_isolated_stages = true

@@ -1,0 +1,402 @@
+diff --git a/awm/core/agent.py b/awm/core/agent.py
+index b7b5e28..4a60c5d 100644
+--- a/awm/core/agent.py
++++ b/awm/core/agent.py
+@@ -12,6 +12,7 @@ import os
+ import shutil
+ import subprocess
+ import time
++import signal
+ from dataclasses import dataclass
+ from datetime import datetime
+ from textwrap import dedent
+@@ -86,45 +87,22 @@ class Config:
+ 
+ 
+ def get_system_prompt() -> str:
+-    tools_str = dedent("""\
+-        1. list_tools
+-            - Description: List all available MCP tools for the current environment to help you finish the user task.
+-            - Arguments: None
+-            - Output: A list of MCP environment-specific tools and their descriptions
++    return dedent("""\
++        # MCP Tools
+ 
+-        2. call_tool
+-            - Description: Call a MCP environment-specific tool
+-            - Arguments:
+-                - tool_name: str, required, the tool name in the list_tools output
+-                - arguments: str, required, the arguments for calling <tool_name>. You must pass a valid JSON string without any markdown fences or additional commentary. This JSON str will be parsed by the tool and executed. You can pass an empty JSON str if no arguments are required by <tool_name>.
+-            - Output: The result of the <tool_name> tool call""")
++        You are in an MCP environment. Complete the user's task by calling MCP tools. You are already logged in; your user id is 1 when a tool requires it.
+ 
+-    return dedent(f"""\
+-        # MCP Toolss
+-
+-        You are at a MCP environment. You need to call MCP tools to assist with the user query. At each step, you can only call one function. You have already logged in, and your user id is 1 if required for the MCP tool.
+-
+-        You are provided with TWO functions within <tools></tools> XML tags:
+-        <tools>
+-        {tools_str}
+-        </tools>
+-
+-        You should always call list_tools function first to get the available tools, and should only call it once. You should always directly output the answer or summary at the final step instead of calling any function.
+-
+-        For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
++        At each step, output at most one call using exactly this format:
+         <tool_call>
+-        {{"name": <function-name>, "arguments": <args-json-object>}}
++        {"name":"list_tools","arguments":null}
+         </tool_call>
+ 
+-        Example Function Call #1:
++        The only top-level functions are `list_tools` and `call_tool`. Call `list_tools` exactly once at the beginning. To invoke an environment tool, use:
+         <tool_call>
+-        {{"name": "list_tools", "arguments": null}}
++        {"name":"call_tool","arguments":{"tool_name":"mcp_tool_NAME","arguments":"{\\"arg\\":\\"value\\"}"}}
+         </tool_call>
+ 
+-        Example Function Call #2:
+-        <tool_call>
+-        {{"name": "call_tool", "arguments": {{"tool_name": "get_weather", "arguments": "{{"city": "Beijing"}}"}}}}
+-        </tool_call>""")
++        The inner `arguments` value must be a valid JSON string. When the task is complete, return a plain final answer with no tool call.""")
+ 
+ 
+ def parse_tool_calls(content: str) -> list[dict]:
+@@ -296,44 +274,59 @@ class MCPToolExecutor:
+             self._app = MCPApp(name="demo_agent", settings=settings)
+             self._agent = Agent(name="executor", server_names=[MCP_SERVER_NAME])
+ 
++    async def _run_mcp(self, operation):
++        # Cover MCPApp/Agent enter/exit as well as the tool RPC.  Do not use
++        # wait_for() here: it waits for cancellation to finish, so a hung
++        # streamable-HTTP __aexit__ still stalls the whole rollout gather.
++        async def _run():
++            with contextlib.redirect_stderr(io.StringIO()):
++                async with self._app.run():
++                    async with self._agent:
++                        return await operation()
++        task = asyncio.create_task(_run())
++        done, _pending = await asyncio.wait({task}, timeout=self.timeout)
++        if task in done:
++            return task.result()
++        task.cancel()
++        raise asyncio.TimeoutError(f"MCP operation timed out after {self.timeout}s")
++
+     async def list_tools(self) -> list[dict]:
+-        with contextlib.redirect_stderr(io.StringIO()):
+-            async with self._app.run():
+-                async with self._agent:
+-                    result = await asyncio.wait_for(
+-                        self._agent.list_tools(), timeout=self.timeout
+-                    )
+-                    self._tools = []
+-                    for t in result.tools:
+-                        tool_info = {
+-                            "name": t.name,
+-                            "description": t.description or "",
+-                            "inputSchema": t.inputSchema or {},
+-                        }
+-                        self._tools.append(tool_info)
+-                    return self._tools
++        last_tools: list[dict] = []
++        for attempt in range(3):
++            async def _list():
++                result = await self._agent.list_tools()
++                return [
++                    {
++                        "name": t.name,
++                        "description": t.description or "",
++                        "inputSchema": t.inputSchema or {},
++                    }
++                    for t in result.tools
++                ]
++            try:
++                last_tools = await self._run_mcp(_list)
++            except asyncio.TimeoutError:
++                last_tools = []
++            if last_tools or attempt == 2:
++                self._tools = last_tools
++                return last_tools
++            await asyncio.sleep(1.0 * (attempt + 1))
++        return last_tools
+ 
+     async def call_tool(self, tool_name: str, arguments: dict) -> str:
+-        with contextlib.redirect_stderr(io.StringIO()):
+-            async with self._app.run():
+-                async with self._agent:
+-                    result = await asyncio.wait_for(
+-                        self._agent.call_tool(tool_name, arguments),
+-                        timeout=self.timeout,
+-                    )
+-                    # Extract text from result content
+-                    parts = []
+-                    for c in result.content:
+-                        if hasattr(c, 'text'):
+-                            parts.append(c.text)
+-                        else:
+-                            parts.append(str(c))
+-
+-                    text = "\n".join(parts)
+-
+-                    if result.isError:
+-                        return f"Error: {text}"
+-                    return text
++        async def _call():
++            result = await self._agent.call_tool(tool_name, arguments)
++            parts = []
++            for c in result.content:
++                if hasattr(c, 'text'):
++                    parts.append(c.text)
++                else:
++                    parts.append(str(c))
++            text = "\n".join(parts)
++            if result.isError:
++                return f"Error: {text}"
++            return text
++        return await self._run_mcp(_call)
+ 
+ 
+ async def generate_response(
+@@ -378,7 +371,19 @@ async def generate_response(
+             "chat_template_kwargs": {"enable_thinking": True},
+         }
+ 
+-    response = await client.chat.completions.create(**kwargs)
++    last_error = None
++    for attempt in range(3):
++        try:
++            response = await client.chat.completions.create(**kwargs)
++            break
++        except Exception as exc:
++            last_error = exc
++            if attempt == 2:
++                raise
++            logger.warning(f"LLM request failed (attempt {attempt + 1}/3): {exc}; retrying")
++            await asyncio.sleep(1.5 * (attempt + 1))
++    else:
++        raise last_error
+ 
+     content = response.choices[0].message.content or ""
+     tool_calls = parse_tool_calls(content)
+@@ -437,12 +442,20 @@ async def run_agent(config: Config):
+             envs_load_path=config.envs_path,
+             db_schema_path=config.db_path,
+             sample_path=config.sample_path,
++            temp_server_path=os.path.join(output_dir, "server_runtime.py"),
+         )
+         db_file_path = _prepare_database(server_cfg, output_dir)
+ 
+         # Start MCP server
+         port = get_random_available_port()
+-        server_proc = start_server_process(scenario, config.envs_path, db_file_path, port, output_dir=output_dir)
++        server_proc = start_server_process(
++            scenario,
++            config.envs_path,
++            db_file_path,
++            port,
++            output_dir=output_dir,
++            temp_server_path=server_cfg.temp_server_path,
++        )
+         mcp_url = f"http://127.0.0.1:{port}/mcp"
+ 
+         logger.info(f"Waiting for MCP server on port {port}...")
+@@ -595,7 +608,8 @@ async def run_agent(config: Config):
+         # Save final database
+         if db_file_path and os.path.exists(db_file_path):
+             final_db_path = os.path.join(output_dir, "final.db")
+-            shutil.copy2(db_file_path, final_db_path)
++            if os.path.abspath(db_file_path) != os.path.abspath(final_db_path):
++                shutil.copy2(db_file_path, final_db_path)
+             logger.info(f"Saved final database to {final_db_path}")
+ 
+         logger.info(f"Run outputs saved to: {output_dir}")
+@@ -604,11 +618,17 @@ async def run_agent(config: Config):
+         # Cleanup MCP server
+         if server_proc and server_proc.poll() is None:
+             logger.info("Shutting down MCP server...")
+-            server_proc.terminate()
++            try:
++                os.killpg(server_proc.pid, signal.SIGTERM)
++            except ProcessLookupError:
++                pass
+             try:
+                 server_proc.wait(timeout=5)
+             except subprocess.TimeoutExpired:
+-                server_proc.kill()
++                try:
++                    os.killpg(server_proc.pid, signal.SIGKILL)
++                except ProcessLookupError:
++                    pass
+                 server_proc.wait()
+ 
+ 
+diff --git a/awm/core/server.py b/awm/core/server.py
+index 5f082e9..4098895 100644
+--- a/awm/core/server.py
++++ b/awm/core/server.py
+@@ -99,7 +99,71 @@ def _generate_server_code(config: Config, db_path: str) -> str:
+     env = envs[config.scenario]
+ 
+     code = env["full_code"]
+-    new_code = ['import warnings', 'warnings.filterwarnings("ignore", category=DeprecationWarning)']
++
++    # Generated APIs should be safe to retry.  In particular, the mentoring
++    # benchmark seeds the requested cohort in the initial database; a model
++    # may therefore call create_program even though the row already exists.
++    # The generated endpoint historically inserted blindly and surfaced the
++    # UNIQUE(cohort_name) violation as an opaque MCP 500.  Make this endpoint
++    # idempotent at generation time: return an existing row with the same
++    # cohort name before attempting the insert.
++    create_program_insert = (
++        "    program = Program(cohort_name=body.cohort_name, start_date=start_date_obj, "
++        "end_date=end_date_obj, target_audience=body.target_audience, "
++        "max_participants=body.max_participants, created_by_user_id=CURRENT_USER_ID, "
++        "created_at=now, updated_at=now)\n"
++        "    session.add(program)"
++    )
++    create_program_idempotent = (
++        "    existing = session.query(Program).filter(Program.cohort_name == body.cohort_name).first()\n"
++        "    if existing is not None:\n"
++        "        if (existing.start_date != start_date_obj or existing.end_date != end_date_obj "
++        "or existing.target_audience != body.target_audience or existing.max_participants != body.max_participants):\n"
++        "            session.close()\n"
++        "            raise HTTPException(status_code=409, detail='A program with this cohort_name already exists with different fields')\n"
++        "        result = ProgramResponse(id=existing.id, cohort_name=existing.cohort_name, "
++        "start_date_value=existing.start_date, end_date_value=existing.end_date, "
++        "target_audience=existing.target_audience, max_participants=existing.max_participants, "
++        "created_by_user_id=existing.created_by_user_id, created_at=existing.created_at, "
++        "updated_at=existing.updated_at)\n"
++        "        session.close()\n"
++        "        return result\n"
++        + create_program_insert
++    )
++    if create_program_insert in code:
++        code = code.replace(create_program_insert, create_program_idempotent, 1)
++
++    # Vaccine definitions are keyed by name.  Tool-call retries currently
++    # turn a successful first create into repeated UNIQUE(name) violations.
++    vaccine_insert = (
++        "    db_obj = VaccineDefinition(\n"
++        "        name=vd.name,\n"
++        "        species=vd.species,\n"
++        "        description=vd.description,\n"
++        "        created_at=datetime.utcnow(),\n"
++        "        updated_at=None,\n"
++        "    )\n"
++        "    session.add(db_obj)"
++    )
++    vaccine_idempotent = (
++        "    existing = session.query(VaccineDefinition).filter(VaccineDefinition.name == vd.name).first()\n"
++        "    if existing is not None:\n"
++        "        if existing.species != vd.species or (vd.description is not None and existing.description != vd.description):\n"
++        "            session.close()\n"
++        "            raise HTTPException(status_code=409, detail='A vaccine definition with this name already exists with different fields')\n"
++        "        resp = VaccineDefinitionResponse.from_orm(existing)\n"
++        "        session.close()\n"
++        "        return resp\n"
++        + vaccine_insert
++    )
++    if vaccine_insert in code:
++        code = code.replace(vaccine_insert, vaccine_idempotent, 1)
++
++    new_code = [
++        'import warnings',
++        'warnings.filterwarnings("ignore", category=DeprecationWarning)',
++        'from fastapi import HTTPException',
++    ]
+     for line in code.split("\n"):
+ 
+         if 'create_engine(' in line:
+@@ -177,6 +241,7 @@ def start_server_process(
+     db_path: str,
+     port: int,
+     output_dir: str | None = None,
++    temp_server_path: str | None = None,
+ ) -> subprocess.Popen:
+     """Start MCP server as a background subprocess.
+ 
+@@ -191,8 +256,15 @@ def start_server_process(
+     ]
+     if output_dir:
+         cmd.extend(["--output_dir", output_dir])
++    if temp_server_path:
++        cmd.extend(["--temp_server_path", temp_server_path])
+     logger.info(f"Starting MCP server: {' '.join(cmd)}")
+-    return subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
++    return subprocess.Popen(
++        cmd,
++        stdout=subprocess.PIPE,
++        stderr=subprocess.PIPE,
++        start_new_session=True,
++    )
+ 
+ 
+ def run(config: Config):
+diff --git a/awm/core/verify.py b/awm/core/verify.py
+index cc66bff..9d3c94c 100644
+--- a/awm/core/verify.py
++++ b/awm/core/verify.py
+@@ -12,6 +12,7 @@ import os
+ import re
+ import sqlite3
+ import asyncio
++import httpx
+ from dataclasses import dataclass
+ from textwrap import dedent
+ from enum import Enum
+@@ -235,7 +236,18 @@ async def run_llm_judge(task, verifier_result, llm_base_url, llm_api_key, llm_mo
+     llm_base_url = normalize_azure_url(llm_base_url)
+ 
+     try:
+-        client = AsyncOpenAI(base_url=llm_base_url, api_key=llm_api_key or "EMPTY")
++        # Hosted judges can take longer than the SDK's connect/read defaults,
++        # and inherited proxy settings are often unreliable on training nodes.
++        timeout = float(os.environ.get("AWM_JUDGE_TIMEOUT", "120"))
++        max_retries = max(0, int(os.environ.get("AWM_JUDGE_MAX_RETRIES", "3")))
++        http_client = httpx.AsyncClient(timeout=timeout, trust_env=False)
++        client = AsyncOpenAI(
++            base_url=llm_base_url,
++            api_key=llm_api_key or "EMPTY",
++            timeout=timeout,
++            max_retries=max_retries,
++            http_client=http_client,
++        )
+ 
+         system_prompt = dedent("""\
+             You are an impartial evaluator of automated agent task results with access to database verification. Based on the provided JSON trajectory AND the Python verification results from querying the database, decide the task outcome. This trajectory is generated by an MCP agent on a simulated simplified environment. The environment provides a set of MCP tools to help the agent complete the task.
+@@ -299,15 +311,18 @@ async def run_llm_judge(task, verifier_result, llm_base_url, llm_api_key, llm_mo
+             f"{verification_json_str}"
+         )
+ 
+-        response = await client.chat.completions.create(
+-            model=llm_model,
+-            messages=[
+-                {"role": "system", "content": system_prompt},
+-                {"role": "user", "content": user_prompt},
+-            ],
+-            temperature=1.0,
+-            max_completion_tokens=4096,
+-        )
++        try:
++            response = await client.chat.completions.create(
++                model=llm_model,
++                messages=[
++                    {"role": "system", "content": system_prompt},
++                    {"role": "user", "content": user_prompt},
++                ],
++                temperature=0.5,
++                max_completion_tokens=2048,
++            )
++        finally:
++            await http_client.aclose()
+ 
+         content = response.choices[0].message.content or ""
+         try:
+diff --git a/mcp-adapted-bench b/mcp-adapted-bench
+--- a/mcp-adapted-bench
++++ b/mcp-adapted-bench
+@@ -1 +1 @@
+-Subproject commit 2dff8bdfc35082e5b6980c4954b6074159a15854
++Subproject commit 2dff8bdfc35082e5b6980c4954b6074159a15854-dirty

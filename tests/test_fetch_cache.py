@@ -171,5 +171,95 @@ class LocalBlobReuseTests(unittest.TestCase):
             self.assertTrue(own_blob.is_file())
 
 
+class CacheAsAliasTests(unittest.TestCase):
+    """--cache-as lands a leaky repo name under a neutral alias: only the cache
+    dir name changes, a warm alias is a trusted hit, and the revealing slug is
+    gone after a download."""
+
+    def _download_args(self, cache_as: bool):
+        argv = [
+            "hf",
+            "--repo",
+            "org/answer-repo",
+            "--revision",
+            "a" * 40,
+            "--dest",
+            "/tmp/dest",
+        ]
+        if cache_as:
+            argv += ["--cache-as", "org/neutral-asset"]
+        return fetch.build_parser().parse_args(argv)
+
+    def test_rename_moves_tree_and_second_call_hits_alias(self):
+        import sys
+        import tempfile
+        import types
+
+        with tempfile.TemporaryDirectory() as td:
+            fetch.MODELS_ROOT = Path(td) / "models"
+            real_snap = fetch.hf_repo_dir("org/answer-repo", "model") / "snapshots" / ("a" * 40)
+            real_snap.mkdir(parents=True)
+            (real_snap / "model.safetensors").write_bytes(b"0123456789")
+
+            hub = types.ModuleType("huggingface_hub")
+            hub.snapshot_download = lambda **kw: str(real_snap)
+            sys.modules["huggingface_hub"] = hub
+            try:
+                with mock.patch.object(fetch, "materialize"), mock.patch.object(
+                    fetch, "require_verified"
+                ), mock.patch.object(fetch, "find_local_blobs", return_value={}):
+                    # No --expect: nothing to verify, download path is stubbed.
+                    fetch.fetch_hf(self._download_args(cache_as=True))
+                self.assertFalse(
+                    fetch.hf_repo_dir("org/answer-repo", "model").exists(),
+                    "revealing slug must be gone after the rename",
+                )
+                alias_snap = (
+                    fetch.hf_repo_dir("org/answer-repo", "model", "org/neutral-asset")
+                    / "snapshots"
+                    / ("a" * 40)
+                )
+                self.assertTrue((alias_snap / "model.safetensors").is_file())
+
+                # Warm alias: trusted hit, snapshot_download never called.
+                calls = []
+
+                def no_download(**kw):
+                    calls.append(kw)
+                    raise AssertionError("warm alias must not re-download")
+
+                hub.snapshot_download = no_download
+                fetch.fetch_hf(self._download_args(cache_as=True))
+                self.assertEqual(calls, [])
+            finally:
+                sys.modules.pop("huggingface_hub", None)
+
+    def test_no_cache_as_keeps_repo_slug(self):
+        import sys
+        import tempfile
+        import types
+
+        with tempfile.TemporaryDirectory() as td:
+            fetch.MODELS_ROOT = Path(td) / "models"
+            real_snap = fetch.hf_repo_dir("org/answer-repo", "model") / "snapshots" / ("a" * 40)
+            real_snap.mkdir(parents=True)
+            (real_snap / "model.safetensors").write_bytes(b"0123456789")
+
+            hub = types.ModuleType("huggingface_hub")
+            hub.snapshot_download = lambda **kw: str(real_snap)
+            sys.modules["huggingface_hub"] = hub
+            try:
+                with mock.patch.object(fetch, "materialize"), mock.patch.object(
+                    fetch, "require_verified"
+                ), mock.patch.object(fetch, "find_local_blobs", return_value={}):
+                    fetch.fetch_hf(self._download_args(cache_as=False))
+                self.assertTrue(
+                    fetch.hf_repo_dir("org/answer-repo", "model").is_dir(),
+                    "without --cache-as the slug is the repo's own name",
+                )
+            finally:
+                sys.modules.pop("huggingface_hub", None)
+
+
 if __name__ == "__main__":
     unittest.main()

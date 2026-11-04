@@ -1,0 +1,36 @@
+title = "ppo_critic diagnosis: reward_parser_mismatch"
+license = "MIT"
+created_date = "2026-08-18"
+domain = "reward"
+tags = ["verl", "ppo-critic", "reward-parsing", "parser-contract", "gurumath"]
+
+[submitter]
+name = "Jiaze Wang"
+
+[model]
+name = "Qwen3-4B-Base"
+
+[dataset]
+name = "GuruMath controlled smoke (1024-row training source + AIME-32/MATH-500-32 validation)"
+
+[training]
+framework = "verl"
+algo = "PPO-Critic"
+script = "run_main.sh"
+
+[environment]
+# Isolated torch2.8/cu128, vLLM0.11, Python3.12 runtime; distinct from the
+# shared `verl` image stack. The workspace ships its own veRL + VIMPO recipe
+# written against vLLM 0.11, and the recorded baselines were produced on this
+# exact stack (see docker/images/ppo-critic-vimpo.Dockerfile).
+image = "ppo-critic-vimpo"
+
+[environment.env]
+# run_main.sh pins 4 GPUs (CUDA_VISIBLE_DEVICES=0,1,2,3 + N_GPUS_PER_NODE=4):
+# the FSDP actor and vLLM rollout share that one set.
+CUDA_VISIBLE_DEVICES = "0,1,2,3"
+NVIDIA_VISIBLE_DEVICES = "0,1,2,3"
+
+[outcome]
+failure_type = "reward_parser_mismatch"
+failure_reason = "The custom reward wired into the recipe through the smoke-lane scoring selection (recipe/vimpo/config/scoring.env, autorlbench_case/math_reward.py) extracts answers with an XML <answer>...</answer> regex, but GuruMath prompts and ground truth use boxed answers such as \\boxed{16}. Every rollout misses the parser and receives score 0, so critic/rewards/mean and val-core accuracy stay flat at zero while PPO continues to execute normally."

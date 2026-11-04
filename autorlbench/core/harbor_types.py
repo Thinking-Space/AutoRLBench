@@ -93,6 +93,10 @@ class HarborTaskUnit:
     # /autorlbench/prepared. Both None means not staged yet: use the task's own workspace, no prepared mount.
     workspace: Optional[Path] = None
     prepared: Optional[Path] = None
+    # Hard-linked copy of the task's environment/ staged by HarborPreparer next to workspace, in
+    # the digest-named run directory. Mounted in place of the repo path, which spells out the task
+    # id into /proc/mounts of every container it reaches. None means not staged yet.
+    environment: Optional[Path] = None
 
     @property
     def harbor_task_name(self) -> str:

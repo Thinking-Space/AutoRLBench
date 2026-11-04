@@ -35,15 +35,19 @@ longer generations.
 - Historical cutoff is train step 100. Eval interval is 10; the last held-out
   point in the frozen snapshot is step 99.
 - Logged `eval/aime` rises from about +0.82 at step 0 to +3.841 at step 99,
-  which is outside the healthy math_dapo range `[-1, 1]` and is explained by
+  whose late values exceed the healthy shaped-reward maximum `1` and are explained by
   `5 * length_ratio` (up to +5).
 - Over the same window, eval response length grows from about 4.1k to 15.3k
   tokens and eval truncation rises from about 0.8% to 82.5%. Train response
   length at step 100 is about 15.2k with a 78.5% truncate ratio.
 - Subtracting `5 * min(mean_effective_len / 16384, 1)` from logged `eval/aime`
-  reconstructs a decontaminated score of about −0.417 (29.2% acc) at step 0
-  and −0.831 (8.4% acc) at step 99: held-out accuracy collapses while the
-  polluted metric rises.
+  reconstructs a decontaminated score of about −0.417 at step 0 and −0.831 at step 99.
+  Incorrect responses have score `min(-0.6, -1 + 0.05 * (tool_calls - 2))`,
+  which ranges from -1.1 to -0.6 for nonnegative tool counts. Therefore
+  `(score + 1) / 2` is neither exact accuracy nor a valid general upper bound.
+  The conservative upper bound `(score + 1.1) / 2.1` is about 32.5% and 12.8%,
+  respectively. No exact accuracy curve was recorded; a decline in these
+  bounds alone does not prove an actual accuracy decline.
 - Frozen evidence is in `outputs/metrics.json` and
   `outputs/historical_eval_trace.log`.
 

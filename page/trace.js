@@ -24,7 +24,14 @@
         if (!run.slug || !run.file) continue;
         TRACES[run.slug] = run.file;
         TASK_SLUGS[run.slug] = run.task;
-        TRACE_META[run.slug] = { effort: run.effort, passed: run.passed, score: run.score };
+        TRACE_META[run.slug] = {
+            effort: run.effort,
+            passed: run.passed,
+            score: run.score,
+            hacking: run.hacking,
+            durationMs: run.durationMs,
+            traceSha256: run.traceSha256
+        };
     }
 
     const OUT_COLLAPSE_CHARS = 1200;
@@ -60,6 +67,7 @@
     }
 
     function fmtDuration(ms) {
+        if (!Number.isFinite(ms)) return '—';
         const s = Math.round(ms / 1000);
         if (s < 60) return s + 's';
         return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
@@ -78,6 +86,11 @@
         if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
         if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
         return String(n);
+    }
+
+    function displayModelName(name) {
+        const value = String(name || '—');
+        return /qwen[- ]?3\.8[- ]?max/i.test(value) ? 'Qwen3.8-Max' : value;
     }
 
     /* ---- Trace indexing --------------------------------------------- */
@@ -99,7 +112,13 @@
         return results.join('\n\n');
     }
 
-    function traceStats(trace) {
+    function validDate(value) {
+        if (!value) return null;
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function traceStats(trace, fallbackDurationMs) {
         const steps = trace.steps || [];
         let toolCalls = 0;
         let thoughts = 0;
@@ -107,10 +126,13 @@
             toolCalls += (step.tool_calls || []).length;
             if (step.reasoning_content) thoughts++;
         }
-        const durationMs = steps.length > 1
-            ? new Date(steps[steps.length - 1].timestamp) - new Date(steps[0].timestamp)
-            : 0;
-        return { steps: steps.length, toolCalls, thoughts, durationMs };
+        const first = validDate(steps[0] && steps[0].timestamp);
+        const last = validDate(steps[steps.length - 1] && steps[steps.length - 1].timestamp);
+        const measuredDurationMs = first && last ? Math.max(0, last - first) : null;
+        const durationMs = Number.isFinite(fallbackDurationMs)
+            ? fallbackDurationMs
+            : (measuredDurationMs !== null ? measuredDurationMs : 0);
+        return { steps: steps.length, toolCalls, thoughts, durationMs, firstTimestamp: first };
     }
 
     function traceTitle(trace) {
@@ -121,7 +143,7 @@
 
     /* Resolve the trace's slug (the file-name segment matched against the
        TASK_SLUGS / TRACE_META registries). Falls back to stripping the
-       .json extension for hand-named files like glm53-aime25-so__gRxe6uw. */
+       .json extension for hand-named trace files. */
     function traceSlug(fileName) {
         const base = fileName.split('/').pop().replace(/\.json$/, '');
         for (const part of base.split('__')) {
@@ -226,18 +248,21 @@
     /* ---- Event rendering --------------------------------------------- */
 
     /* Elapsed time since the run's first step; wall clock on hover. */
-    function markerTime(step, t0) {
-        const elapsed = new Date(step.timestamp) - t0;
-        const wall = fmtTime(step.timestamp);
-        return `<div class="trace-marker-time" title="${escHtml(wall)} (wall clock)">${escHtml(fmtElapsed(elapsed))}</div>`;
+    function markerTime(step, t0, index, total, durationMs) {
+        const stamp = validDate(step.timestamp);
+        const elapsed = stamp && t0
+            ? Math.max(0, stamp - t0)
+            : (total > 1 ? durationMs * index / (total - 1) : 0);
+        const wall = stamp ? fmtTime(step.timestamp) : 'timestamp unavailable; elapsed time estimated';
+        return `<div class="trace-marker-time" title="${escHtml(wall)}">${escHtml(fmtElapsed(elapsed))}</div>`;
     }
 
-    function renderUserStep(step, t0) {
+    function renderUserStep(step, t0, index, total, durationMs) {
         return `
             <article class="trace-event trace-event--user" id="step-${step.step_id}">
                 <aside class="trace-marker">
                     <div class="trace-marker-role">user</div>
-                    ${markerTime(step, t0)}
+                    ${markerTime(step, t0, index, total, durationMs)}
                 </aside>
                 <div class="trace-event-body">
                     <div class="trace-block trace-block--text">
@@ -297,7 +322,7 @@
             </div>`;
     }
 
-    function renderAgentStep(step, t0, turnNum) {
+    function renderAgentStep(step, t0, turnNum, index, total, durationMs) {
         const blocks = [];
         if (step.reasoning_content) blocks.push(renderThought(step.reasoning_content));
         if (step.message) {
@@ -312,7 +337,7 @@
             <article class="trace-event trace-event--agent" id="step-${step.step_id}">
                 <aside class="trace-marker">
                     <div class="trace-turn-num">${turnNum}</div>
-                    ${markerTime(step, t0)}
+                    ${markerTime(step, t0, index, total, durationMs)}
                 </aside>
                 <div class="trace-event-body">
                     ${blocks.join('\n')}
@@ -323,12 +348,14 @@
 
     function renderTimeline() {
         const trace = state.trace;
-        const t0 = new Date(trace.steps[0].timestamp);
+        const stats = state.stats;
+        const t0 = stats.firstTimestamp;
         let turnNum = 0;
-        const html = trace.steps.map(step => {
-            if (step.source === 'user') return renderUserStep(step, t0);
+        const total = trace.steps.length;
+        const html = trace.steps.map((step, index) => {
+            if (step.source === 'user') return renderUserStep(step, t0, index, total, stats.durationMs);
             turnNum++;
-            return renderAgentStep(step, t0, turnNum);
+            return renderAgentStep(step, t0, turnNum, index, total, stats.durationMs);
         }).join('\n');
         mount.querySelector('.trace-events').innerHTML = html;
     }
@@ -340,12 +367,13 @@
         const agent = trace.agent || {};
         const task = taskFor(fileName);
         const agentName = agent.name || '—';
+        const modelName = displayModelName(agent.model_name);
         const meta = TRACE_META[traceSlug(fileName)] || {};
         const cost = fm.total_cost_usd !== undefined ? fmtCost(fm.total_cost_usd) : null;
 
         const rows = [
             ['agent', agentName],
-            ['model', agent.model_name || '—'],
+            ['model', modelName],
             meta.effort ? ['effort', meta.effort] : null,
             task ? ['task', task.title] : null,
             ['trace format', trace.schema_version || '—'],
@@ -359,9 +387,11 @@
             cost ? ['cost', cost] : null
         ];
 
+        /* Hacked runs leave the mark to the reward-hacking flag row. */
         const verdict = meta.passed === true || meta.passed === false
-            ? (meta.passed ? '✅ Passed' : '❌ Failed') : null;
+            ? (meta.passed ? '✅ Passed' : (meta.hacking ? 'Failed' : '❌ Failed')) : null;
         if (verdict) rows.push(['result', verdict]);
+        if (meta.hacking) rows.push(['flag', '⚠️ reward hacking']);
 
         const detailRows = rows.filter(Boolean);
 
@@ -380,7 +410,7 @@
             </a>
             <div class="trace-card">
                 <h2 class="trace-summary-title">${escHtml(traceTitle(trace))}</h2>
-                <div class="trace-summary-sub">${escHtml(agentName)} · ${escHtml(agent.model_name || '—')}</div>
+                <div class="trace-summary-sub">${escHtml(agentName)} · ${escHtml(modelName)}</div>
 
                 <div class="trace-score">
                     <div class="trace-score-big">${escHtml(fmtDuration(stats.durationMs))}</div>
@@ -403,7 +433,10 @@
     /* ---- Shell -------------------------------------------------------- */
 
     function renderShell(trace, fileName) {
-        const stats = traceStats(trace);
+        const slug = traceSlug(fileName);
+        const meta = TRACE_META[slug] || {};
+        const stats = traceStats(trace, meta.durationMs);
+        state.stats = stats;
 
         mount.innerHTML = `
             <div class="trace-layout">
@@ -584,7 +617,8 @@
     const mount = document.getElementById('trace-root');
 
     async function loadTrace(fileName) {
-        const res = await fetch(fileName);
+        const revision = (TRACE_META[traceSlug(fileName)] || {}).traceSha256;
+        const res = await fetch(revision ? `${fileName}?v=${revision.slice(0, 12)}` : fileName);
         if (!res.ok) throw new Error('failed to load ' + fileName);
         return res.json();
     }

@@ -1,0 +1,21 @@
+--- recorded/verl/utils/experimental/torch_functional.py
++++ public/verl/utils/experimental/torch_functional.py
+@@ -219,10 +219,6 @@
+         input_ids: torch.LongTensor,
+         temperature: float = 1.0,
+     ) -> tuple[torch.FloatTensor, torch.FloatTensor]:
+-        import os
+-        if os.getenv("BENCH_AUDIT_DIR"):
+-            from verl.utils.training_audit import head
+-            head(hidden_states, input_ids)
+         input_ids = input_ids.to(torch.int64)
+         result = FusedLinearForPPOFunction.apply(
+             hidden_states,
+@@ -231,7 +227,4 @@
+             temperature,
+             self.chunk_size,
+         )
+-        if os.getenv("BENCH_AUDIT_DIR"):
+-            from verl.utils.training_audit import watch
+-            watch(result[0])
+         return result

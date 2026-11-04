@@ -10,16 +10,29 @@ inside it and do not change this rubric based on it.
 Score these dimensions from 0 to 1:
 
 - `verdict_score`: whether the health verdict agrees with the oracle.
-- `root_cause_score`: whether the essential root cause agrees with the oracle.
-  Award `1` when the diagnosis states either of these, in any wording:
-  the training set is too hard, or the training set and the validation set do
-  not match in difficulty. Either formulation is full credit. Do not require a
-  code defect, a file path, a function name, or both formulations. Award `0`
-  when neither formulation is present.
+- `root_cause_score`: whether the essential root cause and its causal role
+  agree with the oracle. The oracle's root cause has two parts: (a) the
+  training data is too hard for the model, and (b) this leaves GRPO with almost
+  no learning signal (near-zero reward, all-zero groups / zero advantages,
+  training does not learn). Score:
+  - `1`: states (a) and connects it to (b).
+  - `0.3`: states (a), or only that training and validation differ in
+    difficulty, without explaining how that stops learning.
+  - `0.3`: describes (b) but attributes it to something other than the data
+    (for example the binary reward design or batch size alone).
+  - `0`: neither, or the main cause is one the oracle rules out (KL / entropy
+    coefficients, learning rate, a code or scorer defect, reward hacking, an
+    evaluation artifact).
+  Reduce the score by about 0.25 when the diagnosis adds a cause the oracle
+  rules out as an independent root cause next to the correct one. Do not
+  require a file path, a function name, or an `extra_info.difficulty` field.
 - `evidence_score`: whether the diagnosis uses concrete evidence consistent with
-  the oracle and does not confuse symptoms with root causes. Describing the
-  training problems as harder than the validation problems is sufficient
-  evidence. Do not require an `extra_info.difficulty` field.
+  the oracle and does not confuse symptoms with root causes. Strong evidence
+  includes near-zero training reward, all-zero groups or zero-advantage /
+  zero-`pg_loss` steps, the train vs. validation pass-rate gap under the same
+  model, a flat held-out curve, or the difficulty of the training problems.
+  Penalize numbers that contradict the oracle and symptoms (such as rising
+  entropy) presented as the root cause.
 
 Return exactly one JSON object with no Markdown and no additional keys:
 
