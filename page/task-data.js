@@ -475,5 +475,25 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "A 'smaller mini-batches to fit memory' setting multiplies optimizer updates per rollout batch eight-fold, and every later update trains on data from a policy that has already moved.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. run_gsm8k_grpo.sh sets PPO_MINI_BATCH_SIZE=4 ('smaller mini-batches to fit memory') against TRAIN_BATCH_SIZE=128 and ROLLOUT_N=8; verl multiplies ppo_mini_batch_size by rollout.n, so each 1,024-sample rollout batch is consumed in 32 optimizer updates of 32 samples instead of the recipe's 4 updates of 256. The later updates of every step are computed on a policy that has already moved: actor/ppo_kl stays 0.003-0.004 instead of settling near zero, entropy rises 0.35 -> 0.73 instead of decaying, responses lengthen and truncate (clip ratio 0.07 -> 0.37), the training score peaks at 0.62 (step 30) and falls back to 0.48 (control 0.75), and held-out accuracy peaks at 0.494 (step 20) and ends at 0.361 under the grader's boxed rule (0.387 by Math-Verify), below its own step 0; with ppo_mini_batch_size=32 the same workspace reaches 0.565, with 8 it reaches 0.541. No crash, no NaN, RUN_EXIT 0."
+  },
+  {
+    "id": "algorithm/verl_pissa_residual_base_reference",
+    "title": "PiSSA residual base used as the KL reference",
+    "family": "Algorithm",
+    "tags": [
+      "verl",
+      "grpo",
+      "pissa",
+      "lora",
+      "kl-reference"
+    ],
+    "model": "Qwen/Qwen2.5-0.5B-Instruct + PiSSA rank 8",
+    "dataset": "openai/gsm8k deterministic calibration subset (16 train, 8 validation)",
+    "framework": "verl / GRPO",
+    "image": "verl-vllm011",
+    "created": "2026-11-01",
+    "license": "Apache-2.0",
+    "brief": "PiSSA initialization rewrites each adapted layer to W_residual = W_pretrained - A0*B0, so disabling the adapter exposes the residual weights — and the KL reference is computed against the wrong base.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO and a rank-8 PiSSA adapter. For a PiSSA residual-base checkpoint, disabling the adapter exposes W_residual rather than the original pretrained weights; the defective base-reference path therefore computes KL against the residual checkpoint. Final base-reference consistency is 0.04578 where the repaired path reaches 1.0, and the natural symptom is visible in the metrics: actor/kl_loss runs 0.76-0.98 across all four updates where a correct run logs near zero at step 1 (actor/base_model_kl around -4.6)."
   }
 ];

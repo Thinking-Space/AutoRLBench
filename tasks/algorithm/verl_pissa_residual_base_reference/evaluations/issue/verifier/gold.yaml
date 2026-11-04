@@ -1,0 +1,18 @@
+category: algorithm
+framework: verl
+task: verl_pissa_residual_base_reference
+verdict: unhealthy
+root_cause:
+- name: residual_base_reference
+  where: verl/workers/fsdp_workers.py::_compute_base_log_prob_from_actor
+  observed: the PiSSA path disables the adapter and treats W_residual as W_pretrained
+  expected: evaluate the frozen initial PiSSA adapter on W_residual to reconstruct the original pretrained reference
+evidence_metrics:
+- final base-reference consistency is 0.045778327704709 and MAE is 3.083944494074041
+- step-1 actor/kl_loss is 0.7618025615811348 and every update stays above 0.76 although the reference equals the initial policy
+- actor/rollout policy agreement is healthy at 0.8935824763276098
+- the repaired control reaches base-reference consistency 1.0
+fix:
+  must:
+  - target: residual_base_reference
+    direction: reconstruct

@@ -3,7 +3,8 @@
 #
 # PiSSA/LoRA GRPO tasks recorded with vLLM 0.11.0, torch 2.8.0,
 # transformers 4.57.1, peft 0.18.0, datasets 4.0.0 and W&B 0.23.0.
-# Tasks: infrastructure/verl_pissa_vllm_adapter_request.
+# Tasks: infrastructure/verl_pissa_vllm_adapter_request,
+# algorithm/verl_pissa_residual_base_reference.
 #
 # UNVERIFIED: this Dockerfile has not yet been built. The upstream image is
 # pinned by digest; validate package installation and one four-step smoke run
