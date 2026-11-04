@@ -105,10 +105,6 @@
             file: 'infrastructure-verl_qwen3_vl_grpo_training_case_v8k2',
             alt: 'Held-out ScienceQA accuracy, defective vs repaired run'
         },
-        'reward/proxy_reward_misalignment': {
-            file: 'reward-proxy_reward_misalignment',
-            alt: 'Held-out math accuracy declining under the brevity proxy reward'
-        },
         'reward/slime_search_r1_nomask': {
             file: 'reward-slime_search_r1_nomask',
             alt: 'Held-out NQ test accuracy as response length collapses'

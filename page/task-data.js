@@ -220,25 +220,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen3-VL-8B-Instruct with GRPO on ScienceQA. The fused FSDP path does not consume the globally shifted sequence-parallel labels, so vLLM applies the wrong loss mask; correcting it is worth 5.35 percentage points of validation accuracy."
   },
   {
-    "id": "reward/proxy_reward_misalignment",
-    "title": "Brevity proxy reward misalignment",
-    "family": "Reward",
-    "tags": [
-      "verl",
-      "ppo",
-      "proxy-reward",
-      "gurumath"
-    ],
-    "model": "Qwen3-4B-Base",
-    "dataset": "GuruMath fixed-16 controlled set",
-    "framework": "verl",
-    "image": "vimpo-cu128-recorded",
-    "created": "2026-08-18",
-    "license": "MIT",
-    "brief": "A brevity proxy optimizes for short, worse answers.",
-    "issue": "Training Qwen3-4B-Base with PPO on GuruMath. The reward uses a brevity proxy (1 - n_chars/4000), so training reward climbs while held-out math accuracy falls from 0.781 to 0.594 and responses shorten from ~677 to ~474 tokens."
-  },
-  {
     "id": "reward/slime_search_r1_nomask",
     "title": "Search-R1 observations trained without a loss mask",
     "family": "Reward",

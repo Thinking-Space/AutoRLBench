@@ -44,7 +44,7 @@ Keep only code and launch scripts, plus the training settings, hyperparameters, 
 
 ### Environment and assets
 
-- Environment image name: the `<name>` of `<name>.Dockerfile` under `docker/images/`; currently `verl`, `slime-v0.3.2`, `search-r1-verl`, `ppo-critic-vimpo`
+- Environment image name: the `<name>` of `<name>.Dockerfile` under `docker/images/`; currently `verl`, `slime-v0.3.2`, `search-r1-verl`
 - GPUs to use: `CUDA_VISIBLE_DEVICES` / `NVIDIA_VISIBLE_DEVICES`
 - Each HF asset: repo, 40-char commit sha revision, `--type` (`model` or `dataset`), `--allow` list, SHA-256 and byte size of files to verify, `--dest`
 - Datasets using a built-in recipe: recipe name (`dapo_math_17k`, `gsm8k`, `search_r1_nq_hotpotqa`, `wiki18_e5`), SHA-256 and byte size of output files, `--dest`

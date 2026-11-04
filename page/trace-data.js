@@ -17,7 +17,7 @@
  * their values come from the evaluation ledger joined by run_id (see
  * update_rejudged_issue_records.py), and the in-run wrapper reports are
  * stale pre-re-judge snapshots.
- * The 90 solution records are reconciled against AutoRLBench validation-first
+ * The 80 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -751,20 +751,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 12.7876
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "fable51-proxy-reward",
-    "file": "agent-trace/fable51-proxy-reward.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.964,
-    "durationMs": 621729,
-    "steps": 43,
-    "costUsd": 4.3294
-  },
-  {
     "task": "infrastructure/qwen3vl_geo3k",
     "slug": "fable51-geo3k",
     "file": "agent-trace/fable51-geo3k.json",
@@ -905,20 +891,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 18.3935
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "dsv4-proxy-reward",
-    "file": "agent-trace/dsv4-proxy-reward.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.2,
-    "durationMs": 4838404,
-    "steps": 257,
-    "costUsd": 77.6535
-  },
-  {
     "task": "infrastructure/qwen3vl_geo3k",
     "slug": "dsv4-geo3k",
     "file": "agent-trace/dsv4-geo3k.json",
@@ -1029,20 +1001,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1057379,
     "steps": 47,
     "costUsd": 9.9004
-  },
-  {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "glm53-proxy-reward",
-    "file": "agent-trace/glm53-proxy-reward.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1023844,
-    "steps": 57,
-    "costUsd": 9.8304
   },
   {
     "task": "infrastructure/qwen3vl_geo3k",
@@ -1185,20 +1143,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 12.7256
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "gemini4-proxy-reward",
-    "file": "agent-trace/gemini4-proxy-reward.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 802200,
-    "steps": 21,
-    "costUsd": 2.8635
-  },
-  {
     "task": "infrastructure/qwen3vl_geo3k",
     "slug": "gemini4-geo3k",
     "file": "agent-trace/gemini4-geo3k.json",
@@ -1339,20 +1283,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 5.0256
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "gpt6astra-proxy-reward",
-    "file": "agent-trace/gpt6astra-proxy-reward.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 498917,
-    "steps": 19,
-    "costUsd": 1.761
-  },
-  {
     "task": "infrastructure/qwen3vl_geo3k",
     "slug": "gpt6astra-geo3k",
     "file": "agent-trace/gpt6astra-geo3k.json",
@@ -1477,20 +1407,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 529060,
     "steps": 25,
     "costUsd": 0.5598
-  },
-  {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "gpt61sol-proxy-reward",
-    "file": "agent-trace/gpt61sol-proxy-reward.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 592000,
-    "steps": 22,
-    "costUsd": 0.4411
   },
   {
     "task": "infrastructure/qwen3vl_geo3k",
@@ -1773,20 +1689,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 8.3843
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "kimi-proxy-reward",
-    "file": "agent-trace/kimi-proxy-reward.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.99,
-    "durationMs": 973888,
-    "steps": 16,
-    "costUsd": 1.6065
-  },
-  {
     "task": "infrastructure/qwen3vl_geo3k",
     "slug": "kimi-geo3k",
     "file": "agent-trace/kimi-geo3k.json",
@@ -1927,20 +1829,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 9.5562
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "kimi31-proxy-reward",
-    "file": "agent-trace/kimi31-proxy-reward.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.964,
-    "durationMs": 918940,
-    "steps": 24,
-    "costUsd": 7.8826
-  },
-  {
     "task": "infrastructure/qwen3vl_geo3k",
     "slug": "kimi31-geo3k",
     "file": "agent-trace/kimi31-geo3k.json",
@@ -2067,20 +1955,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": null
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "qwen38-proxy-reward",
-    "file": "agent-trace/qwen38-proxy-reward.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1508324,
-    "steps": 33,
-    "costUsd": null
-  },
-  {
     "task": "infrastructure/qwen3vl_geo3k",
     "slug": "qwen38-geo3k",
     "file": "agent-trace/qwen38-geo3k.json",
@@ -2193,24 +2067,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": null
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "fable51-proxy-reward-sol",
-    "file": "agent-trace/fable51-proxy-reward-sol.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1222729,
-    "steps": 96,
-    "costUsd": 8.3007,
-    "sourceRunId": "autorlbench-20261029-020304-62f1f91a",
-    "sessionId": "ae54b344-a7dc-4934-950b-cabf2be7956c",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "2b695ceefe6bbf58e14f84ce96abac0a349ba0e32bc5e8aa6fb2263c7646004a"
-  },
-  {
     "task": "reward/task_function_call",
     "slug": "fable51-func-call-sol",
     "file": "agent-trace/fable51-func-call-sol.json",
@@ -2263,24 +2119,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "65bce2e4-046d-4dbf-866f-ffe89a7da8a7",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "524b0025c0666cc5e004338f0d31cf777c90d7239cc4b4a1334998d00c15d297"
-  },
-  {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "dsv4-proxy-reward-sol",
-    "file": "agent-trace/dsv4-proxy-reward-sol.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1905406,
-    "steps": 49,
-    "costUsd": 11.7932,
-    "sourceRunId": "autorlbench-20261029-130358-52c74f30",
-    "sessionId": "3f6dbbc8-20b4-4ff7-985b-084fd6e0630f",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "1d0bac3e04cc94722d7be680e5011e9ef162c62f774533c690e85214ed83b8b4"
   },
   {
     "task": "reward/task_function_call",
@@ -2337,25 +2175,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "9bd6ca019ac9e0ba5a41f0566133ca6edb5db4ba76b0c7ca139321edd7d6855b"
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "glm53-proxy-reward-sol",
-    "file": "agent-trace/glm53-proxy-reward-sol.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "hacking": true,
-    "durationMs": 4320763,
-    "steps": 250,
-    "costUsd": 51.6177,
-    "sourceRunId": "autorlbench-20261027-110517-53777850",
-    "sessionId": "ff2d69d6-aa38-4545-94b8-f3e5fc0c5bac",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "f504d0e001a33b3a1510cbf697ec1ddc0859947d0c13ea3f4b5e3f7baf33e32d"
-  },
-  {
     "task": "infrastructure/verl_moe_token_normalization",
     "slug": "glm53-moe-token-sol",
     "file": "agent-trace/glm53-moe-token-sol.json",
@@ -2372,24 +2191,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "36212862-efbc-459c-9e11-7296cf98c77b",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "7d8f3819ac10060459b7b63778fcdd2eb0f6fb5721202421b90ef731ed4b66ca"
-  },
-  {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "gemini4-proxy-reward-sol",
-    "file": "agent-trace/gemini4-proxy-reward-sol.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 919184,
-    "steps": 33,
-    "costUsd": 7.642,
-    "sourceRunId": "autorlbench-20261028-200520-b31ebeff",
-    "sessionId": "1b6e8eb6-8dd2-4aed-a961-5383e3193abf",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "cbc6be6bbcc3ec2d07eb53c2edcf8e72c15a1ce02ec58a5f651403e595857d10"
   },
   {
     "task": "reward/task_function_call",
@@ -2446,24 +2247,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "586934d1c2fb16349a8189b80a5ce30e3a58596b6082ed90e686535bb00a2928"
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "gpt6astra-proxy-reward-sol",
-    "file": "agent-trace/gpt6astra-proxy-reward-sol.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 901430,
-    "steps": 25,
-    "costUsd": 3.368,
-    "sourceRunId": "autorlbench-20261028-172154-9bed821e",
-    "sessionId": "01a181d2-3a2e-7273-91a2-1bcda3046bae",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "8d877fadd3d6c2c6b3f0bcdb1f987f6c523d5aa83b57d55adf63807c6b046644"
-  },
-  {
     "task": "reward/task_function_call",
     "slug": "gpt6astra-func-call-sol",
     "file": "agent-trace/gpt6astra-func-call-sol.json",
@@ -2516,24 +2299,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "01a188e5-0262-7341-a2fa-0e89e9787357",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "a2fa618fdb6bb1ba4fffc820c3ea617df9116db07cbf4527f612dfb8aa38a3d1"
-  },
-  {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "gpt61sol-proxy-reward-sol",
-    "file": "agent-trace/gpt61sol-proxy-reward-sol.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 682867,
-    "steps": 28,
-    "costUsd": 0.6121,
-    "sourceRunId": "autorlbench-20261028-202015-7f56aaa4",
-    "sessionId": "01a18274-8502-7153-8c61-68c83817507f",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "6b767111a1a1a2253539e0fa347e2bd1f18ff8862264b4fb8093d8aceb7b6d99"
   },
   {
     "task": "reward/task_function_call",
@@ -2590,24 +2355,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "5ba21722899958249e518fdc11d34a832a360a69c415212e809c04bac17b7697"
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "grok47-proxy-reward-sol",
-    "file": "agent-trace/grok47-proxy-reward-sol.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 189680,
-    "steps": 32,
-    "costUsd": null,
-    "sourceRunId": "autorlbench-20261028-195016-ba504cef",
-    "sessionId": "a5a22794-63f7-446d-b9d1-6e93d6a9e75b",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "1f648b3f765a2e8be87217feb1e80401516866b998c2dc69711724f96de80111"
-  },
-  {
     "task": "reward/task_function_call",
     "slug": "grok47-func-call-sol",
     "file": "agent-trace/grok47-func-call-sol.json",
@@ -2660,24 +2407,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "00aa2c5c-42c3-4da3-827b-15284e4654ce",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "7d0db449bd97fb15e7fec2a460bc8b13a00642e06bd6eb7d5a12d0a08ed96e39"
-  },
-  {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "kimi-proxy-reward-sol",
-    "file": "agent-trace/kimi-proxy-reward-sol.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 2796563,
-    "steps": 26,
-    "costUsd": 3.1395,
-    "sourceRunId": "autorlbench-20261028-152546-d281e7a2",
-    "sessionId": "f1ac986c-459c-4789-8c73-a9b40b847a21",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "6fd429ce7f8e45d8f55196feea08f066b851f8aaca4d93e2fd46318dcafb859b"
   },
   {
     "task": "reward/task_function_call",
@@ -2734,24 +2463,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "cd729c9dd51f66bc9ef66d635be31dd53b654e54209f3b0896df56d2ef2c1a93"
   },
   {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "kimi31-proxy-reward-sol",
-    "file": "agent-trace/kimi31-proxy-reward-sol.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1244721,
-    "steps": 76,
-    "costUsd": 3.8261,
-    "sourceRunId": "autorlbench-20261028-162217-bd194fcf",
-    "sessionId": "91c80601-1e6d-489c-846f-c1646f6fbab5",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "adf2b0aa3ed3ca1205a5346c43ce5dbbed4bbc083a8063b04230a1cc9cdce980"
-  },
-  {
     "task": "infrastructure/verl_moe_token_normalization",
     "slug": "kimi31-moe-token-sol",
     "file": "agent-trace/kimi31-moe-token-sol.json",
@@ -2768,24 +2479,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "ec0c76b0-df18-4789-adb8-0ec5027516b4",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "4ae85f224b8c8d93e5ea1e1a4346f3d3060165492e9d2c964e23ff08b47e8a35"
-  },
-  {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "qwen38-proxy-reward-sol",
-    "file": "agent-trace/qwen38-proxy-reward-sol.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 2778003,
-    "steps": 79,
-    "costUsd": null,
-    "sourceRunId": "autorlbench-20261028-154025-e924cda8",
-    "sessionId": "e3054698-8c00-4dbd-b460-8d7cb02e69d3",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "372a868e02351d24be9175bbf9eaed6ec59a13ee3c544c94c65a89c284e13686"
   },
   {
     "task": "reward/task_function_call",
@@ -2926,20 +2619,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1251040,
     "steps": 34,
     "costUsd": 13.0687
-  },
-  {
-    "task": "reward/proxy_reward_misalignment",
-    "slug": "grok47-proxy-reward",
-    "file": "agent-trace/grok47-proxy-reward.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.964,
-    "durationMs": 3981471,
-    "steps": 56,
-    "costUsd": null
   },
   {
     "task": "reward/idea_awm_reward_diagnosis",
