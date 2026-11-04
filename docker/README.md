@@ -35,6 +35,8 @@ Evaluation images and the in-container tooling shared by every task.
 | `justrl2-data-relocation` | `ghcr.io/merak0514/autorlbench-justrl2` (pinned digest) | `data/justrl2_data_relocation` |
 | `verl-0.9-vllm0.28` | `vllm/vllm-openai:v0.28.0` (pinned digest) | `reward/verl_grpo_gsm8k_any_number_reward` (not yet built) |
 
+| `tool-rl-vllm024` | `python:3.12.10-slim-bookworm` (pinned digest), torch 2.11.0, vLLM 0.24.0 | SQL credit and Python tool-history diagnosis tasks (built and preparation-tested on Modal) |
+
 An image shared by several tasks is part of each task's ground truth. If you change a
 Dockerfile, rerun every task that uses it. A task that needs a different stack gets a new
 environment name.
