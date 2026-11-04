@@ -109,10 +109,6 @@
             file: 'reward-proxy_reward_misalignment',
             alt: 'Held-out math accuracy declining under the brevity proxy reward'
         },
-        'reward/reward_parser_mismatch': {
-            file: 'reward-reward_parser_mismatch',
-            alt: 'Training reward pinned at zero by the parser mismatch'
-        },
         'reward/slime_search_r1_nomask': {
             file: 'reward-slime_search_r1_nomask',
             alt: 'Held-out NQ test accuracy as response length collapses'

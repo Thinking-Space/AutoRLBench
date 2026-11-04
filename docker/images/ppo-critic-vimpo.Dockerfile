@@ -11,7 +11,7 @@
 #   transformers 4.57.6
 #   flash-attn   2.8.3.post1
 #
-# Tasks: ppo_critic/* (reward_parser_mismatch, excessive_actor_lr_collapse,
+# Tasks: ppo_critic/* (excessive_actor_lr_collapse,
 # proxy_reward_misalignment).
 #
 # This stack is DELIBERATELY NOT the shared `verl` image (vLLM 0.17 / torch 2.10

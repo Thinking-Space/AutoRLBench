@@ -779,20 +779,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 43.5302
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "fable51-reward-parser",
-    "file": "agent-trace/fable51-reward-parser.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.98,
-    "durationMs": 880000,
-    "steps": 76,
-    "costUsd": 13.9391
-  },
-  {
     "task": "reward/slime_search_r1_nomask",
     "slug": "fable51-search-r1-nomask",
     "file": "agent-trace/fable51-search-r1-nomask.json",
@@ -947,20 +933,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 14.2155
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "dsv4-reward-parser",
-    "file": "agent-trace/dsv4-reward-parser.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.94,
-    "durationMs": 2729000,
-    "steps": 71,
-    "costUsd": 20.0949
-  },
-  {
     "task": "reward/slime_search_r1_nomask",
     "slug": "dsv4-search-r1-nomask",
     "file": "agent-trace/dsv4-search-r1-nomask.json",
@@ -1085,20 +1057,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1055249,
     "steps": 48,
     "costUsd": 8.4772
-  },
-  {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "glm53-reward-parser",
-    "file": "agent-trace/glm53-reward-parser.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.96,
-    "durationMs": 628000,
-    "steps": 66,
-    "costUsd": 12.4129
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -1255,20 +1213,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 49.5102
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "gemini4-reward-parser",
-    "file": "agent-trace/gemini4-reward-parser.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.933333,
-    "durationMs": 1467000,
-    "steps": 41,
-    "costUsd": 14.7935
-  },
-  {
     "task": "reward/slime_search_r1_nomask",
     "slug": "gemini4-search-r1-nomask",
     "file": "agent-trace/gemini4-search-r1-nomask.json",
@@ -1423,20 +1367,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 2.1064
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "gpt6astra-reward-parser",
-    "file": "agent-trace/gpt6astra-reward-parser.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.89,
-    "durationMs": 512000,
-    "steps": 25,
-    "costUsd": 2.7846
-  },
-  {
     "task": "reward/slime_search_r1_nomask",
     "slug": "gpt6astra-search-r1-nomask",
     "file": "agent-trace/gpt6astra-search-r1-nomask.json",
@@ -1577,20 +1507,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 0.5476
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "gpt61sol-reward-parser",
-    "file": "agent-trace/gpt61sol-reward-parser.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.88,
-    "durationMs": 520000,
-    "steps": 27,
-    "costUsd": 0.6214
-  },
-  {
     "task": "reward/slime_search_r1_nomask",
     "slug": "gpt61sol-search-r1-nomask",
     "file": "agent-trace/gpt61sol-search-r1-nomask.json",
@@ -1728,20 +1644,6 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.22,
     "durationMs": 1246274,
     "steps": 10,
-    "costUsd": null
-  },
-  {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "grok47-reward-parser",
-    "file": "agent-trace/grok47-reward-parser.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.96,
-    "durationMs": 607000,
-    "steps": 69,
     "costUsd": null
   },
   {
@@ -1899,20 +1801,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 2.8995
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "kimi-reward-parser",
-    "file": "agent-trace/kimi-reward-parser.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.96,
-    "durationMs": 3112000,
-    "steps": 18,
-    "costUsd": 1.9505
-  },
-  {
     "task": "reward/slime_search_r1_nomask",
     "slug": "kimi-search-r1-nomask",
     "file": "agent-trace/kimi-search-r1-nomask.json",
@@ -2067,20 +1955,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 31.8377
   },
   {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "kimi31-reward-parser",
-    "file": "agent-trace/kimi31-reward-parser.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.866,
-    "durationMs": 780000,
-    "steps": 24,
-    "costUsd": 2.0739
-  },
-  {
     "task": "reward/slime_search_r1_nomask",
     "slug": "kimi31-search-r1-nomask",
     "file": "agent-trace/kimi31-search-r1-nomask.json",
@@ -2218,20 +2092,6 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.2,
     "durationMs": 2750632,
     "steps": 45,
-    "costUsd": null
-  },
-  {
-    "task": "reward/reward_parser_mismatch",
-    "slug": "qwen38-reward-parser",
-    "file": "agent-trace/qwen38-reward-parser.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.96,
-    "durationMs": 751000,
-    "steps": 30,
     "costUsd": null
   },
   {

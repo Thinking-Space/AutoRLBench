@@ -239,25 +239,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen3-4B-Base with PPO on GuruMath. The reward uses a brevity proxy (1 - n_chars/4000), so training reward climbs while held-out math accuracy falls from 0.781 to 0.594 and responses shorten from ~677 to ~474 tokens."
   },
   {
-    "id": "reward/reward_parser_mismatch",
-    "title": "Reward parser vs ground-truth format mismatch",
-    "family": "Reward",
-    "tags": [
-      "verl",
-      "ppo",
-      "reward-parsing",
-      "gurumath"
-    ],
-    "model": "Qwen3-4B-Base",
-    "dataset": "GuruMath controlled smoke (1024 rows)",
-    "framework": "verl",
-    "image": "ppo-critic-vimpo",
-    "created": "2026-08-18",
-    "license": "MIT",
-    "brief": "The parser never matches, so every reward is zero.",
-    "issue": "Training Qwen3-4B-Base with PPO on GuruMath. The reward parser extracts XML <answer> tags while ground truth is \\boxed{} format, so both training reward and validation accuracy stay at exactly zero for the whole run."
-  },
-  {
     "id": "reward/slime_search_r1_nomask",
     "title": "Search-R1 observations trained without a loss mask",
     "family": "Reward",
