@@ -1,0 +1,55 @@
+task_id: alfworld_tool_schema_mismatch
+category: environment
+framework: agent-r1
+launch_script: tool_schema/alfworld_case/train.sh
+model: Qwen3-4B
+dataset: ALFWorld (difficulty-v1-s42 train / balanced1008-s42 validation)
+algo: grpo
+recipe: tool_schema/alfworld_case (Agent-R1 alfworld_schema flow)
+expected_verdict: unhealthy
+evidence_kind: historical_run
+last_eval_step: 63
+eval_interval: 20
+eval_metric_key: val-aux/alfworld_valid_unseen/success/mean@1
+eval_first_raw: 0.22916666666666666
+eval_last_raw: 0.3333333333333333
+control_eval_first: 0.4583333333333333
+control_eval_best: 0.7916666666666666
+runs_per_side: 1
+note: >-
+  Defect task. The workspace is the Agent-R1 ALFWorld tool-use GRPO recipe with
+  a single injected defect: the tool schema advertised to the policy
+  (tool_schema/alfworld_case/tools.py, SCHEMA_NAMES / tool_schemas) renames the
+  clean/heat/cool executor tools to clean_object/heat_object/cool_object, while
+  the execution registry REGISTRY and the dispatcher command_for still only
+  recognize clean/heat/cool. The model is told to call the *_object names, so
+  command_for raises ToolCallError("unknown_tool"), episode.act returns
+  "unknown_tool. The environment state did not change.", and the ALFWorld
+  environment never steps for those actions. Every episode needing cleaning,
+  heating or cooling is unsolvable; the pick_clean_then_place,
+  pick_heat_then_place and pick_cool_then_place families end at success rate 0.
+  The run still learns on the unaffected families, so held-out unseen success
+  rises from 0.229 to 0.333 over 63 steps -- far below the matched-schema
+  control (0.458 -> 0.792). Solution grading is metric-only and reads
+  val-aux/alfworld_valid_unseen/success/mean@1 (held-out unseen success rate,
+  [0, 1]); the repair-and-rerun budget is the baked total_training_steps=63 /
+  test_freq=20, so the new run has eval points 0, 20, 40, 60, 63. The best
+  finite unseen success over the run must fall within [0.6, 1.0]: the defective
+  run's best is 0.333 (fails the 0.6 lower bound), an untrained matched-schema
+  run sits at 0.458 at step 0 (also below 0.6, so fixing without training does
+  not pass), and the matched-schema control peaks at 0.792. Calibrated on one
+  run per side.
+causes:
+  - path: tool_schema/alfworld_case/tools.py
+    kind: symbol
+    observed: SCHEMA_NAMES renames clean/heat/cool to clean_object/heat_object/cool_object in the advertised schema, while REGISTRY and command_for dispatch only clean/heat/cool
+    expected: the advertised tool names equal the registered executor names (clean/heat/cool)
+key_files:
+  - tool_schema/alfworld_case/tools.py
+  - tool_schema/alfworld_case/episode.py
+  - tool_schema/alfworld_case/flow.py
+  - tool_schema/alfworld_case/trajectory_flow.py
+  - tool_schema/alfworld_case/train.sh
+  - results/baseline63/train.log
+external_assets_not_in_git:
+  - Qwen/Qwen3-4B HF checkpoint (revision 82d62bb073771e7a1ea59435f548908540217d1f), fetched by environment/prepare.sh

@@ -1,0 +1,42 @@
+--- a/rewards/gsm8k_reward.py	2026-10-27 18:41:18.367143000 -0400
++++ b/rewards/gsm8k_reward.py	2026-10-27 18:41:18.444164000 -0400
+@@ -1,9 +1,9 @@
+ """Reward for GSM8K-style problems.
+ 
+-verl's built-in GSM8K rule only accepts an answer written as ``#### <number>`` and scored almost
+-every response 0 in our first runs (the model rarely uses that marker), so the policy saw no
+-signal. This reward is more forgiving: it extracts every number in the response and gives full
+-credit when the gold answer is among them, ignoring commas, currency signs and trailing periods.
++Full credit only when the response commits to one final answer in the format the prompt asks for,
++``#### <number>``, and that number equals the gold answer (the last ``####`` line counts, as in
++verl's built-in GSM8K rule). Commas, currency signs and trailing periods are ignored; numbers that
++appear elsewhere in the response are not answers and earn nothing.
+ 
+ Wired in through ``reward.custom_reward_function.path/name`` (see run_gsm8k_grpo.sh); verl calls
+ ``compute_score(data_source=..., solution_str=..., ground_truth=..., extra_info=...)`` and uses the
+@@ -12,7 +12,7 @@
+ 
+ import re
+ 
+-_NUMBER = re.compile(r"-?\d[\d,]*(?:\.\d+)?")
++_FINAL = re.compile(r"####\s*\$?\s*(-?\d[\d,]*(?:\.\d+)?)")
+ 
+ 
+ def _normalize(num: str) -> str:
+@@ -27,12 +27,13 @@
+     return sign + num
+ 
+ 
+-def extract_answers(solution_str: str) -> set[str]:
+-    return {_normalize(n) for n in _NUMBER.findall(solution_str)}
++def extract_answer(solution_str: str):
++    finals = _FINAL.findall(solution_str)
++    return _normalize(finals[-1]) if finals else None
+ 
+ 
+ def compute_score(data_source, solution_str, ground_truth, extra_info=None, **kwargs):
+     if solution_str is None:
+         return 0.0
+     gold = _normalize(str(ground_truth))
+-    return 1.0 if gold in extract_answers(solution_str) else 0.0
++    return 1.0 if extract_answer(solution_str) == gold else 0.0

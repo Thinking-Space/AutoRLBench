@@ -1,0 +1,69 @@
+2026-10-27 06:23:32,861	INFO worker.py:1821 -- Started a local Ray instance.
+(TaskRunner pid=828) DeprecationWarning: `ray.state.available_resources_per_node` is a private attribute and access will be removed in a future Ray version.
+(WorkerDict pid=1125) [W1027 06:23:52.312748420 ProcessGroupGloo.cpp:715] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
+(WorkerDict pid=1125) You are attempting to use Flash Attention 2.0 with a model not initialized on GPU. Make sure to move the model to GPU after initializing it on CPU with `model.to('cuda')`.
+(WorkerDict pid=1125) /usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_init_utils.py:444: UserWarning: FSDP is switching to use `NO_SHARD` instead of ShardingStrategy.FULL_SHARD since the world size is 1.
+(WorkerDict pid=1125)   warnings.warn(
+(WorkerDict pid=1125) Flash Attention 2.0 only supports torch.float16 and torch.bfloat16 dtypes, but the current dype in Qwen2ForCausalLM is torch.float32. You should run training or inference using Automatic Mixed-Precision via the `with torch.autocast(device_type='torch_device'):` decorator, or load the model with the `torch_dtype` argument. Example: `model = AutoModel.from_pretrained("openai/whisper-tiny", attn_implementation="flash_attention_2", torch_dtype=torch.float16)`
+(WorkerDict pid=1125) /usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_init_utils.py:444: UserWarning: FSDP is switching to use `NO_SHARD` instead of ShardingStrategy.FULL_SHARD since the world size is 1.
+(WorkerDict pid=1125)   warnings.warn(
+(WorkerDict pid=1125) Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+(WorkerDict pid=1125) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  4.73it/s]
+(WorkerDict pid=1125) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  4.72it/s]
+(WorkerDict pid=1125) 
+(WorkerDict pid=1125) /usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py:690: FutureWarning: FSDP.state_dict_type() and FSDP.set_state_dict_type() are being deprecated. Please use APIs, get_state_dict() and set_state_dict(), which can support different parallelisms, FSDP1, FSDP2, DDP. API doc: https://pytorch.org/docs/stable/distributed.checkpoint.html#torch.distributed.checkpoint.state_dict.get_state_dict .Tutorial: https://pytorch.org/tutorials/recipes/distributed_checkpoint_recipe.html .
+(WorkerDict pid=1125)   warnings.warn(
+(WorkerDict pid=1125) /usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_state_dict_utils.py:768: UserWarning: When using ``NO_SHARD`` for ``ShardingStrategy``, full_state_dict willbe returned.
+(WorkerDict pid=1125)   warnings.warn(
+(WorkerDict pid=1125) /usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_state_dict_utils.py:711: UserWarning: When using ``NO_SHARD`` for ``ShardingStrategy``, full_state_dict willbe returned.
+(WorkerDict pid=1125)   warnings.warn(
+(TaskRunner pid=828) Training Progress:   0%|          | 0/10 [00:00<?, ?it/s]
+(TaskRunner pid=828) Training Progress:  10%|█         | 1/10 [00:12<01:50, 12.29s/it]
+(WorkerDict pid=1125) /usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_state_dict_utils.py:768: UserWarning: When using ``NO_SHARD`` for ``ShardingStrategy``, full_state_dict willbe returned.
+(WorkerDict pid=1125)   warnings.warn(
+(WorkerDict pid=1125) /usr/local/lib/python3.10/dist-packages/torch/distributed/fsdp/_state_dict_utils.py:711: UserWarning: When using ``NO_SHARD`` for ``ShardingStrategy``, full_state_dict willbe returned.
+(WorkerDict pid=1125)   warnings.warn(
+(TaskRunner pid=828) Training Progress:  20%|██        | 2/10 [00:21<01:24, 10.60s/it]
+(TaskRunner pid=828) Training Progress:  30%|███       | 3/10 [00:31<01:10, 10.08s/it]
+(TaskRunner pid=828) Training Progress:  40%|████      | 4/10 [00:40<00:59,  9.97s/it]
+(TaskRunner pid=828) Training Progress:  50%|█████     | 5/10 [00:50<00:49,  9.92s/it]
+(TaskRunner pid=828) Training Progress:  60%|██████    | 6/10 [01:00<00:40, 10.01s/it]
+(TaskRunner pid=828) Training Progress:  70%|███████   | 7/10 [01:10<00:29,  9.80s/it]
+(TaskRunner pid=828) Training Progress:  80%|████████  | 8/10 [01:19<00:19,  9.66s/it]
+(TaskRunner pid=828) Training Progress:  90%|█████████ | 9/10 [01:29<00:09,  9.77s/it]
+Traceback (most recent call last):
+  File "/workspace/launch.py", line 44, in <module>
+    run_ppo(config)
+  File "/workspace/verl/trainer/main_ppo.py", line 72, in run_ppo
+    ray.get(runner.run.remote(config))
+  File "/usr/local/lib/python3.10/dist-packages/ray/_private/auto_init_hook.py", line 21, in auto_init_wrapper
+    return fn(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/ray/_private/client_mode_hook.py", line 103, in wrapper
+    return func(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/ray/_private/worker.py", line 2755, in get
+    values, debugger_breakpoint = worker.get_objects(object_refs, timeout=timeout)
+  File "/usr/local/lib/python3.10/dist-packages/ray/_private/worker.py", line 906, in get_objects
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(OutOfMemoryError): ray::TaskRunner.run() (pid=828, ip=127.0.0.1, actor_id=4ace79dc6501b1b158a5354401000000, repr=<verl.trainer.main_ppo.TaskRunner object at 0x7fa8873c70d0>)
+  File "/workspace/verl/trainer/main_ppo.py", line 171, in run
+    trainer.fit()
+  File "/workspace/verl/trainer/ppo/ray_trainer.py", line 924, in fit
+    self._save_checkpoint()
+  File "/workspace/verl/trainer/ppo/ray_trainer.py", line 663, in _save_checkpoint
+    self.actor_rollout_wg.save_checkpoint(actor_local_path,
+  File "/workspace/verl/single_controller/ray/base.py", line 42, in func
+    output = ray.get(output)
+ray.exceptions.OutOfMemoryError: Task was killed due to the node running low on memory.
+Memory on the node (IP: 127.0.0.1, ID: 7a8ba058c55436575769f7bb2df3686a19e2b07a67c9c22fb78ceddb) where the task (actor ID: 3f3f5cf6f1202ca5962a34ca01000000, name=nFMgNzWorkerDict_0:0:WorkerDict.__init__, pid=1125, memory used=17.15GB) was running was 19.06GB / 20.00GB (0.952898), which exceeds the memory usage threshold of 0.95. Ray killed this worker (ID: cce3667a3d2833e5a22f4b68feaa29457d42b79fd2007ab111018083) because it was the most recently scheduled task; to see more information about memory usage on this node, use `ray logs raylet.out -ip 127.0.0.1`. To see the logs of the worker, use `ray logs worker-cce3667a3d2833e5a22f4b68feaa29457d42b79fd2007ab111018083*out -ip 127.0.0.1. Top 10 memory users:
+PID	MEM(GB)	COMMAND
+1125	17.15	ray::WorkerDict.actor_rollout_save_checkpoint
+74	0.41	/usr/bin/python3 launch.py --output /run
+95	0.26	/usr/local/lib/python3.10/dist-packages/ray/core/src/ray/gcs/gcs_server --log_dir=/tmp/ray/session_2...
+211	0.07	/usr/bin/python3 /usr/local/lib/python3.10/dist-packages/ray/dashboard/dashboard.py --host=127.0.0.1...
+359	0.06	/usr/bin/python3 -u /usr/local/lib/python3.10/dist-packages/ray/dashboard/agent.py --node-ip-address...
+210	0.05	/usr/bin/python3 -u /usr/local/lib/python3.10/dist-packages/ray/autoscaler/_private/monitor.py --log...
+302	0.05	/usr/bin/python3 -u /usr/local/lib/python3.10/dist-packages/ray/_private/log_monitor.py --session-di...
+361	0.04	/usr/bin/python3 -u /usr/local/lib/python3.10/dist-packages/ray/_private/runtime_env/agent/main.py -...
+394	0.04	ray::IDLE
+828	0.04	ray::TaskRunner.run
+Refer to the documentation on how to address the out of memory issue: https://docs.ray.io/en/latest/ray-core/scheduling/ray-oom-prevention.html. Consider provisioning more memory on this node or reducing task parallelism by requesting more CPUs per task. Set max_restarts and max_task_retries to enable retry when the task crashes due to OOM. To adjust the kill threshold, set the environment variable `RAY_memory_usage_threshold` when starting Ray. To disable worker killing, set the environment variable `RAY_memory_monitor_refresh_ms` to zero.

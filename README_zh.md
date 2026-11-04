@@ -19,28 +19,27 @@
 
 ## 🚀 新闻
 
+- **2026 年 11 月 2 日** — 公开第一版任务列表：共 18 个任务，其中 13 个支持 solution 级评测。
 - **2026 年 10 月 24 日** — 正式开始征集贡献（call for contributions），并在 leaderboard 中加入 Kimi-K3.1-Pro 评测结果。
-- **2026 年 10 月 22 日** — 发布 Leaderboard v0.1，包含 14 个任务。
 - **2026 年 10 月 19 日** — 发布 GitHub 仓库与网站。
 
 ## Leaderboard
 
-AutoRLBench Leaderboard 0.1，issue 档成绩。*初版，会随新 agent 与新任务持续更新。*
+AutoRLBench Leaderboard，issue + solution 双档成绩。
 
-| # | 模型 | Agent | Issue 分数 | |
-| ---: | --- | --- | ---: | :--- |
-| 1 | Claude-Fable-5.1 | Claude Code | 85.7 % | █████████████████░░░ |
-| 2 | Grok-4.7 | Grok Build | 78.6 % | ████████████████░░░░ |
-| 3 | Kimi-K3.1-Pro | Claude Code | 71.4 % | ██████████████░░░░░░ |
-| 4 | GPT-6-Astra | Codex | 64.3 % | █████████████░░░░░░░ |
-| 4 | GLM-5.3 | Claude Code | 64.3 % | █████████████░░░░░░░ |
-| 6 | GPT-6.1-Sol | Codex | 57.1 % | ███████████░░░░░░░░░ |
-| 6 | Qwen3.8-Max | Qwen Code | 57.1 % | ███████████░░░░░░░░░ |
-| 8 | Kimi-K3 | Claude Code | 42.9 % | █████████░░░░░░░░░░░ |
-| 8 | Gemini-4-Argon | Claude Code | 42.9 % | █████████░░░░░░░░░░ |
-| 10 | DeepSeek-V4-Pro | Claude Code | 21.4 % | ████░░░░░░░░░░░░░░░░ |
+| # | 模型 | Agent | Issue 分数 | Solution 分数 | 总分 |
+| ---: | --- | --- | ---: | ---: | ---: |
+| 1 | Claude-Fable-5.1 | Claude Code | 71.4 % | 80.0 % | **75.7 %** |
+| 2 | Gemini-4-Argon | Claude Code | 52.4 % | 80.0 % | **66.2 %** |
+| 3 | GPT-6.1-Sol | Codex | 61.9 % | 70.0 % | **66.0 %** |
+| 3 | Kimi-K3.1-Pro | Claude Code | 61.9 % | 70.0 % | **66.0 %** |
+| 3 | Grok-4.7 | Grok Build | 61.9 % | 70.0 % | **66.0 %** |
+| 6 | GPT-6-Astra | Codex | 71.4 % | 60.0 % | **65.7 %** |
+| 7 | GLM-5.3 | Claude Code | 57.1 % | 60.0 % | **58.5 %** |
+| 8 | Qwen3.8-Max | Qwen Code | 52.4 % | 50.0 % | **51.2 %** |
+| 9 | Kimi-K3 | Claude Code | 33.3 % | 60.0 % | **46.6 %** |
+| 10 | DeepSeek-V4-Pro | Claude Code | 19.0 % | 50.0 % | **34.5 %** |
 
-solution 档（修复并重跑）即将开放。完整结果见[网站](https://thinking-space.github.io/AutoRLBench/#leaderboard)。
 
 ## 任务
 
@@ -49,12 +48,12 @@ solution 档（修复并重跑）即将开放。完整结果见[网站](https://
 <table>
 <tr>
 <td width="50%" valign="top">
-<a href="tasks/configuration/verl_aime25_single_sample_protocol/">
+<a href="tasks/configuration/trl_gsm8k_eos_mismatch/">
 <img src="assets/task-configuration.jpeg" alt="Configuration" width="100%">
 </a>
-<strong>Configuration</strong> · issue · solution<br>
-<a href="tasks/configuration/verl_aime25_single_sample_protocol/"><b>AIME25 单样本方差</b></a><br>
-每题只采样一次，30 题的分数噪声大到无法判断这次运行。
+<strong>Configuration</strong> · issue<br>
+<a href="tasks/configuration/trl_gsm8k_eos_mismatch/"><b>TRL GSM8K EOS 不匹配</b></a><br>
+<code>eos_token_id</code> 缺少 <code>&lt;|im_end|&gt;</code>，导致 rollout 在答案后继续生成。
 </td>
 <td width="50%" valign="top">
 <a href="tasks/reward/slime_retool_length_reward_bonus/">

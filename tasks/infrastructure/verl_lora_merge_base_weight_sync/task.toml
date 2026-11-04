@@ -1,0 +1,32 @@
+title = "Merged LoRA never reaches the rollout engine"
+license = "Apache-2.0"
+created_date = "2026-10-25"
+domain = "infrastructure"
+tags = ["verl", "grpo", "lora", "fsdp2", "weight-sync"]
+
+[submitter]
+name = "Jianing Yin"
+
+[model]
+name = "Qwen/Qwen2.5-1.5B-Instruct"
+
+[dataset]
+name = "openai/gsm8k main (7473 train rows, 1319 test rows)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_lora.sh"
+
+[environment]
+image = "verl"
+
+# The recorded defective run and the solution rerun use one GPU (vLLM TP=1, FSDP2 world size 1).
+[environment.env]
+WANDB_MODE = "offline"
+CUDA_VISIBLE_DEVICES = "0"
+NVIDIA_VISIBLE_DEVICES = "0"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "With lora.merge=True under FSDP2, FSDPEngine.get_per_tensor_param captures state_dict() inside merged_lora_context but its lazy generator calls full_tensor() only after the context has restored the base weights, so vLLM receives the base weights at every sync: held-out GSM8K accuracy stays at the base level (0.0857 at step 0, 0.0842 at step 60) while actor/kl_loss reaches 7.8 and rollout_corr/kl grows to 81.5, against 0.7771 at step 60 for the repaired run."

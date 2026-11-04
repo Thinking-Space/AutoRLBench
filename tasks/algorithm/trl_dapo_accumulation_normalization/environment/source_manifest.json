@@ -1,0 +1,35 @@
+{
+  "source": {
+    "upstream": "huggingface/trl",
+    "commit": "03b22f5f93868a8aa73c5089ab99fbceb05ae144",
+    "staged_defect": "workspace/src/trl differs from upstream only in src/trl/trainer/grpo_trainer.py: the DAPO accumulation-window denominator correction from upstream PR #6024 is removed (3 lines in GRPOTrainer._compute_loss). evaluations/solution/oracle/repair.patch restores byte-identity with upstream.",
+    "grpo_trainer_py": {
+      "sha256_upstream": "06831a1e683e53aae67ecc974e855a63453ed50ea4d1af9c024ee599bd5363a1",
+      "sha256_vendored": "23638a42098b0f4c251e47717c62f874e6573a9d98ad6fbfeb8602b7ef44f8a9",
+      "verification": "upstream file fetched at this commit and verified byte-identical to the sibling task trl_conditional_reward_logging's vendored copy; applying repair.patch to this task's vendored copy reproduces that same hash"
+    }
+  },
+  "sanitization": {
+    "rule": "host names and run labels only; no metric value is changed",
+    "replacements": [
+      {
+        "what": "host name",
+        "replaced_with": "training-host"
+      },
+      {
+        "what": "W&B project name",
+        "replaced_with": "autorlbench-reproductions"
+      },
+      {
+        "what": "W&B run name",
+        "replaced_with": "gsm8k_normalization_seed42"
+      }
+    ],
+    "note": "pre-sanitization sha256 values were not retained; every shipped artifact's hash is reproducible from the package",
+    "residual": "recording-host paths under /opt/experiment remain only inside the W&B run binary (run-*.wandb); both arms' text logs carry none; they hold no identity or network information"
+  },
+  "dropped_from_frozen_evidence": [
+    "per-step rollout rows other than three exemplar rows per stream (one step-0 training row, two step-24 evaluation rows)",
+    "W&B latest-run symlink (the offline-run directory and run-*.wandb binary are kept)"
+  ]
+}

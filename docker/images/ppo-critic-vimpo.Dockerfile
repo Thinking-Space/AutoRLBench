@@ -12,8 +12,7 @@
 #   flash-attn   2.8.3.post1
 #
 # Tasks: ppo_critic/* (reward_parser_mismatch, excessive_actor_lr_collapse,
-# proxy_reward_misalignment; aime25_single_sample_variance rides this image for
-# its stdlib-only protocol check).
+# proxy_reward_misalignment).
 #
 # This stack is DELIBERATELY NOT the shared `verl` image (vLLM 0.17 / torch 2.10
 # / CUDA 12.9). The ppo_critic workspaces ship their own veRL + VIMPO recipe

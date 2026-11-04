@@ -1,0 +1,23 @@
+category: algorithm
+framework: trl
+task: trl_dapo_accumulation_normalization
+verdict: unhealthy
+root_cause:
+  - src/trl/trainer/grpo_trainer.py::GRPOTrainer._compute_loss computes the DAPO
+    denominator from the whole generation batch's token count without scaling it
+    to the current gradient accumulation window (steps_per_generation=4,
+    gradient_accumulation_steps=2), so every microbatch's loss and raw gradient
+    are half the intended accumulation-window objective
+evidence_metrics:
+  - on nonzero captured objectives the defective loss/reference ratio is approximately 0.5
+    and the control ratio approximately 1.0
+  - the independent objective comparison passes 12/24 optimizer steps in the defective run
+    and 24/24 in the control, and the defective run's passing steps compare zero-valued
+    objectives
+  - both arms complete 24 optimizer steps with similar held-out rewards (0.1953125 vs
+    0.20703125), so execution and evaluation are healthy and the defect hides in the
+    optimization objective
+fix:
+  must:
+    - during training, multiply the denominator by current_gradient_accumulation_steps /
+      steps_per_generation; evaluation keeps its unsplit batch denominator

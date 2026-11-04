@@ -21,13 +21,14 @@ set -euo pipefail
 # VERL_ROOT is two levels above the launch script, i.e. /workspace in the container, so dest must be
 # exactly $AUTORLBENCH_WORKSPACE/Qwen2.5-1.5B-Instruct.
 #
-# The repo / revision / allow list / checksums all come verbatim from the legacy Dockerfile's
-# MODEL_REPOSITORY, MODEL_REVISION, allow_patterns, MODEL_WEIGHT_SHA256, and the line
-# `test "$(stat -c %s ...)" = 3087467144`. This snapshot repo is shared by the verl + TACO family of
-# tasks and is not specific to this task.
+# The official Qwen repo, byte-identical on every allowed file to the former family snapshot repo
+# (LIF1014/autorlbench-verl-implementation-torch-functional@36a4c22, same model.safetensors sha256).
+# The switch matters: that snapshot repo's name is visible to the agent through the shared download
+# cache and names a sibling task's defect; the official repo name leaks nothing. The allow list and
+# checksums are carried over verbatim.
 autorlbench_fetch_hf \
-    --repo LIF1014/autorlbench-verl-implementation-torch-functional \
-    --revision 36a4c226ef70aef2c38df173a7cf86a47ad3ad00 \
+    --repo Qwen/Qwen2.5-1.5B-Instruct \
+    --revision 989aa7980e4cf806f80c7fef2b1adb7bc71aa306 \
     --allow config.json \
     --allow generation_config.json \
     --allow LICENSE \
@@ -53,12 +54,23 @@ autorlbench_fetch_hf \
 # autorlbench_fetch_hf does not unpack, so it downloads to a temp directory and is extracted here.
 #
 # Archive checksums come from DATASET_ARCHIVE_SHA256 / DATASET_ARCHIVE_SIZE in the legacy Dockerfile.
+#
+# This archive's repo name states this task's answer, so it is blocked on both channels where the
+# agent could see it:
+#   1. this file (read-only mounted into the agent sandbox): the repo name is stored base64 and
+#      decoded at use time;
+#   2. the shared download cache (read-only visible to the agent on some backends): --cache-as
+#      lands the tree under a neutral alias instead of the repo's own name.
 TACO_STAGING="$AUTORLBENCH_WORKSPACE/.autorlbench-taco-archive"
 rm -rf "$TACO_STAGING"
+TACO_REPO=$(printf %s \
+    'TElGMTAxNC9hdXRvcmxiZW5jaC1kYXRhLXRhc2stdHJhaW4tdG9vLWhhcmQtZGF0YXNldA==' \
+    | base64 -d)
 
 autorlbench_fetch_hf \
     --type dataset \
-    --repo LIF1014/autorlbench-data-task-train-too-hard-dataset \
+    --repo "$TACO_REPO" \
+    --cache-as autorlbench/taco-asset \
     --revision 22a1fee0ea2527f514c4115f6c792216a99d7e6f \
     --allow artifacts/workspace-assets.tar.gz \
     --expect artifacts/workspace-assets.tar.gz=eddeece8c2828e21b581d5168dd4604470165cb061a53e68d50b26d49ce6d916 \
@@ -87,6 +99,7 @@ TACO_DIGESTS
     [ "$(stat -c %s train.parquet)" = 168834942 ]
 )
 
-# pyext is not installed: verl/utils/reward_score/taco.py first tries `from pyext import RuntimeModule`
-# and on ImportError falls back to its bundled _FallbackRuntimeModule (fully functional, not partial).
-# The frozen dependency list of the recorded run has no pyext; installing it would change the reward.
+# pyext is not installed: issue-level evaluation never runs the scorer. The recorded run had
+# pyext==0.7 installed (see logs/wandb/offline-run-20261021_080907-4pye3rsp/files/requirements.txt);
+# verl/utils/reward_score/taco.py first tries `from pyext import RuntimeModule` and on ImportError
+# falls back to its bundled _FallbackRuntimeModule (fully functional, not partial).

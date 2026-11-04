@@ -2,16 +2,17 @@
 rules, or rubrics. It strips ANSI escapes and reconstructs `eval/aime` from
 `$AUTORLBENCH_RESULTS/experiment_logs`.
 
-`eval/aime` is read in the math_dapo **score** space, the `[-1, 1]` range the
-frozen historical trace was logged in (`eval_reward_key: score`, see
+`eval/aime` is read from the reward **score** channel. Without the length
+bonus, correctness plus tool-call shaping has range `[-1.1, 1]`. The frozen
+historical trace uses that channel plus the defective length bonus (`eval_reward_key: score`, see
 `workspace/wandb/latest-run/files/config.yaml`).
 
 - `metric_key`: `eval/aime`
 - `score_mode`: `best` — the highest finite point over the run
 - `required_final_score`: `-0.55` (lower bound; the run must have trained)
-- `required_final_score_max`: `0.5` (upper bound; the length bonus must be gone)
+- `required_final_score_max`: `0.5` (historical numerical gate; does not prove the length bonus is gone)
 - `final_step`: `69` — the last eval of the fixed `--num-rollout 70` budget.
-  Informational under `score_mode: best`.
+  Required for completion even under `score_mode: best`.
 - `historical_final_baseline`: `3.580407918294271` — what the *defective*
   historical run logged at step 69. It is above the upper bound, which is the
   point: a repaired run must come in **below** it, not above.

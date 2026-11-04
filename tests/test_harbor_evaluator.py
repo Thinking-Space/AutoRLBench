@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
@@ -33,6 +34,7 @@ from autorlbench.evaluation.harbor_evaluator import (
     HarborPreparer,
     HarborResultMapper,
     HarborRunner,
+    HarborShell,
     HarborTaskMaterializer,
 )
 from autorlbench.tasks import load_task_package
@@ -262,6 +264,20 @@ class HarborTaskMaterializerTests(FixtureTestCase):
         self.assertIn('AUTORLBENCH_STAGE = "agent"', agent_env)
         self.assertIn('AUTORLBENCH_STAGE = "verifier"', verifier_env)
 
+    def test_agent_stage_does_not_see_the_task_id(self):
+        # Task ids often spell out the diagnosis (e.g. "context_parallel_oom"); the agent must
+        # not be able to printenv its way to the answer. The verifier keeps the real id.
+        task_toml = self.toml(self.materialize())
+        agent_env, verifier_env = task_toml.split("[environment.env]")[1].split(
+            "[verifier.env]"
+        )
+
+        self.assertIn('AUTORLBENCH_TASK_ID = "task"', agent_env)
+        self.assertNotIn("harbor_fixture", agent_env)
+        self.assertIn(
+            f'AUTORLBENCH_TASK_ID = "{self.package.task_id}"', verifier_env
+        )
+
     def test_no_gpu_option_is_written(self):
         # Harbor's docker environment does not support GPUs; declaring gpus makes trial initialization fail.
         self.assertNotIn("gpus", self.toml(self.materialize()))
@@ -455,6 +471,32 @@ class HarborRunnerTests(unittest.TestCase):
             self.assertTrue(mount["read_only"])
 
     @patch.object(HarborRunner, "_run_streaming")
+    def test_staged_environment_wins_over_the_repo_path(self, run_mock):
+        # The repo path spells out the task id, and /proc/mounts inside the container shows the
+        # bind-mount source -- so once HarborPreparer has staged environment/ into the run
+        # directory, that copy is what gets mounted.
+        run_mock.return_value.returncode = 0
+        run_mock.return_value.stdout = ""
+        run_mock.return_value.stderr = ""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            prepared = self._prepared(root, environment=root / "env")
+
+            HarborRunner().run(prepared, HarborEvaluationConfig())
+
+        argv = run_mock.call_args.args[0]
+        mounts = json.loads(argv[argv.index("--mounts-json") + 1])
+        by_target = {mount["target"]: mount for mount in mounts}
+        self.assertEqual(
+            by_target[AUTORLBENCH_ENVIRONMENT_DIR]["source"],
+            str((root / "env").resolve()),
+        )
+        self.assertNotIn(
+            str(self.package.paths.environment),
+            json.dumps(mounts),
+        )
+
+    @patch.object(HarborRunner, "_run_streaming")
     def test_task_compose_file_is_passed_as_an_overlay(self, run_mock):
         run_mock.return_value.returncode = 0
         run_mock.return_value.stdout = ""
@@ -497,6 +539,36 @@ class HarborRunnerTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(HarborAdapterError, "one AutoRLBench task per job"):
                 HarborRunner().run(prepared, HarborEvaluationConfig())
+
+    def test_interactive_agent_container_hides_the_task_id(self):
+        # Same neutralization as the materialized task.toml: the docker-native agent
+        # container must not printenv its way to the answer either.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            environment = root / "environment"
+            environment.mkdir()
+            prepared = self._prepared(
+                root, workspace=str(root / "workspace"), environment=environment
+            )
+            unit = prepared.units[0]
+            config = HarborEvaluationConfig(
+                models_dir=root / "models", datasets_dir=root / "datasets"
+            )
+
+            argv = HarborShell()._build_docker_argv(
+                unit,
+                self.package,
+                config,
+                "verl:latest",
+                "bash",
+                gpus=None,
+                shm_size=None,
+                extra_docker_args=(),
+            )
+
+        flat = " ".join(argv)
+        self.assertIn("AUTORLBENCH_TASK_ID=task", flat)
+        self.assertNotIn(self.package.task_id, flat)
 
     @patch.object(HarborRunner, "_run_streaming")
     def test_batch_suffix_keeps_user_job_names_apart(self, run_mock):
@@ -574,9 +646,14 @@ class HarborRunnerTests(unittest.TestCase):
             )
             try:
                 self.assertEqual(run_dir.parent, parent.resolve())
+                # The run directory is an ancestor of every bind-mount source, and
+                # /proc/mounts inside the containers shows the full source path -- so
+                # the task id appears only as a digest, never spelled out.
+                digest = hashlib.sha256(package.task_id.encode("utf-8")).hexdigest()[:8]
                 self.assertTrue(
-                    run_dir.name.startswith("autorlbench-harbor-harbor_fixture-solution-")
+                    run_dir.name.startswith(f"autorlbench-harbor-{digest}-solution-")
                 )
+                self.assertNotIn(package.task_id, run_dir.name)
             finally:
                 shutil.rmtree(run_dir)
 
@@ -928,7 +1005,11 @@ class HarborResultMapperTests(FixtureTestCase):
 class HarborPreparerTests(FixtureTestCase):
     def _preparer(self, prepare_result):
         evaluator = MagicMock()
-        staged = MagicMock(workspace=self.root / "ws", prepared=self.root / "prep")
+        staged = MagicMock(
+            workspace=self.root / "ws",
+            prepared=self.root / "prep",
+            environment=self.root / "env",
+        )
         evaluator._prepare_run.return_value = staged
         evaluator.runtime.ensure_environment.return_value = MagicMock(reference="img:tag")
         evaluator._run_prepare.return_value = prepare_result
@@ -952,6 +1033,7 @@ class HarborPreparerTests(FixtureTestCase):
 
         self.assertEqual(unit.workspace, self.root / "ws")
         self.assertEqual(unit.prepared, self.root / "prep")
+        self.assertEqual(unit.environment, self.root / "env")
         self.assertEqual(
             evaluator.runtime.ensure_environment.call_args.args[0], EnvironmentImage("verl")
         )

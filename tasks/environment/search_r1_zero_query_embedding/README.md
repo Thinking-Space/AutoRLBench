@@ -10,7 +10,7 @@ Training Qwen2.5-1.5B-Instruct with GRPO on HotpotQA through Search-R1. The quer
 | **Model** | Qwen2.5-1.5B-Instruct · e5-base-v2 retriever |
 | **Dataset** | HotpotQA distractor, 1024 train / 128 held-out, 12,468-passage corpus |
 | **Framework** | Search-R1 with vendored veRL `598e61bd`, FSDP + vLLM 0.6.3 |
-| **Environment** | `search-r1-verl` (not yet built) · 1 × A100-40G |
+| **Environment** | `search-r1-verl` (image not yet published) · 1 × A100-40G |
 | **Evaluations** | issue · solution |
 | **Recorded runs** | 1 defective + 1 control run, same host, seed, data and budget (32 steps) |
 
@@ -27,5 +27,9 @@ Shapes and dtypes are valid, and nothing warns. The policy still learns: `val/em
 
 ## Verification
 
-- **issue**: an LLM judge scores verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2. Passing requires ≥ 0.8.
+- **issue**: an LLM judge scores verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2. Passing requires `verdict_score == 1.0`, `root_cause_score > 0.8`, and `evidence_score > 0.8`; the weighted total alone is not sufficient.
 - **solution**: the agent repairs the workspace and submits `report.md` without training; a missing report scores 0. The harness then reruns `run.py --run-name graded` per `run_spec.json` for 32 steps with eval every 10, and grades only that run. The best held-out `val/em` must be ≥ 0.24. That threshold sits 0.084 above the defective run's best (0.156), 0.088 below the control (0.328), and above the control's untrained step 0 (0.133). It is calibrated on one run per side, so treat scores near 0.24 as untested territory.
+
+The grader requires validation at the declared final step and rejects evaluation
+points outside the declared horizon before applying the existing best-score gate.
+A passing earlier point alone does not establish completion.

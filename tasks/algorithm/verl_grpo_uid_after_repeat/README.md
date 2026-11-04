@@ -47,7 +47,7 @@ The held-out curve does not reveal the defect at a 60-step budget (0.0454 →
 ## Verification
 
 - **issue**: an LLM judge scores verdict / root cause / evidence, weighted
-  0.2 / 0.6 / 0.2. Passing requires ≥ 0.8. If no judge model is configured,
+  0.2 / 0.6 / 0.2. Passing requires `verdict_score == 1.0`, `root_cause_score > 0.8`, and `evidence_score > 0.8`; the weighted total alone is not sufficient. If no judge model is configured,
   the verifier writes `status=unavailable` instead of a pass.
 
 The default prepare step fetches Llama-3.2-1B-Instruct weights (~2.4 GB) and

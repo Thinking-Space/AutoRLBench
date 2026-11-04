@@ -1,0 +1,41 @@
+STANDARD_ANSWER_V1
+CASE_ID: miles_async_rollout_inflight_not_evicted
+BENCHMARK_GROUP: B-miles-infrastructure
+EXPECTED_VERDICT: unhealthy
+EXPECTED_ATTRIBUTION: inflight_not_aborted — _pause_and_prepare_engines in miles/backends/megatron_utils/update_weight/update_weight_from_distributed/mixin.py overrides pause_generation_mode from "abort" to "in_place", so in-flight rollout requests are kept alive across weight sync (and flush_cache is skipped), decode to full length, and are dropped as stale; the engine wastes decode on trajectories that never train, cutting training-step throughput.
+EVIDENCE_KIND: historical_run
+PRIMARY_METRIC: train_steps (completed steps over the fixed 8h wall clock)
+SECONDARY_METRIC: rollout_solve_rate_last_window (last-10%-step mean solve rate)
+DEFECTIVE_TRAIN_STEPS: 92
+CONTROL_TRAIN_STEPS: 148
+DEFECTIVE_SOLVE_RATE: 0.460
+CONTROL_SOLVE_RATE: 0.539
+
+REQUIRED_ALL:
+- Classify the run as unhealthy.
+- Attribute the root cause to the abort->in_place override in
+  _pause_and_prepare_engines (in-flight requests not aborted/evicted at weight
+  sync; flush_cache skipped), not to a benign setting.
+- Connect the defect to the frozen evidence: per-step stale_groups_recycled is
+  about a full batch (~32) while aborted_groups_recycled is 0, and the fixed
+  wall clock completes far fewer training steps; do not treat the lower
+  end-of-window solve rate as a per-step learning failure or collapse.
+- Propose honoring the configured pause_generation_mode (abort) so in-flight
+  requests are aborted at weight sync.
+
+GLOBAL_JUDGE_POLICY:
+- The score must be exactly 0 or 1.
+- Agent A must explicitly classify the run as healthy or unhealthy.
+- Every REQUIRED_ALL item must be satisfied.
+- A verdict mismatch (healthy) forces score 0.
+- Attributing the failure to a benign setting (e.g. kl_loss_coef=0.00,
+  entropy_coef=0.00, max_weight_staleness=0, rollout_max_response_len=8192, the
+  4-GPU actor/rollout split) instead of the abort->in_place override is a wrong
+  attribution and forces score 0.
+- Treating the lower end-of-window solve rate or fewer steps as "the model did
+  not learn / collapsed" rather than as a throughput loss is a wrong
+  attribution and forces score 0.
+- Reading the logged pause_generation_mode = abort config line as evidence of
+  health forces score 0.
+- Equivalent technical wording in any language is acceptable.
+- task.yaml may clarify targets and aliases but may not relax REQUIRED_ALL.

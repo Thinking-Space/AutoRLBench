@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import sys
 import urllib.error
 import urllib.request
@@ -24,33 +23,6 @@ PASS_SCORE = 0.8
 
 class JudgeError(RuntimeError):
     pass
-
-
-_TOO_HARD = re.compile(
-    r"訓練集過難|訓練集太難|訓練資料過難|訓練資料太難|訓練數據過難|訓練數據太難|"
-    r"too hard|overly hard|too difficult|overly difficult|"
-    r"excessively hard|excessively difficult|"
-    r"harder than the (?:validation|held-?out|test)",
-    re.IGNORECASE,
-)
-_MISMATCH = re.compile(
-    r"難度不匹配|難度不一致|難度不對齊|難度不match|"
-    r"difficulty mismatch|difficulty gap|difficulty discrepancy|"
-    r"difficult(?:y|ies).{0,48}(?:do not|don't|doesn't|not) match|"
-    r"(?:do not|don't|doesn't|not) match.{0,48}difficult|"
-    r"train(?:ing)?(?:\s+set|\s+data)?.{0,40}(?:val(?:idation)?|held-?out|test).{0,40}difficult|"
-    r"(?:val(?:idation)?|held-?out|test).{0,40}train(?:ing)?.{0,40}difficult",
-    re.IGNORECASE,
-)
-_LABELS = re.compile(r"very[\s_-]?hard", re.IGNORECASE)
-
-
-def root_cause_hit(answer: str) -> bool:
-    """Full root-cause credit when either required formulation is present."""
-    if _TOO_HARD.search(answer) or _MISMATCH.search(answer):
-        return True
-    lowered = answer.lower()
-    return _LABELS.search(answer) is not None and "easy" in lowered
 
 
 def read_required(path: Path, label: str) -> str:
@@ -207,16 +179,6 @@ def main() -> int:
             api_key=api_key,
             timeout_s=timeout_s,
         )
-        matched = root_cause_hit(answer)
-        if matched and judgment["root_cause_score"] != 1.0:
-            judgment["root_cause_score"] = 1.0
-            judgment["reason"] += (
-                " Root-cause credit is full because the diagnosis identifies a "
-                "training set that is too hard or a train/validation difficulty "
-                "mismatch."
-            )
-        elif matched:
-            judgment["root_cause_score"] = 1.0
         # New scoring logic: verdict must be 1.0, root_cause and evidence must be > 0.8
         passed = (
             judgment["verdict_score"] == 1.0
@@ -231,7 +193,6 @@ def main() -> int:
             "metrics": {
                 "status": "judged",
                 "judge_model": model,
-                "root_cause_rule": "matched" if matched else "unmatched",
                 **judgment,
             },
         }

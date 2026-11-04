@@ -1,0 +1,37 @@
+title = "Slime Search-R1 GRPO run assessment: slime_search_r1_nomask"
+license = "Apache-2.0"
+created_date = "2026-08-19"
+domain = "reward"
+tags = ["slime", "grpo", "search-r1", "loss-mask", "retrieval-augmented", "qwen2.5"]
+
+[submitter]
+name = "user2"
+
+[model]
+name = "Qwen2.5-3B"
+
+[dataset]
+name = "Search-R1 nq_hotpotqa_train (NQ + HotpotQA merged)"
+
+[training]
+framework = "slime"
+algo = "grpo"
+script = "examples/search-r1/run_qwen2.5_3B.sh"
+
+[environment]
+# The recipe requests 8 GPUs (ray start --num-gpus 8, --actor-num-gpus-per-node 8
+# in run_qwen2.5_3B.sh), then slices them into sglang engines at
+# --rollout-num-gpus-per-engine 2.
+image = "slime-v0.3.2"
+
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+NVIDIA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+WANDB_MODE = "offline"
+WANDB_API_KEY = "offline"
+WANDB_SILENT = "true"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "rollout_loss_mask"
+failure_reason = "Observation tokens are trained on (loss_mask=1 on retrieved <information> text); frozen eval/nq_test reaches only 16.5% at the 200-step horizon versus a healthy protocol baseline of 40.8%, and train response length collapses from about 1751 tokens to about 9 as the policy stops searching"

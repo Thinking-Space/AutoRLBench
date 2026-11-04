@@ -82,3 +82,9 @@ A task-specific grading script then reads **only this fresh run's** files
 under `$AUTORLBENCH_RESULTS/experiment_logs` and scores the key metrics; logs
 written anywhere else are ignored. Do not copy, edit, or fabricate log
 metrics. Otherwise the run is scored 0.
+
+Completion is required independently of metric quality: validation at the
+declared final step must be present, and evaluation beyond the fixed horizon
+is not accepted. Where training reward is graded, every training step must be
+logged. This task grades the shaped `eval/aime` score, whose acceptance
+interval is `[-0.55, 0.5]`; it is not binary accuracy.

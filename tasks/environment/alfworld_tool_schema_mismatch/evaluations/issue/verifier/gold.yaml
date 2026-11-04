@@ -1,0 +1,18 @@
+category: environment
+framework: agent-r1
+task: alfworld_tool_schema_mismatch
+verdict: unhealthy
+root_cause:
+- name: tool_schema_name_mismatch
+  where: tool_schema/alfworld_case/tools.py (SCHEMA_NAMES / tool_schemas)
+  observed: the advertised tool schema renames clean/heat/cool to clean_object/heat_object/cool_object (SCHEMA_NAMES appends "_object"), while REGISTRY and command_for dispatch only clean/heat/cool, so the model's advertised *_object calls raise ToolCallError("unknown_tool") and the environment never steps
+  expected: advertised tool names equal the registered executor names (clean/heat/cool), so the calls dispatch to the ALFWorld environment and advance it
+evidence_metrics:
+- held-out unseen success (val-aux/alfworld_valid_unseen/success/mean@1) plateaus 0.229 -> 0.333 over 63 steps vs the matched-schema control 0.458 -> 0.792
+- the pick_clean_then_place, pick_heat_then_place and pick_cool_then_place families end at success rate 0
+- rollouts show assistant clean_object/heat_object/cool_object calls answered by "unknown_tool. The environment state did not change."
+- tasks not needing clean/heat/cool still succeed and still improve, so the run learns on unaffected families
+fix:
+  must:
+  - target: tool_schema_name_mismatch
+    direction: align advertised schema names with the registered executor names

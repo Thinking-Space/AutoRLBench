@@ -185,7 +185,11 @@ class SandboxRuntime(ABC):
             oracle = ""
             verifier = ""
         env = {
-            "AUTORLBENCH_TASK_ID": request.task_id,
+            # Many task ids spell out the diagnosis (e.g. "context_parallel_oom"), so the agent
+            # stage gets a neutral placeholder: printenv in the sandbox must not hand over the
+            # answer. Other stages keep the real id -- no task-side script consumes it today,
+            # but it is part of the interface prepare.sh may rely on.
+            "AUTORLBENCH_TASK_ID": "task" if request.stage == "agent" else request.task_id,
             "AUTORLBENCH_EVALUATION_LEVEL": request.evaluation_level,
             "AUTORLBENCH_TASK_ROOT": task_root,
             "AUTORLBENCH_VISIBLE_TASK": visible,
