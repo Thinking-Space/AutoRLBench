@@ -22,6 +22,8 @@ script = "run_experiment.sh"
 [environment]
 image = "verl-vllm011"
 
+# Single-GPU task: FSDP actor and vLLM rollout colocated on one GPU.
+
 [environment.env]
 WANDB_MODE = "offline"
 CUDA_VISIBLE_DEVICES = "0"
@@ -30,3 +32,6 @@ NVIDIA_VISIBLE_DEVICES = "0"
 [outcome]
 failure_type = "implementation_bug"
 failure_reason = "vLLM list_loras returns integer adapter IDs, but the defective request path compares that set with the string adapter name. Rollout requests omit the loaded PiSSA adapter while the actor evaluates with it: final actor/rollout agreement is 0.10476 versus 0.89072 after the one-line ID fix."
+
+[security]
+requires_isolated_stages = true

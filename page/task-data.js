@@ -495,5 +495,25 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "PiSSA initialization rewrites each adapted layer to W_residual = W_pretrained - A0*B0, so disabling the adapter exposes the residual weights — and the KL reference is computed against the wrong base.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO and a rank-8 PiSSA adapter. For a PiSSA residual-base checkpoint, disabling the adapter exposes W_residual rather than the original pretrained weights; the defective base-reference path therefore computes KL against the residual checkpoint. Final base-reference consistency is 0.04578 where the repaired path reaches 1.0, and the natural symptom is visible in the metrics: actor/kl_loss runs 0.76-0.98 across all four updates where a correct run logs near zero at step 1 (actor/base_model_kl around -4.6)."
+  },
+  {
+    "id": "infrastructure/verl_pissa_vllm_adapter_request",
+    "title": "PiSSA adapter omitted from vLLM rollout requests",
+    "family": "Infrastructure",
+    "tags": [
+      "verl",
+      "grpo",
+      "pissa",
+      "vllm",
+      "policy-sync"
+    ],
+    "model": "Qwen/Qwen2.5-0.5B-Instruct + PiSSA rank 8",
+    "dataset": "openai/gsm8k deterministic calibration subset (16 train, 8 validation)",
+    "framework": "verl / GRPO",
+    "image": "verl-vllm011",
+    "created": "2026-11-01",
+    "license": "Apache-2.0",
+    "brief": "vLLM's list_loras() returns integer adapter IDs, but the generate path tests membership with the string name — the loaded PiSSA adapter is never attached, so every rollout samples the residual base.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO and a rank-8 PiSSA adapter on a fixed GSM8K subset. The vLLM request path gates the LoRA with lora_loaded = VLLM_LORA_NAME in loaded_loras, but engine.list_loras() returns the registered adapters' integer IDs, so the membership test \"123\" in {123, ...} is always false and every generation request omits the loaded adapter. vLLM samples the PiSSA residual base while the actor computes log probabilities with the adapter active: every rollout is off-policy, rewards and gradients are zero, and the run's final health check collapses (actor/rollout policy agreement 0.10476 versus 0.89072 after the one-line integer-ID fix)."
   }
 ];
