@@ -32,6 +32,16 @@ The actual `docker/images/tool-rl-vllm024.Dockerfile` was built successfully wit
 
 Repository checks: 64 passed and 3 failed across environment-plan, training-script, and SQL workload tests. All three failures reproduce when the new image is excluded: existing images have an unpinned base, an underscore-containing image tag, and divergent tooling blocks. These pre-existing failures were not changed. The added image passes the corresponding targeted checks.
 
+## Complete debugging-agent trial
+
+On November 4, 2026, one fresh Harbor Terminus-2 agent (GPT-5.4) inspected the published task at commit `4039e6059bfa634032c33c4d7c62285a3229dcdf`. The canonical issue verifier then graded its answer using GPT-5.2. **The workflow completed without a Harbor trial error; the agent failed with score 0.2/1.0.** Verdict score was 1.0; root-cause and evidence scores were both 0.0. The agent blamed incorrect SQL joins instead of identifying the return accumulator reset across tool observations.
+
+The run used a CPU-only Modal sandbox (4 CPUs, 16 GiB), with a separate 2-CPU/8-GiB controller. Agent execution took 65.016 seconds; controller runtime including setup and grading was 279.237 seconds. The agent stopped after eight episodes within its 24-turn/900-second limit. There was one actual agent trial and no retries. Two setup errors were corrected before agent execution. The command trace includes large file dumps and interrupted heredocs; these are part of the recorded attempt.
+
+Instruction, hidden oracle, and verifier files matched the evaluated commit byte-for-byte. The agent used a dedicated prepared workspace volume with network access disabled; reference controls and the oracle were outside its input workspace. The verifier received its hidden files after agent execution. A post-run SHA-256 comparison found all 504 original non-model files unchanged. Model assets were checked during preparation and excluded from this post-run audit.
+
+See [agent-evaluation-01](agent-evaluation-01/README.md) for the exact answer, canonical judge output, command trace, settings, provenance, and limitations. This records one failed diagnosis; it is not a pass-rate estimate.
+
 ## Scope
 
-This is an **issue-only** contribution. One paired seed and three optimizer updates per arm verify a production mechanism. They do not establish a learning-performance improvement, calibrated solution threshold, multi-seed reliability, or sealed-test generalization. No judge-model evaluation was run. Full W&B binaries are retained under `reference/raw_wandb`, outside the historical agent workspace. Modal logs are supplementary; the committed traces and metric files contain the evidence needed for diagnosis.
+This is an **issue-only** contribution. One paired seed and three optimizer updates per arm verify a production mechanism. They do not establish a learning-performance improvement, calibrated solution threshold, multi-seed reliability, or sealed-test generalization. One complete agent-and-judge trial has now run, with a failed diagnosis as recorded above. Full W&B binaries are retained under `reference/raw_wandb`, outside the historical agent workspace. Modal logs are supplementary; the committed traces and metric files contain the evidence needed for diagnosis.

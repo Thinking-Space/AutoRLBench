@@ -30,6 +30,8 @@ Source snapshots are pinned to the upstream defect and repair. Both GPU arms use
 
 ## Verification
 
-**Issue:** the shared LLM judge compares `agent_answer.md` with the hidden oracle, weighting verdict/root cause/evidence 0.2/0.6/0.2; passing requires at least 0.8. No solution tier or calibrated performance threshold is claimed. The proposed three-seed, 60-update campaign was not run, and the short control does not exceed its step-zero development score.
+**Issue:** the shared LLM judge compares `agent_answer.md` with the hidden oracle, weighting verdict/root cause/evidence 0.2/0.6/0.2. The canonical verifier requires verdict score 1.0 and both root-cause and evidence scores strictly greater than 0.8 to pass. No solution tier or calibrated performance threshold is claimed. The proposed three-seed, 60-update campaign was not run, and the short control does not exceed its step-zero development score.
 
-The package includes all per-step metrics, complete reward/mask/return/advantage batches, tool traces, and rollout evidence. Raw W&B binaries are preserved outside the agent workspace under `reference/raw_wandb`. See [verification.md](reference/verification.md) for CPU, image, preparation, and structural checks. No judge-model evaluation has been run.
+The package includes all per-step metrics, complete reward/mask/return/advantage batches, tool traces, and rollout evidence. Raw W&B binaries are preserved outside the agent workspace under `reference/raw_wandb`. See [verification.md](reference/verification.md) for CPU, image, preparation, and structural checks.
+
+One complete debugging-agent trial ran on November 4, 2026: Harbor Terminus-2 with GPT-5.4, graded by the canonical GPT-5.2 judge. **The evaluation completed; the agent failed with 20/100.** It correctly called the run unhealthy but blamed SQL query errors and missed the return-masking bug. All 504 original non-model code/evidence files remained unchanged. This diagnosis run used CPUs and took about five minutes including setup and grading. See the [recorded answer, judge result, and run settings](reference/agent-evaluation-01/README.md).
