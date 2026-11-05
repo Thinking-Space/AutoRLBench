@@ -1,0 +1,20 @@
+category: algorithm
+framework: verl
+task: verl_reinforcepp_observation_credit
+verdict: unhealthy
+root_cause:
+- name: reinforcepp_return_reset_at_masked_observations
+  where: vendor/verl/verl/trainer/ppo/core_algos.py::compute_reinforce_plus_plus_outcome_advantage (upstream defect revision f773c96a; algorithm.adv_estimator=reinforce_plus_plus with gamma=1.0 and multi-turn tool rollouts whose response_mask contains internal zero-mask observation spans)
+  observed: the backward return scan multiplies running_return by response_mask[:, t] at every masked position, so a tool observation clears the accumulated return before the scan reaches earlier assistant action tokens; four rewarded tool trajectories across estimator calls 0 and 2 carry terminal reward one, yet all 2,480 earlier action tokens have raw return zero
+  expected: the scan carries running_return through mask=0 observation positions (the upstream repair 8a1bf6d5 carry-through pattern), restoring those 2,480 returns to one while observation tokens stay excluded from whitening and the policy loss
+  required: the accumulator reset across observation masks must be named as the cause. "Development accuracy stays zero", "rewards are sparse" or "the SQL is too hard" alone are symptoms or confounds. Calling the run healthy, or blaming the SQL reward function, the terminal-reward placement, or masking observations out of the policy loss, is wrong
+evidence_metrics:
+- credit_traces.jsonl retains all 64 rows per estimator call (3 calls, 192 rows) with rewards, masks, raw returns, whitened advantages, response IDs and trajectory UIDs; four rewarded tool trajectories across calls 0 and 2 have terminal reward one and all 2,480 assistant action tokens before the last observation gap have raw return zero
+- earlier whitened advantages are -0.0920 or -0.1041 (1464 and 1016 tokens); zero raw return is not zero advantage and earlier actions are still pushed downward by whitening
+- later answer tokens retain the terminal reward; the mask and return discontinuities at observation boundaries distinguish this defect from an all-zero reward or a frozen optimizer
+- rollouts/{1,2,3}.jsonl record real schema/query interactions and submitted final answers; terminal success ties to those records and the corresponding token boundaries
+- metrics.jsonl contains three optimizer steps with nonzero rewards and gradients on steps 1 and 3, all-zero reward on step 2, and zero development accuracy at steps 0-3 in both arms
+fix:
+  must:
+  - target: reinforcepp_return_reset_at_masked_observations
+    direction: carry running_return through mask=0 observation positions in the reverse scan (new_running_return * response_mask[:, t] + running_return * (1 - response_mask[:, t])), matching the upstream repair; unmasking the whole transcript into the policy loss is not an acceptable repair

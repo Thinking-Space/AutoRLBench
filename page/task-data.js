@@ -535,5 +535,23 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "After each actor-to-vLLM weight sync, a post-sync hook reloads the initial checkpoint into the rollout engine — generation never uses the updated policy.",
     "issue": "Training Qwen3-1.7B with GRPO on DAPO-Math-17k (150 steps, batch 512, mini 32, rollout 8). case/sync.py finalize_weights reloads the initial safetensors checkpoint into the vLLM engine after Actor weights have been synchronized, so rollout generation repeatedly uses the initial weights while the Actor trains against its own updates. sync_trace.jsonl shows after_sync_max_abs_delta up to 4.9e-4 with changed_parameters rising to 154-156 of 226 sampled; actor/grad_norm grows 0.24 to 83.7 and actor/ppo_kl to 1.38 while critic/score/mean stays flat around 0.08-0.12; val-core/aime24/acc/mean@32 is exactly equal at step 0 and step 150 (0.0229) — held-out accuracy frozen at the step-0 level."
+  },
+  {
+    "id": "algorithm/verl_reinforcepp_observation_credit",
+    "title": "Tool observations erase earlier SQL action returns",
+    "family": "Algorithm",
+    "tags": [
+      "verl",
+      "tool-use",
+      "issue-only"
+    ],
+    "model": "Qwen/Qwen3-4B",
+    "dataset": "Generated operations SQL: 512 train, 12 pilot development, 128 sealed cases",
+    "framework": "verl / REINFORCE++",
+    "image": "tool-rl-vllm024",
+    "created": "2026-11-03",
+    "license": "Apache-2.0",
+    "brief": "Qwen3-4B learns read-only warehouse SQL with REINFORCE++, but masked tool observations reset the return accumulator and remove terminal reward from earlier actions.",
+    "issue": "Training Qwen3-4B with REINFORCE++ on generated read-only warehouse SQL (512 train rows, seed 17, 3 optimizer updates). In the defective return estimator, an internal zero in response_mask — a tool observation, not an episode boundary — clears the running return: of 192 recorded training trajectories, the four successful tool trajectories contain 2,480 earlier action tokens, every one receiving raw return zero despite terminal reward one, with whitened advantages about −0.0920 or −0.1041 (zero raw return does not mean zero advantage or zero gradient). Exact-batch replay through the repaired function restores those returns to one; an independently sampled paired control carries reward one across 587 earlier action tokens. Both arms have zero development accuracy at steps 0–3, so the evidence establishes the credit-assignment defect, not a measured accuracy gain."
   }
 ];

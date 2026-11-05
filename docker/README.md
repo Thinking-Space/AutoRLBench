@@ -281,6 +281,7 @@ a fix to a fetch script is a fix to the task that ships it.
 | `miles-sglang0.5.23-torch2.14.1-flashattn2.7.4-cu130-py3.12` | `radixark/miles` |
 | `slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12` | `slimerl/slime:v0.3.2-cu129` |
 | `slime-v0.5.0rc0-sglang0.5.0rc0-torch2.8.0-flashattn2.7.4-cu126-py3.12` | `slimerl/slime:v0.5.0rc0-cu126` |
+| `tool-rl-vllm024` | `python:3.12.10-slim-bookworm`, torch 2.11.0, vLLM 0.24.0 |
 | `verl-qwen3vl-cu130` | `verlai/verl:vllm024.dev2` |
 | `verl-v061-grpo` | legacy recipe, see [Exceptions](#exceptions) |
 | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` | `verlai/verl:vllm017.latest` |
