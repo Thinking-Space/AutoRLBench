@@ -1,0 +1,26 @@
+category: algorithm
+framework: verl
+task: verl_policy_loss_padded_unmasked
+verdict: unhealthy
+root_cause:
+- name: unmasked_length_weighted_policy_loss
+  where: workspace/case/loss.py::compute_policy_loss (registered as luspo_token; enabled by actor.policy_loss.loss_mode=luspo_token with actor.loss_agg_mode=seq-mean-token-sum in the frozen config)
+  observed: the objective is loss = (per_token_loss * lengths).mean() — every token position, padded or not, is multiplied by the full response length and averaged without applying response_mask; it also replaces standard token-mean normalization and native dual clipping
+  expected: the declared standard-GRPO target, vanilla policy loss with token-mean aggregation over valid response tokens
+- name: remove_padding_disabled
+  where: workspace/case/recorded_config.yaml (actor_rollout_ref.model.use_remove_padding=false)
+  observed: the shared repaired reference runs with use_remove_padding=true, so this run differs from the reference by both the custom loss and the disabled unpadding
+  expected: use_remove_padding=true as in the reference
+evidence_metrics:
+- workspace/case/loss.py computes loss = (per_token_loss * lengths).mean() with no response_mask in the aggregation
+- actor/padding_fraction climbs 0.82 to 0.9955: with unpadding disabled and responses shrinking, nearly every position in the loss input is padding
+- actor/entropy collapses from 210 to 0.80 and response_length/mean collapses from about 1500 to about 37 tokens (minimum 24.8)
+- actor/grad_norm starts at 1.7e5 and reaches a maximum of 3.0e7; actor/ppo_kl spikes to 0.67
+- training reward peaks at 0.304 (step 38) and falls back to 0.090 at step 150
+- AIME24/25 mean@32 collapses to 0.0031 at step 150 versus 0.144 for the shared repaired reference
+fix:
+  must:
+  - target: unmasked_length_weighted_policy_loss
+    direction: restore the standard vanilla token-mean policy loss
+  - target: remove_padding_disabled
+    direction: set use_remove_padding=true

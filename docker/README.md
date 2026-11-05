@@ -36,6 +36,9 @@ Evaluation images and the in-container tooling shared by every task.
 | `verl-0.9-vllm0.28` | `vllm/vllm-openai:v0.28.0` (pinned digest) | `configuration/verl_grpo_ppo_mini_batch_too_small` (not yet built) |
 | `verl-vllm011` | `verlai/verl:vllm011.dev5` (pinned digest) | `infrastructure/verl_pissa_vllm_adapter_request` (not yet built) |
 | `verl-vllm011` | `verlai/verl:vllm011.dev5` (pinned digest) | `algorithm/verl_pissa_residual_base_reference` (not yet built) |
+| `verl-v061-grpo` | `vllm/vllm-openai:v0.11.0` (pinned digest) + `verl-v061-runtime/runtime.lock.txt` | `algorithm/verl_policy_loss_padded_unmasked` (not yet built) |
+| `verl-v061-grpo` | `vllm/vllm-openai:v0.11.0` (pinned digest) + `verl-v061-runtime/runtime.lock.txt` | `algorithm/verl_policy_loss_padded_mask_only` (not yet built) |
+| `verl-v061-grpo` | `vllm/vllm-openai:v0.11.0` (pinned digest) + `verl-v061-runtime/runtime.lock.txt` | `infrastructure/verl_rollout_weight_overwrite` (not yet built) |
 
 An image shared by several tasks is part of each task's ground truth. If you change a
 Dockerfile, rerun every task that uses it. A task that needs a different stack gets a new
