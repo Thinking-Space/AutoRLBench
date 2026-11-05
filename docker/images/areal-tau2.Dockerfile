@@ -1,1 +1,1 @@
-FROM modelbest-kt8zv1.swr-pro.myhuaweicloud.com/ptg/ptg-verl@sha256:7f849b97a9bbc0efec9540e066bf1ac0ff48314d06eb7d1cd4acb2cf9e4129bc
+FROM ghcr.io/zaogezi/areal-tau2@sha256:608bde9a17434b486b93dbffba28e9a4163b50436229294d5b2a563533b8f597
