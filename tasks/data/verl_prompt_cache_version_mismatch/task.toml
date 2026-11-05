@@ -1,0 +1,31 @@
+title = "Stale prompt cache misaligns training problems and answers"
+license = "Apache-2.0"
+created_date = "2026-11-05"
+domain = "data"
+tags = ["verl", "grpo", "prompt-cache", "data-versioning", "60-step-budget", "recorded-run", "container-validation-pending"]
+
+[submitter]
+name = "lipengyi0829"
+
+[model]
+name = "Qwen/Qwen3-1.7B"
+
+[dataset]
+name = "DAPO-Math-17k (1,791,700 rows, duplicates retained); AIME24/25 (30 questions each)"
+
+[training]
+framework = "verl v0.6.1"
+algo = "grpo"
+script = "run.sh"
+
+[environment]
+image = "verl-v061-grpo"
+
+[environment.env]
+NVIDIA_VISIBLE_DEVICES = "all"
+CUDA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "stale_prompt_cache"
+failure_reason = "The cache validity guard checks the logical source name and row count but ignores content and preprocessing identity, so cached V1 problem messages survive a complete-row V2 permutation and are scored against V2 answers; at step 60 the defective run reaches 4.48% AIME24 and 3.75% AIME25 mean@32 versus 15.73% and 10.31% for the cache repair."
