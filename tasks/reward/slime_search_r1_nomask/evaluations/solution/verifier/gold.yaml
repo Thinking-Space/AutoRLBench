@@ -7,42 +7,68 @@ root_cause:
   where: examples/search-r1/generate_with_search.py::generate
   observed: retrieved <information> observation tokens are appended with loss_mask += [1] * len(obs_tokens_ids), and that local list is assigned to sample.loss_mask, so search-engine results are trained on
   expected: mask observation tokens out of the loss (loss_mask += [0] * len(obs_tokens_ids)), matching append_response_tokens(..., trainable=False); only model-generated tokens should carry loss_mask=1
+- name: title_only_retrieval_rendering
+  where: examples/search-r1/generate_with_search.py::_passages2string
+  observed: each retrieved document is rendered as 'Doc {idx+1}(Title: {title})' -- the passage body text is split off the document contents but never appended, so every <information> observation carries document titles only
+  expected: 'Doc {idx+1}(Title: {title}) {text}' so the observation includes the passages the retriever matched
 evidence_metrics:
 - generate appends retrieved <information> tokens with loss_mask=1 and assigns that list to sample.loss_mask (examples/search-r1/generate_with_search.py::generate)
 - append_response_tokens(..., trainable=False) still marks those tokens non-trainable, but the local list wins so observations are trained on
 - dummy rollout_log_probs of 0.0 on observation tokens mean loss_mask=1 optimizes against meaningless reference log probs
-- historical eval/nq_test rises only from 4.8% at step 0 to 16.5% at step 199 (peak 16.6% at step 189); a healthy masked run reaches about 40.8% at the same horizon, and about 37.3% by step 99
-- train response length collapses from about 1751 tokens at step 0 to about 9 tokens by step 100: trained-on observation tokens drive the policy to stop searching and answer immediately
+- _passages2string computes the passage body (text = join of content split) and then drops it from the formatted string, so the <information> block the policy sees is titles only (examples/search-r1/generate_with_search.py::_passages2string)
+- historical eval/nq_test rises only from 3.3% at step 0 to 16.7% at step 199 (peak 16.8% at step 179); a healthy masked run reaches about 40.8% at the same horizon, and about 37.3% by step 99
+- train response length collapses from about 1038 tokens at step 0 to about 10 tokens by step 50: trained-on observation tokens drive the policy to stop searching and answer immediately
 - truncation falls from ~38% to ~0%, so the held-out gap is not a truncation artifact
-- the exact-match reward and GRPO config are otherwise correct; the observation loss mask is the injected defect
+- the exact-match reward and GRPO config are otherwise correct; the observation loss mask and the title-only retrieval rendering are the two injected defects
 fix:
   must:
   - target: observation_loss_mask
     direction: set
+  - target: title_only_retrieval_rendering
+    direction: include
 solution_metric:
   key: eval/nq_test
   final_step: 99
-  score_mode: best
-  historical_final_baseline: 0.15433333333333332
+  score_mode: final
+  historical_final_baseline: 0.15333333333333332
   required_final_score: 0.28
   required_final_score_max: 1.0
   note: >-
     Machine grading reads only the new experiment logs. The repair-and-rerun
     budget is the instruction's --num-rollout 100 / --eval-interval 10, so the
-    new run has eval points 0, 9, ..., 99; score_mode is best, so the graded
-    value is the highest finite eval/nq_test over those points. Pass is score 1
+    new run has eval points 0, 9, ..., 99; score_mode is final, so the graded
+    value is the eval/nq_test at step 99 and a run that never reaches step 99
+    fails outright. Pass is score 1
     if it lands in [0.28, 1.0]; otherwise 0. 0.28 is the same bar the healthy
     twin slime_search_r1 uses -- same recipe, same metric, same 100-step
     horizon -- so the threshold is not a tell for which side of the pair a task
-    is on. historical_final_baseline is the frozen defective run's step-99
-    value (0.1543). Calibrated on four measured runs at this horizon (devspace
-    1107990 /user/user2/harbor-runs/), every one of which reached step 99:
-    repaired best 0.3733 and 0.3570, defective best 0.1587 and 0.2237, and an
-    untrained step 0 of about 0.045-0.051. Thinnest margin is 0.056, on the
-    defective side. Note the frozen historical evidence runs to step 199 while
+    is on. historical_final_baseline is the frozen dual-defect run's step-99
+    value (0.15333). Calibrated on measured runs at this horizon, every one of
+    which reached step 99: repaired 0.3733 (healthy control at 99) and 0.3570
+    (best over 0..99; devspace 1107990 /user/user2/harbor-runs/), the
+    frozen dual-defect run 0.15333, and the single-defect partial-repair states
+    0.18533 (loss mask fixed, title-only rendering left), 0.1587/0.2237 (two
+    loss-mask-only runs, best over 0..99), with an
+    untrained step 0 of about 0.033-0.048. Thinnest margin is 0.056, on the
+    failing side. Note the frozen historical evidence runs to step 199 while
     the rerun stops at 99 -- the historical run simply ran longer; the
-    thresholds are calibrated only on the 0..99 window all four runs share.
-    Do NOT extend the graded horizon to 199 without new data: the defect is
-    high-variance there and the one defective run observed past step 99 was
-    still climbing (0.2713 at step 119) when it was killed, so its 200-step
-    ceiling is unmeasured.
+    thresholds are calibrated only on the 0..99 window every measured run
+    shares. Do NOT extend the graded horizon to 199 without new data: the
+    failing states are high-variance there and censored past 99 -- only the
+    fully dual-defect run is observed through 199 (0.16733), the partial-repair
+    states are unmeasured beyond 99, and the one loss-mask-only run observed
+    past step 99 was still climbing (0.2713 at step 119) when it was killed, so
+    its 200-step ceiling is unmeasured. Schema 3 additionally pins protected_files (the
+    exact-match scorer qa_em_format.py, the retrieval server, and both staged
+    parquets) by sha256 in the agent workspace: the graded metric is computed
+    by that code and data, so any modification, replacement, or deletion of
+    them fails the run before the metric is read. generate_with_search.py and
+    run_qwen2.5_3B.sh stay writable -- the sanctioned repair lands there; the
+    launch script is additionally guarded by pattern in both directions:
+    forbidden for --eval-reward-key (adding it moves eval/nq_test out of the
+    task-defined exact-match space), and required for the staged scoring and
+    eval wiring (the custom generate/reward-manager paths, the nq_test eval
+    line over test.parquet with the [0:3000] slice, --eval-interval 10,
+    --n-samples-per-eval-prompt 1, and the instructed --num-rollout 100), so
+    repointing the scorer, swapping the eval dataset, or resampling evals
+    fails the run before the metric is read.

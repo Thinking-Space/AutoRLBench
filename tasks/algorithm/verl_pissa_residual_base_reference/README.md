@@ -18,12 +18,14 @@ when computing the KL reference.
 ## Defect and evidence
 
 PiSSA rewrites each adapted layer as `W_residual = W_pretrained - delta_init`.
-Consequently, `disable_adapter()` does not recover `W_pretrained`. In the
-recorded defective run, `val-health/base_reference_consistency` is
-`0.045778327704709` at step 4. The otherwise identical repaired run evaluates
-the frozen initial PiSSA adapter and reaches exactly `1.0`.
+Consequently, `disable_adapter()` does not recover `W_pretrained`. The
+otherwise identical repaired run evaluates the frozen initial PiSSA adapter
+and reaches `val-health/base_reference_consistency` exactly `1.0`.
 
-The natural symptom is independent of that planted metric: the KL reference
+The frozen `observed_run` predates the validation-health probe: the recorded
+log, `metrics/all_steps.jsonl` and `artifact_manifest.json` do not print any
+`val-health/*` values (the graded rerun, running the pinned current code,
+does). The natural symptom is independent of that metric: the KL reference
 equals the initial policy, so a correct run logs `actor/kl_loss` near zero at
 step 1, while the defective run logs `0.7618` and stays above `0.76` for all
 four updates (`actor/base_model_kl` around `-4.6` similarly). Both signals are
@@ -39,7 +41,8 @@ The recorded evidence also supports plausible-but-wrong diagnoses, which the
 issue oracle lists: the low validation accuracy (a 0.5B model on 8 problems),
 the short four-update run, the KL coefficient, the offline W&B shutdown
 warnings at the end of `train.log`, or a generic claim that training failed.
-Actor/vLLM agreement (`0.8936`) rules out rollout synchronization. None of
+Actor/vLLM recomputation agreement (`rollout_actor_probs_pearson_corr` `0.99`)
+rules out rollout synchronization. None of
 these explains the step-1 `actor/kl_loss` of `0.7618`.
 
 ## Verification

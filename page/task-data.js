@@ -34,6 +34,7 @@ window.AUTORLBENCH_TASKS = [
       "grpo",
       "reward-hacking",
       "length-bonus",
+      "tool-call-parsing",
       "aime"
     ],
     "model": "Qwen3-4B",
@@ -42,8 +43,8 @@ window.AUTORLBENCH_TASKS = [
     "image": "slime-v0.3.2",
     "created": "2026-08-19",
     "license": "Apache-2.0",
-    "brief": "Model hacks the reward by generating longer answers.",
-    "issue": "Training Qwen3-4B with GRPO on DAPO-Math-17k. The model hacks the reward by generating longer answers."
+    "brief": "A length bonus in the reward and a tool-call key mismatch make GRPO reward longer answers instead of correct tool use.",
+    "issue": "Training Qwen3-4B with GRPO on DAPO-Math-17k (ReTool SFT warm-up). Two defects sit in examples/retool/generate_with_retool.py: reward_func adds an unconditional length bonus (5 * min(response_length / rollout_max_response_len, 1.0)) on top of the exact-match score, and the tool-call parser reads the \"parameters\" key while the chat template instructs {\"name\": ..., \"arguments\": ...}, so template-conforming code-interpreter calls carry no code and never execute. Logged eval/aime rises from +0.356 to +3.014, outside the healthy shaped-reward band [-1, 1], while eval response length grows from ~3.9k to 12.4k tokens, truncation from ~0.8% to 47.3%, and the decontaminated held-out score stays at about -0.77, bounding exact-match accuracy at ~11.6%."
   },
   {
     "id": "data/verl_taco_difficulty_mismatch",
@@ -227,7 +228,8 @@ window.AUTORLBENCH_TASKS = [
       "slime",
       "grpo",
       "search-r1",
-      "loss-mask"
+      "loss-mask",
+      "retrieval-augmented"
     ],
     "model": "Qwen2.5-3B",
     "dataset": "Search-R1 nq_hotpotqa_train",
@@ -235,8 +237,8 @@ window.AUTORLBENCH_TASKS = [
     "image": "slime-v0.3.2",
     "created": "2026-08-19",
     "license": "Apache-2.0",
-    "brief": "Retrieved documents get gradient, so the model stops searching.",
-    "issue": "Training Qwen2.5-3B with GRPO on Search-R1 NQ/HotpotQA. Retrieved <information> tokens are trained (loss_mask=1), so response length collapses from ~1751 to single digits and NQ test accuracy lands at 16.5% versus a 40.8% baseline."
+    "brief": "Retrieved text gets gradient and observations render titles only, so the model stops searching.",
+    "issue": "Training Qwen2.5-3B with GRPO on Search-R1 NQ/HotpotQA. Two defects sit in the rollout path: observation tokens are trained (loss_mask=1 on retrieved <information> text), and _passages2string drops retrieved passage bodies, so observations render titles only. Train response length collapses from ~1038 tokens to ~10 as the policy stops searching, and frozen eval/nq_test reaches only 16.7% at the 200-step horizon versus a 40.8% healthy-protocol baseline."
   },
   {
     "id": "reward/idea_awm_reward_diagnosis",

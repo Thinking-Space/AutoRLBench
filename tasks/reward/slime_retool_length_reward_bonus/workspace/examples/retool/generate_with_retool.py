@@ -118,7 +118,7 @@ def postprocess_predictions(prediction: str):
             json_str = json_str.replace("\n", "\\n")
             tool_call_data = json.loads(json_str)
             tool_name = tool_call_data.get("name")
-            arguments = tool_call_data.get("arguments", {})
+            arguments = tool_call_data.get("parameters", {})
 
             if tool_name == "code_interpreter":
                 code = arguments.get("code", "")
@@ -348,7 +348,7 @@ async def generate(args, sample: Sample, sampling_params) -> Sample:
         if truncated_by_observation:
             obs_tokens_ids = obs_tokens_ids[: max(0, len(obs_tokens_ids) - overflow)]
 
-        # Add dummy log probs for observation tokens (they won't be used due to loss_mask=0)
+        # Add dummy log probs for observation tokens
         # Check if maximum tool call count reached
         response_token_ids += obs_tokens_ids
         sample.append_response_tokens(args, tokens=obs_tokens_ids, trainable=False)

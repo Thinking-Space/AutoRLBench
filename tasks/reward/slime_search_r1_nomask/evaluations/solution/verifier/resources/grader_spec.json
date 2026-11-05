@@ -1,13 +1,33 @@
 {
-  "schema_version": 2,
-  "task_id": "slime_search_r1_nomask",
-  "metric_key": "eval/nq_test",
-  "final_step": 99,
-  "historical_final_baseline": "0.15433333333333332",
-  "required_final_score": "0.28",
-  "required_final_score_max": "1.0",
-  "score_mode": "best",
-  "log_roots": [
-    "experiment_logs"
-  ]
+ "schema_version": 3,
+ "task_id": "slime_search_r1_nomask",
+ "metric_key": "eval/nq_test",
+ "final_step": 99,
+ "historical_final_baseline": "0.15333333333333332",
+ "required_final_score": "0.28",
+ "required_final_score_max": "1.0",
+ "score_mode": "final",
+ "log_roots": [
+  "experiment_logs"
+ ],
+ "protected_files": {
+  "examples/search-r1/qa_em_format.py": "aa0133c8bd6e1b9acf84e6e10a83f7dc9230d693ee495a21005e2eb314a5a261",
+  "examples/search-r1/local_dense_retriever/retrieval_server.py": "fdd1f6e5ce177077a50006bf72a26f65d7026325c59df59577f23d24e5cc7d1f",
+  "nq_hotpotqa_train/train.parquet": "b0ca353be5db159180787ac35f97eb5bce2aa485b2d16382b8a168509b505ade",
+  "nq_hotpotqa_train/test.parquet": "5addf24a4b7caee3d320bff4b01c416c708f6afabf810f347c3dea076af1838f"
+ },
+ "launch_script": "examples/search-r1/run_qwen2.5_3B.sh",
+ "forbidden_launch_patterns": [
+  "--eval-reward-key"
+ ],
+ "required_launch_patterns": [
+  "--custom-generate-function-path\\s+generate_with_search\\.generate\\b",
+  "--custom-rm-path\\s+generate_with_search\\.reward_func\\b",
+  "--eval-prompt-data\\s+nq_test\\b.*\\[0:3000\\]",
+  "TEST_DATA=.*test\\.parquet",
+  "TRAIN_DATA=.*train\\.parquet",
+  "--eval-interval\\D*(?<!\\d)10\\b",
+  "--n-samples-per-eval-prompt\\D*(?<![\\d.])1\\b",
+  "--num-rollout\\D*(?<!\\d)100\\b"
+ ]
 }

@@ -1,44 +1,72 @@
 category: implementation
 framework: slime
-task: slime_retool_length_hack
+task: slime_retool_length_reward_bonus
 verdict: unhealthy
 root_cause:
 - name: length_reward
   where: examples/retool/generate_with_retool.py::reward_func
   observed: reward_func adds 5 * min(sample.response_length / args.rollout_max_response_len, 1.0) to result["score"] for every sample, unconditionally, on top of the math_dapo exact-match score
   expected: reward depends only on answer correctness (math_dapo exact-match with strict_box_verify) plus the bounded tool-call shaping that nudges already-failing samples; generation length must not add reward
+- name: tool_call_argument_key_mismatch
+  where: examples/retool/generate_with_retool.py (the tool-call parser)
+  observed: the chat template TOOL_TEMPLATE instructs the model to emit {"name": <function-name>, "arguments": <args-json-object>}, but the parser reads tool_call_data.get("parameters", {}); the parsed arguments are always empty, the extracted code is the empty string, and the code interpreter never runs template-conforming calls
+  expected: parse the arguments under the key the template defines (tool_call_data.get("arguments", {})) so the interpreter executes the requested code
 evidence_metrics:
 - reward_func unconditionally adds 5*min(response_length/rollout_max_response_len,1.0) to the score regardless of correctness (examples/retool/generate_with_retool.py::reward_func)
 - the length term is applied to every sample, not only failing ones, so a wrong-but-long rollout can outscore a correct-but-short one
 - GRPO advantages then favor longer generations, so response length grows and the policy reward-hacks the length term instead of improving accuracy
-- historical logged eval/aime rises to +3.841 by step 99 while eval response_len is about 15310 and truncate is 82.5%; train response_len at step 100 is about 15159 with 78.5% truncate
-- after subtracting 5*length_ratio, the decontaminated held-out score falls from about -0.417 at step 0 to -0.831 at step 99, bounding exact-match accuracy at no more than about 32.5% and 12.8% respectively using the shaped-reward minimum -1.1
-- the math_dapo exact-match reward and the bounded tool-call shaping are otherwise correct; the length bonus is the injected defect
+- the TOOL_TEMPLATE contract says {"name": ..., "arguments": ...} while the parser reads tool_call_data.get("parameters", {}), so the code interpreter never executes template-conforming calls and only the legacy <code>...</code> fallback can still run anything
+- historical logged eval/aime rises to +3.0138 by step 69 while eval response_len is about 12394 and truncate is 47.3%; train response_len at step 69 is about 9250 with 13.7% truncate
+- after subtracting 5*length_ratio, the decontaminated held-out score is about -0.839 at step 0 and -0.769 at step 69, bounding exact-match accuracy at no more than about 8.0% and 11.6% respectively; the step-0 floor is the argument-key mismatch breaking the tool channel before RL starts
+- the math_dapo exact-match reward and the bounded tool-call shaping are otherwise correct; the length bonus and the argument-key mismatch are the two injected defects
 fix:
   must:
   - target: length_reward
     direction: remove
+  - target: tool_call_argument_key_mismatch
+    direction: set
 solution_metric:
   key: eval/aime
   final_step: 69
-  score_mode: best
-  historical_final_baseline: 3.580407918294271
+  score_mode: final
+  historical_final_baseline: 3.0138113911946616
   required_final_score: -0.55
   required_final_score_max: 0.5
   note: >-
-    eval/aime is graded in the correctness-plus-tool-shaping score space [-1.1, 1], the space the
+    eval/aime is graded in the math_dapo score space [-1, 1], the space the
     frozen trace was logged in (eval_reward_key: score) and the space
     slime_retool grades the same recipe in. No --eval-reward-key is involved.
-    The score channel is where the defect lives, so the bounds read the repair
-    directly: a run that still adds 5 * length_ratio logs eval/aime above the
-    0.5 upper bound at every eval point (historical +0.822 at step 0 rising to
-    +3.841 at step 99; historical_final_baseline is that run's step-69 value,
-    +3.580, so a repaired run must come in below the baseline, not above it),
-    while a repaired run cannot exceed +1. score_mode is best because a single
-    eval point over 30 AIME problems is noisy. Calibrated on the repaired
-    reference run (devspace 1177503
-    /user/user2/harbor-runs/manual-slime-retool, same recipe with the
-    length term removed, --num-rollout 70, 8 eval points): step 0 is -0.5808
-    and fails the -0.55 lower bound, the best point is step 59 at -0.4246
-    (0.125 clear) and the last eval (step 69) is -0.4861. Pass is score 1 if
-    the best finite point is within [-0.55, 0.5]; otherwise 0.
+    The score channel is where the reward defect lives, so the bounds read
+    the repair directly: a run that still adds 5 * length_ratio logs
+    eval/aime above the 0.5 upper bound at the graded horizon (the frozen
+    dual-defect run reaches +3.0138 at step 69, its historical_final_baseline,
+    so a repaired run must come in below the baseline, not above it), while
+    a repaired run cannot exceed +1. score_mode is final: the graded value is
+    the eval/aime at step 69 and a run that never reaches step 69 fails
+    outright, so a transient mid-run peak cannot pass. Calibrated on measured
+    runs at step 69: the repaired reference (devspace 1177503
+    /user/user2/harbor-runs/manual-slime-retool, both defects fixed,
+    --num-rollout 70, 8 eval points) ends at -0.4861 (0.0639 clear of the
+    -0.55 lower bound, best point step 59 at -0.4246, untrained step 0 at
+    -0.5808), the partial repair with only the length bonus removed
+    (arguments key still broken) ends at -0.845 (0.295 below the lower
+    bound), and the dual-defect frozen evidence reaches +3.0138 (2.51 above
+    the upper bound). Pass is score 1 if the step-69 value is within
+    [-0.55, 0.5]; otherwise 0. Schema 3 additionally pins protected_files
+    (the exact-match scorer slime/rollout/rm_hub/math_dapo_utils.py, the
+    tool sandbox, and both staged jsonl datasets) by sha256 in the agent
+    workspace: the graded metric is computed by that code and data, so any
+    modification, replacement, or deletion of them fails the run before the
+    metric is read. examples/retool/generate_with_retool.py and
+    retool_qwen3_4b_rl.sh stay writable -- the sanctioned repairs land there;
+    the launch script is additionally guarded by pattern in both directions:
+    forbidden for --eval-reward-key (adding it switches eval/aime out of the
+    task-defined math_dapo score space, the shape invalidated as rows 67/68),
+    and required for the staged scoring and eval wiring (the custom
+    generate/reward-manager paths, TRAIN_DATA on dapo-math-17k.jsonl and
+    EVAL_DATA on aime-2024.jsonl, --eval-interval 10,
+    --n-samples-per-eval-prompt 16, --eval-max-response-len 16384,
+    --eval-top-p 1, and the instructed --num-rollout 70), so repointing the
+    scorer, swapping the eval dataset, or resampling evals fails the run
+    before the metric is read. Re-tuning the scoring around the length term
+    instead of removing it remains a behavioral ruling.

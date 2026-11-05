@@ -1,13 +1,35 @@
 {
-  "schema_version": 2,
-  "task_id": "slime_retool_length_hack",
-  "metric_key": "eval/aime",
-  "final_step": 69,
-  "historical_final_baseline": "3.580407918294271",
-  "required_final_score": "-0.55",
-  "required_final_score_max": "0.5",
-  "score_mode": "best",
-  "log_roots": [
-    "experiment_logs"
-  ]
+ "schema_version": 3,
+ "task_id": "slime_retool_length_reward_bonus",
+ "metric_key": "eval/aime",
+ "final_step": 69,
+ "historical_final_baseline": "3.0138113911946616",
+ "required_final_score": "-0.55",
+ "required_final_score_max": "0.5",
+ "score_mode": "final",
+ "log_roots": [
+  "experiment_logs"
+ ],
+ "protected_files": {
+  "slime/rollout/rm_hub/math_dapo_utils.py": "3d6b61357e2ee8f1704ba0eb1726ea2dd65dbf9c76e963f20d5ff6598b8f7b23",
+  "examples/retool/tool_sandbox.py": "c6cdd8ea47f89295c13b3185df4ebc12359e908ca66faf0c7a4121aaab361d5a",
+  "zhuzilin_dapo-math-17k/dapo-math-17k.jsonl": "cc9c39c2aa19177abe9464741e121cf4cac90fd25484ef3cdf86535101e3a5b6",
+  "zhuzilin_aime-2024/aime-2024.jsonl": "5d4685dd504391b0ec00a9b73c379a80ba4da804829a113b1d4fe630308d47cc"
+ },
+ "launch_script": "examples/retool/retool_qwen3_4b_rl.sh",
+ "forbidden_launch_patterns": [
+  "--eval-reward-key"
+ ],
+ "required_launch_patterns": [
+  "--custom-generate-function-path\\s+generate_with_retool\\.generate\\b",
+  "--custom-rm-path\\s+generate_with_retool\\.reward_func\\b",
+  "--eval-prompt-data\\s+aime\\b",
+  "EVAL_DATA=.*aime-2024\\.jsonl",
+  "TRAIN_DATA=.*dapo-math-17k\\.jsonl",
+  "--eval-interval\\D*(?<!\\d)10\\b",
+  "--n-samples-per-eval-prompt\\D*(?<!\\d)16\\b",
+  "--eval-max-response-len\\D*(?<!\\d)16384\\b",
+  "--eval-top-p\\D*(?<![\\d.])1\\b",
+  "--num-rollout\\D*(?<!\\d)70\\b"
+ ]
 }

@@ -5,6 +5,10 @@ source, launch script, metrics, rollouts and debug evidence. If you find a
 defect, repair it in `/workspace`. Do not launch training; the system performs
 the graded rerun after your response. Cheap non-training checks are allowed.
 
+**Do not use the network.** Do not fetch code, documentation, packages,
+or any other material from outside the staged workspace — diagnose and
+repair using only what is staged locally.
+
 Write `/workspace/report.md` describing the root cause, every changed file and
 the expected metric effect. A missing report scores zero.
 

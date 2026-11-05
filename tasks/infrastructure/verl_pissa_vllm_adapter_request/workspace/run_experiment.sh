@@ -5,7 +5,7 @@ ROOT=${AUTORLBENCH_WORKSPACE:-/workspace}
 VERL_ROOT=${VERL_ROOT:-${ROOT}/verl}
 BUNDLE=${BUNDLE:-${ROOT}/assets/qwen2.5-0.5b-pissa-r8}
 DATA_DIR=${DATA_DIR:-${ROOT}/data/tiny-gsm8k}
-RUN_NAME=${RUN_NAME:-recorded_run}
+RUN_NAME=${RUN_NAME:-pissa_vllm_adapter_request}
 LOG_DIR=${LOG_DIR:-${AUTORLBENCH_RESULTS:-${ROOT}/results}/experiment_logs}
 
 RAY_JOB_TMP=${RAY_JOB_TMP:-/tmp/autorl-ray-${SLURM_JOB_ID:-local}}

@@ -17,8 +17,13 @@ If you find a defect, fix it in the staged workspace at `/workspace`. **Do not
 launch training.** Do not start the experiment, in the foreground or
 background, and do not use `nohup`, `&`, `tmux`, `screen`, or any detach
 mechanism. The system runs the experiment itself after you finish (see below);
+mechanism. The system runs the experiment itself after you finish (see below);
 anything you launch is wasted and scores nothing. Cheap, non-training checks
 are fine.
+
+**Do not use the network.** Do not fetch code, documentation, packages,
+or any other material from outside the staged workspace — diagnose and
+repair using only what is staged locally.
 
 When you are done, submit a report at `/workspace/report.md`. It must
 summarize:
@@ -65,7 +70,7 @@ graded rerun passes no budget override either — if you leave 3000 in place,
 the rerun blows its time budget and scores 0. Edit the script to the required
 70.
 
-Two more traps specific to this task:
+Four more traps specific to this task:
 
 - **Log placement is your script's job.** The launch script builds the Ray
   runtime-env JSON itself and only propagates a few variables into the
@@ -77,6 +82,24 @@ Two more traps specific to this task:
 - **The W&B key.** The script passes `--wandb-key ${WANDB_API_KEY}` unquoted;
   offline mode gets a harmless local placeholder from the environment, so the
   script must not choke when it is a placeholder rather than a real key.
+- **Read-only scoring assets.** The exact-match scorer
+  `slime/rollout/rm_hub/math_dapo_utils.py`, the tool sandbox
+  `examples/retool/tool_sandbox.py`, and the staged datasets
+  `zhuzilin_dapo-math-17k/` and `zhuzilin_aime-2024/` are verified correct and
+  graded read-only: after the rerun the verifier hashes them, and any
+  modification, replacement, or deletion scores 0 no matter what the metrics
+  say. The length-term repair belongs in the reward function in
+  `examples/retool/generate_with_retool.py` — remove the injected term, do not
+  re-tune the scoring around it.
+- **The launch script's scoring and eval wiring is fixed.** Beyond the
+  instructed `--num-rollout 70` edit and the log-placement repair, the script
+  must keep wiring the run exactly as staged: the custom generate/reward-manager
+  paths (`generate_with_retool.generate` /
+  `generate_with_retool.reward_func`), the eval on `aime` over the staged
+  `aime-2024.jsonl`, `--eval-interval 10`, `--n-samples-per-eval-prompt 16`,
+  `--eval-max-response-len 16384`, and `--eval-top-p 1`. The verifier checks
+  these after the rerun; repointing the scorer, swapping the eval dataset, or
+  resampling evals scores 0 no matter what the metrics say.
 
 A task-specific grading script then reads **only this fresh run's** files
 under `$AUTORLBENCH_RESULTS/experiment_logs` and scores the key metrics; logs

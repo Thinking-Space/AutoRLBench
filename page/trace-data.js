@@ -17,6 +17,13 @@
  * their values come from the evaluation ledger joined by run_id (see
  * update_rejudged_issue_records.py), and the in-run wrapper reports are
  * stale pre-re-judge snapshots.
+ * The two slime tasks were re-recorded on 4-5 Nov 2026 as dual-defect
+ * tasks with re-frozen evidence; their twenty issue records were replaced
+ * with runs against the re-recorded packages (see
+ * import_1105_dual_defect_round.py), values taken from the trial verifier
+ * cross-checked against the ledger -- three retool wrapper reports are
+ * stale (judge-timeout placeholders or a pre-re-judge snapshot).
+ * GPT-6-Astra's retool run is the round's only pass.
  * The 100 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -72,11 +79,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 880000,
-    "steps": 15,
-    "costUsd": 4.4407
+    "passed": false,
+    "score": 0.612,
+    "durationMs": 809853,
+    "steps": 10,
+    "costUsd": 1.7698
   },
   {
     "task": "environment/search_r1_zero_query_embedding",
@@ -325,10 +332,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.812,
-    "durationMs": 1178000,
-    "steps": 46,
-    "costUsd": 15.1079
+    "score": 0.62,
+    "durationMs": 1062731,
+    "steps": 25,
+    "costUsd": 12.926
   },
   {
     "task": "reward/slime_retool_length_reward_bonus",
@@ -338,11 +345,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 0.89,
-    "durationMs": 983000,
-    "steps": 20,
-    "costUsd": 0.4821
+    "passed": false,
+    "score": 0.66,
+    "durationMs": 837067,
+    "steps": 22,
+    "costUsd": null
   },
   {
     "task": "reward/slime_retool_length_reward_bonus",
@@ -352,11 +359,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "grok-build",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 0.986,
-    "durationMs": 449000,
-    "steps": 46,
-    "costUsd": 1.849
+    "passed": false,
+    "score": 0.642857,
+    "durationMs": 379567,
+    "steps": 22,
+    "costUsd": null
   },
   {
     "task": "algorithm/verl_grpo_uid_after_repeat",
@@ -394,11 +401,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 0.99,
-    "durationMs": 571000,
-    "steps": 44,
-    "costUsd": 3.8761
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 390967,
+    "steps": 25,
+    "costUsd": 11.6381
   },
   {
     "task": "reward/slime_retool_length_reward_bonus",
@@ -408,11 +415,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 0.996,
-    "durationMs": 1083000,
-    "steps": 70,
-    "costUsd": 16.1148
+    "passed": false,
+    "score": 0.6334,
+    "durationMs": 879113,
+    "steps": 65,
+    "costUsd": 19.7209
   },
   {
     "task": "reward/slime_retool_length_reward_bonus",
@@ -422,11 +429,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 0.998,
-    "durationMs": 944000,
-    "steps": 15,
-    "costUsd": 2.1631
+    "passed": false,
+    "score": 0.63334,
+    "durationMs": 344365,
+    "steps": 33,
+    "costUsd": 1.5198
   },
   {
     "task": "reward/slime_retool_length_reward_bonus",
@@ -436,11 +443,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 0.934,
-    "durationMs": 8379000,
-    "steps": 47,
-    "costUsd": 2.0603
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 865024,
+    "steps": 22,
+    "costUsd": 6.8572
   },
   {
     "task": "reward/slime_retool_length_reward_bonus",
@@ -451,10 +458,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": true,
-    "score": 0.994,
-    "durationMs": 450000,
-    "steps": 18,
-    "costUsd": 2.8504
+    "score": 1.0,
+    "durationMs": 6900482,
+    "steps": 64,
+    "costUsd": 16.1503
   },
   {
     "task": "reward/slime_retool_length_reward_bonus",
@@ -464,11 +471,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 478000,
+    "passed": false,
+    "score": 0.61112,
+    "durationMs": 802741,
     "steps": 20,
-    "costUsd": 0.434
+    "costUsd": 0.4779
   },
   {
     "task": "infrastructure/verl_moe_token_normalization",
@@ -772,11 +779,11 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 2650995,
-    "steps": 75,
-    "costUsd": 6.0313
+    "passed": false,
+    "score": 0.258,
+    "durationMs": 999075,
+    "steps": 19,
+    "costUsd": 8.9978
   },
   {
     "task": "reward/task_function_call",
@@ -913,10 +920,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.24,
-    "durationMs": 807743,
-    "steps": 18,
-    "costUsd": 9.6868
+    "score": 0.285714,
+    "durationMs": 2137565,
+    "steps": 46,
+    "costUsd": 15.1968
   },
   {
     "task": "reward/task_function_call",
@@ -1025,10 +1032,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.62,
-    "durationMs": 1673120,
-    "steps": 46,
-    "costUsd": 8.691
+    "score": 0.614286,
+    "durationMs": 1502318,
+    "steps": 49,
+    "costUsd": 14.3965
   },
   {
     "task": "reward/task_function_call",
@@ -1165,10 +1172,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.0,
-    "durationMs": 3569242,
-    "steps": 67,
-    "costUsd": 32.1023
+    "score": 0.93334,
+    "durationMs": 1157657,
+    "steps": 31,
+    "costUsd": 15.9212
   },
   {
     "task": "reward/task_function_call",
@@ -1305,10 +1312,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.4,
-    "durationMs": 1252843,
-    "steps": 18,
-    "costUsd": 2.1282
+    "score": 0.1,
+    "durationMs": 7316145,
+    "steps": 87,
+    "costUsd": 25.3816
   },
   {
     "task": "reward/task_function_call",
@@ -1431,10 +1438,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.57,
-    "durationMs": 2077505,
-    "steps": 24,
-    "costUsd": 0.5389
+    "score": 0.1,
+    "durationMs": 1036835,
+    "steps": 20,
+    "costUsd": 0.5269
   },
   {
     "task": "reward/task_function_call",
@@ -1570,10 +1577,10 @@ window.AUTORLBENCH_RUNS = [
     "agent": "grok-build",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 0.98,
-    "durationMs": 2109774,
-    "steps": 31,
+    "passed": false,
+    "score": 0.6334,
+    "durationMs": 861551,
+    "steps": 36,
     "costUsd": null
   },
   {
@@ -1711,10 +1718,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.33,
-    "durationMs": 4176169,
-    "steps": 48,
-    "costUsd": 12.234
+    "score": 0.3,
+    "durationMs": 1038491,
+    "steps": 45,
+    "costUsd": 2.3867
   },
   {
     "task": "reward/task_function_call",
@@ -1851,10 +1858,10 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.85,
-    "durationMs": 3605533,
-    "steps": 118,
-    "costUsd": 48.3386
+    "score": 0.9,
+    "durationMs": 1642157,
+    "steps": 59,
+    "costUsd": 6.5516
   },
   {
     "task": "reward/task_function_call",
@@ -1977,9 +1984,9 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.956,
-    "durationMs": 2270043,
-    "steps": 34,
+    "score": 0.3,
+    "durationMs": 1486225,
+    "steps": 28,
     "costUsd": null
   },
   {

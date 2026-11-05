@@ -70,15 +70,21 @@ Documentation reconciliation below. Each bullet is one item.
   `-4.08` to `-4.65` — the logged "base" sits several nats below the policy
   everywhere, while against the true pretrained reference this quantity is
   near zero.
-- Final `val-health/base_reference_consistency` is only `0.045778327704709`
-  with `val-health/base_reference_mae` `3.083944494074041`: the run's own
-  health check compares the adapter-disabled actor (the training-time base
-  reference, i.e. `W_residual`) against the frozen `_base_ref` adapter path
-  (i.e. `W_pretrained`) and finds them ~3 nats/token apart — the
-  wrong-reference defect quantified by the run itself.
-- `val-health/actor_rollout_policy_agreement` is `0.8935824763276098`
-  (`actor_rollout_policy_mae` `0.1125`): the actor recompute and the vLLM
-  rollout policy stay close — rollout synchronization is not the failure here.
+- The per-step rollout-correlation metrics show the actor recompute and the
+  rollout policy stay in agreement (e.g. step 4
+  `training/rollout_actor_probs_pearson_corr` `0.9903733134269714`,
+  `training/rollout_probs_diff_mean` `0.03785998374223709`,
+  `rollout_corr/rollout_ppl` `3.1995` vs `rollout_corr/training_ppl` `3.1945`,
+  `rollout_corr/chi2_seq` `0.48`): rollout synchronization is not the failure
+  here.
+- The fork ships the correct-reference machinery and even exercises it at
+  every validation — `compute_expected_svd_base_ref_log_prob`
+  (`verl/workers/fsdp_workers.py`, invoked from `ray_trainer.py`'s validation
+  path) evaluates the frozen `_base_ref` adapter on top of `W_residual`
+  (i.e. `W_pretrained`) via `_svd_init_adapter_ctx()` — yet the
+  training-path reference still comes from the adapter-disabled actor; the
+  code contradicts itself about which base the reference should use, and the
+  per-step KL symptoms are exactly what that contradiction predicts.
 - `observed_run/debug/unknown_exp.rollout_sync_initial.rank0.json`: `is_svd_init: true`,
   `peft_type: "none"`,
   `rollout_model_path: ".../qwen2.5-0.5b-pissa-r8/residual_base"`,
@@ -128,16 +134,17 @@ Documentation reconciliation below. Each bullet is one item.
   not part of the evidence denominator.
 - "The run is too short to judge" is wrong: `total_training_steps: 4` is the
   designed budget of this calibration recipe (16 train / 8 validation
-  samples); the failure is the wrong reference, quantified by consistency
-  `0.0458`, not the horizon.
+  samples); the failure is the wrong reference (see the KL items above), not
+  the horizon.
 - "The low validation accuracy is the disease" is wrong: on 8 samples the
   accuracy bounces between `0` and `0.125` in any reading; it is a symptom
   downstream of training against the wrong reference.
 - "The KL coefficient is too high" is wrong: `kl_coef 0.05` is a standard
   value; the KL term is large because its reference is the wrong
   distribution, not because of the coefficient.
-- "Rollout desynchronization" is wrong: `actor_rollout_policy_agreement`
-  `0.8936` stays healthy.
+- "Rollout desynchronization" is wrong: the per-step
+  `rollout_actor_probs_pearson_corr` stays at `0.99` and the sync dump shows
+  the intended `svd_init_original_pretrained_full_weights` rollout mode.
 - "A crash killed the run" is wrong: the single traceback at the end of
   `train.log` is wandb's offline service connection during shutdown, after
   the last step; there are no errors, NaNs or aborts during training.
