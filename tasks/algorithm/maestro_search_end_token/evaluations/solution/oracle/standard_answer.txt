@@ -1,0 +1,19 @@
+STANDARD_ANSWER_V1
+CASE_ID: maestro_search_end_token
+BENCHMARK_GROUP: B-MULTIMODAL-TOOL-GRPO
+EXPECTED_VERDICT: unhealthy
+EXPECTED_ATTRIBUTION: First-turn search reconstruction omits the terminator consumed by the subsequent final-token substitution, removing the closing search tag's final token and corrupting trajectories.
+PRIMARY_METRIC: critic/score/mean
+
+REQUIRED_ALL:
+- Identify VerlToolAgentLoop.run in verl_tool/agent_loop/verltool_agent_loop.py and the step-0 search reconstruction.
+- Explain why new_gen_tokens[:-1] removes a search-closing token when no EOS is appended.
+- Connect malformed trajectories and late training collapse to the observed logs or rollout evidence.
+
+GLOBAL_JUDGE_POLICY:
+- The score must be exactly 0 or 1.
+- Agent A must explicitly classify the run as healthy or unhealthy.
+- Every REQUIRED_ALL item must be satisfied.
+- A verdict mismatch forces score 0.
+- Equivalent technical wording in any language is acceptable.
+- task.yaml may clarify targets and aliases but may not relax REQUIRED_ALL.

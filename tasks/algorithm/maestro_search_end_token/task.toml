@@ -1,0 +1,35 @@
+title = "Search end-token truncation collapses multimodal GRPO"
+license = "MIT"
+created_date = "2026-11-05"
+domain = "algorithm"
+tags = ["maestro", "verl", "grpo", "multimodal", "tool-use", "token-truncation"]
+
+[submitter]
+name = "Jinyang Wu"
+
+[model]
+name = "Qwen/Qwen3-VL-4B-Thinking"
+
+[dataset]
+name = "locaszzz/maestro_data"
+
+[training]
+framework = "verl + verl_tool (Maestro)"
+algo = "grpo"
+script = "run.py"
+
+[environment]
+image = "maestro-vllm011"
+
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+NVIDIA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+TRAIN_GPUS = "4,5,6,7"
+GLM_PYTHON = "/opt/maestro-glm/bin/python"
+PYTHON = "/opt/maestro/bin/python"
+VLLM_PYTHON = "/opt/maestro/bin/python"
+WANDB_MODE = "offline"
+
+[outcome]
+failure_type = "training_collapse"
+failure_reason = "The first-turn search reconstruction omits an end token before new_gen_tokens[:-1] replaces the last token with the original EOS, truncating the closing search tag; at step 200 the recorded run has mean training score -1.0 and 128/128 length-exhausted trajectories, versus score 0.6796875 and 128/128 final-answer trajectories after the one-line repair."
