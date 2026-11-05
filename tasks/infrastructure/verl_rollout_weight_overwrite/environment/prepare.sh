@@ -1,11 +1,48 @@
 #!/usr/bin/env bash
+# verl_rollout_weight_overwrite — prepare stage.
+#
+# Runs in the prepare-stage container: root, the verl-v061-grpo image, the
+# only networked stage, and $AUTORLBENCH_WORKSPACE writable. It fetches the
+# Qwen3-1.7B weights, the DAPO-Math-17k parquet and the AIME24/25 sets, then
+# derives the training/eval assets via prepare_data.py, which verifies every
+# file against asset_registry.json (the per-file pins live there).
 set -euo pipefail
-env_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 : "${AUTORLBENCH_WORKSPACE:?The official harness sets this}"
 workspace="$AUTORLBENCH_WORKSPACE"
+env_dir="$AUTORLBENCH_ENVIRONMENT"
 mkdir -p "$workspace/assets/raw"
-autorlbench_fetch_hf --repo Qwen/Qwen3-1.7B --revision 70d244cc86ccca08cf5af4e1e306ecf908b1ad5e --type model --recheck-cache --allow LICENSE --expect LICENSE=832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e --expect-size LICENSE=11343 --allow config.json --expect config.json=1ddb5b89ebc90dcb417a45c213d818577e65976454d29385c8f6140771d95197 --expect-size config.json=726 --allow generation_config.json --expect generation_config.json=2325da0f15bb848e018c5ae071b7943332e9f871d6b60e2ed22ca97d4cb993d2 --expect-size generation_config.json=239 --allow merges.txt --expect merges.txt=8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5 --expect-size merges.txt=1671853 --allow model-00001-of-00002.safetensors --expect model-00001-of-00002.safetensors=169ad53ec313c3a34b06c0809216e4fc072cce444a5d4ff2b59690d064130ed5 --expect-size model-00001-of-00002.safetensors=3441185608 --allow model-00002-of-00002.safetensors --expect model-00002-of-00002.safetensors=912becff8d60672aa8628ef08c05898d9adf17c2ad4ae3caf99b065622fdeff9 --expect-size model-00002-of-00002.safetensors=622329984 --allow model.safetensors.index.json --expect model.safetensors.index.json=0d660e94b165eb912669a5249dff44b83188c4777a07ddb9611fb78d91b0578d --expect-size model.safetensors.index.json=25605 --allow tokenizer.json --expect tokenizer.json=aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4 --expect-size tokenizer.json=11422654 --allow tokenizer_config.json --expect tokenizer_config.json=d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101 --expect-size tokenizer_config.json=9732 --allow vocab.json --expect vocab.json=ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910 --expect-size vocab.json=2776833 --dest "$workspace/model"
-autorlbench_fetch_hf --repo BytedTsinghua-SIA/DAPO-Math-17k --revision 61829aa9fe754403c5559e46423772deac5a329b --type dataset --recheck-cache --allow data/dapo-math-17k.parquet --expect data/dapo-math-17k.parquet=534375d6bb8630d22ab46a56e11f2ffec1d288d8f7d04099bc82d68948705941 --expect-size data/dapo-math-17k.parquet=299363855 --dest "$workspace/assets/raw/dapo"
-autorlbench_fetch_hf --repo HuggingFaceH4/aime_2024 --revision 2fe88a2f1091d5048c0f36abc874fb997b3dd99a --type dataset --recheck-cache --allow data/train-00000-of-00001.parquet --expect data/train-00000-of-00001.parquet=26139847601a5037c237d5928b195e7260ca8074cf4f264b794af42847f79ccf --expect-size data/train-00000-of-00001.parquet=81670 --allow README.md --expect README.md=c1d82f7870ba18b505fad3027c5c6131bac989ed3e177e9fc23385b9b9b315b8 --expect-size README.md=932 --dest "$workspace/assets/raw/aime24"
-autorlbench_fetch_hf --repo yentinglin/aime_2025 --revision 6f71d77b0b89b9dabe07ab466c51df33f514df7f --type dataset --recheck-cache --allow data/train-00000-of-00001-243207c6c994e1bd.parquet --expect data/train-00000-of-00001-243207c6c994e1bd.parquet=b74b507c1a4de7c9fafd2c83dfe2ef7b80579bcf0e0a754a1765db0f21c205fc --expect-size data/train-00000-of-00001-243207c6c994e1bd.parquet=14903 --allow README.md --expect README.md=2c72cbca643fee38cfd72c43c872285a413d49920a3dc371e96cbc101a7047bf --expect-size README.md=1604 --dest "$workspace/assets/raw/aime25"
+
+# --- image-level env, seeded here --------------------------------------------
+# docker/images/verl-v061-grpo.Dockerfile is a build recipe baked without
+# ENV; the two entries the recording rig's image carried ride the
+# prepared/env handoff into the agent/rerun/verifier stages via the activate
+# hook. Idempotent.
+for _kv in CUDA_DEVICE_ORDER=PCI_BUS_ID TOKENIZERS_PARALLELISM=false; do
+    if ! grep -qs "^${_kv%%=*}=" "${AUTORLBENCH_PREPARED}/env" 2>/dev/null; then
+        echo "$_kv" >> "${AUTORLBENCH_PREPARED}/env"
+    fi
+done
+
+# The task-local fetch_hf.py fetches the whole repos, cache-first, without
+# checksum verification (asset_registry.json is the pin of record); the
+# revisions the former autorlbench_fetch_hf allowlist pinned, for reference:
+#   Qwen/Qwen3-1.7B @ 70d244cc86ccca08cf5af4e1e306ecf908b1ad5e
+#   BytedTsinghua-SIA/DAPO-Math-17k @ 61829aa9fe754403c5559e46423772deac5a329b
+#   HuggingFaceH4/aime_2024 @ 2fe88a2f1091d5048c0f36abc874fb997b3dd99a
+#   yentinglin/aime_2025 @ 6f71d77b0b89b9dabe07ab466c51df33f514df7f
+python3 "$env_dir/fetch_hf.py" \
+    --repo Qwen/Qwen3-1.7B \
+    --dest "$workspace/model"
+python3 "$env_dir/fetch_hf.py" \
+    --type dataset \
+    --repo BytedTsinghua-SIA/DAPO-Math-17k \
+    --dest "$workspace/assets/raw/dapo"
+python3 "$env_dir/fetch_hf.py" \
+    --type dataset \
+    --repo HuggingFaceH4/aime_2024 \
+    --dest "$workspace/assets/raw/aime24"
+python3 "$env_dir/fetch_hf.py" \
+    --type dataset \
+    --repo yentinglin/aime_2025 \
+    --dest "$workspace/assets/raw/aime25"
 python "$env_dir/prepare_data.py" --workspace "$workspace" --registry "$env_dir/asset_registry.json"

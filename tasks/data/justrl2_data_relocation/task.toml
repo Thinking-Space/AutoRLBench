@@ -21,9 +21,11 @@ script = "run.sh"
 [environment]
 image = "justrl2-data-relocation"
 
-[environment.env]
-CUDA_VISIBLE_DEVICES = "0,1,2"
-NVIDIA_VISIBLE_DEVICES = "0,1,2"
+# 3 GPUs, matching the recorded runs: incident_engine/train.sh pins
+# --num-gpus-per-node 3 (actor 1 + critic 1 + rollout 1, megatron layout).
+# docker exposes them as cuda:0..2 via --gpus; harbor synthesizes the compose
+# device reservation from this count.
+gpus = 3
 
 [outcome]
 failure_type = "data_difficulty_mismatch"

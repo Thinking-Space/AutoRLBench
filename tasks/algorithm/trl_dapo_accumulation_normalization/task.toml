@@ -21,12 +21,18 @@ algo = "GRPO with DAPO loss"
 script = "train.sh"
 
 [environment]
+# Build-recipe exception (see docker/README.md "Exceptions"): no published
+# image carries the TRL GRPO stack, so docker/images/trl-grpo-torch26.Dockerfile
+# holds the recipe and must be built and pushed as
+# autorlbench/trl-grpo-torch26:py312-cu124 once; the image pull fails until
+# then. After the push, collapse the Dockerfile to a digest-pinned one-liner.
 image = "trl-grpo-torch26"
-prepare = "environment/prepare.sh"
 
-[environment.env]
-CUDA_VISIBLE_DEVICES = "0"
-NVIDIA_VISIBLE_DEVICES = "0"
+# 1 GPU, matching the recorded runs: run_training.sh drives
+# torch.distributed.run with --nproc_per_node=1 on a single H100 80 GB.
+# docker exposes it as cuda:0 via --gpus; harbor synthesizes the compose
+# device reservation from this count.
+gpus = 1
 
 [outcome]
 failure_type = "objective normalization error"

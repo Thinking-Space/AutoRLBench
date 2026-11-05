@@ -288,33 +288,15 @@ RUN uv python install 3.9.25 --install-dir /opt/legacy-python \
     typing_extensions==4.16.0 \
     urllib3==2.6.3 \
     wcwidth==0.9.4
-ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
-# ---- AutoRLBench tooling: keep identical in every docker/images/*.Dockerfile ----
-# Build context is docker/ (see docker/.dockerignore for what it may COPY).
-
-RUN mkdir -p /autorlbench/prepared /autorlbench/models /autorlbench/datasets
-
-# Every command the harness runs goes through `sh -lc`, and a login shell's
-# /etc/profile may reset PATH. Record the image's own PATH so the hook can put
-# back whatever it drops (/usr/local/cuda/bin, /root/.cargo/bin, ...).
-RUN printf '%s\n' "$PATH" > /etc/autorlbench-image-path
-COPY autorlbench-activate.sh /etc/profile.d/autorlbench-activate.sh
-RUN set -eux; \
-    sed -i 's/\r$//' /etc/profile.d/autorlbench-activate.sh; \
-    chmod 0644 /etc/profile.d/autorlbench-activate.sh; \
-    sh -n /etc/profile.d/autorlbench-activate.sh
-
-ENV CUDA_DEVICE_ORDER=PCI_BUS_ID \
-    TOKENIZERS_PARALLELISM=false
-
-# The prepare-stage fetch/dataset tooling (autorlbench_fetch.py, autorlbench_dataset.py,
-# autorlbench_datasets/) is deliberately NOT baked here. docker/install-autorlbench-tooling.sh
-# installs it into /usr/local at the start of every prepare run, from the repo's
-# current copy (mounted read-only into the container). That keeps a fix to
-# those files reaching running jobs without an image rebuild. Only the activate
-# hook above stays baked -- it must exist in the agent/verifier containers too,
-# which never run prepare-time provisioning.
-
-# The harness bind-mounts a per-run copy of the task's workspace here.
-WORKDIR /workspace
+# ---- adapted to the bake-nothing convention (2026-11-06) ----
+# No /autorlbench mount-point mkdir, no /etc/profile.d/autorlbench-activate.sh
+# (activation is injected at runtime by autorlbench/runtimes/base.py), and no
+# image-level ENV: CUDA_DEVICE_ORDER / TOKENIZERS_PARALLELISM are seeded by the
+# task's prepare.sh into $AUTORLBENCH_PREPARED/env instead.
+#
+# BUILD RECIPE, not a pull file (see docker/README.md "Exceptions"): build and
+# push it once as autorlbench/tool-rl-vllm024:py312-cu130, then collapse this
+# file to the single digest-pinned FROM line the convention expects. Until
+# that push exists, pulling the tag above fails -- do not run the task
+# (algorithm/verl_reinforcepp_observation_credit) before building.

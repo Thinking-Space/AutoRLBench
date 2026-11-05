@@ -19,15 +19,17 @@ algo = "grpo"
 script = "run_gsm8k_grpo.sh"
 
 [environment]
+# Build-recipe exception (see docker/README.md "Exceptions"): docker/images/
+# verl-0.9-vllm0.28.Dockerfile holds the recipe and must be built and pushed
+# as autorlbench/verl-0.9-vllm0.28:torch2.13-cu130 once; the image pull fails
+# until then. After the push, collapse the Dockerfile to a digest-pinned
+# one-liner.
 image = "verl-0.9-vllm0.28"
 
-# Single-GPU task: FSDP actor and vLLM rollout are colocated on one GPU (recorded on 1x RTX A6000 48 GB).
-[environment.env]
-CUDA_VISIBLE_DEVICES = "0"
-NVIDIA_VISIBLE_DEVICES = "0"
-WANDB_MODE = "offline"
-WANDB_API_KEY = "autorlbench-offline"
-TOKENIZERS_PARALLELISM = "false"
+# Single-GPU task: FSDP actor and vLLM rollout are colocated on one GPU
+# (recorded on 1x RTX A6000 48 GB). WANDB_MODE/WANDB_API_KEY are exported by
+# the harness itself for every stage.
+gpus = 1
 
 [outcome]
 failure_type = "lenient_reward_exploited"

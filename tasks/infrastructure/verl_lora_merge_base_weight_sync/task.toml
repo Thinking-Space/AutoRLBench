@@ -19,13 +19,13 @@ algo = "grpo"
 script = "run_grpo_lora.sh"
 
 [environment]
-image = "verl"
+# The shared veRL stack the recorded runs used (the retired `verl`
+# environment's digest is the same image: verlai/verl:vllm017.latest).
+image = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
 
-# The recorded defective run and the solution rerun use one GPU (vLLM TP=1, FSDP2 world size 1).
-[environment.env]
-WANDB_MODE = "offline"
-CUDA_VISIBLE_DEVICES = "0"
-NVIDIA_VISIBLE_DEVICES = "0"
+# The recorded defective run and the solution rerun use one GPU (vLLM TP=1,
+# FSDP2 world size 1).
+gpus = 1
 
 [outcome]
 failure_type = "implementation_bug"

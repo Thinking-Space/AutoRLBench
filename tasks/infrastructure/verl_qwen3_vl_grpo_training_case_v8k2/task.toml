@@ -27,14 +27,13 @@ script_args = []
 # digest-pinned base; distinct from the shared `verl` image stack. The image
 # is not yet published (see README.md, environment requirement).
 image = "vl-grpo-cu129-recorded"
-prepare = "environment/prepare.sh"
 
-[environment.env]
-WANDB_MODE = "offline"
-PYTHONDONTWRITEBYTECODE = "1"
-OMP_NUM_THREADS = "2"
-MKL_NUM_THREADS = "2"
-OPENBLAS_NUM_THREADS = "2"
+# FSDP4 FULL_SHARD DP2xSP2: run_training.py:22 asserts
+# trainer.n_gpus_per_node == 4. The recording rig's thread pinning
+# (OMP/MKL/OPENBLAS_NUM_THREADS=2, PYTHONDONTWRITEBYTECODE) is seeded into
+# prepared/env by prepare.sh; WANDB_MODE is exported by the harness itself
+# for every stage.
+gpus = 4
 
 [outcome]
 failure_type = "fused_sequence_parallel_label_alignment"

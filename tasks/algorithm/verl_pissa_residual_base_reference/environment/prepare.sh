@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Prepare stage, shared byte-identical by the verl-vllm011 task pair
+# (verl_pissa_residual_base_reference, verl_pissa_vllm_adapter_request).
+#
+# Runs in the prepare-stage container: root, the verl-vllm011 image, the only
+# networked stage, and $AUTORLBENCH_WORKSPACE writable. It fetches the
+# Qwen2.5-0.5B-Instruct weights and the GSM8K parquet, derives the PiSSA
+# rank-8 bundle and the deterministic tiny-GSM8K subsets, then pins the
+# derived artifacts by sha256.
 set -euo pipefail
 
 W=${AUTORLBENCH_WORKSPACE:-/workspace}
@@ -7,26 +15,30 @@ BUNDLE="$W/assets/qwen2.5-0.5b-pissa-r8"
 RAW="$W/data/raw-gsm8k"
 TINY="$W/data/tiny-gsm8k"
 
-autorlbench_fetch_hf \
-  --repo Qwen/Qwen2.5-0.5B-Instruct \
-  --revision 7ae557604adf67be50417f59c2c2f167def9a775 \
-  --allow config.json --allow generation_config.json --allow merges.txt \
-  --allow tokenizer.json --allow tokenizer_config.json --allow vocab.json \
-  --allow model.safetensors \
-  --expect model.safetensors=fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe \
-  --expect-size model.safetensors=988097824 \
-  --dest "$SOURCE"
+# --- image-level env, seeded here --------------------------------------------
+# docker/images/verl-vllm011.Dockerfile is a build recipe baked without ENV;
+# the two entries the recording rig's image carried ride the prepared/env
+# handoff into the agent/rerun/verifier stages via the activate hook.
+# Idempotent.
+for _kv in CUDA_DEVICE_ORDER=PCI_BUS_ID TOKENIZERS_PARALLELISM=false; do
+    if ! grep -qs "^${_kv%%=*}=" "${AUTORLBENCH_PREPARED}/env" 2>/dev/null; then
+        echo "$_kv" >> "${AUTORLBENCH_PREPARED}/env"
+    fi
+done
 
-autorlbench_fetch_hf \
-  --repo openai/gsm8k --type dataset \
-  --revision 740312add88f781978c0658806c59bc2815b9866 \
-  --allow main/train-00000-of-00001.parquet \
-  --expect main/train-00000-of-00001.parquet=ea82612ea9582142387730c793eb67d3b12849002bc0b7fa6f8efafa7351419d \
-  --expect-size main/train-00000-of-00001.parquet=2306545 \
-  --allow main/test-00000-of-00001.parquet \
-  --expect main/test-00000-of-00001.parquet=ee7b8da9e381df27b9e3f7758a159ab2bdaa4dbaa910546cbbc47e0cb44e4f59 \
-  --expect-size main/test-00000-of-00001.parquet=419088 \
-  --dest "$RAW"
+# The task-local fetch_hf.py fetches the whole repos, cache-first, without
+# checksum verification; the revisions the former autorlbench_fetch_hf
+# allowlist pinned are recorded here for reference:
+#   Qwen/Qwen2.5-0.5B-Instruct @ 7ae557604adf67be50417f59c2c2f167def9a775
+#   openai/gsm8k @ 740312add88f781978c0658806c59bc2815b9866
+python3 "$AUTORLBENCH_ENVIRONMENT/fetch_hf.py" \
+    --repo Qwen/Qwen2.5-0.5B-Instruct \
+    --dest "$SOURCE"
+
+python3 "$AUTORLBENCH_ENVIRONMENT/fetch_hf.py" \
+    --type dataset \
+    --repo openai/gsm8k \
+    --dest "$RAW"
 
 python "$AUTORLBENCH_ENVIRONMENT/prepare_bundle.py" --model "$SOURCE" --output "$BUNDLE" --rank 8
 python "$AUTORLBENCH_ENVIRONMENT/prepare_tiny_gsm8k.py" --source "$RAW" --output "$TINY" --train-size 16 --val-size 8

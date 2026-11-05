@@ -14,12 +14,16 @@ framework = "verl v0.6.1"
 algo = "grpo"
 script = "run.sh"
 [environment]
+# Build-recipe exception (see docker/README.md "Exceptions"): docker/images/
+# verl-v061-grpo.Dockerfile holds the recipe and must be built and pushed as
+# autorlbench/verl-v061-grpo:torch2.8-vllm0.11-cu128 once; the image pull
+# fails until then. After the push, collapse the Dockerfile to a
+# digest-pinned one-liner.
 image = "verl-v061-grpo"
+
+# Local 2x4 rerun: run_protocol.py:64 requires eight visible GPUs (supply an
+# external two-node RAY_ADDRESS otherwise).
+gpus = 8
 [outcome]
 failure_type = "weight_overwrite"
 failure_reason = "Initial checkpoint overwrites synchronized rollout weights"
-
-[environment.env]
-NVIDIA_VISIBLE_DEVICES = "all"
-CUDA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
-TOKENIZERS_PARALLELISM = "false"

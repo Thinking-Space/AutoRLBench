@@ -14,11 +14,19 @@ framework = "verl"
 algo = "REINFORCE++"
 script = "run.sh"
 [environment]
+# Build-recipe exception (see docker/README.md "Exceptions"): the stack
+# captured from the paired Modal runs (Python 3.12, torch 2.11.0, vLLM
+# 0.24.0), so docker/images/tool-rl-vllm024.Dockerfile holds the recipe and
+# must be built and pushed as autorlbench/tool-rl-vllm024:py312-cu130 once;
+# the image pull fails until then. After the push, collapse the Dockerfile
+# to a digest-pinned one-liner.
 image = "tool-rl-vllm024"
-prepare = "environment/prepare.sh"
-[environment.env]
-CUDA_VISIBLE_DEVICES = "0,1"
-NVIDIA_VISIBLE_DEVICES = "0,1"
+
+# 2 GPUs, matching the recorded runs: train.py pins
+# trainer.n_gpus_per_node=2, trainer.nnodes=1. docker exposes them as
+# cuda:0..1 via --gpus; harbor synthesizes the compose device reservation
+# from this count.
+gpus = 2
 [outcome]
 failure_type = "verl_reinforcepp_observation_credit"
 failure_reason = "The reverse return scan resets at masked tool observations, removing terminal reward from earlier SQL action tokens."

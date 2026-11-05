@@ -20,13 +20,12 @@ script = "run_qwen3vl_geo3k_grpo.sh"
 
 [environment]
 # A dedicated verl image is required: Qwen3-VL needs vLLM 0.24 / torch 2.11 /
-# CUDA 13, newer than what the shared `verl` environment ships. The image
-# is not yet published (see README.md, Environment requirement).
+# CUDA 13, newer than what the shared `verl` environment ships.
 image = "verl-qwen3vl-cu130"
 
-[environment.env]
-CUDA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
-NVIDIA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+# Eight visible GPUs, the run script's NGPUS_PER_NODE default
+# (run_qwen3vl_geo3k_grpo.sh:33,89 --trainer.n_gpus_per_node).
+gpus = 8
 
 [outcome]
 failure_type = "implementation_bug"

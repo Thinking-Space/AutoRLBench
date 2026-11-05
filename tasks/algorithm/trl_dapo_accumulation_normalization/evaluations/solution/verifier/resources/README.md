@@ -37,8 +37,8 @@ without the stage environment and skip the check (reported as
 ## System rerun (`run_spec.json`)
 
 The solution protocol is debug-then-report: the agent fixes the workspace,
-submits `/workspace/report.md`, and does **not** launch training. This
-directory's `run_spec.json` drives the harness rerun stage — the command,
+submits `/workspace/report.md`, and does **not** launch training. The task
+root's `run_spec.json` drives the harness rerun stage — the command,
 timeout, and log roots — executed in the agent's workspace before this
 verifier runs. The harness deletes the declared log roots
 (`experiment_logs`) before the rerun, so grading only ever sees this fresh

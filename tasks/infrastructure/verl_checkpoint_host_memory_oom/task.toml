@@ -21,13 +21,14 @@ script = "scripts/train.sh"
 [environment]
 image = "verl_checkpoint_host_memory_oom"
 
-[environment.env]
-NVIDIA_VISIBLE_DEVICES = "all"
-CONTAINER_MEMORY_LIMIT_BYTES = "21474836480"
-PYTHONDONTWRITEBYTECODE = "1"
-PYTHONPATH = "/workspace"
-VLLM_USE_V1 = "0"
-OMP_NUM_THREADS = "2"
+# launch.py asserts trainer.n_gpus_per_node == 1 (FSDP actor + vLLM rollout
+# on one card). The remaining recording-rig env entries are exported by the
+# task's own code, not seeded here: train.sh sets PYTHONPATH and
+# PYTHONDONTWRITEBYTECODE, launch.py sets VLLM_USE_V1 / OMP_NUM_THREADS and
+# asserts the 20 GiB cgroup limit against CONTAINER_MEMORY_LIMIT_BYTES (the
+# harness has no memory-limit mechanism; environment/docker-compose.yaml is
+# kept as the record of that resource contract).
+gpus = 1
 
 [outcome]
 failure_type = "resource_exhaustion"

@@ -1,11 +1,13 @@
-# Harbor-only resource contract for infrastructure/verl_checkpoint_host_memory_oom:
-# the 20 GiB host-RAM ceiling is part of the defect contract and launch.py asserts
-# /sys/fs/cgroup/memory.max against it. The native docker runtime passes
-# only --gpus/--shm-size, so the mem_limit/memswap_limit here apply exclusively on
-# the Harbor backend (environment/docker-compose.yaml is injected there via
-# --extra-docker-compose). On native docker the cgroup limit is NOT applied and
-# the training run would not see the recorded 20 GiB budget: run this task on
-# Harbor.
+# Resource contract record for infrastructure/verl_checkpoint_host_memory_oom:
+# the 20 GiB host-RAM ceiling is part of the defect contract and launch.py
+# asserts /sys/fs/cgroup/memory.max against it. The current harness no longer
+# reads a task's own environment/docker-compose.yaml (GPU wiring and
+# shm_size are synthesized from the task.toml `gpus` declaration), and it has
+# no memory-limit mechanism of its own — so this file is NOT consumed by any
+# backend today; it is kept as the record of the contract for whenever the
+# harness grows memory-limit support (then apply mem_limit/memswap_limit to
+# the container before the rerun stage runs launch.py). Without the limit,
+# launch.py's cgroup assert fails loudly.
 services:
   main:
     mem_limit: 21474836480

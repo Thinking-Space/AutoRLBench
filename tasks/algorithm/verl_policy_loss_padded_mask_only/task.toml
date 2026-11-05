@@ -14,12 +14,20 @@ framework = "verl v0.6.1"
 algo = "grpo"
 script = "run.sh"
 [environment]
+# Build-recipe exception (see docker/README.md "Exceptions"): the venv layer
+# over the digest-pinned upstream vLLM image, so docker/images/
+# verl-v061-grpo.Dockerfile holds the recipe and must be built and pushed as
+# autorlbench/verl-v061-grpo:torch2.8-vllm0.11-cu128 once; the image pull
+# fails until then. After the push, collapse the Dockerfile to a
+# digest-pinned one-liner.
 image = "verl-v061-grpo"
+
+# 8 GPUs, matching the recorded runs: run_protocol.py:64 requires eight
+# visible GPUs for the local 2x4 rerun of the recorded two-node x four-GPU
+# topology. docker exposes them as cuda:0..7 via --gpus; harbor synthesizes
+# the compose device reservation from this count. TOKENIZERS_PARALLELISM
+# (formerly in [environment.env]) is seeded by prepare.sh into prepared/env.
+gpus = 8
 [outcome]
 failure_type = "nonstandard_policy_objective_candidate"
 failure_reason = "Padded custom GRPO objective: mask-only repair"
-
-[environment.env]
-NVIDIA_VISIBLE_DEVICES = "all"
-CUDA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
-TOKENIZERS_PARALLELISM = "false"

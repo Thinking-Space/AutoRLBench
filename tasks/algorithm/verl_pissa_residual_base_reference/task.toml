@@ -20,14 +20,18 @@ algo = "GRPO"
 script = "run_experiment.sh"
 
 [environment]
+# Build-recipe exception (see docker/README.md "Exceptions"): a thin layer
+# over the digest-pinned upstream verl image, so docker/images/
+# verl-vllm011.Dockerfile holds the recipe and must be built and pushed as
+# autorlbench/verl-vllm011:vllm0.11-torch2.8 once; the image pull fails until
+# then. After the push, collapse the Dockerfile to a digest-pinned one-liner.
 image = "verl-vllm011"
 
-# Single-GPU task: FSDP actor and vLLM rollout colocated on one GPU.
-
-[environment.env]
-WANDB_MODE = "offline"
-CUDA_VISIBLE_DEVICES = "0"
-NVIDIA_VISIBLE_DEVICES = "0"
+# Single-GPU task: FSDP actor and vLLM rollout colocated on one GPU, matching
+# the recorded runs. docker exposes it as cuda:0 via --gpus; harbor
+# synthesizes the compose device reservation from this count. WANDB_MODE and
+# friends are exported by run_experiment.sh itself.
+gpus = 1
 
 [outcome]
 failure_type = "implementation_bug"

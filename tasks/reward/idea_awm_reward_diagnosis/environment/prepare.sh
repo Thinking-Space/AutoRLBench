@@ -4,6 +4,18 @@ set -euo pipefail
 env_dir="${AUTORLBENCH_ENVIRONMENT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 workspace="${AUTORLBENCH_WORKSPACE:-$(cd "$env_dir/../workspace" && pwd)}"
 export PYTHONDONTWRITEBYTECODE=1
+
+# --- image-level env, seeded here --------------------------------------------
+# The recording rig exported PYTHONDONTWRITEBYTECODE=1; it rides the
+# prepared/env handoff into the agent/rerun/verifier stages via the activate
+# hook (WANDB_MODE=offline is exported by the harness itself for every
+# stage). Idempotent.
+if [[ -n "${AUTORLBENCH_PREPARED:-}" ]]; then
+    if ! grep -qs "^PYTHONDONTWRITEBYTECODE=" "${AUTORLBENCH_PREPARED}/env" 2>/dev/null; then
+        echo "PYTHONDONTWRITEBYTECODE=1" >> "${AUTORLBENCH_PREPARED}/env"
+    fi
+fi
+
 # The URL helper needs only Python's standard library; no extra HF SDK in the image.
 while IFS=$'\t' read -r url sha256 size relative; do
     python3 "$env_dir/fetch_url.py" --type dataset --url "$url" \

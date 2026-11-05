@@ -28,7 +28,7 @@ anchoring, missing run-reality evidence) are score `0`.
 ## System rerun (`run_spec.json`)
 
 The solution protocol is debug-then-report: the agent fixes the workspace, submits
-`/workspace/report.md`, and does **not** launch training. This directory's `run_spec.json` drives
+`/workspace/report.md`, and does **not** launch training. The task root's `run_spec.json` drives
 the harness rerun stage, `mkdir -p "$AUTORLBENCH_RESULTS/experiment_logs" && bash run_gsm8k_grpo.sh`
 with `LOG_DIR`, `WANDB_MODE` and `WANDB_DIR` set, a 4 h budget (the recorded runs took 2.1 to 2.7 h on
 one RTX A6000), log root `experiment_logs`, executed in the agent's workspace before this verifier

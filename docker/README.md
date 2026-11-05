@@ -112,15 +112,66 @@ cannot be reconciled get two names.
 
 ### Exceptions
 
-Two Dockerfiles predate or deviate from the single-`FROM` rule:
+A few Dockerfiles predate or deviate from the single-`FROM` rule:
 
 - `miles-ngc2506-distributable.Dockerfile` is a multi-layer **build recipe** (fork tree,
   wheels) for a self-built image — its `FROM` line names a *base*, so pulling it would fetch
   the wrong image. No task uses it yet; it is kept as the record of how that image was built.
-- `verl-v061-grpo.Dockerfile` is a leftover from the bake-everything era (it references files
-  this directory no longer contains) and is still referenced by a few tasks that have not
-  been reworked onto the current convention; `verl-v061-runtime/` is its lock file. It will
-  collapse to a single digest-pinned `FROM` when those tasks are updated.
+- `verl-v061-grpo.Dockerfile` is the veRL 0.6.1 GRPO **build recipe**: a venv layer over the
+  digest-pinned upstream vLLM image, with `verl-v061-runtime/` as its lock file. Adapted to
+  the bake-nothing convention on 2026-11-06 (no baked tooling or ENV; internal venv paths
+  renamed off `/opt/autorlbench-*`). It must be built and pushed as
+  `autorlbench/verl-v061-grpo:torch2.8-vllm0.11-cu128` once, then collapses to a single
+  digest-pinned `FROM`. Until the push exists, the tasks' image pull fails — build first
+  (`algorithm/verl_policy_loss_padded_mask_only`, `algorithm/verl_policy_loss_padded_unmasked`,
+  `infrastructure/verl_rollout_weight_overwrite`).
+- `tool-rl-vllm024.Dockerfile` is the tool-RL stack captured from the paired Modal runs
+  (Python 3.12, torch 2.11.0, vLLM 0.24.0): a **build recipe** to be built and pushed as
+  `autorlbench/tool-rl-vllm024:py312-cu130` once, then collapsed to a single digest-pinned
+  `FROM`. Adapted to the bake-nothing convention on 2026-11-06. Until the push exists, the
+  task's image pull fails — build first (`algorithm/verl_reinforcepp_observation_credit`).
+- `trl-grpo-torch26.Dockerfile` is the restored build recipe for the TRL GRPO task pair
+  (`algorithm/trl_dapo_accumulation_normalization`,
+  `infrastructure/trl_conditional_reward_logging`): no published image carries that stack
+  (Python 3.12, torch 2.6.0, transformers 5.15.1), so it must be built and pushed as
+  `autorlbench/trl-grpo-torch26:py312-cu124` once, after which it collapses to a single
+  digest-pinned `FROM`. Until the push exists, the tasks' image pull fails — build first.
+- `verl-vllm011.Dockerfile` is the restored build recipe for the PiSSA GRPO task pair
+  (`algorithm/verl_pissa_residual_base_reference`,
+  `infrastructure/verl_pissa_vllm_adapter_request`): a thin pip layer over the digest-pinned
+  upstream `verlai/verl:vllm011.dev5` image, to be built and pushed as
+  `autorlbench/verl-vllm011:vllm0.11-torch2.8` once, after which it collapses to a single
+  digest-pinned `FROM`. Until the push exists, the tasks' image pull fails — build first.
+- `verl-0.9-vllm0.28.Dockerfile` is the restored build recipe for the verl 0.9.0 GRPO pair
+  (`configuration/verl_grpo_ppo_mini_batch_too_small`,
+  `reward/verl_grpo_gsm8k_any_number_reward`): a pip + source-built flash-attn layer over
+  the digest-pinned `vllm/vllm-openai:v0.28.0` image (torch 2.13.0 / cu130), to be built
+  and pushed as `autorlbench/verl-0.9-vllm0.28:torch2.13-cu130` once, after which it
+  collapses to a single digest-pinned `FROM`. Until the push exists, the tasks' image pull
+  fails — build first. Recorded from the conda env the runs used, never built as an image
+  before the recipe was deleted by the 87c6be6c port.
+
+Two further environment gaps, kept pending their task authors (these tasks do not pass
+`load_task_package` until the Dockerfiles exist):
+
+- `vl-grpo-cu129-recorded` (task `infrastructure/verl_qwen3_vl_grpo_training_case_v8k2`)
+  never had a Dockerfile — the recorded environment was the author workstation's conda
+  env, whose full pip freeze is preserved in the task's
+  `environment/recorded-runtime-lock.txt` (torch 2.8.0+cu129, vLLM 0.11.0+cu129,
+  Python 3.12).
+- `idea-issue` (task `reward/idea_awm_reward_diagnosis`) never had a Dockerfile — the task
+  README itself marks the definition as pending. The task is CPU-only static diagnosis
+  (prepare, verifier tests and reproduce.py are stdlib-only; the judge runs outside the
+  sandbox), so the image content is not part of the graded ground truth.
+
+One task keeps a non-image exception file:
+
+- `infrastructure/verl_checkpoint_host_memory_oom` keeps its
+  `environment/docker-compose.yaml` — deliberately. It records the task's 20 GiB
+  host-RAM ceiling, which `launch.py` asserts against `/sys/fs/cgroup/memory.max` and
+  which is part of the defect contract. The current harness does not read task-local
+  compose files and has no memory-limit mechanism, so the file is inert until such
+  support exists; without the limit the task's own assert fails loudly.
 
 A few recorded environments (`justrl2-data-relocation`, `verl_checkpoint_host_memory_oom`,
 `verl-qwen3vl-cu130`) carry descriptive names instead of the slot grammar; treat them as
@@ -284,6 +335,7 @@ a fix to a fetch script is a fix to the task that ships it.
 | `tool-rl-vllm024` | `python:3.12.10-slim-bookworm`, torch 2.11.0, vLLM 0.24.0 |
 | `verl-qwen3vl-cu130` | `verlai/verl:vllm024.dev2` |
 | `verl-v061-grpo` | legacy recipe, see [Exceptions](#exceptions) |
+| `verl-0.9-vllm0.28` | build recipe, see [Exceptions](#exceptions) |
 | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` | `verlai/verl:vllm017.latest` |
 | `verl-vllm0.8.5-torch2.6.0-flashattn2.7.4-cu124-py3.10` | `verlai/verl:app-verl0.4-vllm0.8.5-mcore0.12.2-te2.2` |
 | `verl_checkpoint_host_memory_oom` | `hiyouga/verl` |

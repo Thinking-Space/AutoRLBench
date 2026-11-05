@@ -12,7 +12,7 @@ despite apparently encouraging training reward.
 | **Model** | Qwen3-1.7B-Base + GSM8K SFT |
 | **Dataset** | openai/gsm8k |
 | **Framework** | trl, `scripts/run_training.sh` |
-| **Environment** | `verl` · no GPU (issue-only, offline inspection) |
+| **Environment** | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` · 1 GPU (issue-only, offline inspection; the count matches the recorded recipe) |
 | **Evaluations** | issue |
 | **Recorded runs** | A single historical training run (frozen evidence) |
 
@@ -42,7 +42,7 @@ configuration, so the repair is validated by measurement, not mechanism alone.
 
 - **issue**: the official LLM judge compares `agent_answer.md` with the hidden
   oracle on verdict, root cause and evidence using its unchanged scoring rubric.
-- The `verl` image is used only to read files and run the standard-library judge;
+- The `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` image is used only to read files and run the standard-library judge;
   it is not asserted to reproduce the historical TRL stack. Historical software
   versions and provenance are in `environment/source_manifest.json`.
 - The repaired-training control referenced by the oracle was measured outside

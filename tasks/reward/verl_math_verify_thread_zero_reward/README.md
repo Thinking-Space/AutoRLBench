@@ -10,7 +10,7 @@ Training Qwen2.5-1.5B-Instruct with GRPO on a GSM8K + MATH mixture. Every MATH s
 | **Model** | Qwen/Qwen2.5-1.5B-Instruct |
 | **Dataset** | GSM8K main + MATH-lighteval, 7473 + 7500 train / GSM8K test 1319 + MATH-500 497 |
 | **Framework** | verl @ `6f2aa24` with the pre-#5635 `math_verify.py`, GRPO, `run_grpo.sh` |
-| **Environment** | `verl` · 2 GPUs · math-verify 0.9.0 installed into the workspace by `prepare.sh` |
+| **Environment** | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` · 2 GPUs · math-verify 0.9.0 installed into the workspace by `prepare.sh` |
 | **Evaluations** | issue |
 | **Recorded runs** | 2 defective + 2 repaired runs, 100 steps each (seed 1 on 2 GPUs, ~45 min; seed 2 on 1 GPU, ~70 min) |
 
