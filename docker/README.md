@@ -22,9 +22,7 @@ Evaluation images and the in-container tooling shared by every task.
 | `verl` | `verlai/verl:vllm017.latest` | `algorithm/verl_grpo_uid_after_repeat` |
 | `verl` | `verlai/verl:vllm017.latest` | `algorithm/verl_grpo_advantage_broadcast` |
 | `verl` | `verlai/verl:vllm017.latest` | `configuration/trl_gsm8k_eos_mismatch` |
-| `verl` | `verlai/verl:vllm017.latest` | `environment/alfworld_tool_schema_mismatch` |
 | `verl` | `verlai/verl:vllm017.latest` | `infrastructure/torch_functional` |
-| `verl` | `verlai/verl:vllm017.latest` | `reward/task_function_call` |
 | `slime-v0.3.2` | `slimerl/slime:v0.3.2-cu129` | `reward/slime_search_r1_nomask` |
 | `verl-moe-token` | `verlai/verl:vllm017.latest` + `verl-moe-token/mcore5047-minimal.patch` | `infrastructure/verl_moe_token_normalization` |
 | `verl_checkpoint_host_memory_oom` | `hiyouga/verl` (pinned digest) | `infrastructure/verl_checkpoint_host_memory_oom` |

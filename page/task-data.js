@@ -144,25 +144,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO EASY. compute_grpo_outcome_advantage broadcasts the per-sequence advantage along the sequence axis, so held-out accuracy stays flat around noise level for the whole run."
   },
   {
-    "id": "environment/alfworld_tool_schema_mismatch",
-    "title": "ALFWorld tool-schema name mismatch",
-    "family": "Environment",
-    "tags": [
-      "agent-r1",
-      "grpo",
-      "alfworld",
-      "tool-schema"
-    ],
-    "model": "Qwen/Qwen3-4B",
-    "dataset": "ALFWorld difficulty-v1-s42 train (1008 draws) + balanced1008-s42 validation",
-    "framework": "agent-r1",
-    "image": "verl",
-    "created": "2026-10-20",
-    "license": "MIT",
-    "brief": "Renamed tool calls are never accepted by the executor.",
-    "issue": "Training Qwen3-4B with GRPO on ALFWorld. The tool schema renames clean/heat/cool to clean_object/heat_object/cool_object, but the executor registry only knows the original names, so those action families stay at zero success."
-  },
-  {
     "id": "infrastructure/qwen3vl_geo3k",
     "title": "Flat image positions from a raw AutoProcessor",
     "family": "Infrastructure",
@@ -279,25 +260,6 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "CPU-offloaded optimizer state leaves no headroom for the step-10 checkpoint save.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. CPU-offloaded Adam state leaves insufficient host-memory headroom for native checkpoint serialization at step 10, so container memory hits the fixed 20 GiB limit and the run dies."
-  },
-  {
-    "id": "reward/task_function_call",
-    "title": "Function-call problems always score zero",
-    "family": "Reward",
-    "tags": [
-      "verl",
-      "grpo",
-      "taco",
-      "function-call"
-    ],
-    "model": "Qwen2.5-1.5B-Instruct",
-    "dataset": "TACO EASY",
-    "framework": "verl",
-    "image": "verl",
-    "created": "2026-08-21",
-    "license": "MIT",
-    "brief": "The reward ignores fn_name, deleting call-based scoring.",
-    "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO EASY. The taco.py reward function ignores fn_name and deletes call-based execution, so every function-call problem scores exactly zero."
   },
   {
     "id": "infrastructure/verl_lora_merge_base_weight_sync",

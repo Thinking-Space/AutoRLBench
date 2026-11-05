@@ -24,7 +24,7 @@
  * cross-checked against the ledger -- three retool wrapper reports are
  * stale (judge-timeout placeholders or a pre-re-judge snapshot).
  * GPT-6-Astra's retool run is the round's only pass.
- * The 100 solution records are reconciled against AutoRLBench validation-first
+ * The 80 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -730,20 +730,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 2.9649
   },
   {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "fable51-alfworld",
-    "file": "agent-trace/fable51-alfworld.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.996,
-    "durationMs": 548124,
-    "steps": 35,
-    "costUsd": 2.3837
-  },
-  {
     "task": "reward/idea_awm_reward_diagnosis",
     "slug": "fable51-idea-awm",
     "file": "agent-trace/fable51-idea-awm.json",
@@ -784,20 +770,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 999075,
     "steps": 19,
     "costUsd": 8.9978
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "fable51-func-call",
-    "file": "agent-trace/fable51-func-call.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 924992,
-    "steps": 51,
-    "costUsd": 3.9758
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -870,20 +842,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 20.5619
   },
   {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "dsv4-alfworld",
-    "file": "agent-trace/dsv4-alfworld.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.23,
-    "durationMs": 638643,
-    "steps": 40,
-    "costUsd": 14.1386
-  },
-  {
     "task": "reward/idea_awm_reward_diagnosis",
     "slug": "dsv4-idea-awm",
     "file": "agent-trace/dsv4-idea-awm.json",
@@ -924,20 +882,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2137565,
     "steps": 46,
     "costUsd": 15.1968
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "dsv4-func-call",
-    "file": "agent-trace/dsv4-func-call.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.958,
-    "durationMs": 2255858,
-    "steps": 63,
-    "costUsd": 15.8693
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -996,20 +940,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 13.8808
   },
   {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "glm53-alfworld",
-    "file": "agent-trace/glm53-alfworld.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.988,
-    "durationMs": 1057379,
-    "steps": 47,
-    "costUsd": 9.9004
-  },
-  {
     "task": "infrastructure/qwen3vl_geo3k",
     "slug": "glm53-geo3k",
     "file": "agent-trace/glm53-geo3k.json",
@@ -1036,20 +966,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1502318,
     "steps": 49,
     "costUsd": 14.3965
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "glm53-func-call",
-    "file": "agent-trace/glm53-func-call.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.24,
-    "durationMs": 1975664,
-    "steps": 57,
-    "costUsd": 11.2734
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1122,20 +1038,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 26.7073
   },
   {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "gemini4-alfworld",
-    "file": "agent-trace/gemini4-alfworld.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 808428,
-    "steps": 40,
-    "costUsd": 16.201
-  },
-  {
     "task": "reward/idea_awm_reward_diagnosis",
     "slug": "gemini4-idea-awm",
     "file": "agent-trace/gemini4-idea-awm.json",
@@ -1176,20 +1078,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1157657,
     "steps": 31,
     "costUsd": 15.9212
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "gemini4-func-call",
-    "file": "agent-trace/gemini4-func-call.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.76,
-    "durationMs": 2163240,
-    "steps": 42,
-    "costUsd": 14.7741
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1262,20 +1150,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 36.4409
   },
   {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "gpt6astra-alfworld",
-    "file": "agent-trace/gpt6astra-alfworld.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 462488,
-    "steps": 20,
-    "costUsd": 2.3297
-  },
-  {
     "task": "reward/idea_awm_reward_diagnosis",
     "slug": "gpt6astra-idea-awm",
     "file": "agent-trace/gpt6astra-idea-awm.json",
@@ -1316,20 +1190,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 7316145,
     "steps": 87,
     "costUsd": 25.3816
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "gpt6astra-func-call",
-    "file": "agent-trace/gpt6astra-func-call.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 805163,
-    "steps": 19,
-    "costUsd": 2.2161
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1402,20 +1262,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 3.2907
   },
   {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "gpt61sol-alfworld",
-    "file": "agent-trace/gpt61sol-alfworld.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.996,
-    "durationMs": 529060,
-    "steps": 25,
-    "costUsd": 0.5598
-  },
-  {
     "task": "infrastructure/qwen3vl_geo3k",
     "slug": "gpt61sol-geo3k",
     "file": "agent-trace/gpt61sol-geo3k.json",
@@ -1442,20 +1288,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1036835,
     "steps": 20,
     "costUsd": 0.5269
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "gpt61sol-func-call",
-    "file": "agent-trace/gpt61sol-func-call.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 974274,
-    "steps": 25,
-    "costUsd": 0.551
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1528,20 +1360,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 0.6506
   },
   {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "grok47-alfworld",
-    "file": "agent-trace/grok47-alfworld.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 856875,
-    "steps": 48,
-    "costUsd": null
-  },
-  {
     "task": "reward/idea_awm_reward_diagnosis",
     "slug": "grok47-idea-awm",
     "file": "agent-trace/grok47-idea-awm.json",
@@ -1581,20 +1399,6 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.6334,
     "durationMs": 861551,
     "steps": 36,
-    "costUsd": null
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "grok47-func-call",
-    "file": "agent-trace/grok47-func-call.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 1742428,
-    "steps": 24,
     "costUsd": null
   },
   {
@@ -1668,20 +1472,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": null
   },
   {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "kimi-alfworld",
-    "file": "agent-trace/kimi-alfworld.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1282257,
-    "steps": 33,
-    "costUsd": 7.2264
-  },
-  {
     "task": "reward/idea_awm_reward_diagnosis",
     "slug": "kimi-idea-awm",
     "file": "agent-trace/kimi-idea-awm.json",
@@ -1722,20 +1512,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1038491,
     "steps": 45,
     "costUsd": 2.3867
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "kimi-func-call",
-    "file": "agent-trace/kimi-func-call.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.98,
-    "durationMs": 1757268,
-    "steps": 21,
-    "costUsd": 4.0665
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1808,20 +1584,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 18.5389
   },
   {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "kimi31-alfworld",
-    "file": "agent-trace/kimi31-alfworld.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.996,
-    "durationMs": 1635299,
-    "steps": 16,
-    "costUsd": 5.1112
-  },
-  {
     "task": "reward/idea_awm_reward_diagnosis",
     "slug": "kimi31-idea-awm",
     "file": "agent-trace/kimi31-idea-awm.json",
@@ -1862,20 +1624,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1642157,
     "steps": 59,
     "costUsd": 6.5516
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "kimi31-func-call",
-    "file": "agent-trace/kimi31-func-call.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 2847604,
-    "steps": 22,
-    "costUsd": 6.0522
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1934,20 +1682,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 3.4886
   },
   {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "qwen38-alfworld",
-    "file": "agent-trace/qwen38-alfworld.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 1563289,
-    "steps": 26,
-    "costUsd": null
-  },
-  {
     "task": "reward/idea_awm_reward_diagnosis",
     "slug": "qwen38-idea-awm",
     "file": "agent-trace/qwen38-idea-awm.json",
@@ -1987,20 +1721,6 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.3,
     "durationMs": 1486225,
     "steps": 28,
-    "costUsd": null
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "qwen38-func-call",
-    "file": "agent-trace/qwen38-func-call.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.99,
-    "durationMs": 2075960,
-    "steps": 40,
     "costUsd": null
   },
   {
@@ -2074,24 +1794,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": null
   },
   {
-    "task": "reward/task_function_call",
-    "slug": "fable51-func-call-sol",
-    "file": "agent-trace/fable51-func-call-sol.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 2661262,
-    "steps": 237,
-    "costUsd": 22.281,
-    "sourceRunId": "autorlbench-20261028-115646-b5b27833",
-    "sessionId": "890a30f6-7d2b-4e1d-9857-80a1b627cf08",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "3f11bb1bbe52e7814ba726fb683c11eac4d691fa12a56e474a7239f66ea7198d"
-  },
-  {
     "task": "infrastructure/torch_functional",
     "slug": "fable51-torch-fn-sol",
     "file": "agent-trace/fable51-torch-fn-sol.json",
@@ -2126,24 +1828,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "65bce2e4-046d-4dbf-866f-ffe89a7da8a7",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "524b0025c0666cc5e004338f0d31cf777c90d7239cc4b4a1334998d00c15d297"
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "dsv4-func-call-sol",
-    "file": "agent-trace/dsv4-func-call-sol.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 8836070,
-    "steps": 143,
-    "costUsd": 74.045,
-    "sourceRunId": "autorlbench-20261027-194304-09339023",
-    "sessionId": "3aea19cf-51ea-433d-87b0-aad3600bfd18",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "b19e435db8eb8a7ce3307a58947e4ca2c13afdade7a48ab877388c3f761e6b6f"
   },
   {
     "task": "infrastructure/torch_functional",
@@ -2200,24 +1884,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "7d8f3819ac10060459b7b63778fcdd2eb0f6fb5721202421b90ef731ed4b66ca"
   },
   {
-    "task": "reward/task_function_call",
-    "slug": "gemini4-func-call-sol",
-    "file": "agent-trace/gemini4-func-call-sol.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 2382473,
-    "steps": 88,
-    "costUsd": null,
-    "sourceRunId": "autorlbench-20261028-234251-669de20b",
-    "sessionId": "f2be224c-ab39-44b5-bbe9-c5eeb1e7e991",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "0d3ea76f6c954a870774f843a06f0fca35475e7449ceef025ed9a0455bfeb875"
-  },
-  {
     "task": "infrastructure/torch_functional",
     "slug": "gemini4-torch-fn-sol",
     "file": "agent-trace/gemini4-torch-fn-sol.json",
@@ -2252,24 +1918,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "5780512c-ac6c-4fbc-9787-ca61f9a73a96",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "586934d1c2fb16349a8189b80a5ce30e3a58596b6082ed90e686535bb00a2928"
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "gpt6astra-func-call-sol",
-    "file": "agent-trace/gpt6astra-func-call-sol.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 782574,
-    "steps": 26,
-    "costUsd": 4.8173,
-    "sourceRunId": "autorlbench-20261029-024836-6ef57ab4",
-    "sessionId": "01a183d9-16d3-7c82-9b9f-d729482000e2",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "d5bd9303a3714c8726dca1c28f5a23951f91b11c63f65e334a562a0a039ed7e0"
   },
   {
     "task": "infrastructure/torch_functional",
@@ -2308,24 +1956,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "a2fa618fdb6bb1ba4fffc820c3ea617df9116db07cbf4527f612dfb8aa38a3d1"
   },
   {
-    "task": "reward/task_function_call",
-    "slug": "gpt61sol-func-call-sol",
-    "file": "agent-trace/gpt61sol-func-call-sol.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 812519,
-    "steps": 28,
-    "costUsd": 0.7484,
-    "sourceRunId": "autorlbench-20261028-204439-7a217cfa",
-    "sessionId": "01a1828b-d37f-7701-8674-3924ae85c3f0",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "56c4be5436f641c966996e00863601db0ec68b566e064eea085a8c346442b0c0"
-  },
-  {
     "task": "infrastructure/torch_functional",
     "slug": "gpt61sol-torch-fn-sol",
     "file": "agent-trace/gpt61sol-torch-fn-sol.json",
@@ -2362,24 +1992,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "5ba21722899958249e518fdc11d34a832a360a69c415212e809c04bac17b7697"
   },
   {
-    "task": "reward/task_function_call",
-    "slug": "grok47-func-call-sol",
-    "file": "agent-trace/grok47-func-call-sol.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 347098,
-    "steps": 29,
-    "costUsd": null,
-    "sourceRunId": "autorlbench-20261029-140437-b5684fb2",
-    "sessionId": "78b3bcc3-577b-44a4-bd88-3594a830a2f5",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "80e0d7385ef7e4c36ce1cbcaf2ae9ca74c297bb31a26984ad363968617e57e9c"
-  },
-  {
     "task": "infrastructure/torch_functional",
     "slug": "grok47-torch-fn-sol",
     "file": "agent-trace/grok47-torch-fn-sol.json",
@@ -2414,24 +2026,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "00aa2c5c-42c3-4da3-827b-15284e4654ce",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "7d0db449bd97fb15e7fec2a460bc8b13a00642e06bd6eb7d5a12d0a08ed96e39"
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "kimi-func-call-sol",
-    "file": "agent-trace/kimi-func-call-sol.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 2502351,
-    "steps": 44,
-    "costUsd": 8.2492,
-    "sourceRunId": "autorlbench-20261027-193109-d197a775",
-    "sessionId": "05e149b9-619b-49c4-ab26-2254807f2ad6",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c78fcd148d96bcd673248faa3330bca56e59acbae95cf544acac99da614ec8d3"
   },
   {
     "task": "infrastructure/torch_functional",
@@ -2488,24 +2082,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "4ae85f224b8c8d93e5ea1e1a4346f3d3060165492e9d2c964e23ff08b47e8a35"
   },
   {
-    "task": "reward/task_function_call",
-    "slug": "qwen38-func-call-sol",
-    "file": "agent-trace/qwen38-func-call-sol.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 3000244,
-    "steps": 49,
-    "costUsd": null,
-    "sourceRunId": "autorlbench-20261028-194810-0656e63a",
-    "sessionId": "3383fd83-3f6c-442b-9b54-f160951f9b34",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "b7a7c36505f54c0c6a581c96f6f5979831aa9c20c1230b5799c61edfc8358de9"
-  },
-  {
     "task": "infrastructure/torch_functional",
     "slug": "qwen38-torch-fn-sol",
     "file": "agent-trace/qwen38-torch-fn-sol.json",
@@ -2542,24 +2118,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "054313ed8ce751f884718ad8ee2dc2199902fe3e7261ea7dc35abf946fe31e32"
   },
   {
-    "task": "reward/task_function_call",
-    "slug": "glm53-func-call-sol",
-    "file": "agent-trace/glm53-func-call-sol.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 2105852,
-    "steps": 86,
-    "costUsd": 17.5937,
-    "sourceRunId": "autorlbench-20261027-074255-89b2fdad",
-    "sessionId": "f56d69cf-15ad-4cf0-81c4-48a96886b72b",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "1d6841a83b1a270b446f0e7ab1ff023cd3a7f5b38d6bc78e48a46c6c6a9d6880"
-  },
-  {
     "task": "infrastructure/torch_functional",
     "slug": "glm53-torch-fn-sol",
     "file": "agent-trace/glm53-torch-fn-sol.json",
@@ -2576,24 +2134,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "ce9dd0ce-9aca-4407-a0da-c854f458019c",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "bf1383017184ec845c9b93528aa35b3f79e2d7c6a5e11ec8ccf74332644b5e4c"
-  },
-  {
-    "task": "reward/task_function_call",
-    "slug": "kimi31-func-call-sol",
-    "file": "agent-trace/kimi31-func-call-sol.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 1375075,
-    "steps": 64,
-    "costUsd": 5.6899,
-    "sourceRunId": "autorlbench-20261027-075126-8907972e",
-    "sessionId": "39938e41-92bf-4402-9d2b-8cec717ea317",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "59c75bc53b692becdf3e234528ea2360e08d76dab52759dc6a6bb1e7d9d59cdc"
   },
   {
     "task": "infrastructure/torch_functional",
@@ -3667,184 +3207,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "92785a1a-24a2-4ac6-ab52-23855382a823",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "f5b8304c76f7878921272842f29b3b8f77c7da02a17a2b6c433e677d1b340d46"
-  },
-  {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "fable51-alfworld-sol",
-    "file": "agent-trace/fable51-alfworld-sol.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 466276,
-    "steps": 11,
-    "costUsd": 2.0073,
-    "sourceRunId": "20261031-130105-a98d7688",
-    "sessionId": "6b89945b-7a74-43e4-b2a4-f662a87a03ee",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "5200fe1e1fb8d0042586fea371de0274959f44e71c8c8266b102e14cb0edc320"
-  },
-  {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "dsv4-alfworld-sol",
-    "file": "agent-trace/dsv4-alfworld-sol.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 2238396,
-    "steps": 124,
-    "costUsd": 34.2684,
-    "sourceRunId": "20261031-133705-84506d8a",
-    "sessionId": "31c7e156-40c6-4002-8801-86448d5f8302",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "4c5a0e7258a8653c3113929c867990e1075cac01fad78266129aeccc4bd4c713"
-  },
-  {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "glm53-alfworld-sol",
-    "file": "agent-trace/glm53-alfworld-sol.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1066423,
-    "steps": 65,
-    "costUsd": 11.8292,
-    "sourceRunId": "20261031-131124-793ac1ed",
-    "sessionId": "9cb24ed0-4f52-404a-a71e-bfceb33e5f1f",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "4bc51a2a311064145650940426cfea962c1debcd190f837893e35b1ed685591a"
-  },
-  {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "gemini4-alfworld-sol",
-    "file": "agent-trace/gemini4-alfworld-sol.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 593704,
-    "steps": 35,
-    "costUsd": 10.7933,
-    "sourceRunId": "20261031-141653-237363c5",
-    "sessionId": "36704314-ed2b-4ce5-8f1c-bd82582bd03a",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c68db678fe603dbbc445ff14ba9fa4313225a48bf3e1b5e80523989cbaf882f4"
-  },
-  {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "gpt6astra-alfworld-sol",
-    "file": "agent-trace/gpt6astra-alfworld-sol.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 405397,
-    "steps": 19,
-    "costUsd": 2.6208,
-    "sourceRunId": "20261031-131941-e85aa406",
-    "sessionId": "01a19066-7971-7ad2-bd3d-5af43bde5142",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "e64f86e2c8e87acaffbeb3427dfc2bc1d02ed3e61e22608674eab3bacc01f7d9"
-  },
-  {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "gpt61sol-alfworld-sol",
-    "file": "agent-trace/gpt61sol-alfworld-sol.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 366027,
-    "steps": 21,
-    "costUsd": 0.4471,
-    "sourceRunId": "20261031-132853-57c8cad5",
-    "sessionId": "01a1906e-e8d5-7890-b15b-22f3bdb59b78",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "ed4b2ae97b844ac82d31e7d8b5eaa36c76e5dcc2210b7332be96d5b9ef105219"
-  },
-  {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "grok47-alfworld-sol",
-    "file": "agent-trace/grok47-alfworld-sol.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 187096,
-    "steps": 48,
-    "sourceRunId": "20261031-133751-ea52be76",
-    "sessionId": "7d470c58-8943-4580-b446-861caea1acac",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c1222b4ed1e43aa85366d884ad580fb5764f912052533db4f1c17a0fccac98e3"
-  },
-  {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "kimi-alfworld-sol",
-    "file": "agent-trace/kimi-alfworld-sol.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 3886479,
-    "steps": 32,
-    "costUsd": 4.5466,
-    "sourceRunId": "20261031-160429-9b3a836b",
-    "sessionId": "0d7253c3-f0f4-4174-b85e-40eec3c7d3ce",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "3a6674c93a11d6b44680455bbe278dc234ab011e70a475f2b514a80848aec49f"
-  },
-  {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "kimi31-alfworld-sol",
-    "file": "agent-trace/kimi31-alfworld-sol.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 960311,
-    "steps": 91,
-    "costUsd": 6.667,
-    "sourceRunId": "20261031-130105-1a282aeb",
-    "sessionId": "2da163f0-60fe-4ce2-aedf-7e2d9a835e15",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "29a26ffc742c8259cb76874769aa5fdb290d48017bdd8942cb91de44a11f9942"
-  },
-  {
-    "task": "environment/alfworld_tool_schema_mismatch",
-    "slug": "qwen38-alfworld-sol",
-    "file": "agent-trace/qwen38-alfworld-sol.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1438105,
-    "steps": 44,
-    "sourceRunId": "20261031-153549-9f25e70a",
-    "sessionId": "541619f0-f784-4969-8f17-513e1d2c84ef",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "94a6cab08609527757767930f0976b16d068bae44668809bc8de4002d5a314d0"
   },
   {
     "task": "infrastructure/slime_critic_value_head_random_init",

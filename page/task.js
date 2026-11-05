@@ -89,10 +89,6 @@
             file: 'configuration-trl_gsm8k_eos_mismatch',
             alt: 'Training reward with held-out GSM8K score before and after training'
         },
-        'environment/alfworld_tool_schema_mismatch': {
-            file: 'environment-alfworld_tool_schema_mismatch',
-            alt: 'ALFWorld success rate on seen and unseen validation suites'
-        },
         'infrastructure/qwen3vl_geo3k': {
             file: 'infrastructure-qwen3vl_geo3k',
             alt: 'Held-out geometry3k accuracy, recorded run vs control'
@@ -108,10 +104,6 @@
         'reward/slime_search_r1_nomask': {
             file: 'reward-slime_search_r1_nomask',
             alt: 'Held-out NQ test accuracy as response length collapses'
-        },
-        'reward/task_function_call': {
-            file: 'reward-task_function_call',
-            alt: 'Training reward per step, capped by zero-scored function-call problems'
         },
         'reward/idea_awm_reward_diagnosis': {
             file: 'reward-idea_awm_reward_diagnosis',
