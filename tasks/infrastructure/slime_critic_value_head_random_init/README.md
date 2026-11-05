@@ -4,7 +4,8 @@ A Multi-Turn PPO reproduction on `slime` v0.3.2: Qwen3-1.7B learning to drive a
 terminal on Endless Terminals tasks. The critic's value head is built with
 **random** weights instead of zeros, so the critic opens with large arbitrary
 value predictions it never learned, and the value loss reported throughout the
-critic warmup window is inflated by roughly 77× — most visibly after a reload,
+critic warmup window is inflated by roughly 77× under the calibration protocol
+(~28× under the harness's short rerun) — most visibly after a reload,
 where it reads like checkpoint corruption.
 
 | | |
@@ -100,14 +101,16 @@ independent of `R`, so
 mean((V − R)²) = E[V²] − 2·E[V]·E[R] + E[R²] ≈ E[V²] + pass_rate ≈ 5.3 + 0.09
 ```
 
-Measured: 7.20 on Stage B's first step, 5.32–7.65 across the warmup. The
+Measured: 7.20 on Stage B's first step, 5.32–8.15 across the warmup (the
+upper end from the harness's short rerun protocol). The
 estimate is low by ~25% because the hidden-state RMS is itself a rough figure
 and varies by token position, but the scale it predicts is the scale observed —
 what matters here is that it is set by the backbone's activation norm, a
 quantity that has nothing to do with the task's rewards.
 
 A correctly zero-initialised critic reports `E[R²] = pass_rate ≤ 1` instead —
-bounded by the reward scale. The two regimes differ by ~77× with no overlap,
+bounded by the reward scale. The two regimes differ by ~77× with no overlap
+(~28× on the harness's short 2-rollout rerun: 6.97 vs 0.25, still no overlap),
 which is why the decider threshold is **1.0**: an order of magnitude from
 either side.
 
@@ -208,8 +211,10 @@ logs/                        frozen Stage A/B logs + value-loss summaries of the
                              recorded defective run — the symptom the agent is
                              asked to diagnose (same bytes as
                              measured_runs/defective/, unpacked)
-slime/                       the full slime v0.3.2 source tree (commit a3f50097); run.sh
-                             runs this copy via PYTHONPATH
+slime/                       the slime v0.3.2 source (commit a3f50097), pruned to
+                             the runtime code — the slime/ package, train.py and
+                             LICENSE; docs, tests, examples, docker and CI are
+                             stripped; run.sh runs this copy via PYTHONPATH
 slime/slime/backends/megatron_utils/model_provider.py  THE FIX SITE
 et/build_dataset.py          Endless Terminals -> slime prompt set, with validation
 et/make_splits.py            deterministic train / val / test split of the admitted tasks

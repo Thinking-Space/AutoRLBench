@@ -1,1 +1,0 @@
-"""Plugin contract tests."""

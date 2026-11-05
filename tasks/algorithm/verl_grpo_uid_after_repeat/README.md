@@ -35,7 +35,6 @@ The held-out curve does not reveal the defect at a 60-step budget (0.0454 →
 | `critic/advantages/min` < 0 steps | 0 / 60 |
 | `critic/advantages/max` on rewarded steps | always `0.9999990463` (fp32 `1/(1+1e-6)`) |
 | `actor/pg_loss` range | [−0.067, 0] — never positive |
-| `actor/entropy` first → last | 4.81 → 1.31 (vs. 4.42 → 2.99 in control) |
 
 ## Reference solution
 

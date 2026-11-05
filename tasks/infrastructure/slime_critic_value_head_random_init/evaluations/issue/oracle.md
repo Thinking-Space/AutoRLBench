@@ -31,7 +31,7 @@ constructor is the only thing that decides the value head's initial weights.
 is a sensible default for a `[vocab, hidden]` LM head and the wrong idea
 entirely for a `[1, hidden]` value head.
 
-## Why ~5-6 and not some other number
+## Why a number around 5–8 and not some other number
 
 `V(s)` is a single linear projection of the backbone's final hidden state, so a
 random weight makes it a random projection rather than a prediction:
@@ -57,7 +57,9 @@ independent of it, so
 mean((V − R)²) = E[V²] − 2·E[V]·E[R] + E[R²] ≈ E[V²] + pass_rate ≈ 5.3 + ~0.1
 ```
 
-which is the 5-6 that gets reported. A critic that is genuinely uninformed
+which is ≈5.4 by derivation; measured warmup windows run 5.3–8.2 in practice
+(the derivation is low by ~25% because the hidden-state RMS is itself a rough
+figure and varies by token position). A critic that is genuinely uninformed
 should instead report `E[R²] = pass_rate ≤ 1`: predicting 0 everywhere is the
 best a critic can do before it has seen a single reward, and its loss is then
 bounded by the reward scale. So the inflated number is not "the critic hasn't

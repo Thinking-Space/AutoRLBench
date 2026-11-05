@@ -25,11 +25,15 @@ Machine grading reads only new `experiment_logs` files and requires
 of 1.0. The 1.0 cap rejects invalid accuracy values. `score_mode=final`
 rejects step-0-only and earlier-best logs.
 
-One defective run and one repaired run calibrate this draft threshold:
-defective validation is 0 at steps 100 and 150; repaired validation is
-0.453125 and 0.546875. Final margins are 0.4 above the defective result and
-0.146875 below the repaired result; the margin to the lowest observed
-repaired point is 0.053125. These are observed margins, not variance bounds.
+The recorded run per arm plus a same-configuration rerun on the shared image
+(2026-11-03) calibrate this draft threshold: defective validation is 0 at
+steps 100 and 150 in both runs; repaired validation is 0.453125/0.546875
+recorded and 0.515625/0.546875 rerun. Final margins are 0.4 above the
+defective result and 0.146875 below the repaired result; the margin to the
+lowest observed repaired point is 0.053125. The two runs share seed and
+configuration but are not deterministic replays (step-1 grad_norm 223.2 vs
+228.6), so the equal step-150 values are agreement between two executions,
+not variance. These are observed margins, not variance bounds.
 Neither run records step-0 validation, so the threshold's relation to the
 initial checkpoint remains unverified. This contribution explicitly records
 that calibration limitation and requires a final step-150 evaluation.

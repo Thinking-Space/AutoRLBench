@@ -12,7 +12,11 @@ export RUN_DIR=${TRAINING_RUN_DIR:-$default_run_dir}
 mkdir -p "$RUN_DIR"/{logs,home,tmp,wandb/config,wandb/cache,wandb/data}
 mkdir -p "$W/.cache"/{huggingface,torch,torch_extensions,triton,cuda,vllm}
 export HOME="$RUN_DIR/home" TMPDIR="$RUN_DIR/tmp" XDG_CACHE_HOME="$W/.cache"
-export PYTHONPATH="$W/src/$VARIANT:$W/scripts" PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+# PYTHONPATH is appended to, not overwritten: prepare stages the patched megatron
+# (the MoE aux/z-loss tp_cp_group scaling backport, not the defect under
+# diagnosis) into $AUTORLBENCH_PREPARED/mcore, and the activation hook exports it
+# via prepared/env. Overwriting it here would train on the unpatched megatron.
+export PYTHONPATH="$W/src/$VARIANT:$W/scripts${PYTHONPATH:+:$PYTHONPATH}" PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 export TRAINING_RUNTIME_HOOK=1
 export HF_HOME="$W/.cache/huggingface" HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
 export TORCH_HOME="$W/.cache/torch" TORCH_EXTENSIONS_DIR="$W/.cache/torch_extensions"

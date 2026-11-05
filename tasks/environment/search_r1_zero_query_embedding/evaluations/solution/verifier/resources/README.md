@@ -37,13 +37,14 @@ sits 0.084 above the defective ceiling and 0.088 below the repaired value. It is
 also above the repaired run's step-0 point (`0.13281`), so a correct fix with no
 training does not pass either: the agent has to repair *and* complete the run.
 
-**This is one seed per side, not a multi-run calibration.** The sibling task
-`slime_search_r1_nomask` puts its bar on four measured runs; this one cannot.
-A second pair at this budget is the follow-up that would let the bar be
-tightened, widened, or moved. Until then, treat a result between roughly 0.16
-and 0.33 as inside the unmeasured band and read the run's logs before trusting
-the verdict.
+**Two runs per side.** A second pair was measured on 2026-11-03 (devspace
+reruns, both exit 0 at the same budget): defective best `0.156` (steps 0/10/20/30/32
+= 0.023/0.031/0.094/0.156/0.141) and repaired best `0.344`
+(0.133/0.219/0.305/0.344/0.328, final 0.328 matching the recorded 0.32813). Both
+defective runs cap at `0.156`, so `0.24` keeps 0.084 headroom above the defective
+ceiling on both pairs; the sibling task `slime_search_r1_nomask` still has the
+wider four-run calibration, but the two pairs here agree on the separation.
 
 ## System rerun (`run_spec.json`)
 
-The solution protocol is debug-then-report: the agent fixes the workspace, submits `/workspace/report.md`, and does **not** launch training. This directory's `run_spec.json` drives the harness rerun stage — the command, environment (with `$AUTORLBENCH_*` references expanded per backend), timeout, and log roots — executed in the agent's workspace before this verifier runs. The harness deletes the declared log roots (`experiment_logs`) before the rerun, so grading only ever sees this fresh run's logs.
+The solution protocol is debug-then-report: the agent fixes the workspace, submits `/workspace/report.md`, and does **not** launch training. The task-root `run_spec.json` drives the harness rerun stage — the command, environment (with `$AUTORLBENCH_*` references expanded per backend), timeout, and log roots — executed in the agent's workspace before this verifier runs. The harness deletes the declared log roots (`experiment_logs`) before the rerun, so grading only ever sees this fresh run's logs.

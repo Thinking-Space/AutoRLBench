@@ -196,7 +196,7 @@ EXTRA=(
 )
 
 ########################### launch ###########################
-echo "Logging to ${LOG_FILE} (no console training output)"
+echo "Logging to ${LOG_FILE} (also echoed to the console)"
 echo "MODEL_PATH=${MODEL_PATH}"
 echo "TRAIN_FILE=${TRAIN_FILE} TEST_FILE=${TEST_FILE}"
 echo "adv=grpo reward_manager=dapo score=0/1(${REWARD_FN_PATH}) resume_mode=${RESUME_MODE} max_model_len=${ROLLOUT_MAX_MODEL_LEN}"
@@ -212,4 +212,4 @@ python3 -m verl.trainer.main_ppo \
     "${TRAINER[@]}" \
     "${EXTRA[@]}" \
     "$@" \
-    >"${LOG_FILE}" 2>&1
+    2>&1 | tee "${LOG_FILE}"

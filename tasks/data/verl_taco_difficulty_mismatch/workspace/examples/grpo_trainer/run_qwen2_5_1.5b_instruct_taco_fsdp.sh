@@ -26,8 +26,13 @@ TACO_REWARD_PATH="${TACO_REWARD_PATH:-${VERL_ROOT}/verl/utils/reward_score/taco.
 
 NNODES=${NNODES:-1}
 NGPUS_PER_NODE=${NGPUS_PER_NODE:-4}
-CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-4,5,6,7}"
-export CUDA_VISIBLE_DEVICES
+# GPU selection is inherited from the environment / launcher — don't pin device
+# indices here (the original g37 rig used 4-7, which isn't portable). verl uses
+# the first ${NGPUS_PER_NODE} visible devices. Set CUDA_VISIBLE_DEVICES in the
+# environment only if you need to restrict to a subset.
+if [ -n "${CUDA_VISIBLE_DEVICES:-}" ]; then
+    export CUDA_VISIBLE_DEVICES
+fi
 
 TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE:-16}
 PPO_MINI_BATCH_SIZE=${PPO_MINI_BATCH_SIZE:-16}

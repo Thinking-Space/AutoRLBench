@@ -19,14 +19,11 @@ algo = "ppo"
 script = "run.sh"
 
 [environment]
-image = "slime-v0.3.2"
-
+image = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
 # run.sh's defaults request 2 GPUs (NUM_GPUS=2 TP_SIZE=2, SGLang at 0.55); one
 # 80GB GPU also works (NUM_GPUS=1 TP_SIZE=1 SGLANG_MEM_FRACTION=0.40).
-[environment.env]
-CUDA_VISIBLE_DEVICES = "0,1"
-NVIDIA_VISIBLE_DEVICES = "0,1"
+gpus = 2
 
 [outcome]
 failure_type = "implementation_bug"
-failure_reason = "LinearForLastLayer.__init__ in slime/backends/megatron_utils/model_provider.py draws the critic's value head from normal_(0, init_method_std) instead of zeroing it, so a freshly built or reloaded critic opens with a random [1, hidden_size] projection of the backbone's final hidden state; Stage B's first train/critic-value_loss comes out ~7.2 (E[V^2] + pass_rate) instead of ~0.094 (mean(R^2), bounded by the binary reward), an ~77x inflation across the whole critic warmup window."
+failure_reason = "LinearForLastLayer.__init__ in slime/backends/megatron_utils/model_provider.py draws the critic's value head from normal_(0, init_method_std) instead of zeroing it, so a freshly built or reloaded critic opens with a random [1, hidden_size] projection of the backbone's final hidden state; Stage B's first train/critic-value_loss comes out ~7.2 (E[V^2] + pass_rate) instead of ~0.094 (mean(R^2), bounded by the binary reward) under the 30-rollout calibration protocol (~77x inflation; under the harness's short 2-rollout rerun the same pair measures 6.97 vs 0.25, ~28x), across the whole critic warmup window."

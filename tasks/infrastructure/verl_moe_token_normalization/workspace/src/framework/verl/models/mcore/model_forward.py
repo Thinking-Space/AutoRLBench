@@ -22,7 +22,6 @@ from verl.utils.megatron_utils import unwrap_model
 from verl.workers.config import MtpConfig
 
 from .util import (
-    build_thd_padding_mask,
     build_vlm_attn_mask_bshd,
     build_vlm_attn_mask_thd,
     postprocess_bshd,
@@ -275,6 +274,10 @@ def gptmodel_forward_model_engine(
     mtp_enable_train: bool = False,
     local_cp_size: Optional[int] = None,
     forced_max_seqlen: Optional[int] = None,
+    pad_to_length_bucket: Optional[int] = None,
+    cp_layout: str = "zigzag",
+    router_padding_mask: torch.Tensor | None = None,
+    mtp_loss_normalization_factor: float | None = None,
 ):
     """Default forward pass for GPT models with optional sequence packing."""
 
@@ -302,17 +305,14 @@ def gptmodel_forward_model_engine(
             pre_process=pre_process or (post_process and mtp_enable_train),
             use_fp8_padding=use_fp8_padding,
             local_cp_size=local_cp_size,
+            pad_to_length_bucket=pad_to_length_bucket,
+            cp_layout=cp_layout,
         )
+        if mtp_loss_normalization_factor is not None:
+            packed_seq_params._verl_mtp_loss_normalization_factor = mtp_loss_normalization_factor
         input_ids_rmpad = input_ids_rmpad.contiguous()
 
         args = {}
-        if not vision_model:
-            model_kwargs["padding_mask"] = build_thd_padding_mask(
-                input_ids,
-                use_fp8_padding=use_fp8_padding,
-                local_cp_size=local_cp_size,
-            )
-
         if mtp_enable_train and post_process:
             # Use input_ids sequence length to ensure label and loss_mask alignment
             input_ids_offsets = input_ids.offsets()
@@ -332,6 +332,8 @@ def gptmodel_forward_model_engine(
                     need_roll=True,
                     use_fp8_padding=use_fp8_padding,
                     local_cp_size=local_cp_size,
+                    pad_to_length_bucket=pad_to_length_bucket,
+                    cp_layout=cp_layout,
                 )[0]
 
             model_kwargs["labels"] = args["label"].contiguous()
@@ -346,6 +348,9 @@ def gptmodel_forward_model_engine(
         attention_mask = None
         if vision_model:
             input_ids_rmpad, attention_mask = build_vlm_attn_mask_thd(input_ids, pad_token_id)
+
+        if router_padding_mask is not None:
+            model_kwargs["padding_mask"] = router_padding_mask
 
         output_orig = model(
             input_ids=input_ids_rmpad,
@@ -363,13 +368,21 @@ def gptmodel_forward_model_engine(
                     need_roll=(k == "label"),
                     use_fp8_padding=use_fp8_padding,
                     local_cp_size=local_cp_size,
+                    pad_to_length_bucket=pad_to_length_bucket,
+                    cp_layout=cp_layout,
                 )[0]
                 for k, v in logits_processor_args.items()
             }
             output_dict = logits_processor(output_orig, **args)
             output = {
                 k: postprocess_thd_engine(
-                    v, packed_seq_params, input_ids, batch_size, post_process=post_process, local_cp_size=local_cp_size
+                    v,
+                    packed_seq_params,
+                    input_ids,
+                    batch_size,
+                    post_process=post_process,
+                    local_cp_size=local_cp_size,
+                    cp_layout=cp_layout,
                 )
                 for k, v in output_dict.items()
             }
@@ -381,6 +394,7 @@ def gptmodel_forward_model_engine(
                 batch_size,
                 post_process=post_process,
                 local_cp_size=local_cp_size,
+                cp_layout=cp_layout,
             )
     else:
         """

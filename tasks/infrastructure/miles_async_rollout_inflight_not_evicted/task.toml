@@ -19,13 +19,17 @@ algo = "grpo"
 script = "scripts/train_grpo.sh"
 
 [environment]
+# TODO(image): the miles-async-rollout Dockerfile was removed by the 2026-11-05
+# harness port and this name no longer resolves; the task needs the ngc-2506
+# calibration stack (Megatron 4716f754 + sglang 0.5.16.dev44 lineage, the
+# registered `miles-rl-lgs` / llm-rl/ngc-2506:nvidia.11b60366 image) as a
+# digest-pinned docker/images/<name>.Dockerfile -- pending, see
+# docker/images/miles-ngc2506-distributable.Dockerfile for the recipe.
 image = "miles-async-rollout"
 
 # scripts/train_grpo.sh pins the 4-GPU split (actor 2 + rollout 2); the
 # recorded defective/control runs used 4xH800 under a fixed 8h wall clock.
-[environment.env]
-CUDA_VISIBLE_DEVICES = "0,1,2,3"
-NVIDIA_VISIBLE_DEVICES = "0,1,2,3"
+gpus = 4
 
 [outcome]
 failure_type = "throughput_regression"

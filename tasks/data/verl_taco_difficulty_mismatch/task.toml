@@ -19,12 +19,13 @@ algo = "grpo"
 script = "examples/grpo_trainer/run_qwen2_5_1.5b_instruct_taco_fsdp.sh"
 
 [environment]
-image = "verl"
+image = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
 
-# No GPUs declared on purpose: this task is issue-only, so neither the agent nor
-# the verifier stage starts training. Declaring NVIDIA_VISIBLE_DEVICES would add
-# --gpus to both containers and break on GPU-less hosts. To rerun the recorded
-# 4-GPU experiment, set AUTORLBENCH_DOCKER_GPUS on the host.
+# 4 GPUs, matching the recorded run: the run_spec.json rerun stage (and any
+# host-side reproduction of the recorded experiment) drives the launch script,
+# whose NGPUS_PER_NODE default is 4. docker exposes them as cuda:0..3 via
+# --gpus; harbor synthesizes the compose device reservation from this count.
+gpus = 4
 
 [outcome]
 failure_type = "data_difficulty_mismatch"

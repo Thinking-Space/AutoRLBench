@@ -57,7 +57,7 @@ def _to_bool_results(raw):
     fixed = []
     for e in raw:
         if isinstance(e, np.ndarray):
-            e = e.item(0)
+            e = e.item(0) if e.size else False
         if isinstance(e, np.bool_):
             e = bool(e)
         fixed.append(e)

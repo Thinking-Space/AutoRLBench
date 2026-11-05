@@ -51,7 +51,7 @@ PROJECT_NAME=${PROJECT_NAME:-verl_grpo_taco}
 EXPERIMENT_NAME=${EXPERIMENT_NAME:-${BENCH_TASK_LEAF_ID:-__BENCH_TASK_ID__}}
 TEST_FREQ=${TEST_FREQ:-50}
 TOTAL_EPOCHS=${TOTAL_EPOCHS:-15}
-TOTAL_TRAINING_STEPS=${TOTAL_TRAINING_STEPS:-400}
+TOTAL_TRAINING_STEPS=${TOTAL_TRAINING_STEPS:-200}
 # save_freq must be >0 or verl skips the final save too; equal to total steps => only last ckpt.
 SAVE_FREQ=${SAVE_FREQ:-${TOTAL_TRAINING_STEPS}}
 USE_V1=${USE_V1:-False}
@@ -138,7 +138,7 @@ TRAINER=(
     trainer.use_v1=${USE_V1}
 )
 
-echo "Logging to ${LOG_FILE}"
+echo "Logging to ${LOG_FILE} (also echoed to the console)"
 export PYTHONPATH="${VERL_ROOT}:${PYTHONPATH:-}"
 
 python3 -m verl.trainer.main_ppo \
@@ -150,4 +150,4 @@ python3 -m verl.trainer.main_ppo \
     "${REWARD[@]}" \
     "${TRAINER[@]}" \
     "$@" \
-    >"${LOG_FILE}" 2>&1
+    2>&1 | tee "${LOG_FILE}"

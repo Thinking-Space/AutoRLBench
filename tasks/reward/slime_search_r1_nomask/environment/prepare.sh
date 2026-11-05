@@ -62,23 +62,115 @@ set -euo pipefail
 # image's site-packages is gone when the container exits. $AUTORLBENCH_PREPARED
 # is the only directory the later two stages mount read-only. About 640MB.
 FAISS_SITE="$AUTORLBENCH_PREPARED/pysite"
-# Why a cluster PyPI mirror: the cluster's whitelist-proxy can handshake with
-# files.pythonhosted.org (PyPI's fastly CDN) but resets partway through these
-# few-hundred-MB RAPIDS cu13 wheels (SSLEOFError: UNEXPECTED_EOF_WHILE_READING),
-# the same failure class as the blocked HF xet cas-bridge. The cluster's own
-# proxying index proxies pythonhosted wheels over and is far more stable. The
-# default is the Paratera beijing cluster's index; override with
-# AUTORLBENCH_PIP_INDEX_URL / AUTORLBENCH_PIP_TRUSTED_HOST when switching
-# clusters instead of hard-coding one cluster's address into the task, and set
-# it to the empty string to force the original direct-pythonhosted behaviour.
-# (The unsuffixed cu13 wheels below are not on pypi.org, so the default is not
-# interchangeable with it.)
+# The source for the network fallback path (reached only when the wheelhouse
+# below is unavailable): the cluster's own proxying index proxies
+# pythonhosted wheels over and is far more stable than the direct route --
+# the whitelist-proxy resets partway through these few-hundred-MB RAPIDS cu13
+# wheels (SSLEOFError: UNEXPECTED_EOF_WHILE_READING), the same failure class
+# as the blocked HF xet cas-bridge. The default is the Paratera beijing
+# cluster's index; override with AUTORLBENCH_PIP_INDEX_URL /
+# AUTORLBENCH_PIP_TRUSTED_HOST when switching clusters instead of
+# hard-coding one cluster's address into the task, and set it to the empty
+# string to force the original direct-pythonhosted behaviour.
 PIP_INDEX_URL="${AUTORLBENCH_PIP_INDEX_URL-https://pypi.mb1.bj3.paratera.com/root/pypi/+simple}"
 PIP_TRUSTED_HOST="${AUTORLBENCH_PIP_TRUSTED_HOST-pypi.mb1.bj3.paratera.com}"
 PIP_INDEX_ARGS=()
 if [ -n "$PIP_INDEX_URL" ]; then
     PIP_INDEX_ARGS+=(--index-url "$PIP_INDEX_URL")
     [ -n "$PIP_TRUSTED_HOST" ] && PIP_INDEX_ARGS+=(--trusted-host "$PIP_TRUSTED_HOST")
+fi
+
+# --- Where the wheels come from: a wheelhouse shipped with the task, installed
+# offline ----------------------------------------------------------------------
+# The ten wheels (the same set the two pip blocks below install) do not go
+# through any PyPI index: they were pre-downloaded from files.pythonhosted.org
+# on a machine with open egress and published as one HF repo
+# (cyh2004/ptdbench-wheelhouse-cu13, with a MANIFEST.txt recording each
+# wheel's source URL and sha256); prepare pulls it locally with the same
+# fetch_hf.py as the weights -- the same proven endpoint/mirror route, cached
+# under $AUTORLBENCH_MODELS so the 1.33GB is fetched once and reused across
+# runs and tasks -- and installs with `pip --no-index --find-links`.
+#
+# Why it has to go this far (measured 2026-11, devspace 1441367 /
+# cluster=huhehaote):
+#   * The beijing mirror pypi.mb1.bj3.paratera.com (the default of the
+#     network fallback path above) is unreachable from a huhehaote devspace
+#     outright -- TCP timeout in a shell, SSLEOFError resets ten in a row
+#     inside the prepare container through the whitelist proxy. It was picked
+#     for cluster=beijing.
+#   * pypi.org's simple index pages connect, but files.pythonhosted.org is
+#     reset by the whitelist proxy during the TLS handshake
+#     (SSL_ERROR_SYSCALL, 5/5 reproduced) -- degraded from the old "resets
+#     partway through" to "cannot handshake at all".
+#   * The inner-mongolia mirror pypi.hs1.paratera.com is reachable and fast,
+#     but has not synced the RAPIDS cu13 family at all
+#     (faiss-gpu-cuvs / libcuvs / libraft / librmm / rapids-logger);
+#     nvidia-cusolver stops at 12.3.4.7 and nvidia-cublas at 13.8.0.4 --
+#     only three of the ten pinned versions are covered.
+# In other words, no pip source on the huhehaote cluster can supply this
+# closure; switching mirrors does not help.
+#
+# AUTORLBENCH_WHEELHOUSE_REPO overrides the repo id. A failed fetch or an
+# incomplete wheelhouse (a sha256 mismatch counts as incomplete -- pip itself
+# does not verify wheel contents) falls back to the network path above, which
+# still works on a beijing devspace.
+WHEELHOUSE_REPO="${AUTORLBENCH_WHEELHOUSE_REPO-cyh2004/ptdbench-wheelhouse-cu13}"
+WHEELHOUSE="$AUTORLBENCH_PREPARED/wheelhouse"
+# Filenames + sha256, matching the repo's MANIFEST.txt verbatim; the digests
+# come from the link fingerprints on PyPI's simple index pages (verified one
+# by one at download time).
+WHEELHOUSE_MANIFEST='
+nvidia_nvjitlink-13.4.92-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl  e0391f24ed94ec879b84e3da4d4ec320c879aff681f2c7a638462f7199284323
+nvidia_cublas-13.8.2.12-py3-none-manylinux_2_27_x86_64.whl  21721774d8e7044debec3034ecc1a8cd22e173eb6dae5d7f5f8a014852382894
+nvidia_curand-10.4.4.72-py3-none-manylinux_2_27_x86_64.whl  25c3457ae7a224fdd484dab90b0fc5dc0e842fab5db3012afa4a5bd2af4eb7e5
+nvidia_cusolver-12.3.5.3-py3-none-manylinux_2_27_x86_64.whl  01f13254cfe9f99cf8d141fa4d00fbe55b235fd1509854017d766fd84442f46a
+nvidia_cuda_nvrtc-13.4.92-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl  5ce8c97b00b232c4f50c8c4b5a3b68cafee08bdb82ea86f2052ff01d03194f4a
+faiss_gpu_cuvs-1.15.0-cp311-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl  a1bc663066606ee5c9cd8e72db100c3ba0a5a24b62f7149b24b03749f156d127
+libcuvs_cu13-26.6.0-py3-none-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl  32f4b705a8f261c310af0e7624d32e68190b071b148021c20bae793ba1ddec22
+libraft_cu13-26.6.0-py3-none-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl  945d3e40adb3d47f5dade5fe7819d1331b6ed9e22799cbcb215281946f94b858
+librmm_cu13-26.6.0-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl  58dd98261f74ed0df523a93c063d182b8f1a8ee6b8afb46566e08f8829f28e13
+rapids_logger-0.2.3-py3-none-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl  7fe67ef4049c5d8ba6154746325dcf7cc0f327f0efa8f2611fc8f64e67510f60
+'
+wheelhouse_ready() {
+    local line name digest
+    while IFS= read -r line; do
+        case "$line" in ''|'#'*) continue ;; esac
+        name="${line%% *}"; digest="${line##* }"
+        [ -s "$WHEELHOUSE/$name" ] || return 1
+        if command -v sha256sum >/dev/null 2>&1; then
+            [ "$(sha256sum "$WHEELHOUSE/$name" | awk '{print $1}')" = "$digest" ] || return 1
+        fi
+    done <<<"$WHEELHOUSE_MANIFEST"
+    return 0
+}
+# The fetch goes in two steps: a cache hit never leaves the network at all,
+# and a cache miss first goes through the environment's whitelist proxy, then
+# retries once completely bypassing it. Why the direct step exists: HF puts
+# every file over 10MB on the xet backend, whose resolve 302s to
+# cas-bridge.xethub.hf.co, a domain the whitelist proxy does not allow (TLS
+# handshake reset, measured 2026-11-03 on a wuxi_train devspace); the devspace
+# node's direct connection to the mirror works instead (transparent egress),
+# with the same file sha256 as on the PyPI side. Only when both routes fail
+# does the wheelhouse give up and fall back to pip's network path.
+fetch_wheelhouse() {
+    python3 "$AUTORLBENCH_ENVIRONMENT/fetch_hf.py" \
+        --repo "$WHEELHOUSE_REPO" \
+        --dest "$WHEELHOUSE" && return 0
+    echo "[prepare] wheelhouse fetch through the egress proxy failed; retrying direct (no proxy)" >&2
+    env -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY \
+        python3 "$AUTORLBENCH_ENVIRONMENT/fetch_hf.py" \
+        --repo "$WHEELHOUSE_REPO" \
+        --dest "$WHEELHOUSE"
+}
+PIP_SOURCE_ARGS=()
+PIP_SOURCE_DESC=""
+if fetch_wheelhouse && wheelhouse_ready; then
+    PIP_SOURCE_ARGS=(--no-index --find-links "$WHEELHOUSE")
+    PIP_SOURCE_DESC="wheelhouse $WHEELHOUSE_REPO (offline)"
+else
+    echo "[prepare] wheelhouse unavailable; falling back to the pip index path" >&2
+    PIP_SOURCE_ARGS=(${PIP_INDEX_ARGS[@]+"${PIP_INDEX_ARGS[@]}"})
+    PIP_SOURCE_DESC="${PIP_INDEX_URL:-direct pypi.org}"
 fi
 
 # The five nvidia cu13 components (nvjitlink / cublas / curand / cusolver /
@@ -115,8 +207,10 @@ fi
 # directory) each load their own set; importing both in one process plus a
 # GPU cloner smoke test passed. cuda-runtime is not installed: the image's
 # nvidia-cuda-runtime==13.3.29 already puts libcudart.so.13 in cu13/lib/.
-# This block sits after the PIP_INDEX_ARGS definition so it can use the
-# cluster mirror -- the unsuffixed cu13 wheels are not on pypi.org. It writes
+# This block sits after the PIP_SOURCE_ARGS decision so the source is chosen
+# there (wheelhouse first, network path as the fallback; the unsuffixed cu13
+# wheels are on pypi.org these days -- the cluster just cannot reach
+# files.pythonhosted.org). It writes
 # the prepare container's system directories, and the guard reinstalls them
 # after a devspace rebuild (this task runs on an attach-mode devspace only,
 # with prepare/agent/verifier sharing the container). Versions: nvjitlink
@@ -136,7 +230,7 @@ if ! cu13_ready; then
     echo "[prepare] installing CUDA-13 nvidia runtime components into system dist-packages"
     python3 -m pip install --no-cache-dir --no-deps --no-user \
         --retries 10 --timeout 120 \
-        ${PIP_INDEX_ARGS[@]+"${PIP_INDEX_ARGS[@]}"} \
+        ${PIP_SOURCE_ARGS[@]+"${PIP_SOURCE_ARGS[@]}"} \
         nvidia-nvjitlink==13.4.92 \
         nvidia-cublas==13.8.2.12 \
         nvidia-curand==10.4.4.72 \
@@ -154,13 +248,13 @@ if [ ! -d "$FAISS_MARKER" ]; then
         echo "[prepare] $FAISS_SITE is stale or incomplete; reinstalling from scratch"
         rm -rf "$FAISS_SITE"
     fi
-    echo "[prepare] installing faiss-gpu-cuvs==1.15.0 (CUDA 13) into $FAISS_SITE${PIP_INDEX_URL:+ via $PIP_INDEX_URL}"
+    echo "[prepare] installing faiss-gpu-cuvs==1.15.0 (CUDA 13) into $FAISS_SITE via $PIP_SOURCE_DESC"
     # --no-user: some images set PIP_USER=1 (or pip.conf [install] user=true),
     # which is mutually exclusive with --target ("Can not combine '--user' and
     # '--target'").
     python3 -m pip install --no-cache-dir --no-deps --no-user \
         --retries 10 --timeout 120 \
-        ${PIP_INDEX_ARGS[@]+"${PIP_INDEX_ARGS[@]}"} \
+        ${PIP_SOURCE_ARGS[@]+"${PIP_SOURCE_ARGS[@]}"} \
         --target "$FAISS_SITE" \
         faiss-gpu-cuvs==1.15.0 \
         libcuvs-cu13==26.6.0 \

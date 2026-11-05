@@ -4,7 +4,12 @@ The artifacts behind the Results section of the task `readme.md`: one recorded
 run on 1×H800 for each side of the defect — `defective/` (the published
 `workspace/` as shipped) and `fixed/` (the same with the oracle patch applied) —
 Stage A = 2 rollouts, Stage B = 30 rollouts of which the first 3 are
-critic-only, evaluated every 5. One slice of this is an input to the task: the
+critic-only, evaluated every 5. Note this is the **calibration protocol**, not
+what the harness rerun executes: `run_spec.json` injects only
+`OUT_DIR`/`CKPT_ROOT`, so the graded rerun is `run.sh`'s defaults (Stage B = 2
+rollouts, 4-step warmup, 2×H100), measured at 6.972/7.154 (defective) vs
+0.250/0.218 (fixed) first/mean — see the sealed README's "Harness rerun
+protocol" note. One slice of this is an input to the task: the
 defective side's Stage A/B logs and value-loss summaries are mirrored
 (unpacked) into `workspace/logs/` as the frozen evidence the issue level
 diagnoses; everything else — the fixed arm, the per-episode dumps, the

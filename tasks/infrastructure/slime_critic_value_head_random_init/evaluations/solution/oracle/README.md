@@ -47,7 +47,7 @@ Metric: Stage B's first critic-optimizer-step `train/critic-value_loss`
 The gap is ~77× with no overlap: the episode reward is binary so a correctly
 zero-initialised critic reports `mean(R²) = pass_rate ≤ 1` on its first step,
 while the random `[1, 2048]` head on Qwen3-1.7B (final-hidden RMS ≈ 2.55,
-init scale 0.02) reports `E[V²] + pass_rate ≈ 5.3` by derivation and 5.3–7.6 in
+init scale 0.02) reports `E[V²] + pass_rate ≈ 5.3` by derivation and 5.3–8.2 in
 practice. The threshold sits an order of magnitude from either side, and above
 the fixed side's value at step 0 (`mean(R²) = 6/64 = 0.09375`), so merely
 finishing a run without the fix cannot pass it.
@@ -55,6 +55,17 @@ finishing a run without the fix cannot pass it.
 **Calibration: 1 run per side** (1×H800; Stage A = 2 rollouts, Stage B = 30
 rollouts of which the first 3 are critic-only ⇒ a 6-step warmup window). Margins
 are reported above; with one run per side there is no variance estimate.
+
+**Harness rerun protocol** (the one the verifier actually grades): the rerun
+`run_spec.json` injects only `OUT_DIR`/`CKPT_ROOT`, so `run.sh` runs its
+defaults — the short reproduction: Stage B = 2 rollouts, both critic-only ⇒ a
+4-step warmup window, 2×H100. That protocol was measured on both sides
+(2026-11-02, devspace): defective `first_value_loss` 6.972 / warmup mean 7.154 /
+max 8.154; fixed 0.250 / 0.218 / 0.372. The threshold separates just as
+cleanly there (~28× gap, no overlap); the fixed side's step-0 value is the
+pass rate of its opening batch (`mean(R²) = 0.25`), still 4× below
+the threshold. The long-protocol artifacts in `measured_runs/` are from the
+calibration runs, not from the harness rerun.
 
 ## Why the reload only exposes it (not the cause)
 

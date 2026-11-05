@@ -10,6 +10,18 @@
 # base model) and one is converted on the spot (its torch_dist reference).
 set -euo pipefail
 
+# --- image-level env, seeded here --------------------------------------------
+# Post-port docker/images/*.Dockerfile are bare digest-pinned FROM lines: no
+# ENV is baked into the image any more. The two entries the old purpose-built
+# image carried are seeded into $AUTORLBENCH_PREPARED/env here instead; they
+# ride the prepared/env handoff into the agent/rerun/verifier stages via the
+# activate hook. Idempotent.
+for _kv in CUDA_DEVICE_ORDER=PCI_BUS_ID TOKENIZERS_PARALLELISM=false; do
+    if ! grep -qs "^${_kv%%=*}=" "${AUTORLBENCH_PREPARED}/env" 2>/dev/null; then
+        echo "$_kv" >> "${AUTORLBENCH_PREPARED}/env"
+    fi
+done
+
 # --- miles image venv --------------------------------------------------------
 # The image's training stack (torch / sglang / ray) lives in a uv venv under
 # /opt/sglang, not the system python. Both this prepare and the SSH-driven
@@ -35,6 +47,45 @@ fi
 python3 "$AUTORLBENCH_ENVIRONMENT/fetch_hf.py" \
     --repo Qwen/Qwen3-1.7B \
     --dest "$AUTORLBENCH_WORKSPACE/Qwen3-1.7B"
+
+# --- Megatron-LM version pin --------------------------------------------------
+# The calibration image ships Megatron-LM already at 4716f754 (full history);
+# the vendored miles tree in this workspace still imports the legacy
+# megatron.training.tokenizer module (removed upstream 2026-02-09), and the
+# throughput thresholds were calibrated on this commit (the author's stack).
+# The checkout is a no-op guard that also covers a drifted future image.
+# Unlike the devspace-based PTDBench run, each AutoRLBench stage runs in a
+# fresh container, so this pin only holds for the torch_dist conversion below
+# -- the agent/rerun stages re-check the era via the run_spec command prefix.
+git -C /root/Megatron-LM checkout --quiet --force 4716f75475c78e2fc2c6f0d3af095f1681b770b4
+
+# --- sglang era guard ----------------------------------------------------------
+# In the calibration image sglang is a REGULAR (non-editable) install under the
+# system python's dist-packages (0.5.16.dev44 lineage, baked at image build):
+# the checkout at /sgl-workspace/sglang is a shallow reference clone, and
+# checking out a different commit there changes nothing at runtime, so there is
+# no pin to apply -- only a guard that the runtime is still the era the
+# thresholds were calibrated on. The vendored miles tree needs
+# parameter_mapper.py and a dataclass ServerArgs (the post-v0.5.20-rebase
+# sglang breaks both: dataclasses.fields(ServerArgs) TypeErrors in
+# sglang_engine.py:783), and the binary kernels must match (sgl_kernel 0.4.4;
+# 0.4.9 renamed/dropped ~30 top-level symbols the era code imports).
+SGLANG_SITE="$(python3 -c 'import sglang, os; print(os.path.dirname(sglang.__file__))')"
+if [ ! -f "${SGLANG_SITE}/srt/model_loader/parameter_mapper.py" ]; then
+    echo "[prepare] sglang at ${SGLANG_SITE} lacks srt/model_loader/parameter_mapper.py"
+    echo "[prepare] (post-v0.5.20-rebase lineage): the vendored miles tree cannot import it."
+    exit 1
+fi
+python3 - <<'PYEOF'
+import dataclasses
+from sglang.srt.server_args import ServerArgs
+
+if not dataclasses.is_dataclass(ServerArgs):
+    raise SystemExit(
+        "[prepare] ServerArgs is not a dataclass (post-v0.5.20-rebase sglang): "
+        "miles sglang_engine.py dataclasses.fields(ServerArgs) would TypeError."
+    )
+PYEOF
 
 # --- Megatron torch_dist reference weights (--ref-load) ----------------------
 # No upstream repo; converted from the HF checkpoint above. scripts/train_grpo.sh

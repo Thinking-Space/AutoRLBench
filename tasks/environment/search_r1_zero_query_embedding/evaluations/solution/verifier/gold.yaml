@@ -45,8 +45,11 @@ solution_metric:
     defective best 0.15625, repaired best 0.32813, repaired step-0 0.13281. The bar
     sits 0.084 above the defective ceiling and 0.088 below the repaired value, and
     above the repaired step-0 point so that a fix without a completed run does not
-    pass. Unlike slime_search_r1_nomask, whose bar rests on four measured runs, this
-    threshold has no variance estimate: a second pair at this budget is the follow-up
-    that would justify tightening or moving it. Reruns are not expected to be
-    bit-identical -- the FAISS index is rebuilt at prepare time rather than shipped,
-    and GPU nondeterminism applies.
+    pass. A second pair has since been measured (2026-11-03, devspace reruns, both
+    exit 0 at the same budget): defective best 0.156 (steps 0/10/20/30/32 =
+    0.023/0.031/0.094/0.156/0.141) and repaired best 0.344
+    (0.133/0.219/0.305/0.344/0.328, final 0.328 matching the recorded 0.32813).
+    Both defective runs cap at 0.156, so the bar keeps 0.084 headroom above the
+    defective ceiling and 0.084-0.104 below the repaired values; 0.24 stays.
+    Reruns are not expected to be bit-identical -- the FAISS index is rebuilt at
+    prepare time rather than shipped, and GPU nondeterminism applies.

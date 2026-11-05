@@ -1,4 +1,4 @@
-# verl_implementation diagnosis: torch_functional
+# Log-prob recompute labels miss the causal roll
 
 ## Case overview
 
@@ -78,8 +78,8 @@ already_at_baseline: false
 metric_status: log_reconstructed
 verify:
   num_gpus: 8
-  timeout_minutes: 660
-  max_train_steps: 400
+  timeout_minutes: 360
+  max_train_steps: 200
   eval_metric_key: val-core/taco/acc/mean@1
 ```
 
@@ -130,7 +130,7 @@ The essential root cause is the dropped causal roll in
 `torch.roll(input_ids_rmpad, shifts=-1, dims=1)`).
 
 `solution` does not grade a structured diagnosis. The agent repairs the staged workspace and submits `report.md` without
-launching training. The harness runs the designated launch script for 400 steps
+launching training. The harness runs the designated launch script for 200 steps
 and produces fresh experiment logs. Scoring is weighted:
 
 - validation: a finite `val-core/taco/acc/mean@1` peak of at least `0.10`
@@ -142,12 +142,21 @@ and produces fresh experiment logs. Scoring is weighted:
 Pass requires both components (`score == 1.0`). The framework still records
 the weighted float when only one component passes.
 
-Thresholds are calibrated to the fixed-run reference on this engine
-(devspace, 8×H100, 2026-10-05): with the roll restored, `val-core/taco/acc/mean@1`
-rises from a step-0 baseline of `0.054` to a peak of `0.125` (step 150, final
-`0.109`) and `critic/rewards/mean` averages ≈ `0.15`–`0.20`, while
-`rollout_corr/kl` stays ≈ 0. With the roll dropped, validation and reward both
-collapse to `0`. The `0.10 / 0.10` bars sit comfortably between the two regimes.
+Thresholds are calibrated against 2 runs per arm (2026-09-10 frozen +
+2026-11-01 fresh defective; 2026-10-05 + 2026-11-03 repaired; devspace, 8×H100,
+each reference run 400 steps): with the roll restored, `val-core/taco/acc/mean@1`
+starts at `0.049`–`0.054` at step 0 and peaks at `0.125` (step 150) / `0.114`
+(step 100), ending at `0.109`, while `critic/rewards/mean` averages
+≈ `0.17`–`0.18` and `rollout_corr/kl` stays ≈ 0. With the roll dropped, the best
+val is the step-0 baseline (`0.071` frozen / `0.081` fresh) with `0.0` from
+step 200, and the 200-step mean reward is `0.082`. The evaluation budget is
+200 steps (360-minute rerun timeout): the `0.10 / 0.10` bars sit `0.019` above
+the defective arm's best val and `0.014`–`0.025` below the repaired peak. The
+200-step budget is the floor at which the reward criterion still separates the
+arms — the fresh defective run's mean reward stays above `0.10` until step
+~165, so a shorter budget would lean on the val criterion alone. Repaired peak
+timing varies (step 100–250 across runs), which is why the budget is not cut
+below 200. Margins only, no variance claim.
 
 ## External dataset asset
 
@@ -187,7 +196,7 @@ recorded identity above alone does not pin a fresh download.
 - Base image: `verlai/verl:vllm017.latest`
 - Use the Docker agent backend after external asset publication.
 - The local backend does not build the task image or hydrate external assets.
-- The designated experiment uses 8 GPUs, a 400-step budget, and a large shared-memory allocation.
+- The designated experiment uses 8 GPUs, a 200-step budget (360-minute rerun timeout), and a large shared-memory allocation.
 - Launch script: `examples/grpo_trainer/run_qwen2_5_1.5b_instruct_taco_fsdp.sh`
 
 The grader requires the final validation point and every training-reward step

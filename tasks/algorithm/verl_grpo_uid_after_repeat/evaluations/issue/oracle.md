@@ -49,10 +49,12 @@ per-step metrics are in `metrics_<timestamp>.jsonl`.
 - `critic/returns/mean` equals `critic/advantages/mean` to within `1e-9` at
   every step, because the GRPO estimator returns the advantage tensor for
   both. This is also true of a healthy run and is not by itself evidence.
-- `actor/pg_loss` is negative on every rewarded step and of order `1e-2`
-  (around minus the token-weighted mean advantage), rather than fluctuating
-  around zero at order `1e-4`: every token carries a non-negative advantage,
-  so nothing ever pushes a sampled response down.
+- `actor/pg_loss` never becomes positive: it is `0.0` on unrewarded steps and
+  negative on every rewarded step, because every token carries a
+  non-negative advantage, so nothing ever pushes a sampled response down. A
+  healthy run's `pg_loss` fluctuates around zero taking both signs, at a
+  comparable magnitude — the separator is the sign, not the order of
+  magnitude (both arms sit at order `1e-3` to `1e-2` on rewarded steps).
 - Held-out `val-core/math_dapo/acc/mean@1`: `0.0454` (step 0) → `0.0437`
   (20) → `0.0476` (40) → `0.0570` (60). The curve is **not** collapsed, and
   at a 60-step budget it does not on its own separate this defect from a

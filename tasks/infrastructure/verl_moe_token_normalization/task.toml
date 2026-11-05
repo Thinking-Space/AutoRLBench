@@ -19,15 +19,17 @@ algo = "grpo"
 script = "scripts/train.sh"
 
 [environment]
-image = "verl-moe-token"
-
+# Shared verl image (same FROM digest the former dedicated verl-moe-token image
+# was built on); its MCore router patch is applied by environment/prepare.sh --
+# see the notes there.
+image = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
 # Both levels share the same GPU set; the solution-level rerun needs at least
 # 56 GiB free memory per card. train.sh fixes CP2 / EP2 / TP1, which is exactly
 # two cards.
+gpus = 2
+
 [environment.env]
 WANDB_MODE = "offline"
-CUDA_VISIBLE_DEVICES = "0,1"
-NVIDIA_VISIBLE_DEVICES = "0,1"
 
 [outcome]
 failure_type = "implementation_bug"

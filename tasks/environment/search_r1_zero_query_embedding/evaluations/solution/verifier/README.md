@@ -18,13 +18,11 @@ pattern already fits this trainer's output:
 step:32 - val/test_score/hotpotqa:0.156 - val/em:0.156 - val/f1:0.247 - ...
 ```
 
-One cosmetic consequence of reusing it unchanged: its pattern is `re.DOTALL`, so
-a match may start at an earlier `step:N` label and reach the next `val/em:` on a
-later line. Replayed on the two frozen logs it reports the right values
-(`0.156` defective, `0.328` repaired) under `best_step: 31` rather than `32`.
-Under `score_mode: best` the step label is informational and the graded value is
-the maximum over the `val/em` values actually printed, so this does not affect
-pass/fail — but do not read `best_step` as the step the best eval happened at.
+One consequence of reusing it unchanged: its step-line pattern is line-anchored
+(no `re.DOTALL`), so a match never spills across lines and `best_step` is the
+step the best eval actually happened at. Replayed on the two frozen logs it
+reports the right values (`0.156` defective, `0.328` repaired) with
+`best_step: 32`.
 
 ## Horizon
 
@@ -53,21 +51,26 @@ lines:
   bar requires repairing *and* completing the run.
 - The upper bound only blocks a fabricated value: accuracy cannot exceed `1.0`.
 
-## The calibration's one weakness
+## Calibration spread
 
-**One run per side.** `slime_search_r1_nomask` sets its bar from four measured
-runs and can quote a variance; this task cannot. Nothing here establishes how
-much either side moves across seeds, and the defective side in particular is the
-kind of defect that can wander: the policy still gets reward from its parametric
-knowledge, so its ceiling depends on how fast it adapts to useless observations.
+**Two runs per side.** A second pair was measured on 2026-11-03 (devspace
+reruns, both exit 0 at the same budget): defective best `0.156` (steps
+0/10/20/30/32 = 0.023/0.031/0.094/0.156/0.141) and repaired best `0.344`
+(0.133/0.219/0.305/0.344/0.328, final 0.328 matching the recorded 0.32813).
+Both defective runs cap at `0.156`, so the bar keeps 0.084 headroom above the
+defective ceiling on both pairs and 0.084-0.104 below the repaired values.
+
+`slime_search_r1_nomask` still has the wider four-run calibration; two pairs
+here agree on the separation but do not establish seed-to-seed spread, and the
+defective side in particular is the kind of defect that can wander: the policy
+still gets reward from its parametric knowledge, so its ceiling depends on how
+fast it adapts to useless observations.
 
 Consequences for whoever reads a result:
 
-- a best value near `0.24` is inside the unmeasured band — read
+- a best value near `0.24` remains inside a thinly measured band — read
   `experiment_logs/graded/train.log` and `retrieval.jsonl` before trusting the
   verdict either way,
-- running a second pair at this budget is the follow-up that justifies
-  tightening, widening or moving the bar,
 - reruns are not expected to be bit-identical in any case: the FAISS index is
   rebuilt at prepare time rather than shipped, and GPU nondeterminism applies.
 

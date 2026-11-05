@@ -2,7 +2,7 @@
 #
 # Multi-Turn PPO on Endless Terminals with Qwen3-1.7B, on slime v0.3.2.
 #
-# The run has two stages:
+# The run has two stages, because the symptom only appears *after a reload*:
 #
 #   Stage A -- "the previous training run".  A real PPO rollout (actor + critic)
 #              starting from the base HF model, which saves a Megatron
@@ -10,14 +10,27 @@
 #
 #   Stage B -- "the model was reloaded".  The actor genuinely resumes from
 #              Stage A's Megatron checkpoint (weights *and* optimizer state).
-#              The critic's backbone is reloaded from the base model.  Stage B
-#              opens with NUM_CRITIC_ONLY_STEPS critic-only rollouts (the
-#              warmup window) and then trains actor and critic jointly.
+#              The critic's backbone is reloaded from the base model, because
+#              the saved checkpoint of a previous run does not carry a value
+#              head -- so the value head is rebuilt from scratch by
+#              `LinearForLastLayer.__init__`.  Every rollout in Stage B is
+#              critic-only (`--num-critic-only-steps >= --num-rollout`), i.e.
+#              the whole of Stage B *is* the critic warmup window, which is
+#              where the value loss is reported as inflated.
 #
-# The full slime source tree is bundled in the workspace (slime/) and is the
-# copy that runs -- this script puts it ahead of the image's install on
-# PYTHONPATH, so editing slime/ here is what takes effect, with nothing to
-# install first.
+# Everything the value head's initial weights depend on lives in
+# slime/slime/backends/megatron_utils/model_provider.py: slime unconditionally
+# replaces any model provider's `output_layer` with `LinearForLastLayer`
+# (model_provider.py:127), so that class is the single point of control.  The
+# full slime source tree is bundled in the workspace (slime/) and is the copy
+# that runs -- this script puts it ahead of the image's install on PYTHONPATH,
+# so editing slime/ here is what takes effect, with nothing to install first.
+#
+# Reward/advantage setup is deliberately vanilla so the value loss is readable:
+# with `--gamma 1.0 --lambd 1.0` GAE telescopes and `returns_t` equals the
+# episode reward R for every response token, independent of V.  On the critic's
+# very first micro-batch `values == old_values`, so PPO's value clipping is
+# inactive and the reported loss is exactly `mean((V - R)^2)`.
 #
 # NOTE ON A SHARED HOST: unlike slime's own example scripts this one never runs
 # `pkill -9 ray / pkill -9 python / ray stop --force` on entry.  It is meant to
@@ -121,11 +134,19 @@ mkdir -p "${OUT_DIR}" "${CKPT_ROOT}" "${ET_SCRATCH}"
 # --------------------------------------------------------- 0. the slime source
 # The full slime source tree is bundled in the workspace (${SLIME_HOME}) and is
 # put ahead of the image's editable install on PYTHONPATH below, so it is the
-# copy that trains -- there is nothing to install first.
-test -f "${SLIME_HOME}/train.py" || {
-    echo "FATAL: bundled slime source not found at ${SLIME_HOME}" >&2
+# copy that trains -- there is nothing to install, and the value head's initial
+# weights are exactly what ${SLIME_HOME}/.../model_provider.py says here.
+MODEL_PROVIDER="${SLIME_HOME}/slime/backends/megatron_utils/model_provider.py"
+test -f "${MODEL_PROVIDER}" || {
+    echo "FATAL: bundled slime source not found at ${MODEL_PROVIDER}" >&2
     exit 1
 }
+echo "=== value head initialisation in effect (bundled slime) ==="
+# Grep the whole file rather than a line range: the fixed and defective copies
+# carry different comment blocks, so the decisive line is not at a fixed line
+# number in both, and a range would print nothing for one of them.
+grep -n "self\.weight\.data\.\(zero_\|normal_\)" "${MODEL_PROVIDER}" || true
+echo
 
 # ------------------------------------------------------- 1. the prompt dataset
 # prepare.sh ships the already-built dataset (transpiled + validated + split) at
@@ -309,14 +330,19 @@ YAML
 
 # Stage B can be entered two ways, and they are not the same event.
 #
-#   fresh   -- "the model was reloaded". The actor resumes from Stage A's
-#              Megatron checkpoint; the critic's backbone comes from the base
-#              model.
+#   fresh   -- "the model was reloaded", the thing this case is about. The
+#              actor resumes from Stage A's Megatron checkpoint; the critic's
+#              backbone comes from the base model, because a saved actor
+#              checkpoint carries no value head, so the value head exists only
+#              because LinearForLastLayer.__init__ just created it. That
+#              constructor is the whole of the behaviour under test.
 #
 #   resume  -- an interrupted Stage B being continued. Both roles load Stage B's
-#              own checkpoints, optimizer state included, and the run continues
-#              from the last saved rollout. The first attempt's log is kept,
-#              not overwritten (see the STAGE_B_LOG choice below).
+#              own checkpoints, optimizer state included. The critic's saved
+#              output layer is already [1, hidden_size], so this is an ordinary
+#              resumption and no value head is constructed afresh -- which is
+#              exactly right: the measurement belongs to the fresh entry, and
+#              the first attempt's log already holds it.
 STAGE_B_RESUME=0
 if [ -f "${CKPT_ROOT}/stage_b_actor/latest_checkpointed_iteration.txt" ] \
    && [ -f "${CKPT_ROOT}/stage_b_critic/latest_checkpointed_iteration.txt" ]; then

@@ -9,17 +9,17 @@ root_cause:
   expected: uid is assigned before `self._get_gen_batch(batch)`, while the batch still has one row per prompt, so `repeat(interleave=True)` duplicates each uid rollout_n times and all samples from one prompt share a group key
   mechanism: compute_advantage passes non_tensor_batch["uid"] to compute_grpo_outcome_advantage as `index`; the len(group)==1 branch of that function silently substitutes id2mean=0.0 and id2std=1.0, so the group baseline is never subtracted and GRPO degenerates to baseline-free REINFORCE over the raw 0/1 reward
 evidence_metrics:
-- critic/advantages/mean equals critic/rewards/mean digit for digit at every logged step, instead of sitting near zero
-- critic/advantages/min is exactly 0.0 and critic/advantages/max is exactly 1.0, matching the raw 0/1 reward range rather than a std-normalised group advantage
+- critic/advantages/mean is strictly positive on every rewarded step and sits near critic/rewards/mean (close to, but not digit-for-digit equal to it — a response-token-weighted mean versus the plain mean of sequence rewards), instead of fluctuating around zero as a baseline-subtracted batch does
+- critic/advantages/min is exactly 0.0 and critic/advantages/max is bit-identical 0.9999990463256836 (fp32 1/(1+1e-6)) at every rewarded step, matching the raw 0/1 reward range rather than a std-normalised group advantage
 - a healthy run of the same recipe (train_batch_size 8, rollout.n 8, 0/1 reward) has a negative advantage minimum and a maximum of 2.4749 for a group with one correct response out of eight
 - critic/returns/* tracks critic/advantages/* exactly, since the GRPO estimator returns the advantage tensor for both
-- actor/pg_loss is of order 1e-2 (about minus the mean reward) rather than the order 1e-4 of a baseline-subtracted batch
-- held-out val-core/math_dapo/acc/mean@1 does not improve over the run and actor/entropy falls faster than the healthy arm
+- actor/pg_loss never becomes positive (0.0 on unrewarded steps, negative on every rewarded step), whereas a healthy run's pg_loss fluctuates around zero taking both signs at a comparable magnitude; the separator is the sign, not the order of magnitude
+- held-out val-core/math_dapo/acc/mean@1 improves modestly but stays within sampling noise of the healthy arm at the 60-step budget, so the curve alone does not separate the defect; actor/entropy trajectories are not reproducible run-to-run and are not valid evidence
 - the run never crashes, warns, or changes tensor shapes; the singleton-group branch absorbs the defect silently
 wrong_attributions:
 - train_batch_size, rollout.n, actor learning rate, reward function, or absence of KL loss — all match the healthy recipe
 - low absolute held-out accuracy on its own; the recipe's base accuracy is only a few percent
-- "group size is 1" or "advantages are not normalised" stated without locating the uid assignment relative to batch.repeat — incomplete, must not receive full root_cause_score
+- '"group size is 1" or "advantages are not normalised" stated without locating the uid assignment relative to batch.repeat — incomplete, must not receive full root_cause_score'
 fix:
   must:
   - target: uid_assigned_after_rollout_repeat

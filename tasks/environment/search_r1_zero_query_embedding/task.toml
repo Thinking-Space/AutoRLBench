@@ -19,13 +19,14 @@ algo = "grpo"
 script = "run.py"
 
 [environment]
-image = "search-r1-verl"
+# Single-GPU task: docker exposes the card as cuda:0 via --gpus; harbor synthesizes
+# the compose device reservation from this count. HF_HUB_OFFLINE /
+# TRANSFORMERS_OFFLINE are set per stage by the harness; declaring them here would
+# also block the prepare stage's downloads.
+image = "vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10"
+gpus = 1
 
-# Single-GPU task. HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE are set per stage by the
-# harness; declaring them here would also block the prepare stage's downloads.
 [environment.env]
-CUDA_VISIBLE_DEVICES = "0"
-NVIDIA_VISIBLE_DEVICES = "0"
 VLLM_ATTENTION_BACKEND = "XFORMERS"
 WANDB_MODE = "offline"
 WANDB_API_KEY = "autorlbench-offline"

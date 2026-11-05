@@ -65,8 +65,11 @@ Do not require additional causes.
 - `results/baseline32/retrieval.jsonl`: every returned document score is `0.0`,
   and the same three documents come back for all 14 queries in a batch — the
   first validation batch answers `"Scott Derrickson nationality"` with
-  `"Sheep–goat hybrid"`. Across the full trace the recorded audit counted 13959
-  zero scores and exactly one document combination.
+  `"Sheep–goat hybrid"`. The shipped file is an excerpt: 8 batches, 289
+  queries, 867 hits, every score `0.0`, exactly one document combination. The
+  full-trace audit of the original run counted 13959 zero scores with the same
+  single combination; an agent that counts the shipped file will find 867, and
+  that is consistent, not a discrepancy.
 - `results/baseline32/metrics_summary.json` and `rollouts/metrics_*.json`: the
   held-out curve above, plus `val/searched` 1.0 and `val/format` ~1.0 — the
   policy does emit well-formed searches and does read the observations; the

@@ -1,18 +1,90 @@
 #!/usr/bin/env bash
 # verl_moe_token_normalization — prepare stage.
 #
-# Runs in a separate prepare-stage container: root, `verl-moe-token` image, **the only
+# Runs in a separate prepare-stage container: root, the shared
+# `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` image, **the only
 # stage with network**. In the agent stage this file is mounted read-only at
 # /autorlbench/environment; maintainer notes go in ../README.md, not here.
 #
 # Recorded assets are immutable. Every downloaded file is checked before conversion.
 set -euo pipefail
-: "${AUTORLBENCH_WORKSPACE:?}"
+: "${AUTORLBENCH_WORKSPACE:?}" "${AUTORLBENCH_PREPARED:?}" "${AUTORLBENCH_ENVIRONMENT:?}"
 export W="$AUTORLBENCH_WORKSPACE"
 mkdir -p "$W/metadata" "$W/data/gsm8k" "$W/.tmp" "$W/.home"
 export HOME="$W/.home" TMPDIR="$W/.tmp"
 export PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1
 export PYTHONPATH="$W/src/$(cat "$W/variant.txt"):$W/scripts"
+
+# --- MCore router patch (tp_cp_group scaling backport for the MoE aux/z-loss) ---
+# The recorded runs were made on a dedicated image that baked this patch into its
+# site-packages; the task now uses the shared
+# verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12 image (same FROM digest),
+# so the patch is applied at prepare time instead: copy the image's megatron
+# install out, patch it, and stage it under $AUTORLBENCH_PREPARED. The later
+# stages pick it up through the PYTHONPATH line written to prepared/env, the same
+# pattern torch_functional / slime_search_r1_nomask use for $AUTORLBENCH_PREPARED/pysite.
+#
+# Why not patch the image's site-packages directly: prepare runs in a throwaway
+# container (runtimes/providers/docker.py's run() does docker rm -f on exit), so
+# filesystem changes die with the container -- training would run on the unpatched
+# megatron and every threshold calibrated on the historical curves would be off.
+# Staging a copy under $AUTORLBENCH_PREPARED survives the container and stays
+# read-only for the agent and verifier stages.
+#
+# The patch content matches the recorded runs (the router.py sha256 comes from
+# the original image's recorded value): megatron#5047's aux/z-loss multiplication
+# by tp_cp_group.size(). Both the issue and the solution arm share it; it is not
+# the defect under diagnosis. It runs before the fetches on purpose: fail fast if
+# the stack is wrong, before 25 GB of weights are downloaded.
+MCORE_SHA256=b8871bb3911eb20af031ad479b3305c0b6ce77643de12d493ac9c8718fcdfb87
+MCORE_SITE="$AUTORLBENCH_PREPARED/mcore"
+MCORE_ROUTER="megatron/core/transformer/moe/router.py"
+router_sha() {
+    if [ -f "$1/$MCORE_ROUTER" ]; then
+        sha256sum "$1/$MCORE_ROUTER" | cut -d' ' -f1
+    fi
+}
+if [ "$(router_sha "$MCORE_SITE")" = "$MCORE_SHA256" ]; then
+    echo "[prepare] patched MCore router already staged at $MCORE_SITE"
+else
+    # Locate the megatron install by importing it (site-packages or an editable
+    # source tree); the patch's -p1 paths (megatron/core/...) start at its parent
+    # directory. Note: taking two dirname()s of megatron.core.__file__ yields the
+    # megatron package directory itself, not its parent (off-by-one) -- use
+    # __path__ instead.
+    MCORE_PARENT="$(python3 - <<'PY'
+import megatron, os
+for path in megatron.__path__:
+    if os.path.isdir(os.path.join(path, "core", "transformer", "moe")):
+        print(os.path.dirname(path))
+        break
+else:
+    raise SystemExit(f"megatron/core/transformer/moe not found under {megatron.__path__!r}")
+PY
+)"
+    rm -rf "$MCORE_SITE"
+    mkdir -p "$MCORE_SITE"
+    # -a preserves permissions and mtimes (including the .so files under
+    # datasets/); the megatron source tree is only a few tens of MB.
+    cp -a "$MCORE_PARENT/megatron" "$MCORE_SITE/megatron"
+    patch -d "$MCORE_SITE" -p1 --forward < "$AUTORLBENCH_ENVIRONMENT/mcore5047-minimal.patch"
+    actual="$(router_sha "$MCORE_SITE")"
+    if [ "$actual" != "$MCORE_SHA256" ]; then
+        echo "[prepare] patched router.py sha256 $actual" >&2
+        echo "[prepare] does not match the recorded $MCORE_SHA256; the shared image's" >&2
+        echo "[prepare] megatron differs from the recorded runs -- refusing to continue" >&2
+        exit 1
+    fi
+    echo "[prepare] staged patched MCore at $MCORE_SITE (router.py $actual)"
+fi
+# The later stages rely on this line to import the patched megatron first:
+# $AUTORLBENCH_PREPARED is the only directory outside prepare that is mounted
+# (read-only) into agent / rerun / verifier. scripts/train.sh appends to
+# PYTHONPATH instead of overwriting it, so this line survives into training.
+if ! grep -qs "^PYTHONPATH=" "$AUTORLBENCH_PREPARED/env"; then
+    echo "PYTHONPATH=$MCORE_SITE" >> "$AUTORLBENCH_PREPARED/env"
+fi
+
 autorlbench_fetch_hf \
     --repo Qwen/Qwen1.5-MoE-A2.7B-Chat \
     --type model \

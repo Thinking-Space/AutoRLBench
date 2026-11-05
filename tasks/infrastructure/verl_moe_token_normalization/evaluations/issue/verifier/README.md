@@ -5,7 +5,7 @@ This verifier grades `$AUTORLBENCH_RESULTS/agent_answer.md` against hidden
 `judge_prompt.md`).
 
 The judge scores verdict, root-cause, and evidence agreement (weights
-0.2 / 0.6 / 0.2). Pass is a weighted score of at least `0.8`. The gold
+0.2 / 0.6 / 0.2). Pass requires `verdict_score` == 1.0, and `root_cause_score` and `evidence_score` each > 0.8; the weighted total alone is not a pass condition. The gold
 verdict for this task is `unhealthy`; the essential root cause is the
 two-item `(loss, metrics)` return of the per-token loss callback in
 `verl/workers/engine/megatron/transformer_impl.py`, which leaves MCore
