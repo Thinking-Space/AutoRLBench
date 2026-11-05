@@ -1,1 +1,1 @@
-FROM ghcr.io/zaogezi/areal-tau2@sha256:608bde9a17434b486b93dbffba28e9a4163b50436229294d5b2a563533b8f597
+FROM ghcr.io/zaogezi/areal-tau2@sha256:d2205c3f884bf150590deb2bb2b70174f83bbacead603a9d4e97f07c47125105
