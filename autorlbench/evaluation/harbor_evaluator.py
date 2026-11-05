@@ -23,6 +23,7 @@ from ..core.harbor_types import (
     HarborRun,
     HarborTaskUnit,
     PreparedHarborTask,
+    harbor_run_label,
     harbor_task_name,
 )
 from ..core.types import (
@@ -41,6 +42,7 @@ from ..tasks import SchemaError, load_task_package
 from ..runtimes.base import AUTORLBENCH_ACTIVATE_BODY
 from ..runtimes.providers.docker import DEFAULT_SHM_SIZE
 from .evaluator import TaskEvaluator
+from .harbor_run_log import HarborRunLog
 from .run_spec import (
     REPORT_FILENAME,
     RunSpec,
@@ -58,27 +60,38 @@ from ..utils.filesystem import copy_tree, ensure_dir, link_tree, tree_digest, wr
 ACTIVATE_HOOK = f"{PREPARED_DIR}/autorlbench-activate.sh"
 
 
-def _render_gpu_compose(gpus: int) -> str:
-    """Render the GPU compose overlay to hang on Harbor's `main` service.
+def _render_compose_overlay(gpus: int) -> str:
+    """Render the compose overlay to hang on Harbor's `main` service.
 
     This replaces the per-task environment/docker-compose.yaml files: their contents were all the
     same apart from the card count -- reserve `gpus` devices for the container and raise /dev/shm
     from docker's default 64MB to DEFAULT_SHM_SIZE (verl/ray workers and NCCL both buffer in
     /dev/shm; the default dies on the first rollout with an unreadable bus error). The shm_size
     matches the docker backend's `--shm-size`, the same constant.
+
+    `working_dir` exists for a different reason: the generated task.toml declares workdir
+    "/workspace", which Harbor only uses as the `-w` cwd of its `compose exec` calls -- it does not
+    write it into the service definition, and /workspace itself only appears when Harbor uploads
+    environment/ *after* the container starts. Harbor's first exec (ensure_dirs, creating
+    /logs/{agent,verifier,artifacts}) therefore runs `exec -w /workspace` against a directory that
+    does not exist yet, fails with "chdir ... no such file or directory" (an error ensure_dirs does
+    not check), and every later /logs/verifier write or download dies with
+    DownloadVerifierDirError. Declaring working_dir here makes the runtime create /workspace at
+    container start, before the first exec.
     """
-    return (
-        "services:\n"
-        "  main:\n"
-        f'    shm_size: "{DEFAULT_SHM_SIZE}"\n'
-        "    deploy:\n"
-        "      resources:\n"
-        "        reservations:\n"
-        "          devices:\n"
-        "            - driver: nvidia\n"
-        f"              count: {gpus}\n"
-        "              capabilities: [gpu]\n"
-    )
+    gpu_section = ""
+    if gpus:
+        gpu_section = (
+            f'    shm_size: "{DEFAULT_SHM_SIZE}"\n'
+            "    deploy:\n"
+            "      resources:\n"
+            "        reservations:\n"
+            "          devices:\n"
+            "            - driver: nvidia\n"
+            f"              count: {gpus}\n"
+            "              capabilities: [gpu]\n"
+        )
+    return "services:\n  main:\n    working_dir: /workspace\n" + gpu_section
 
 
 class HarborAdapterError(RuntimeError):
@@ -602,6 +615,7 @@ class HarborRunner:
         prepared: PreparedHarborTask,
         config: HarborEvaluationConfig,
         job_name_suffix: Optional[str] = None,
+        run_log: Optional[HarborRunLog] = None,
     ) -> HarborRun:
         harbor_args = list(config.harbor_args)
         self._validate_harbor_args(harbor_args)
@@ -617,12 +631,21 @@ class HarborRunner:
             job_name = f"{job_name}-{job_name_suffix}"
             harbor_args = self._replace_option(harbor_args, "--job-name", job_name)
         if config_path is None:
-            if job_name is None:
-                job_name = self._job_name()
-                injected_args.extend(["--job-name", job_name])
             if jobs_dir_value is None:
-                jobs_dir_value = "jobs"
+                # With a run log, the job directory moves into it: Harbor's trial-level agent and
+                # verifier logs then sit next to prepare.log and the run directory is self-contained.
+                # Without one, the shared jobs/ at the repo root keeps the old location.
+                jobs_dir_value = str(run_log.root) if run_log is not None else "jobs"
                 injected_args.extend(["--jobs-dir", jobs_dir_value])
+            if job_name is None:
+                # Inside the per-run jobs directory the fixed name cannot collide (the run
+                # directory itself is timestamped); anywhere shared needs the generated one.
+                job_name = (
+                    "harbor-job"
+                    if run_log is not None and jobs_dir_value == str(run_log.root)
+                    else self._job_name()
+                )
+                injected_args.extend(["--job-name", job_name])
 
         # Harbor runs through pipes here, and its (Y/n) confirmation prompt cannot be answered
         # interactively -- worse, the prompt carries no trailing newline, so it sits invisible in
@@ -644,11 +667,29 @@ class HarborRunner:
             *harbor_args,
         ]
 
+        if run_log is not None and config_path is None:
+            # Harbor itself is quiet on a pipe: its live progress goes to the job directory's
+            # job.log, not to this process's stdout. Point the operator there, since harbor.log
+            # only mirrors the little the CLI prints.
+            jobs_dir = Path(jobs_dir_value).expanduser()
+            if not jobs_dir.is_absolute():
+                jobs_dir = caller_cwd / jobs_dir
+            live_job_dir = jobs_dir / job_name
+            run_log.log(
+                f"harbor job running; live progress: {live_job_dir / 'job.log'}, "
+                f"trial detail: {live_job_dir / '<trial>' / 'trial.log'}, "
+                f"console mirror: {run_log.harbor_log_path}"
+            )
+
         started = time.monotonic()
         display_argv = shlex.join(self._redact_argv(argv))
         print(f"[autorlbench] Starting Harbor: {display_argv}", file=sys.stderr, flush=True)
         try:
-            completed = self._run_streaming(argv, caller_cwd)
+            completed = self._run_streaming(
+                argv,
+                caller_cwd,
+                log_path=run_log.harbor_log_path if run_log is not None else None,
+            )
             command = CommandResult(
                 argv=self._redact_argv(argv),
                 returncode=completed.returncode,
@@ -680,8 +721,14 @@ class HarborRunner:
     def _run_streaming(
         argv: Sequence[str],
         cwd: Path,
+        log_path: Optional[Path] = None,
     ) -> subprocess.CompletedProcess:
-        """Stream Harbor output live while keeping a copy for the evaluation report and locating results."""
+        """Stream Harbor output live while keeping a copy for the evaluation report and locating results.
+
+        With log_path, every line also lands in that one file as it is forwarded, so the run's
+        harbor.log is complete even if the whole process is killed mid-run -- the replacement for
+        piping the command through tee by hand.
+        """
         with subprocess.Popen(
             argv,
             cwd=str(cwd),
@@ -692,12 +739,18 @@ class HarborRunner:
         ) as process:
             stdout_chunks: list[str] = []
             stderr_chunks: list[str] = []
+            log_file = (
+                open(log_path, "w", encoding="utf-8") if log_path is not None else None
+            )
 
             def forward(source, target, chunks: list[str]) -> None:
                 for line in iter(source.readline, ""):
                     chunks.append(line)
                     target.write(line)
                     target.flush()
+                    if log_file is not None:
+                        log_file.write(line)
+                        log_file.flush()
 
             assert process.stdout is not None
             assert process.stderr is not None
@@ -718,6 +771,8 @@ class HarborRunner:
             returncode = process.wait()
             for thread in threads:
                 thread.join()
+            if log_file is not None:
+                log_file.close()
 
         return subprocess.CompletedProcess(
             args=list(argv),
@@ -777,7 +832,7 @@ class HarborRunner:
 
     @staticmethod
     def _compose_overlay_args(prepared: PreparedHarborTask) -> list[str]:
-        """Synthesize a compose overlay from the task's GPU count and hand it to Harbor.
+        """Synthesize a compose overlay per task and hand it to Harbor.
 
         GPU tasks get device reservations and shm_size from it: Harbor's docker environment
         declaration does not support GPUs, and only a compose override on the `main` service takes
@@ -788,14 +843,16 @@ class HarborRunner:
         job and is cleaned up afterwards) and passed via --extra-docker-compose; it cannot go into
         the generated task's environment/ (with a compose file there, Harbor stops uploading the
         workspace).
+
+        The overlay is emitted for every task, not only GPU ones: its working_dir entry is what
+        makes the task.toml workdir usable before Harbor uploads the workspace (see
+        _render_compose_overlay).
         """
         overlays = []
         for index, unit in enumerate(prepared.units):
             gpus = unit.package.environment.gpus
-            if not gpus:
-                continue
-            compose = prepared.root / f"autorlbench-gpu-compose-{index}.yaml"
-            write_text(compose, _render_gpu_compose(int(gpus)))
+            compose = prepared.root / f"autorlbench-compose-{index}.yaml"
+            write_text(compose, _render_compose_overlay(int(gpus) if gpus else 0))
             overlays.extend(["--extra-docker-compose", str(compose.resolve())])
         return overlays
 
@@ -1172,6 +1229,7 @@ class HarborPreparer:
         unit: HarborTaskUnit,
         work_dir: Path,
         config: HarborEvaluationConfig,
+        run_log: Optional[HarborRunLog] = None,
     ) -> HarborTaskUnit:
         package = unit.package
         image = package.environment.environment_image
@@ -1192,12 +1250,10 @@ class HarborPreparer:
         run = evaluator._prepare_run(package, unit.evaluation, eval_config)
         # Images are shared per environment: reuse if present, build only if missing. Harbor uses the same tag.
         artifact = evaluator.runtime.ensure_environment(image)
-        print(
-            f"[autorlbench] Preparing {package.task_id} in {artifact.reference or image.tag}",
-            file=sys.stderr,
-            flush=True,
+        live_log_path = run_log.prepare_log_path if run_log is not None else None
+        result = evaluator._run_prepare(
+            package, unit.evaluation, run, eval_config, artifact, live_log_path=live_log_path
         )
-        result = evaluator._run_prepare(package, unit.evaluation, run, eval_config, artifact)
         if result is not None and result.returncode != 0:
             tail = "\n".join(result.stderr.strip().splitlines()[-20:])
             raise HarborAdapterError(
@@ -1445,26 +1501,43 @@ class HarborEvaluator:
         config: HarborEvaluationConfig,
         batch: bool,
     ) -> HarborEvaluationReport:
+        task_id = unit.package.task_id
+        agent, model = harbor_run_label(config.harbor_args)
+        run_log = HarborRunLog.create(task_id, agent, model, config.output_root)
+        run_log.write_command(config.invocation_argv, Path.cwd().resolve())
         root = self._make_run_dir([unit], config.temp_dir)
         try:
-            unit = self.preparer.prepare(unit, ensure_dir(root / "prep"), config)
-            print(
-                f"[autorlbench] Materializing {unit.package.task_id}:{unit.evaluation.level}",
-                file=sys.stderr,
-                flush=True,
+            run_log.log(
+                f"{task_id}: prepare running, live log: {run_log.prepare_log_path}"
+            )
+            unit = self.preparer.prepare(
+                unit, ensure_dir(root / "prep"), config, run_log=run_log
             )
             prepared = self.materializer.materialize([unit], root / "harbor", config)
             run = self.runner.run(
-                prepared, config, job_name_suffix=unit.dir_name if batch else None
+                prepared,
+                config,
+                job_name_suffix=unit.dir_name if batch else None,
+                run_log=run_log,
             )
-            print(
-                f"[autorlbench] Reading Harbor results from {run.job_dir}",
-                file=sys.stderr,
-                flush=True,
+            run_log.write_harbor_command(
+                run.command.argv, Path(run.command.cwd or Path.cwd())
             )
-            return self.result_mapper.map(prepared, run, config)
+            # The job directory is already inside the run log directory unless a user
+            # -c config placed it elsewhere; the link is only the fallback pointer.
+            if not run.job_dir.resolve().is_relative_to(run_log.root):
+                run_log.link_job_dir(run.job_dir)
+            run_log.log(f"{task_id}: reading Harbor results from {run.job_dir}")
+            report = self.result_mapper.map(prepared, run, config)
+            run_log.capture_report(report.to_dict())
+            run_log.finish(report.passed, report.score, len(report.trials))
+            return report
+        except Exception as exc:
+            run_log.error(f"{task_id}: {type(exc).__name__}: {exc}")
+            raise
         finally:
-            # Harbor jobs stay in the native --jobs-dir; only prepare staging and temporary tasks are cleaned up here.
+            # Harbor's job directory (now inside the run log directory) and the run log itself
+            # are outside this staging root; only prepare outputs and temporary tasks are cleaned up.
             shutil.rmtree(root, ignore_errors=True)
 
     @staticmethod

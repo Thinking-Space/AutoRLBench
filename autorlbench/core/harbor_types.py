@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional, Sequence
 from .types import (
     DEFAULT_DATASETS_DIR,
     DEFAULT_MODELS_DIR,
+    DEFAULT_OUTPUT_DIR,
     CommandResult,
     EvaluationPaths,
     EvaluationResult,
@@ -16,10 +17,49 @@ from .types import (
 )
 
 
+def _safe_component(value: str) -> str:
+    """Filesystem-safe path component; the same rule harbor_task_name applies to task ids."""
+    return re.sub(r"[^A-Za-z0-9_.-]+", "-", value).strip("-.") or "task"
+
+
 def harbor_task_name(task_id: str, evaluation_level: str) -> str:
     """Harbor task name; also used to map trial results back to the AutoRLBench task."""
-    safe_id = re.sub(r"[^A-Za-z0-9_.-]+", "-", task_id).strip("-.") or "task"
-    return f"autorlbench/{safe_id}-{evaluation_level}"
+    return f"autorlbench/{_safe_component(task_id)}-{evaluation_level}"
+
+
+# Where the agent and model names come from when naming a run's log directory. Both are Harbor
+# `run` options, so they appear among the caller's forwarded harbor_args in either the
+# `--agent codex` or `--agent=codex` form; anything else is Harbor's own default.
+_AGENT_FLAGS = ("-a", "--agent")
+_MODEL_FLAGS = ("-m", "--model")
+
+
+def _flag_value(args: Sequence[str], *names: str) -> Optional[str]:
+    """Last value of an option among argv tokens, accepting both --name value and --name=value."""
+    value = None
+    for index, arg in enumerate(args):
+        for name in names:
+            if arg == name:
+                if index + 1 >= len(args):
+                    raise ValueError(f"missing value for Harbor argument {name}")
+                value = args[index + 1]
+            elif arg.startswith(name + "="):
+                value = arg.split("=", 1)[1]
+    return value
+
+
+def harbor_run_label(harbor_args: Sequence[str]) -> tuple:
+    """(agent, model) directory-label components parsed from the forwarded Harbor arguments.
+
+    Both are cleaned into filesystem-safe components and fall back to "default" when the caller
+    let Harbor pick its own, so the label is always two components wide and predictable.
+    """
+    agent = _flag_value(harbor_args, *_AGENT_FLAGS)
+    model = _flag_value(harbor_args, *_MODEL_FLAGS)
+    return (
+        _safe_component(agent) if agent else "default",
+        _safe_component(model) if model else "default",
+    )
 
 
 @dataclass(frozen=True)
@@ -43,6 +83,11 @@ class HarborEvaluationConfig:
     datasets_dir: Optional[Path] = None
     harbor_command: Sequence[str] = field(default_factory=lambda: ("harbor",))
     harbor_args: Sequence[str] = field(default_factory=tuple)
+    # Parent of the persistent per-run log directory (outputs/harbor-evaluate/<task>/<agent>-<model>/<ts>
+    # by default). Run staging is deleted after the run; this is where the logs survive.
+    output_root: Optional[Path] = None
+    # Command line to record verbatim into the run's command.sh; the CLI passes sys.argv.
+    invocation_argv: Sequence[str] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         if self.evaluation_level not in {"issue", "solution"}:
@@ -60,6 +105,10 @@ class HarborEvaluationConfig:
             raise ValueError("harbor_args must be a sequence of argv tokens")
         if any(not isinstance(arg, str) or not arg for arg in self.harbor_args):
             raise ValueError("harbor_args must contain non-empty strings")
+        if isinstance(self.invocation_argv, str):
+            raise ValueError("invocation_argv must be a sequence of argv tokens")
+        if any(not isinstance(arg, str) or not arg for arg in self.invocation_argv):
+            raise ValueError("invocation_argv must contain non-empty strings")
         if isinstance(self.temp_dir, str) and not self.temp_dir.strip():
             raise ValueError("temp_dir must not be empty")
         if self.huggingface_mirror is not None:
@@ -72,12 +121,14 @@ class HarborEvaluationConfig:
         for name, fallback in (
             ("models_dir", DEFAULT_MODELS_DIR),
             ("datasets_dir", DEFAULT_DATASETS_DIR),
+            ("output_root", DEFAULT_OUTPUT_DIR / "harbor-evaluate"),
         ):
             given = getattr(self, name)
             resolved = (Path(given) if given is not None else fallback).expanduser().resolve()
             object.__setattr__(self, name, resolved)
         object.__setattr__(self, "harbor_command", tuple(self.harbor_command))
         object.__setattr__(self, "harbor_args", tuple(self.harbor_args))
+        object.__setattr__(self, "invocation_argv", tuple(self.invocation_argv))
 
 
 @dataclass(frozen=True)
@@ -196,5 +247,6 @@ __all__ = [
     "HarborRun",
     "HarborTaskUnit",
     "PreparedHarborTask",
+    "harbor_run_label",
     "harbor_task_name",
 ]

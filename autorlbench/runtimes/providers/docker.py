@@ -168,7 +168,7 @@ class DockerRuntime(SandboxRuntime):
                 text=True,
             )
         except Exception:
-            subprocess.run(["docker", "rm", "-f", container_name], check=False)
+            self._remove_container(container_name)
             raise
         return SandboxInstance(self.name, container_name, request)
 
@@ -195,13 +195,26 @@ class DockerRuntime(SandboxRuntime):
             process_env=process_env,
             live_log_name=merged.live_log_name,
             live_log_to_stderr=merged.live_log_to_stderr,
+            live_log_path=merged.live_log_path,
             results_dir=request.host_results,
         )
 
     def close_sandbox(self, sandbox: SandboxInstance) -> None:
         if sandbox.backend != self.name:
             return
-        subprocess.run(["docker", "rm", "-f", sandbox.reference], check=False)
+        self._remove_container(sandbox.reference)
+
+    @staticmethod
+    def _remove_container(container_name: str) -> None:
+        # docker rm echoes the removed container's name on stdout; uncaptured, that line leaks
+        # onto the terminal between the harness's own stage messages.
+        subprocess.run(
+            ["docker", "rm", "-f", container_name],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
 
     @staticmethod
     def _communicate(
@@ -212,6 +225,7 @@ class DockerRuntime(SandboxRuntime):
         process_env: Optional[dict[str, str]] = None,
         live_log_name: Optional[str] = None,
         live_log_to_stderr: bool = False,
+        live_log_path: Optional[Path] = None,
         results_dir: Optional[Path] = None,
     ) -> CommandResult:
         start = time.monotonic()
@@ -223,7 +237,13 @@ class DockerRuntime(SandboxRuntime):
             stderr=subprocess.PIPE,
             text=True,
         )
-        if live_log_name and results_dir is not None:
+        if live_log_path is not None:
+            stdout, stderr, timed_out = DockerRuntime._stream_log_file(
+                process,
+                timeout_s=timeout_s,
+                log_path=live_log_path,
+            )
+        elif live_log_name and results_dir is not None:
             stdout, stderr, timed_out = DockerRuntime._stream_process(
                 process,
                 timeout_s=timeout_s,
@@ -301,6 +321,51 @@ class DockerRuntime(SandboxRuntime):
         return "".join(captured["stdout"]), "".join(captured["stderr"]), timed_out
 
     @staticmethod
+    def _stream_log_file(
+        process: subprocess.Popen,
+        *,
+        timeout_s: Optional[int],
+        log_path: Path,
+    ) -> tuple[str, str, bool]:
+        """Capture a process while streaming both of its streams into one persistent log file.
+
+        The harbor path points this at a log file that must outlive the run staging (see
+        HarborRunLog), so there is a single combined file rather than <name>.stdout/.stderr.log
+        pairs inside results/. Both drain threads share the open file and flush per line, which
+        makes tail -f follow the stage as it runs. stdout and stderr stay separately captured for
+        the CommandResult, same as with no live logging at all.
+        """
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        captured = {"stdout": [], "stderr": []}
+        log_file = open(log_path, "w", encoding="utf-8")
+
+        def drain(stream, key: str) -> None:
+            for line in iter(stream.readline, ""):
+                captured[key].append(line)
+                log_file.write(line)
+                log_file.flush()
+            stream.close()
+
+        threads = [
+            threading.Thread(target=drain, args=(process.stdout, "stdout"), daemon=True),
+            threading.Thread(target=drain, args=(process.stderr, "stderr"), daemon=True),
+        ]
+        for thread in threads:
+            thread.start()
+
+        timed_out = False
+        try:
+            process.wait(timeout=timeout_s)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            process.kill()
+            process.wait()
+        for thread in threads:
+            thread.join()
+        log_file.close()
+        return "".join(captured["stdout"]), "".join(captured["stderr"]), timed_out
+
+    @staticmethod
     def _docker_env(env: Mapping[str, str]) -> tuple[list[str], dict[str, str]]:
         argv: list[str] = []
         process_env = os.environ.copy()
@@ -325,6 +390,7 @@ class DockerRuntime(SandboxRuntime):
             user=spec.user,
             live_log_name=spec.live_log_name,
             live_log_to_stderr=spec.live_log_to_stderr,
+            live_log_path=spec.live_log_path,
         )
 
     @staticmethod

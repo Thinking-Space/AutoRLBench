@@ -5,9 +5,10 @@ import io
 import json
 import os
 import shutil
+import stat
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -18,6 +19,7 @@ from autorlbench.core.harbor_types import (
     HarborRun,
     HarborTaskUnit,
     PreparedHarborTask,
+    harbor_run_label,
 )
 from autorlbench.core.types import (
     DATASETS_DIR,
@@ -37,6 +39,7 @@ from autorlbench.evaluation.harbor_evaluator import (
     HarborShell,
     HarborTaskMaterializer,
 )
+from autorlbench.evaluation.harbor_run_log import HarborRunLog
 from autorlbench.tasks import load_task_package
 
 
@@ -620,6 +623,49 @@ class HarborRunnerTests(unittest.TestCase):
         self.assertEqual(argv.count("--job-name"), 1)
         self.assertEqual(harbor_run.job_dir, (root / "jobs" / "night-t1").resolve())
 
+    @patch.object(HarborRunner, "_run_streaming")
+    def test_the_job_directory_moves_into_the_run_log_directory(self, run_mock):
+        run_mock.return_value.returncode = 0
+        run_mock.return_value.stdout = ""
+        run_mock.return_value.stderr = ""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            run_log = HarborRunLog.create("task", "codex", "gpt-5.5", root / "out")
+            prepared = self._prepared(root)
+
+            harbor_run = HarborRunner().run(prepared, HarborEvaluationConfig(), run_log=run_log)
+            # harbor.log stays a sparse console mirror, so the run log points at Harbor's
+            # own live progress file inside the job directory.
+            run_log_text = (run_log.root / "run.log").read_text(encoding="utf-8")
+
+        argv = run_mock.call_args.args[0]
+        # Trial-level agent/verifier logs land next to prepare.log; the fixed job name is
+        # collision-free because the run directory itself is timestamped.
+        self.assertEqual(argv[argv.index("--jobs-dir") + 1], str(run_log.root))
+        self.assertEqual(argv[argv.index("--job-name") + 1], "harbor-job")
+        self.assertEqual(harbor_run.job_dir, (run_log.root / "harbor-job").resolve())
+        self.assertIn(str(run_log.root / "harbor-job" / "job.log"), run_log_text)
+        self.assertIn("trial.log", run_log_text)
+
+    @patch.object(HarborRunner, "_run_streaming")
+    def test_user_job_name_is_kept_when_the_run_log_holds_the_jobs_dir(self, run_mock):
+        run_mock.return_value.returncode = 0
+        run_mock.return_value.stdout = ""
+        run_mock.return_value.stderr = ""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            run_log = HarborRunLog.create("task", "codex", "gpt-5.5", root / "out")
+            prepared = self._prepared(root)
+            config = HarborEvaluationConfig(harbor_args=("--job-name", "night"))
+
+            harbor_run = HarborRunner().run(prepared, config, run_log=run_log)
+
+        argv = run_mock.call_args.args[0]
+        self.assertEqual(argv[argv.index("--jobs-dir") + 1], str(run_log.root))
+        self.assertEqual(argv[argv.index("--job-name") + 1], "night")
+        self.assertEqual(argv.count("--job-name"), 1)
+        self.assertEqual(harbor_run.job_dir, (run_log.root / "night").resolve())
+
     def test_cli_accepts_several_task_roots_and_forwards_harbor_arguments(self):
         args, harbor_args = build_parser().parse_known_args(
             [
@@ -636,6 +682,8 @@ class HarborRunnerTests(unittest.TestCase):
                 "https://hf-mirror.com",
                 "--models-dir",
                 "m",
+                "--output-root",
+                "custom-out",
                 "--agent",
                 "codex",
                 "--model",
@@ -653,6 +701,7 @@ class HarborRunnerTests(unittest.TestCase):
         self.assertEqual(args.harbor_temp_dir, Path("custom-temp"))
         self.assertEqual(args.huggingface_mirror, "https://hf-mirror.com")
         self.assertEqual(args.models_dir, "m")
+        self.assertEqual(args.output_root, "custom-out")
         self.assertEqual(
             harbor_args,
             [
@@ -1072,6 +1121,26 @@ class HarborPreparerTests(FixtureTestCase):
         self.assertEqual(eval_config.huggingface_mirror, "https://hf-mirror.com")
         self.assertEqual(eval_config.models_dir, (self.root / "models").resolve())
         self.assertEqual(eval_config.work_dir, self.root / "w")
+        # Without a run log the stage keeps its default live-log behavior.
+        self.assertIsNone(evaluator._run_prepare.call_args.kwargs.get("live_log_path"))
+
+    def test_prepare_streams_into_the_run_log(self):
+        preparer, evaluator = self._preparer(self._result(0))
+        run_log = HarborRunLog.create(
+            self.package.task_id, "codex", "gpt-5.5", self.root / "out"
+        )
+
+        preparer.prepare(
+            make_unit(self.package, "solution"),
+            self.root / "w",
+            HarborEvaluationConfig(),
+            run_log=run_log,
+        )
+
+        self.assertEqual(
+            evaluator._run_prepare.call_args.kwargs.get("live_log_path"),
+            run_log.prepare_log_path,
+        )
 
     def test_prepare_failure_stops_the_task(self):
         preparer, _ = self._preparer(self._result(3))
@@ -1094,10 +1163,20 @@ class HarborPreparerTests(FixtureTestCase):
 class HarborEvaluatorFlowTests(FixtureTestCase):
     """prepare, materialize, one Harbor job per task, merge reports."""
 
-    def _evaluator(self, fail_prepare_for=()):
+    def _config(self, **overrides):
+        # output_root must stay inside the test's temporary directory; the default is the
+        # repository's outputs/, and a test writing there would litter the checkout.
+        overrides.setdefault("output_root", self.root / "out")
+        # A command line to record, as the CLI would pass sys.argv.
+        overrides.setdefault(
+            "invocation_argv", ("python3", "-m", "autorlbench", "harbor-evaluate")
+        )
+        return HarborEvaluationConfig(temp_dir=self.root / "tmp", **overrides)
+
+    def _evaluator(self, fail_prepare_for=(), job_dir_outside_run_log=False):
         preparer = MagicMock()
 
-        def prepare(unit, work_dir, config):
+        def prepare(unit, work_dir, config, run_log=None):
             if unit.package.task_id in fail_prepare_for:
                 raise HarborAdapterError("prepare failed with exit 1")
             workspace = work_dir / "workspace"
@@ -1114,7 +1193,7 @@ class HarborEvaluatorFlowTests(FixtureTestCase):
         runner = MagicMock()
         seen = []
 
-        def run(prepared, config, job_name_suffix=None):
+        def run(prepared, config, job_name_suffix=None, run_log=None):
             task_dir = prepared.task_dir(prepared.units[0])
             seen.append(
                 (
@@ -1124,7 +1203,14 @@ class HarborEvaluatorFlowTests(FixtureTestCase):
                     sorted(p.name for p in (task_dir / "environment").iterdir()),
                 )
             )
-            return HarborRun(command=_command(), job_dir=self.root / f"job{len(seen)}")
+            # Mirror HarborRunner: the job directory sits inside the run log directory,
+            # except when something else (a user -c config) placed it elsewhere.
+            if run_log is not None and not job_dir_outside_run_log:
+                job_dir = run_log.root / "harbor-job"
+                job_dir.mkdir(parents=True, exist_ok=True)
+            else:
+                job_dir = self.root / f"job{len(seen)}"
+            return HarborRun(command=_command(), job_dir=job_dir)
 
         runner.run.side_effect = run
         mapper = MagicMock()
@@ -1148,9 +1234,7 @@ class HarborEvaluatorFlowTests(FixtureTestCase):
     def test_single_task_is_prepared_then_run_on_its_prebuilt_image(self):
         evaluator, seen = self._evaluator()
 
-        report = evaluator.evaluate(
-            self.task_root, HarborEvaluationConfig(temp_dir=self.root / "tmp")
-        )
+        report = evaluator.evaluate(self.task_root, self._config())
 
         self.assertEqual(report.task_ids, (self.package.task_id,))
         (task_ids, suffix, task_toml, uploaded), = seen
@@ -1159,25 +1243,50 @@ class HarborEvaluatorFlowTests(FixtureTestCase):
         self.assertIn("pkg", uploaded)
         # Temporary directories (prepare staging + materialized tasks) are deleted after the run.
         self.assertEqual(list((self.root / "tmp").iterdir()), [])
+        # The persistent run log outlives that cleanup, with the stage logs and command record.
+        (run_dir,) = (self.root / "out" / self.package.task_id / "default-default").iterdir()
+        self.assertEqual(
+            sorted(path.name for path in run_dir.iterdir()),
+            ["command.sh", "harbor-command.sh", "harbor-job", "report.json", "run.log"],
+        )
+        self.assertIn("[RESULT]", (run_dir / "run.log").read_text(encoding="utf-8"))
+        # The Harbor job directory lives next to the stage logs, not behind a symlink.
+        self.assertTrue((run_dir / "harbor-job").is_dir())
+        self.assertFalse((run_dir / "harbor-job").is_symlink())
+        self.assertTrue((run_dir / "command.sh").stat().st_mode & stat.S_IXUSR)
+
+    def test_a_job_dir_outside_the_run_log_gets_the_fallback_symlink(self):
+        # A user -c harbor config can place the job directory anywhere; the run log then
+        # keeps only a pointer to it instead of holding it.
+        evaluator, _ = self._evaluator(job_dir_outside_run_log=True)
+
+        evaluator.evaluate(self.task_root, self._config())
+
+        (run_dir,) = (self.root / "out" / self.package.task_id / "default-default").iterdir()
+        self.assertEqual((run_dir / "harbor-job").resolve(), (self.root / "job1").resolve())
+        self.assertTrue((run_dir / "harbor-job").is_symlink())
 
     def test_batch_runs_one_job_per_task_and_merges_reports(self):
         other = self.other_package()
         evaluator, seen = self._evaluator()
 
-        report = evaluator.evaluate([self.task_root, other.paths.root])
+        report = evaluator.evaluate([self.task_root, other.paths.root], self._config())
 
         self.assertEqual([entry[0] for entry in seen], [[self.package.task_id], [other.task_id]])
         self.assertTrue(all(entry[1] for entry in seen))
         self.assertEqual(report.task_ids, (self.package.task_id, other.task_id))
         self.assertEqual(len(report.trials), 2)
-        self.assertEqual(report.report_dir, self.root / "job2")
+        # One run log directory per task, each holding its own harbor-job directory.
+        # config.output_root is resolved, so the iterdir path needs the same treatment.
+        (other_run_dir,) = (self.root / "out" / other.task_id / "default-default").iterdir()
+        self.assertEqual(report.report_dir, (other_run_dir / "harbor-job").resolve())
         self.assertTrue(report.passed)
 
     def test_prepare_failure_in_a_batch_leaves_the_task_missing(self):
         other = self.other_package()
         evaluator, seen = self._evaluator(fail_prepare_for={other.task_id})
 
-        report = evaluator.evaluate([self.task_root, other.paths.root])
+        report = evaluator.evaluate([self.task_root, other.paths.root], self._config())
 
         self.assertEqual(len(seen), 1)
         self.assertEqual(report.missing_task_ids, (other.task_id,))
@@ -1187,7 +1296,35 @@ class HarborEvaluatorFlowTests(FixtureTestCase):
         evaluator, _ = self._evaluator(fail_prepare_for={self.package.task_id})
 
         with self.assertRaisesRegex(HarborAdapterError, "prepare failed"):
-            evaluator.evaluate(self.task_root)
+            evaluator.evaluate(self.task_root, self._config())
+        # The failure is recorded in the run log that outlives the deleted staging.
+        (run_dir,) = (self.root / "out" / self.package.task_id / "default-default").iterdir()
+        run_log = (run_dir / "run.log").read_text(encoding="utf-8")
+        self.assertIn("prepare running", run_log)
+        self.assertIn("ERROR", run_log)
+
+    def test_invocation_argv_lands_in_command_sh(self):
+        evaluator, _ = self._evaluator()
+
+        evaluator.evaluate(
+            self.task_root,
+            self._config(
+                invocation_argv=(
+                    "python3", "-m", "autorlbench", "harbor-evaluate", str(self.task_root),
+                    "--agent", "codex", "--model", "gpt-5.5",
+                ),
+                harbor_args=("--agent", "codex", "--model", "gpt-5.5"),
+            ),
+        )
+
+        (run_dir,) = (self.root / "out" / self.package.task_id / "codex-gpt-5.5").iterdir()
+        script = (run_dir / "command.sh").read_text(encoding="utf-8")
+        self.assertIn(
+            f"python3 -m autorlbench harbor-evaluate {self.task_root} "
+            "--agent codex --model gpt-5.5",
+            script,
+        )
+        self.assertIn(f"# run from {Path.cwd().resolve()}", script)
 
 
 def _command() -> CommandResult:
@@ -1195,6 +1332,90 @@ def _command() -> CommandResult:
         argv=["harbor", "run"], returncode=0, stdout="", stderr="",
         timed_out=False, duration_s=1.0, cwd="/",
     )
+
+
+class HarborRunLabelTests(unittest.TestCase):
+    def test_agent_and_model_are_parsed_from_forwarded_args(self):
+        self.assertEqual(
+            harbor_run_label(("--agent", "codex", "--model", "gpt-5.5")),
+            ("codex", "gpt-5.5"),
+        )
+
+    def test_equals_form_and_short_flags_are_parsed(self):
+        self.assertEqual(
+            harbor_run_label(("--agent=claude code", "-m", "sonnet 5")),
+            ("claude-code", "sonnet-5"),
+        )
+
+    def test_missing_values_fall_back_to_default(self):
+        self.assertEqual(harbor_run_label(()), ("default", "default"))
+        self.assertEqual(harbor_run_label(("-a", "codex",)), ("codex", "default"))
+
+
+class HarborRunLogTests(unittest.TestCase):
+    def test_directory_is_laid_out_task_agent_model_timestamp(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_log = HarborRunLog.create(
+                "verl/grpo: advantage", "codex", "gpt-5.5", Path(temp_dir)
+            )
+            label_dir = Path(temp_dir) / "verl-grpo-advantage" / "codex-gpt-5.5"
+            (run_dir,) = label_dir.iterdir()
+            self.assertEqual(run_log.root, run_dir)
+            self.assertRegex(run_dir.name, r"^\d{8}-\d{6}$")
+
+    def test_command_script_records_the_command_verbatim(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_log = HarborRunLog.create("task", "codex", "m", Path(temp_dir))
+            run_log.write_command(
+                ("python3", "-m", "autorlbench", "harbor-evaluate", "tasks/x", "--agent", "codex"),
+                cwd=Path("/repo"),
+            )
+            script = (run_log.root / "command.sh").read_text(encoding="utf-8")
+            self.assertIn(
+                "python3 -m autorlbench harbor-evaluate tasks/x --agent codex\n", script
+            )
+            self.assertIn("# run from /repo", script)
+            self.assertTrue((run_log.root / "command.sh").stat().st_mode & stat.S_IXUSR)
+
+    def test_harbor_command_script_carries_the_ephemeral_path_note(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_log = HarborRunLog.create("task", "codex", "m", Path(temp_dir))
+            run_log.write_harbor_command(("harbor", "run", "--path", "/tmp/t"), cwd=Path("/repo"))
+            script = (run_log.root / "harbor-command.sh").read_text(encoding="utf-8")
+            self.assertIn("harbor run --path /tmp/t\n", script)
+            self.assertIn("deletes after the run", script)
+
+    def test_log_finish_and_link(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_log = HarborRunLog.create("task", "codex", "m", Path(temp_dir))
+            run_log.log("stage one")
+            run_log.finish(passed=True, score=1.0, n_trials=2)
+            contents = (run_log.root / "run.log").read_text(encoding="utf-8")
+            self.assertIn("stage one", contents)
+            self.assertIn("[RESULT] passed=true score=1.0 trials=2", contents)
+            job_dir = Path(temp_dir) / "job"
+            job_dir.mkdir()
+            run_log.link_job_dir(job_dir)
+            self.assertEqual((run_log.root / "harbor-job").resolve(), job_dir.resolve())
+
+
+class HarborRunnerLogPathTests(unittest.TestCase):
+    def test_run_streaming_writes_both_streams_to_the_log_file(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_path = Path(temp_dir) / "harbor.log"
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                completed = HarborRunner._run_streaming(
+                    ["sh", "-c", "echo out-line; echo error-line >&2"],
+                    Path.cwd(),
+                    log_path=log_path,
+                )
+            self.assertEqual(completed.returncode, 0)
+            combined = log_path.read_text(encoding="utf-8")
+            self.assertIn("out-line\n", combined)
+            self.assertIn("error-line\n", combined)
+            # stdout and stderr stay separately captured for the report.
+            self.assertEqual(completed.stdout, "out-line\n")
+            self.assertIn("error-line\n", completed.stderr)
 
 
 def _trial(task_id: str, report_dir: Path):

@@ -97,6 +97,10 @@ class CommandSpec:
     user: Optional[str] = None
     live_log_name: Optional[str] = None
     live_log_to_stderr: bool = False
+    # Single file, outside the run staging, that both stdout and stderr stream into line by line
+    # (the harbor path's persistent prepare log). Mutually independent of live_log_name: whoever
+    # sets this wants one combined file at an exact path, not <name>.stdout/.stderr.log in results.
+    live_log_path: Optional[Path] = None
 
     def to_argv(self) -> List[str]:
         if self.argv is not None:

@@ -87,7 +87,12 @@ def call_judge(
     base_url: str,
     api_key: str,
     timeout_s: float,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Call the judge API; return the validated judgment and the raw audit record.
+
+    The judgment feeds scoring; the audit record (model, exact request payload, response
+    text) exists so a surprising score can be explained without re-running the judge.
+    """
     payload = {
         "model": model,
         "messages": [
@@ -130,7 +135,8 @@ def call_judge(
         raise JudgeError(f"OpenAI judge request failed: {exc}") from exc
     if not isinstance(content, str):
         raise JudgeError("OpenAI judge response content must be text")
-    return validate_judgment(extract_json_object(content))
+    judgment = validate_judgment(extract_json_object(content))
+    return judgment, {"model": model, "request": payload, "response": content}
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
@@ -152,6 +158,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--oracle", type=Path, default=oracle)
     parser.add_argument("--prompt", type=Path, default=verifier / "judge_prompt.md")
     parser.add_argument("--result", type=Path, default=results / "result.json")
+    parser.add_argument("--raw-result", type=Path, default=results / "judge-raw.json")
     return parser.parse_args()
 
 
@@ -170,7 +177,7 @@ def main() -> int:
                 "are required"
             )
         timeout_s = float(os.environ.get("AUTORLBENCH_JUDGE_TIMEOUT_S", "60"))
-        judgment = call_judge(
+        judgment, raw = call_judge(
             prompt=prompt,
             oracle=oracle,
             answer=answer,
@@ -197,6 +204,12 @@ def main() -> int:
             },
         }
         write_json(args.result.resolve(), result)
+        # The raw response and the request that produced it, next to the scores.
+        # Best effort: result.json is the file grading depends on.
+        try:
+            write_json(args.raw_result.resolve(), {**raw, "judgment": judgment})
+        except OSError:
+            pass
         return 0 if result["passed"] else 1
     except (JudgeError, OSError, ValueError) as exc:
         result = {
