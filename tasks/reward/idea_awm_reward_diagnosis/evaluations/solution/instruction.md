@@ -21,6 +21,10 @@ mechanism. The system evaluates your repaired workspace itself after you finish
 (see below); anything you launch is wasted and scores nothing. Cheap,
 non-training checks are fine.
 
+**Do not use the network.** Do not fetch code, documentation, packages,
+or any other material from outside the staged workspace — diagnose and
+repair using only what is staged locally.
+
 When you are done, submit a report at `/workspace/report.md`. It must
 summarize:
 

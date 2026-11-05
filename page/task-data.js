@@ -34,6 +34,7 @@ window.AUTORLBENCH_TASKS = [
       "grpo",
       "reward-hacking",
       "length-bonus",
+      "tool-call-parsing",
       "aime"
     ],
     "model": "Qwen3-4B",
@@ -42,8 +43,8 @@ window.AUTORLBENCH_TASKS = [
     "image": "slime-v0.3.2",
     "created": "2026-08-19",
     "license": "Apache-2.0",
-    "brief": "Model hacks the reward by generating longer answers.",
-    "issue": "Training Qwen3-4B with GRPO on DAPO-Math-17k. The model hacks the reward by generating longer answers."
+    "brief": "A length bonus in the reward and a tool-call key mismatch make GRPO reward longer answers instead of correct tool use.",
+    "issue": "Training Qwen3-4B with GRPO on DAPO-Math-17k (ReTool SFT warm-up). Two defects sit in examples/retool/generate_with_retool.py: reward_func adds an unconditional length bonus (5 * min(response_length / rollout_max_response_len, 1.0)) on top of the exact-match score, and the tool-call parser reads the \"parameters\" key while the chat template instructs {\"name\": ..., \"arguments\": ...}, so template-conforming code-interpreter calls carry no code and never execute. Logged eval/aime rises from +0.356 to +3.014, outside the healthy shaped-reward band [-1, 1], while eval response length grows from ~3.9k to 12.4k tokens, truncation from ~0.8% to 47.3%, and the decontaminated held-out score stays at about -0.77, bounding exact-match accuracy at ~11.6%."
   },
   {
     "id": "data/verl_taco_difficulty_mismatch",
@@ -143,25 +144,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO EASY. compute_grpo_outcome_advantage broadcasts the per-sequence advantage along the sequence axis, so held-out accuracy stays flat around noise level for the whole run."
   },
   {
-    "id": "environment/alfworld_tool_schema_mismatch",
-    "title": "ALFWorld tool-schema name mismatch",
-    "family": "Environment",
-    "tags": [
-      "agent-r1",
-      "grpo",
-      "alfworld",
-      "tool-schema"
-    ],
-    "model": "Qwen/Qwen3-4B",
-    "dataset": "ALFWorld difficulty-v1-s42 train (1008 draws) + balanced1008-s42 validation",
-    "framework": "agent-r1",
-    "image": "verl",
-    "created": "2026-10-20",
-    "license": "MIT",
-    "brief": "Renamed tool calls are never accepted by the executor.",
-    "issue": "Training Qwen3-4B with GRPO on ALFWorld. The tool schema renames clean/heat/cool to clean_object/heat_object/cool_object, but the executor registry only knows the original names, so those action families stay at zero success."
-  },
-  {
     "id": "infrastructure/qwen3vl_geo3k",
     "title": "Flat image positions from a raw AutoProcessor",
     "family": "Infrastructure",
@@ -227,7 +209,8 @@ window.AUTORLBENCH_TASKS = [
       "slime",
       "grpo",
       "search-r1",
-      "loss-mask"
+      "loss-mask",
+      "retrieval-augmented"
     ],
     "model": "Qwen2.5-3B",
     "dataset": "Search-R1 nq_hotpotqa_train",
@@ -235,8 +218,8 @@ window.AUTORLBENCH_TASKS = [
     "image": "slime-v0.3.2",
     "created": "2026-08-19",
     "license": "Apache-2.0",
-    "brief": "Retrieved documents get gradient, so the model stops searching.",
-    "issue": "Training Qwen2.5-3B with GRPO on Search-R1 NQ/HotpotQA. Retrieved <information> tokens are trained (loss_mask=1), so response length collapses from ~1751 to single digits and NQ test accuracy lands at 16.5% versus a 40.8% baseline."
+    "brief": "Retrieved text gets gradient and observations render titles only, so the model stops searching.",
+    "issue": "Training Qwen2.5-3B with GRPO on Search-R1 NQ/HotpotQA. Two defects sit in the rollout path: observation tokens are trained (loss_mask=1 on retrieved <information> text), and _passages2string drops retrieved passage bodies, so observations render titles only. Train response length collapses from ~1038 tokens to ~10 as the policy stops searching, and frozen eval/nq_test reaches only 16.7% at the 200-step horizon versus a 40.8% healthy-protocol baseline."
   },
   {
     "id": "reward/idea_awm_reward_diagnosis",
@@ -277,25 +260,6 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "CPU-offloaded optimizer state leaves no headroom for the step-10 checkpoint save.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. CPU-offloaded Adam state leaves insufficient host-memory headroom for native checkpoint serialization at step 10, so container memory hits the fixed 20 GiB limit and the run dies."
-  },
-  {
-    "id": "reward/task_function_call",
-    "title": "Function-call problems always score zero",
-    "family": "Reward",
-    "tags": [
-      "verl",
-      "grpo",
-      "taco",
-      "function-call"
-    ],
-    "model": "Qwen2.5-1.5B-Instruct",
-    "dataset": "TACO EASY",
-    "framework": "verl",
-    "image": "verl",
-    "created": "2026-08-21",
-    "license": "MIT",
-    "brief": "The reward ignores fn_name, deleting call-based scoring.",
-    "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO EASY. The taco.py reward function ignores fn_name and deletes call-based execution, so every function-call problem scores exactly zero."
   },
   {
     "id": "infrastructure/verl_lora_merge_base_weight_sync",
@@ -571,5 +535,23 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "After each actor-to-vLLM weight sync, a post-sync hook reloads the initial checkpoint into the rollout engine — generation never uses the updated policy.",
     "issue": "Training Qwen3-1.7B with GRPO on DAPO-Math-17k (150 steps, batch 512, mini 32, rollout 8). case/sync.py finalize_weights reloads the initial safetensors checkpoint into the vLLM engine after Actor weights have been synchronized, so rollout generation repeatedly uses the initial weights while the Actor trains against its own updates. sync_trace.jsonl shows after_sync_max_abs_delta up to 4.9e-4 with changed_parameters rising to 154-156 of 226 sampled; actor/grad_norm grows 0.24 to 83.7 and actor/ppo_kl to 1.38 while critic/score/mean stays flat around 0.08-0.12; val-core/aime24/acc/mean@32 is exactly equal at step 0 and step 150 (0.0229) — held-out accuracy frozen at the step-0 level."
+  },
+  {
+    "id": "algorithm/verl_reinforcepp_observation_credit",
+    "title": "Tool observations erase earlier SQL action returns",
+    "family": "Algorithm",
+    "tags": [
+      "verl",
+      "tool-use",
+      "issue-only"
+    ],
+    "model": "Qwen/Qwen3-4B",
+    "dataset": "Generated operations SQL: 512 train, 12 pilot development, 128 sealed cases",
+    "framework": "verl / REINFORCE++",
+    "image": "tool-rl-vllm024",
+    "created": "2026-11-03",
+    "license": "Apache-2.0",
+    "brief": "Qwen3-4B learns read-only warehouse SQL with REINFORCE++, but masked tool observations reset the return accumulator and remove terminal reward from earlier actions.",
+    "issue": "Training Qwen3-4B with REINFORCE++ on generated read-only warehouse SQL (512 train rows, seed 17, 3 optimizer updates). In the defective return estimator, an internal zero in response_mask — a tool observation, not an episode boundary — clears the running return: of 192 recorded training trajectories, the four successful tool trajectories contain 2,480 earlier action tokens, every one receiving raw return zero despite terminal reward one, with whitened advantages about −0.0920 or −0.1041 (zero raw return does not mean zero advantage or zero gradient). Exact-batch replay through the repaired function restores those returns to one; an independently sampled paired control carries reward one across 587 earlier action tokens. Both arms have zero development accuracy at steps 0–3, so the evidence establishes the credit-assignment defect, not a measured accuracy gain."
   }
 ];

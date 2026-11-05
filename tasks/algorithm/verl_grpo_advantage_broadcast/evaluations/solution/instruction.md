@@ -20,6 +20,10 @@ mechanism. The system runs the experiment itself after you finish (see below);
 anything you launch is wasted and scores nothing. Cheap, non-training checks
 are fine.
 
+**Do not use the network.** Do not fetch code, documentation, packages,
+or any other material from outside the staged workspace — diagnose and
+repair using only what is staged locally.
+
 When you are done, submit a report at `/workspace/report.md`. It must
 summarize:
 
@@ -51,7 +55,7 @@ LOG_DIR=$AUTORLBENCH_RESULTS/experiment_logs
 WANDB_MODE=offline
 WANDB_DIR=$AUTORLBENCH_RESULTS/experiment_logs
 WANDB_API_KEY=offline
-TOTAL_TRAINING_STEPS=400
+TOTAL_TRAINING_STEPS=300
 TEST_FREQ=50
 ```
 
@@ -65,6 +69,6 @@ example, if you change where logs are written, keep them going to
 metrics. Otherwise the run is scored 0.
 
 Completion is required independently of metric quality: validation at the
-declared final step must be present, and evaluation beyond the fixed horizon
-is not accepted. Where training reward is graded, every training step must be
-logged. Accuracy and binary rewards must remain in their valid [0, 1] range.
+declared final step must be present. Where training reward is graded, every
+training step within the graded horizon must be logged. Accuracy and binary
+rewards must remain in their valid [0, 1] range.

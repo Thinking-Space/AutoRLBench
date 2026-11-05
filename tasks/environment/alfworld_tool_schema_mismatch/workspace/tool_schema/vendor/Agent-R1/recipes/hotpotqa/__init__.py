@@ -1,1 +1,0 @@
-"""HotpotQA recipe."""

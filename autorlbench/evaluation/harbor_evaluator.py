@@ -38,6 +38,8 @@ from ..core.types import (
     TaskPackage,
 )
 from ..tasks import SchemaError, load_task_package
+from ..runtimes.base import AUTORLBENCH_ACTIVATE_BODY
+from ..runtimes.providers.docker import DEFAULT_SHM_SIZE
 from .evaluator import TaskEvaluator
 from .run_spec import (
     REPORT_FILENAME,
@@ -48,8 +50,35 @@ from .run_spec import (
 from ..utils.filesystem import copy_tree, ensure_dir, link_tree, tree_digest, write_text
 
 
-# Location of the activate hook in the image; see the tooling layer in docker/images/*.Dockerfile.
-ACTIVATE_HOOK = "/etc/profile.d/autorlbench-activate.sh"
+# Location of the activate hook. It used to be baked into the image's /etc/profile.d; nothing is
+# baked into images anymore, so the content is defined in one place, runtimes.base's
+# AUTORLBENCH_ACTIVATE_BODY, and the prepare stage writes it into the prepared directory (see
+# HarborPreparer.prepare), where the container picks it up via the PREPARED_DIR mount. Harbor runs
+# commands with a non-login `bash -c`, so BASH_ENV pointing here is what makes it load.
+ACTIVATE_HOOK = f"{PREPARED_DIR}/autorlbench-activate.sh"
+
+
+def _render_gpu_compose(gpus: int) -> str:
+    """Render the GPU compose overlay to hang on Harbor's `main` service.
+
+    This replaces the per-task environment/docker-compose.yaml files: their contents were all the
+    same apart from the card count -- reserve `gpus` devices for the container and raise /dev/shm
+    from docker's default 64MB to DEFAULT_SHM_SIZE (verl/ray workers and NCCL both buffer in
+    /dev/shm; the default dies on the first rollout with an unreadable bus error). The shm_size
+    matches the docker backend's `--shm-size`, the same constant.
+    """
+    return (
+        "services:\n"
+        "  main:\n"
+        f'    shm_size: "{DEFAULT_SHM_SIZE}"\n'
+        "    deploy:\n"
+        "      resources:\n"
+        "        reservations:\n"
+        "          devices:\n"
+        "            - driver: nvidia\n"
+        f"              count: {gpus}\n"
+        "              capabilities: [gpu]\n"
+    )
 
 
 class HarborAdapterError(RuntimeError):
@@ -175,7 +204,7 @@ class HarborTaskMaterializer:
         static script -- so all the validation happens at materialize time.
         """
         try:
-            return load_run_spec(unit.evaluation.root, unit.package.task_id)
+            return load_run_spec(unit.package.paths.root, unit.package.task_id)
         except RunSpecError as exc:
             raise HarborAdapterError(str(exc)) from exc
 
@@ -249,17 +278,26 @@ unset _root
 {env_note}
 {env_exports}
 
-# The activate hook's once-only guard (AUTORLBENCH_ACTIVATED) does not re-run per stage, so set the
-# three variables its rerun branch would have set, explicitly, and clear them afterwards -- grading
-# must not depend on what the agent installed into the workspace user base.
+# The activate hook unsets BASH_ENV at its end, so a nested bash does not replay it; the rerun
+# variables the hook's rerun branch would have set are set here explicitly and cleared afterwards
+# -- grading must not depend on what the agent installed into the workspace user base.
 AUTORLBENCH_STAGE=rerun
 PYTHONUSERBASE=/workspace/.autorlbench-user
 PIP_USER=1
 PIP_BREAK_SYSTEM_PACKAGES=1
-export AUTORLBENCH_STAGE PYTHONUSERBASE PIP_USER PIP_BREAK_SYSTEM_PACKAGES
-( cd /workspace && {command_line} )
-_rerun_status=$?
-unset AUTORLBENCH_STAGE PYTHONUSERBASE PIP_USER PIP_BREAK_SYSTEM_PACKAGES
+# PYTHONUNBUFFERED: the experiment's stdout now goes through a tee pipe (not a tty), and Python
+# block-buffers in that case -- a remote tail would wait for the buffer to fill before showing
+# anything. Unbuffered makes the training log land line by line.
+PYTHONUNBUFFERED=1
+export AUTORLBENCH_STAGE PYTHONUSERBASE PIP_USER PIP_BREAK_SYSTEM_PACKAGES PYTHONUNBUFFERED
+# The rerun's stdout+stderr goes both to Harbor (via this wrapper's stdout) and, live, into a log
+# file that a remote environment can tail for progress. A plain foreground pipe, not
+# `exec > >(tee ...)` process substitution -- the latter leaves a background tee holding the SSH
+# channel's stdout, and the ssh session then never sees EOF: the whole command looks hung.
+mkdir -p /logs/verifier 2>/dev/null || true
+( cd /workspace && {command_line} ) 2>&1 | tee /logs/verifier/autorlbench-run.log
+_rerun_status=${{PIPESTATUS[0]}}
+unset AUTORLBENCH_STAGE PYTHONUSERBASE PIP_USER PIP_BREAK_SYSTEM_PACKAGES PYTHONUNBUFFERED
 export AUTORLBENCH_STAGE=verifier
 echo "autorlbench: rerun exit=$_rerun_status" >&2
 # Still run the verifier for diagnostics. A failed rerun overrides its score below,
@@ -269,10 +307,12 @@ echo "autorlbench: rerun exit=$_rerun_status" >&2
         return f'''#!/usr/bin/env bash
 set +e
 
-# Harbor runs commands with `bash -c`, not a login shell, so /etc/profile.d does not take effect;
-# variables prepare.sh wrote to $AUTORLBENCH_PREPARED/env are exported by this line.
-if [ -f /etc/profile.d/autorlbench-activate.sh ]; then
-  . /etc/profile.d/autorlbench-activate.sh
+# Harbor runs commands with `bash -c`, not a login shell, so nothing sources the activate hook on
+# its own; source it explicitly so this wrapper (rerun / verifier) also gets the variables
+# prepare.sh wrote to $AUTORLBENCH_PREPARED/env. The hook's content lives in one place,
+# runtimes.base.AUTORLBENCH_ACTIVATE_BODY, materialized into the prepared directory by prepare.
+if [ -f {ACTIVATE_HOOK} ]; then
+  . {ACTIVATE_HOOK}
 fi
 
 # --- AutoRLBench report gate: no report.md, no rerun, no grading ----------
@@ -378,6 +418,11 @@ exit "$verifier_status"
         "wiki-18",
         "*.index",
         "*.faiss",
+        # Tabular RL datasets prepare.sh stages into /workspace (e.g. taco_verl's
+        # train/test.parquet, ~478MB total). Pure input data, not evidence about the
+        # run; re-gzipping and pulling it back every run is what makes the artifact
+        # collection step look hung.
+        "*.parquet",
     )
 
     def _write_task_config(
@@ -432,8 +477,8 @@ exit "$verifier_status"
         if config.judge_model:
             verifier_env["AUTORLBENCH_JUDGE_MODEL"] = config.judge_model
 
-        # Task-declared env (CUDA_VISIBLE_DEVICES and the like) goes to both stages. AUTORLBENCH_*
-        # cannot get in; EnvironmentPlan already filtered it.
+        # Task-declared env goes to both stages. AUTORLBENCH_* cannot get in;
+        # EnvironmentPlan already filtered it.
         for key, value in package.environment.env.items():
             agent_env[key] = value
             verifier_env[key] = value
@@ -441,6 +486,19 @@ exit "$verifier_status"
         artifact_exclude = ", ".join(
             self._toml_string(pattern) for pattern in self._WORKSPACE_ARTIFACT_EXCLUDE
         )
+
+        # Harbor caps the whole verifier phase with one timeout. For solution tasks the rerun
+        # (training) runs *inside* that phase, internally bounded by run_spec.timeout_s; without
+        # an explicit value Harbor uses its 600s default and kills the rerun after 10 minutes
+        # (VerifierTimeoutError) -- hours of training discarded on a timeout nobody asked for. So
+        # set the verifier timeout to the rerun budget plus grading headroom. Specs without a
+        # timeout_s (or runs that do not rerun) keep Harbor's default.
+        spec = self._load_run_spec(unit)
+        verifier_timeout_line = ""
+        if spec is not None and spec.timeout_s is not None:
+            verifier_timeout_line = (
+                f"timeout_sec = {int(spec.timeout_s) + self._VERIFIER_GRADING_HEADROOM_SEC}\n"
+            )
         task_toml = f'''schema_version = "1.4"
 
 artifacts = [{{ source = "/workspace", exclude = [{artifact_exclude}] }}]
@@ -459,7 +517,7 @@ network_mode = {self._toml_string(config.agent_network)}
 [verifier]
 environment_mode = "shared"
 network_mode = {self._toml_string(config.verifier_network)}
-
+{verifier_timeout_line}
 [environment]
 docker_image = {self._toml_string(docker_image)}
 workdir = "/workspace"
@@ -473,8 +531,15 @@ build_timeout_sec = {self._environment_start_timeout(task_dir / "environment")}
 '''
         write_text(task_dir / "task.toml", task_toml)
 
-    # Harbor's default; prebuilt images skip the build, so this time goes almost entirely to uploading workspace.
-    _ENVIRONMENT_START_BASE_SEC = 600
+    # Grading (test.sh: read the training logs, maybe call a judge model) runs after the rerun
+    # inside the same verifier timeout; give it its own budget so it cannot eat into the rerun's.
+    _VERIFIER_GRADING_HEADROOM_SEC = 1800
+
+    # Base budget for environment startup: covers container start + prepare.sh (which for
+    # fetch-at-prepare tasks downloads models/datasets from HF, unpacks, verifies them). Fetch
+    # tasks carry almost no uploadable bytes in environment/, so the +60s/GB term never kicks in
+    # and the base itself must be enough for one cold prepare to finish.
+    _ENVIRONMENT_START_BASE_SEC = 1800
     # Conservative `docker compose cp` throughput: 60s per GB.
     _ENVIRONMENT_START_SEC_PER_GB = 60
 
@@ -558,6 +623,13 @@ class HarborRunner:
             if jobs_dir_value is None:
                 jobs_dir_value = "jobs"
                 injected_args.extend(["--jobs-dir", jobs_dir_value])
+
+        # Harbor runs through pipes here, and its (Y/n) confirmation prompt cannot be answered
+        # interactively -- worse, the prompt carries no trailing newline, so it sits invisible in
+        # the pipe buffer and the whole run looks hung. Inject --yes so Harbor prints the env
+        # variables it is about to load and continues instead of waiting for Enter.
+        if not any(arg in ("-y", "--yes") for arg in harbor_args):
+            injected_args.append("--yes")
 
         caller_cwd = Path.cwd().resolve()
         argv = [
@@ -705,18 +777,26 @@ class HarborRunner:
 
     @staticmethod
     def _compose_overlay_args(prepared: PreparedHarborTask) -> list[str]:
-        """Pass the task's environment/docker-compose.yaml to Harbor as a compose overlay.
+        """Synthesize a compose overlay from the task's GPU count and hand it to Harbor.
 
-        GPU tasks get device reservations and shm_size from it: Harbor's docker environment declaration does not
-        support GPUs, `gpus` in task.toml is rejected, and only a compose override on the `main` service
-        takes effect. It cannot go in the generated task's environment/ (with a compose file there, Harbor
-        stops uploading workspace), so it goes through `--extra-docker-compose`, one per job.
+        GPU tasks get device reservations and shm_size from it: Harbor's docker environment
+        declaration does not support GPUs, and only a compose override on the `main` service takes
+        effect. The overlay's content (device reservation + shm_size) is decided entirely by the
+        task.toml environment.gpus count, so tasks no longer carry their own
+        docker-compose.yaml -- those files were identical apart from the card count, and are now
+        generated here in one place. It is written under prepared.root (which lives as long as the
+        job and is cleaned up afterwards) and passed via --extra-docker-compose; it cannot go into
+        the generated task's environment/ (with a compose file there, Harbor stops uploading the
+        workspace).
         """
         overlays = []
-        for unit in prepared.units:
-            compose = unit.package.paths.environment / "docker-compose.yaml"
-            if compose.is_file():
-                overlays.extend(["--extra-docker-compose", str(compose.resolve())])
+        for index, unit in enumerate(prepared.units):
+            gpus = unit.package.environment.gpus
+            if not gpus:
+                continue
+            compose = prepared.root / f"autorlbench-gpu-compose-{index}.yaml"
+            write_text(compose, _render_gpu_compose(int(gpus)))
+            overlays.extend(["--extra-docker-compose", str(compose.resolve())])
         return overlays
 
     @staticmethod
@@ -873,7 +953,17 @@ class HarborResultMapper:
         evaluation = unit.evaluation
         trial_dir = self._trial_dir(run.job_dir, trial.get("trial_name"))
 
-        artifact_error = self._workspace_artifact_error(trial_dir)
+        # Install-only runs stage the environment without running the agent or verification.
+        # Harbor only collects the /workspace artifact as part of the agent-run/verify path, so a
+        # *successful* install-only trial legitimately has no artifact manifest. Do not flag that
+        # absence as an infrastructure error.
+        trial_config = trial.get("config")
+        install_only = bool(
+            isinstance(trial_config, dict) and trial_config.get("install_only")
+        )
+        artifact_error = (
+            None if install_only else self._workspace_artifact_error(trial_dir)
+        )
         autorlbench_result = self._read_autorlbench_result(trial_dir)
         rewards = self._rewards(trial)
         metrics = self._metrics(autorlbench_result, rewards, trial, config)
@@ -1114,6 +1204,18 @@ class HarborPreparer:
                 f"task {package.task_id!r}: prepare failed with exit {result.returncode}"
                 + (f"\n{tail}" if tail else "")
             )
+        # The activate hook is no longer baked into the image: write it next to the env file
+        # prepare.sh produced, in the prepared directory the container mounts. The agent's and
+        # verifier's `bash -c` commands source it via BASH_ENV=ACTIVATE_HOOK; the content's single
+        # source is runtimes.base.AUTORLBENCH_ACTIVATE_BODY.
+        if run.prepared is not None:
+            hook_path = Path(run.prepared) / "autorlbench-activate.sh"
+            write_text(hook_path, "#!/usr/bin/env sh\n" + AUTORLBENCH_ACTIVATE_BODY)
+            # A rerun script may exec this hook directly rather than only source it, and
+            # write_text lands 0644; exec on that reports Permission denied and the whole
+            # rerun exits 127. The shared prepared directory means one wrong-mode write breaks
+            # every later trial's verifier on the same filesystem.
+            hook_path.chmod(0o755)
         return dataclasses.replace(
             unit,
             workspace=run.workspace,
@@ -1224,12 +1326,11 @@ class HarborShell:
     ) -> list[str]:
         argv = ["docker", "run", "--rm", "-it"]
 
-        # GPU reservation and shm_size follow the values from the docker-compose.yaml overlay.
-        # Explicit arguments win; otherwise decide based on whether an overlay exists.
-        overlay = package.paths.environment / "docker-compose.yaml"
-        has_overlay = overlay.is_file()
-        effective_gpus = gpus if gpus is not None else ("all" if has_overlay else None)
-        effective_shm = shm_size if shm_size is not None else ("16g" if has_overlay else None)
+        # GPU reservation and shm_size follow the task's environment.gpus declaration. Explicit
+        # arguments win; without one, both depend on whether the task declares GPUs at all.
+        task_gpus = package.environment.gpus
+        effective_gpus = gpus if gpus is not None else (str(task_gpus) if task_gpus else None)
+        effective_shm = shm_size if shm_size is not None else (DEFAULT_SHM_SIZE if task_gpus else None)
         if effective_gpus:
             argv.extend(["--gpus", effective_gpus])
         if effective_shm:

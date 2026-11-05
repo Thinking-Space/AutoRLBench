@@ -1,1 +1,0 @@
-"""ALFWorld recipe."""

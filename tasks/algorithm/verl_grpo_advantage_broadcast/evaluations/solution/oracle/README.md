@@ -24,11 +24,13 @@
 
 Machine grading reads only the new experiment logs. Scoring is weighted:
 
-- validation: a finite `val-core/taco/acc/mean@1` peak of at least `0.10`
-  (10%). The bundled defective run's last validation (step 250) is `0.0543`
-  and its peak is `0.0761` (step 0).
-- training reward: mean `critic/rewards/mean` over training steps must be
-  strictly above `0.14`
+- validation: the mean finite `val-core/taco/acc/mean@1` over the pinned steps
+  `200, 250, 300` must land in `[0.095, 0.35]` (all three steps present).
+  Calibration runs (300 steps, same launch): the repaired arm means `0.1105`,
+  the defective arm `0.0815`.
+- training reward: the mean `critic/rewards/mean` over training steps `1..300`
+  (all present) must land in `(0.155, 0.6]`. Calibration runs: repaired `0.1763`,
+  defective `0.1397`.
 - final `score = 0.8 * validation + 0.2 * training reward`
 
 Pass requires both components (`score == 1.0`). The framework still records

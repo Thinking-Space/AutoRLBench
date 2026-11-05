@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
-"""Extract the target slime metric from fresh logs and assign a binary score."""
+"""Extract the target slime metric from fresh logs and assign a binary score.
+
+If the spec pins ``protected_files``, hash them under
+``$AUTORLBENCH_WORKSPACE`` first: those are the oracle-declared-correct scorer
+and data files the graded metric is computed from, and any modification,
+replacement, or deletion by the agent fails the run outright -- a fresh
+replay's metric is only trustworthy if the code and data that produced it
+were not tampered with.
+"""
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -21,6 +30,8 @@ NUMBER = (
 )
 TEXT_SUFFIXES = {".json", ".jsonl", ".log", ".out", ".txt", ""}
 MAX_FILE_BYTES = 128 * 1024 * 1024
+SHA256_RE = re.compile(r"[0-9a-f]{64}")
+WORKSPACE_ENV = "AUTORLBENCH_WORKSPACE"
 REQUIRED_SPEC_KEYS = {
     "schema_version",
     "task_id",
@@ -30,7 +41,14 @@ REQUIRED_SPEC_KEYS = {
     "required_final_score",
     "log_roots",
 }
-OPTIONAL_SPEC_KEYS = {"required_final_score_max", "score_mode"}
+OPTIONAL_SPEC_KEYS = {
+    "required_final_score_max",
+    "score_mode",
+    "protected_files",
+    "launch_script",
+    "forbidden_launch_patterns",
+    "required_launch_patterns",
+}
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
@@ -60,7 +78,7 @@ def load_spec(path: Path) -> dict[str, Any]:
         raise ValueError("grader_spec.json is missing required fields")
     if keys - REQUIRED_SPEC_KEYS - OPTIONAL_SPEC_KEYS:
         raise ValueError("grader_spec.json has unexpected fields")
-    if value["schema_version"] != 2:
+    if value["schema_version"] not in {2, 3}:
         raise ValueError("unsupported grader spec")
     if value["log_roots"] != ["experiment_logs"]:
         raise ValueError("log roots must be experiment_logs")
@@ -68,7 +86,143 @@ def load_spec(path: Path) -> dict[str, Any]:
     if mode not in {"best", "final"}:
         raise ValueError("score_mode must be best or final")
     value["score_mode"] = mode
+    protected = value.get("protected_files", {})
+    if not isinstance(protected, dict) or not all(
+        isinstance(rel, str) and isinstance(digest, str)
+        for rel, digest in protected.items()
+    ):
+        raise ValueError("protected_files must map paths to sha256 digests")
+    for rel, digest in protected.items():
+        candidate = Path(rel)
+        if not rel or candidate.is_absolute() or ".." in candidate.parts:
+            raise ValueError(f"protected_files path must be workspace-relative: {rel!r}")
+        if not SHA256_RE.fullmatch(digest):
+            raise ValueError(f"protected_files digest must be sha256 hex: {rel!r}")
+    value["protected_files"] = dict(protected)
+    launch_script = value.get("launch_script")
+    if launch_script is not None:
+        if not isinstance(launch_script, str) or not launch_script:
+            raise ValueError("launch_script must be a workspace-relative path")
+        candidate = Path(launch_script)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            raise ValueError(
+                f"launch_script must be workspace-relative: {launch_script!r}"
+            )
+    patterns = value.get("forbidden_launch_patterns", [])
+    if launch_script is None and patterns:
+        raise ValueError("forbidden_launch_patterns requires launch_script")
+    if not isinstance(patterns, list) or not all(
+        isinstance(p, str) and p for p in patterns
+    ):
+        raise ValueError("forbidden_launch_patterns must be a list of strings")
+    value["forbidden_launch_patterns"] = list(patterns)
+    required = value.get("required_launch_patterns", [])
+    if launch_script is None and required:
+        raise ValueError("required_launch_patterns requires launch_script")
+    if not isinstance(required, list) or not all(
+        isinstance(p, str) and p for p in required
+    ):
+        raise ValueError("required_launch_patterns must be a list of strings")
+    for pattern in required:
+        try:
+            re.compile(pattern)
+        except re.error as error:
+            raise ValueError(
+                f"required_launch_patterns entry is not a valid regex: "
+                f"{pattern!r} ({error})"
+            ) from error
+    value["required_launch_patterns"] = list(required)
     return value
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def check_protected_files(
+    spec: dict[str, Any], workspace: Path
+) -> tuple[list[str], str]:
+    """Verify the pinned scorer/data files were not touched.
+
+    Returns ``(violations, status)``. When the workspace root itself is absent
+    -- a local re-grade of pulled logs has no agent workspace -- the check is
+    reported as skipped and the metric side still runs unchanged; in the
+    verifier container the root always exists, and any pinned file that is
+    missing, replaced with a symlink, or hash-mismatched is a hard fail.
+    """
+    protected = spec.get("protected_files") or {}
+    if not protected:
+        return [], "off"
+    if not workspace.is_dir():
+        return [], "skipped_no_workspace"
+    violations = []
+    for rel in sorted(protected):
+        expected = protected[rel]
+        path = workspace / rel
+        if path.is_symlink() or not path.is_file():
+            violations.append(f"protected file missing or replaced: {rel}")
+            continue
+        try:
+            actual = sha256_file(path)
+        except OSError:
+            violations.append(f"protected file unreadable: {rel}")
+            continue
+        if actual != expected:
+            violations.append(
+                f"protected file modified: {rel} "
+                f"(expected {expected}, got {actual})"
+            )
+    return violations, ("violated" if violations else "ok")
+
+
+def check_launch_script(
+    spec: dict[str, Any], workspace: Path
+) -> tuple[list[str], str]:
+    """Reject launch-script edits that redefine what the graded metric is.
+
+    The launch script must stay editable (the instructed ``--num-rollout`` and
+    log-placement repairs land there), so it cannot be hash-pinned; what can be
+    pinned is that it never carries the flags that switch the metric's meaning
+    -- ``--eval-reward-key`` was used to move a run into a degenerate score
+    space on a measured wave -- and that it still carries the staged wiring
+    that defines the metric: the custom reward-manager path, the eval dataset,
+    the eval sampling flags, and the instructed budget. ``forbidden`` patterns
+    are literal substrings (a flag token); ``required`` patterns are regular
+    expressions, so benign reformatting of a line (a hardcoded data path, an
+    env-indirected budget) still matches while a semantic change does not.
+    """
+    launch_script = spec.get("launch_script")
+    patterns = spec.get("forbidden_launch_patterns") or []
+    required = spec.get("required_launch_patterns") or []
+    if not launch_script or not (patterns or required):
+        return [], "off"
+    if not workspace.is_dir():
+        return [], "skipped_no_workspace"
+    path = workspace / launch_script
+    if path.is_symlink() or not path.is_file():
+        return [f"launch script missing or replaced: {launch_script}"], "violated"
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return [f"launch script unreadable: {launch_script}"], "violated"
+    violations = []
+    for pattern in patterns:
+        if re.search(re.escape(pattern), text):
+            violations.append(
+                f"launch script contains forbidden pattern {pattern!r} "
+                f"({launch_script})"
+            )
+    for pattern in required:
+        if not re.search(pattern, text):
+            violations.append(
+                f"launch script no longer matches required pattern {pattern!r} "
+                f"({launch_script})"
+            )
+    return violations, ("violated" if violations else "ok")
 
 
 def log_files(results: Path, roots: list[str]) -> list[Path]:
@@ -97,7 +251,7 @@ def metric_patterns(metric_key: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
     key = re.escape(metric_key)
     number = NUMBER
     step_line = re.compile(
-        rf"(?:^|\n)[^\n]*?\bstep:(\d+)\s+-[^\n]*?\b{key}:({number})(?![\w./])",
+        rf"(?:^|[^_])step:(\d+)[ \t]+-[^\r\n]*?\b{key}:({number})(?![\w./])",
         re.IGNORECASE,
     )
     eval_dict = re.compile(
@@ -203,7 +357,11 @@ def judged_value(spec: dict[str, Any], values: dict[int, tuple[Any, Decimal, str
     return best[0], best[1], best[3]
 
 
-def grade(spec: dict[str, Any], results: Path):
+def grade(
+    spec: dict[str, Any],
+    results: Path,
+    workspace: Path | None = None,
+):
     experiment, values, keys_seen = extract(spec, results)
     metric_key = spec["metric_key"]
     final_step = spec["final_step"]
@@ -213,7 +371,13 @@ def grade(spec: dict[str, Any], results: Path):
     required_max_value = (
         Decimal(str(required_max)) if required_max is not None else None
     )
-    errors = []
+    if workspace is None:
+        workspace = Path(
+            os.environ.get(WORKSPACE_ENV, "/workspace")
+        ).expanduser()
+    protected_errors, protected_status = check_protected_files(spec, workspace)
+    launch_errors, launch_status = check_launch_script(spec, workspace)
+    errors = list(protected_errors) + list(launch_errors)
     if any(not Decimal("0") <= point[1] <= Decimal("1") for point in values.values()):
         errors.append("all observed accuracy values must lie in [0, 1]")
     if final_step not in values:
@@ -253,6 +417,9 @@ def grade(spec: dict[str, Any], results: Path):
         "required_final_score_max": (
             float(required_max_value) if required_max_value is not None else None
         ),
+        "protected_files_status": protected_status,
+        "protected_files_checked": len(spec.get("protected_files") or {}),
+        "launch_guard_status": launch_status,
         "best_step": judged_step,
         "best_score": judged_float,
         "best_source_log": judged_source,

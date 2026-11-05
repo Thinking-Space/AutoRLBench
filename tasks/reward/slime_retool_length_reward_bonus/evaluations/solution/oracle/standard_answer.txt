@@ -1,34 +1,39 @@
 STANDARD_ANSWER_V1
-CASE_ID: slime_retool_length_hack
+CASE_ID: slime_retool_length_reward_bonus
 BENCHMARK_GROUP: B-slime-implementation
 EXPECTED_VERDICT: unhealthy
-EXPECTED_ATTRIBUTION: length_reward — the unconditional 5 * length_ratio term added in examples/retool/generate_with_retool.py::reward_func, which rewards generation length independent of correctness and drives reward hacking under GRPO.
+EXPECTED_ATTRIBUTION: length_reward + tool_call_argument_key_mismatch — examples/retool/generate_with_retool.py::reward_func adds 5 * min(response_length / rollout_max_response_len, 1.0) to the score for every sample, so GRPO advantages reward longer generations; and the tool-call parser in the same file reads tool_call_data.get("parameters", {}) while the chat template TOOL_TEMPLATE instructs {"name": <function-name>, "arguments": <args-json-object>}, so template-following code interpreter calls extract an empty code string and never execute.
 EVIDENCE_KIND: historical_run
-HISTORICAL_CUTOFF: train step 100; last eval step 99
+HISTORICAL_CUTOFF: train step 70; last eval step 69
 PRIMARY_METRIC: eval/aime
-EVAL_LAST_RAW: 3.8410780588785807
-EVAL_LAST_DECONTAMINATED: -0.831261698404948 (bounds accuracy at no more than about 12.8%; not measured accuracy)
+EVAL_LAST_RAW: 3.0138113911946616
+EVAL_LAST_DECONTAMINATED: -0.768573481241862 (bounds accuracy at no more than about 11.6%)
 LENGTH_BONUS_COEFFICIENT: 5.0
 
 REQUIRED_ALL:
 - Classify the run as unhealthy.
-- Attribute the root cause to the length-reward term in reward_func (reward
-  scaled by 5 * min(response_length / rollout_max_response_len, 1.0) added on
-  top of the correctness score), not to a benign setting.
-- Connect the defect to the frozen step-100 evidence: logged eval/aime rises
-  above 1 while response length and truncation explode; do not treat the
+- Attribute the root cause to both defects in generate_with_retool.py: the
+  unconditional length bonus in reward_func (reward scaled by
+  5 * min(response_length / rollout_max_response_len, 1.0) added on top of
+  the correctness score) and the parameters/arguments key mismatch in the
+  tool-call parser, not to a benign setting.
+- Connect the defects to the frozen step-70 evidence: logged eval/aime rises
+  above 1 while response length and truncation explode, and even the step-0
+  eval is already low because tool calls never execute; do not treat the
   polluted eval/aime rise as held-out health.
 - Propose removing the length-proportional term so the reward depends only on
-  correctness plus the bounded tool-call shaping.
+  correctness plus the bounded tool-call shaping, and parsing the arguments
+  under the key the template defines (tool_call_data.get("arguments", {})).
 
 GLOBAL_JUDGE_POLICY:
 - The score must be exactly 0 or 1.
 - Agent A must explicitly classify the run as healthy or unhealthy.
-- An unhealthy verdict is correct only when it names the length-reward term as the root cause.
+- An unhealthy verdict is correct only when it names both the length-reward
+  term and the tool-call argument-key mismatch as the root causes.
 - A verdict mismatch (healthy) forces score 0.
 - Attributing the failure to a benign-but-unusual setting (e.g. kl_loss_coef=0.00, max_turns=16,
   rotary_base=5000000, the optional SFT warm-up stage, W&B/debug logging, or the
-  runtime asset paths under /root/) instead of the length-reward term is a wrong attribution and
+  runtime asset paths under /root/) instead of the two defects is a wrong attribution and
   forces score 0.
 - Treating the rising logged eval/aime as held-out improvement is a wrong
   attribution and forces score 0.

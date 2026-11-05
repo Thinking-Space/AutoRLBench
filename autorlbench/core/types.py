@@ -151,7 +151,8 @@ class StageArtifact:
 
 
 # Directory shared by all three stages in the container. Writable in prepare, read-only for agent / verifier.
-# Must match the defaults in docker/autorlbench-activate.sh and docker/autorlbench_fetch.py.
+# Must match the defaults the activate body in runtimes/base.py reads ($AUTORLBENCH_PREPARED/env) and the
+# task-local fetch tools that travel with the task's environment/ directory.
 PREPARED_DIR = "/autorlbench/prepared"
 # Download caches, split into two roots by asset kind: on the host, models/ and datasets/ at the repo root.
 # The split is not cosmetic: an explicit directory next to the repo is obviously missing when unmounted,
@@ -159,15 +160,11 @@ PREPARED_DIR = "/autorlbench/prepared"
 # Writable in prepare, read-only for agent / verifier.
 MODELS_DIR = "/autorlbench/models"
 DATASETS_DIR = "/autorlbench/datasets"
-# Where the task's environment/ directory is mounted. Read-only in all three stages: prepare.sh describes
-# the environment, not the answer, but no stage has a reason to modify the task definition in the repo.
+# Where the task's environment/ directory is mounted. Read-only: prepare.sh describes the environment,
+# not the answer, but no stage has a reason to modify the task definition in the repo. The prepare-stage
+# fetch/dataset tools (fetch_hf.py and friends) also travel with the task in this directory, and prepare.sh
+# calls them with a plain `python3`.
 AUTORLBENCH_ENVIRONMENT_DIR = "/autorlbench/environment"
-# Where the repo's docker/ directory (see DOCKER_DIR) is mounted in the prepare container. Read-only, prepare only.
-# Before prepare.sh, prepare runs `bash $TOOLING_DIR/install-autorlbench-tooling.sh` to install the fetch/
-# dataset tools from the current repo into /usr/local, avoiding stale copies baked into the image.
-TOOLING_DIR = "/autorlbench/tooling"
-# Container path of that install script from the repo's docker/ once mounted.
-TOOLING_INSTALLER = f"{TOOLING_DIR}/install-autorlbench-tooling.sh"
 
 # Conventional file names in a task package. They are constants because both loader and evaluator use them,
 # and "defaults scattered in several places" is exactly where schema drift starts.
@@ -176,16 +173,15 @@ TASK_FILE = "task.toml"
 DEFAULT_PREPARE = "environment/prepare.sh"
 
 # The single source of truth for available environments is <name>.Dockerfile under docker/images/; the image
-# is built from it. No copy of the list lives here: a copy drifts, and drift means a task names an
-# environment with no Dockerfile, which goes unnoticed until evaluation runs.
+# it points at is pulled, not built. No copy of the list lives here: a copy drifts, and drift means a task
+# names an environment with no Dockerfile, which goes unnoticed until evaluation runs.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DOCKER_DIR = _REPO_ROOT / "docker"
 IMAGES_DIR = DOCKER_DIR / "images"
 IMAGE_DOCKERFILE_SUFFIX = ".Dockerfile"
-# The image tag is declared on a `# autorlbench-image: <tag>` line in the Dockerfile header, e.g.
-# autorlbench/verl:vllm0.17-torch2.10-cu129. The tag describes the stack (framework, inference engine, CUDA
-# version) and is shared by many tasks; it is not a content hash. Upgrading the stack changes the tag; changing
-# only tooling scripts keeps the tag and requires an explicit `autorlbench build-images --rebuild`.
+# Legacy header for Dockerfiles that declare their tag explicitly, e.g. `# autorlbench-image:
+# autorlbench/verl:vllm0.17-torch2.10-cu129`. Current Dockerfiles are a single digest-pinned FROM line,
+# and the reference on that line is the image the task runs; the header is only a fallback.
 IMAGE_TAG_HEADER = "# autorlbench-image:"
 
 # Default host location for download caches. They sit next to the repo rather than inside the run directory
@@ -216,33 +212,48 @@ def known_images() -> frozenset:
 class EnvironmentImage:
     """The image for an environment: docker/images/<name>.Dockerfile, tag declared in its header.
 
-    The build context is the whole docker/ directory, since every image COPYs the same tooling scripts
-    (autorlbench-activate.sh, autorlbench_fetch.py, etc.); see docker/.dockerignore.
-    Docker evaluation, build-images, and Harbor's `docker_image` all use the same tag.
+    Nothing is baked into the image anymore (the activate hook and the fetch/dataset tools both moved to
+    the prepare stage), so docker evaluation, build-images, and Harbor's `docker_image` all resolve to the
+    same reference.
     """
 
     name: str
 
     @property
     def tag(self) -> str:
-        """The tag declared by `# autorlbench-image: <tag>` in the Dockerfile header.
+        """The image reference this environment runs.
 
-        Raise if missing instead of falling back to a default: a fallback would let two environments silently
-        share one tag, with the later build overwriting the earlier one.
+        Every docker/images/*.Dockerfile is now a single `FROM <ref>@sha256:...` line with nothing
+        built on top, so a task runs the digest-pinned upstream image that line points at -- there is
+        no custom build anymore.
+
+        Resolution order: an optional `# autorlbench-image: <tag>` header (kept for backward
+        compatibility with a Dockerfile that still has one), otherwise the image reference from the
+        FROM line. Only when neither exists is it an error.
         """
         try:
             text = self.dockerfile.read_text(encoding="utf-8")
         except OSError as exc:
             raise RuntimeError(
-                f"cannot read {self.dockerfile} to resolve the image tag of {self.name!r}"
+                f"cannot read {self.dockerfile} to resolve the image of {self.name!r}"
             ) from exc
+        from_ref: Optional[str] = None
         for line in text.splitlines():
-            if line.startswith(IMAGE_TAG_HEADER):
-                tag = line[len(IMAGE_TAG_HEADER):].strip()
+            stripped = line.strip()
+            if stripped.startswith(IMAGE_TAG_HEADER):
+                tag = stripped[len(IMAGE_TAG_HEADER):].strip()
                 if tag:
                     return tag
+            if from_ref is None and stripped[:5].upper() == "FROM ":
+                # FROM <ref> [AS <stage>]
+                parts = stripped.split()
+                if len(parts) >= 2:
+                    from_ref = parts[1]
+        if from_ref:
+            return from_ref
         raise RuntimeError(
-            f"{self.dockerfile} has no '{IMAGE_TAG_HEADER} <tag>' header line"
+            f"{self.dockerfile} has neither a '{IMAGE_TAG_HEADER} <tag>' header "
+            "nor a FROM line to take the image reference from"
         )
 
     @property
@@ -261,14 +272,24 @@ class EnvironmentPlan:
     `image` is the environment name, mapping to docker/images/<image>.Dockerfile; many tasks share one image.
     `prepare` sets up what training needs (download models and datasets, write env vars); defaults to
     environment/prepare.sh. `env` holds variables the task exports itself.
+
+    `gpus` is the GPU count the task needs: docker exposes it as `--gpus <count>` (cuda:0..N-1), and
+    the harbor backend synthesizes a compose device reservation from it. It replaces both the old
+    per-task environment/docker-compose.yaml and the CUDA_VISIBLE_DEVICES / NVIDIA_VISIBLE_DEVICES
+    env entries, which named GPUs two more ways that could drift from what the training script pins.
     """
 
     image: Optional[str] = None
     prepare: Optional[Path] = None
     env: Dict[str, str] = field(default_factory=dict)
+    gpus: Optional[int] = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "env", dict(self.env))
+        if self.gpus is not None and (isinstance(self.gpus, bool) or not isinstance(self.gpus, int) or self.gpus < 0):
+            raise ValueError(
+                f"environment.gpus must be a non-negative integer GPU count, got {self.gpus!r}"
+            )
         known = known_images()
         if self.image is not None and known and self.image not in known:
             raise ValueError(

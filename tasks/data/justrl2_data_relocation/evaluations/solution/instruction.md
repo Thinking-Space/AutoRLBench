@@ -15,7 +15,10 @@ your report directly. An unchanged submission is valid; a patch is not required.
 
 Do not launch training. The system runs continuation after submission. Cheap
 local inspection and non-training checks are allowed. Keep prepared assets,
-model settings, rewards and the intended samples unchanged.
+model settings, rewards and the intended samples unchanged. **Do not use the
+network.** Do not fetch code, documentation, packages, or any other material
+from outside the staged workspace — diagnose and repair using only what is
+staged locally.
 
 ## Submission
 

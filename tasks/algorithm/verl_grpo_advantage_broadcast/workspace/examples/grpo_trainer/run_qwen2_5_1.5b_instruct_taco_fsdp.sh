@@ -150,4 +150,4 @@ python3 -m verl.trainer.main_ppo \
     "${REWARD[@]}" \
     "${TRAINER[@]}" \
     "$@" \
-    >"${LOG_FILE}" 2>&1
+    2>&1 | tee "${LOG_FILE}"

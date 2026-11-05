@@ -7,14 +7,22 @@ root_cause:
   where: examples/retool/generate_with_retool.py::reward_func
   observed: reward_func adds 5 * min(sample.response_length / args.rollout_max_response_len, 1.0) to result["score"] for every sample, unconditionally, on top of the math_dapo exact-match score
   expected: reward depends only on answer correctness (math_dapo exact-match with strict_box_verify) plus the bounded tool-call shaping that nudges already-failing samples; generation length must not add reward
+- name: tool_contract_mismatch
+  where: examples/retool/generate_with_retool.py::postprocess_predictions
+  observed: the parser reads the tool-call argument dict from the "parameters" key while TOOL_TEMPLATE instructs {"name": ..., "arguments": ...}, so template-conforming code_interpreter calls parse to empty arguments and never execute
+  expected: parse the arguments from the "arguments" key the chat template defines, so code_interpreter calls execute their code in the sandbox
 evidence_metrics:
 - reward_func unconditionally adds 5*min(response_length/rollout_max_response_len,1.0) to the score regardless of correctness (examples/retool/generate_with_retool.py::reward_func)
 - the length term is applied to every sample, not only failing ones, so a wrong-but-long rollout can outscore a correct-but-short one
-- GRPO advantages then favor longer generations, so response length grows and the policy reward-hacks the length term instead of improving accuracy
-- historical logged eval/aime rises to +3.841 by step 99 while eval response_len is about 15310 and truncate is 82.5%; train response_len at step 100 is about 15159 with 78.5% truncate
-- after subtracting 5*length_ratio, the decontaminated held-out score falls from about -0.417 at step 0 to -0.831 at step 99, bounding exact-match accuracy at no more than about 32.5% and 12.8% respectively using the shaped-reward minimum -1.1; these are not measured accuracies
-- the math_dapo exact-match reward and the bounded tool-call shaping are otherwise correct; the length bonus is the injected defect
+- postprocess_predictions reads tool_call_data.get("parameters", {}) while the chat template TOOL_TEMPLATE emits "arguments", so template-conforming code_interpreter calls carry no code and are rejected as invalid actions instead of executing in the sandbox
+- GRPO advantages then favor longer generations, so response length grows and the policy reward-hacks the length term instead of improving correctness
+- logged eval/aime rises from about +0.356 at step 0 to +3.014 at step 69 (eight eval points at interval 10), outside the healthy math_dapo range [-1, 1], while eval response length grows from about 3.9k to 12.4k tokens and eval truncation rises from about 0.8% to 47.3%
+- train rollout response length grows from about 2.8k at step 0 to about 9.2k at step 69, with truncation reaching 13.7%
+- after subtracting 5*length_ratio, the decontaminated held-out score is about -0.839 at step 0 and -0.769 at step 69, bounding exact-match accuracy at no more than about 8.0% and 11.6% (reward_func floors an incorrect sample at min(-0.6, ...) rather than -1, so these are ceilings, not point estimates)
+- the math_dapo exact-match reward and the bounded tool-call shaping are otherwise correct; the length bonus and the tool-call key mismatch are the two injected defects
 fix:
   must:
   - target: length_reward
     direction: remove
+  - target: tool_contract_mismatch
+    direction: repair

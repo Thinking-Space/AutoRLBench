@@ -12,9 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..core.types import (
-    DOCKER_DIR,
     AUTORLBENCH_ENVIRONMENT_DIR,
-    TOOLING_INSTALLER,
     AgentSpec,
     TaskPackage,
     CommandResult,
@@ -117,8 +115,8 @@ class TaskEvaluator:
                         f"{package.paths.task_toml}: metadata.environment.image "
                         f"is required by the {self.runtime.name} backend"
                     )
-                # Images are shared by environment name: reuse if present, otherwise build from
-                # docker/images/<image>.Dockerfile.
+                # Images are shared by environment name: reuse if present, otherwise pull the
+                # digest-pinned reference from docker/images/<image>.Dockerfile.
                 artifact = self.runtime.ensure_environment(image)
                 self._append_run_log(
                     run.results,
@@ -351,15 +349,15 @@ class TaskEvaluator:
             host_prepared=run.prepared,
             host_models=run.models,
             host_datasets=run.datasets,
-            # The repo's docker/ is mounted read-only into the prepare container; used to install the latest fetch/dataset tools first.
-            # If the directory is missing (docker/ may not ship with a wheel install), skip the mount; the call below also skips.
-            host_tooling=DOCKER_DIR if DOCKER_DIR.is_dir() else None,
             env=self._prepare_mirror_env(config),
             # Prepare is the only stage that should have network; cut it too and nobody downloads the model.
             network="bridge",
             timeout_s=config.timeout_s,
             workdir="workspace",
             task_env=dict(package.environment.env),
+            # Prepare only downloads and needs no GPU; the count is recorded anyway so the request
+            # mirrors the task's declaration, and the backend decides which stages get devices.
+            gpus=package.environment.gpus,
         )
         if artifact is None:
             if self.runtime.needs_environment_image:
@@ -370,16 +368,10 @@ class TaskEvaluator:
         )
         sandbox = self.runtime.create_sandbox(request, artifact=artifact)
         try:
-            # The autorlbench_fetch_* / autorlbench_dataset commands prepare.sh calls are shims that exec
-            # tools under /usr/local/libexec. The copy baked into the image may be stale, so if the repo's
-            # docker/ is mounted (host_tooling), run the installer first to install the current version, then the script.
-            # If the installer is absent (not mounted), skip it, matching the old behavior.
+            # The fetch/dataset tools prepare.sh calls (fetch_hf.py and friends) travel with the
+            # task's environment/ directory, which is mounted read-only; the script invokes them
+            # with a plain `python3`, so nothing needs installing here anymore.
             shell = f"bash {shlex.quote(script)}"
-            if request.host_tooling is not None:
-                shell = (
-                    f"if [ -f {shlex.quote(TOOLING_INSTALLER)} ]; then "
-                    f"bash {shlex.quote(TOOLING_INSTALLER)}; fi; " + shell
-                )
             result = self.runtime.exec(
                 sandbox,
                 CommandSpec(
@@ -425,7 +417,7 @@ class TaskEvaluator:
         """
         if evaluation.level != "solution":
             return None
-        spec = load_run_spec(evaluation.root, package.task_id)
+        spec = load_run_spec(package.paths.root, package.task_id)
         if spec is None:
             return None
         # Grading only ever sees this pass: clear the log roots the spec declares first. Old logs an
@@ -455,6 +447,8 @@ class TaskEvaluator:
             timeout_s=timeout_s,
             workdir="workspace",
             task_env=dict(package.environment.env),
+            # The rerun runs real training: it takes the cards the task declares.
+            gpus=package.environment.gpus,
         )
         resolved = {
             key: value
@@ -519,9 +513,10 @@ class TaskEvaluator:
             # and read-only ensures it is not checking a copy the agent can change.
             host_models=run.models,
             host_datasets=run.datasets,
-            # Task-declared env goes to both stages: the verifier often loads the checkpoint on the same number of GPUs,
-            # and without CUDA_VISIBLE_DEVICES it would not see the same machine the agent did.
+            # Task-declared env goes to every stage: the verifier often loads the checkpoint on the same
+            # machine shape the agent saw, so it gets the task's GPU count too.
             task_env=dict(package.environment.env),
+            gpus=package.environment.gpus,
         )
         command = CommandSpec(
             shell=config.verifier_cmd or 'bash "$AUTORLBENCH_VERIFIER/test.sh"',

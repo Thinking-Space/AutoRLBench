@@ -1,4 +1,4 @@
-task_id: slime_retool_length_hack
+task_id: slime_retool_length_reward_bonus
 category: slime_implementation
 framework: slime
 launch_script: examples/retool/retool_qwen3_4b_rl.sh
@@ -8,34 +8,37 @@ algo: grpo
 recipe: examples/retool
 expected_verdict: unhealthy
 evidence_kind: historical_run
-historical_cutoff_train_step: 100
-last_eval_step: 99
+historical_cutoff_train_step: 70
+last_eval_step: 69
 eval_interval: 10
 eval_metric_key: eval/aime
-eval_first_raw: 0.8217626190185547
-eval_last_raw: 3.8410780588785807
-eval_last_decontaminated: -0.831261698404948
-held_out_accuracy_upper_bound_last: 0.12797061980716765
+eval_first_raw: 0.35583697001139314
+eval_last_raw: 3.0138113911946616
+eval_last_decontaminated: -0.768573481241862
+held_out_accuracy_last: 0.115713259379069
 length_bonus_coefficient: 5.0
 note: >-
   Defect task. The workspace is an upstream slime snapshot plus the in-tree
   examples/retool recipe (multi-turn code-interpreter tool-use GRPO, adapted
-  from verl's recipe/retool), with a single injected defect: reward_func in
-  examples/retool/generate_with_retool.py adds an unconditional length bonus
-  (5 * min(response_length / rollout_max_response_len, 1.0)) on top of the
-  math_dapo exact-match score. The bonus is independent of correctness, so GRPO
-  advantages reward longer generations and the policy reward-hacks response
-  length. Frozen historical evidence covers train step 100 / last eval step 99
-  (eval_interval 10). Solution grading is metric-only and reads eval/aime in the
-  correctness-plus-tool-shaping score space [-1.1, 1], the space the frozen trace was logged in
-  (eval_reward_key: score); the repair-and-rerun budget is --num-rollout 70 /
-  --eval-interval 10, so the new run has eval points 0..69. The best finite
-  eval/aime over the run must fall within [-0.55, 0.5]: a run that still adds
-  5 * length_ratio exceeds the upper bound at every eval point (historical
-  +0.822 at step 0 up to +3.841 at step 99), while the repaired reference run
-  (devspace 1177503 /user/user2/harbor-runs/manual-slime-retool) peaks at
-  -0.4246 at step 59 and ends at -0.4861 at step 69, and an untrained step 0 of
-  -0.5808 fails the lower bound.
+  from verl's recipe/retool), with two injected defects in
+  examples/retool/generate_with_retool.py: reward_func adds an unconditional
+  length bonus (5 * min(response_length / rollout_max_response_len, 1.0)) on
+  top of the math_dapo exact-match score, and the tool-call parser reads
+  tool_call_data.get("parameters", {}) while TOOL_TEMPLATE instructs
+  {"name": ..., "arguments": ...}, so template-following code interpreter
+  calls extract an empty code string and never execute. Frozen historical
+  evidence covers train step 70 / last eval step 69 (eval_interval 10).
+  Solution grading is metric-only after a repair-and-rerun at the
+  instruction's --num-rollout 70 / --eval-interval 10 budget, so the new run
+  has eval points 0..69: the final eval/aime at step 69, read in the
+  math_dapo score space [-1, 1] the frozen trace was logged in
+  (eval_reward_key: score), must land in [-0.55, 0.5]. The frozen dual-defect
+  run logs +3.0138 at step 69 (above the upper bound); the partial-repair
+  state with only the length bonus removed ends at -0.845 at step 69 (below
+  the lower bound); the repaired reference run (devspace 1177503
+  /user/user2/harbor-runs/manual-slime-retool) ends at -0.4861 at
+  step 69 with a best of -0.4246 at step 59. The lower bound is calibrated
+  on the measured repaired run; the upper bound on the unrepaired states.
 key_files:
 - examples/retool/generate_with_retool.py
 - examples/retool/retool_qwen3_4b_rl.sh

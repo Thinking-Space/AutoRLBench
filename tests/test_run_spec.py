@@ -26,7 +26,16 @@ from autorlbench.evaluation.run_spec import (
 
 
 def write_spec(root: Path, payload) -> Path:
-    path = root / "verifier" / "resources" / RUN_SPEC_FILENAME
+    """Write a run_spec.json at the task root, where the loader looks for it now."""
+    path = root / RUN_SPEC_FILENAME
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def write_legacy_spec(root: Path, payload) -> Path:
+    """Write a run_spec.json in the pre-task-root location the loader still falls back to."""
+    path = root / "evaluations" / "solution" / "verifier" / "resources" / RUN_SPEC_FILENAME
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
@@ -50,6 +59,19 @@ class LoadRunSpecTests(unittest.TestCase):
     def test_missing_spec_means_no_rerun(self) -> None:
         # No run_spec.json is a legal state: a pure protocol repair runs no extra experiment.
         self.assertIsNone(load_run_spec(self.root, "task_001"))
+
+    def test_legacy_location_still_loads(self) -> None:
+        # Tasks that have not moved their spec to the task root keep working: the loader
+        # falls back to evaluations/solution/verifier/resources/run_spec.json.
+        write_legacy_spec(self.root, VALID)
+        spec = load_run_spec(self.root, "task_001")
+        self.assertEqual(spec.command, VALID["command"])
+
+    def test_task_root_wins_over_the_legacy_location(self) -> None:
+        write_spec(self.root, VALID)
+        write_legacy_spec(self.root, {"schema_version": 1, "command": "bash stale.sh"})
+        spec = load_run_spec(self.root, "task_001")
+        self.assertEqual(spec.command, VALID["command"])
 
     def test_valid_spec_round_trips(self) -> None:
         write_spec(self.root, VALID)
@@ -207,7 +229,12 @@ class RerunStageTests(unittest.TestCase):
                     "task_id": "task",
                     "environment": EnvironmentPlan(),
                     "paths": type(
-                        "Paths", (), {"environment": self.root / "environment"}
+                        "Paths",
+                        (),
+                        {
+                            "root": self.root / "task",
+                            "environment": self.root / "environment",
+                        },
                     )(),
                 },
             )(),
@@ -350,13 +377,19 @@ class ShippedRunSpecTests(unittest.TestCase):
 
     def test_every_shipped_spec_loads(self) -> None:
         repo_root = Path(__file__).resolve().parent.parent
-        specs = sorted(repo_root.glob("tasks/*/*/evaluations/solution"))
-        self.assertTrue(specs, "no solution evaluations found under tasks/")
-        for evaluation_root in specs:
-            with self.subTest(str(evaluation_root.relative_to(repo_root))):
-                spec = load_run_spec(evaluation_root, "shipped")
+        # Both locations count: the task root is the current layout, and the legacy
+        # evaluations/solution/verifier/resources/ files still load through the fallback.
+        task_roots = sorted(repo_root.glob("tasks/*/*"))
+        self.assertTrue(task_roots, "no tasks found under tasks/")
+        seen = 0
+        for task_root in task_roots:
+            if not (task_root / "task.toml").is_file():
+                continue
+            with self.subTest(str(task_root.relative_to(repo_root))):
+                spec = load_run_spec(task_root, "shipped")
                 if spec is None:
                     continue
+                seen += 1
                 self.assertTrue(spec.command.strip())
                 # log_roots may legitimately be empty for a protocol-check task that produces
                 # no experiment logs to clear (for pure protocol-check tasks).
@@ -364,6 +397,9 @@ class ShippedRunSpecTests(unittest.TestCase):
                 # A rerun that trains needs a real budget; falling back to the generic
                 # EvaluationConfig timeout would cut a multi-hour run off at the knees.
                 self.assertIsNotNone(spec.timeout_s)
+        self.assertTrue(
+            seen, "no run_spec.json found under tasks/ (root or legacy location)"
+        )
 
 
 if __name__ == "__main__":

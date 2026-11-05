@@ -15,7 +15,6 @@ from ...core.types import (
     MODELS_DIR,
     PREPARED_DIR,
     AUTORLBENCH_ENVIRONMENT_DIR,
-    TOOLING_DIR,
     CommandResult,
     EnvironmentImage,
 )
@@ -25,6 +24,8 @@ from ..base import (
     SandboxInstance,
     SandboxRequest,
     SandboxRuntime,
+    sees_download_cache,
+    sees_environment_dir,
 )
 from ..factory import register_runtime
 
@@ -60,33 +61,18 @@ class DockerRuntime(SandboxRuntime):
     def ensure_environment(
         self, image: EnvironmentImage, *, rebuild: bool = False
     ) -> EnvironmentArtifact:
-        """Use the image if it exists; otherwise build it from docker/images/<name>.Dockerfile.
+        """Ensure the environment image is available locally.
 
-        Tags are fixed, so "exists" does not mean "matches the Dockerfile": after changing the Dockerfile or
-        tooling scripts under docker/, rebuild (`autorlbench build-images --rebuild`).
-        Rebuilds use docker's layer cache, so unchanged layers are not rerun.
+        docker/images/*.Dockerfile is now a single `FROM <ref>@sha256:...` line with no layers
+        to build, so there is no `docker build` anymore (and a digest-pinned reference cannot be
+        `-t`agged anyway). If the reference is not present locally, it is pulled. rebuild=True
+        forces a re-pull (the digest is fixed, so it fetches the very same image).
         """
-        if rebuild or not self._image_exists(image.tag):
-            if not image.dockerfile.is_file():
-                raise RuntimeError(
-                    f"image {image.tag!r} not found locally and {image.dockerfile} "
-                    "does not exist to build it from"
-                )
-            # Build logs are progress for humans, not command results; send them to stderr and keep stdout for CLI output.
-            subprocess.run(
-                [
-                    "docker",
-                    "build",
-                    "-f",
-                    str(image.dockerfile),
-                    "-t",
-                    image.tag,
-                    str(image.context),
-                ],
-                stdout=sys.stderr,
-                check=True,
-            )
-        return EnvironmentArtifact(backend=self.name, reference=image.tag)
+        ref = image.tag
+        if rebuild or not self._image_exists(ref):
+            # Pull progress is for humans, not command results; send it to stderr and keep stdout for CLI output.
+            subprocess.run(["docker", "pull", ref], stdout=sys.stderr, check=True)
+        return EnvironmentArtifact(backend=self.name, reference=ref)
 
     def path(self, request: SandboxRequest, name: str) -> str:
         paths = {
@@ -161,7 +147,7 @@ class DockerRuntime(SandboxRuntime):
                 "--entrypoint",
                 "sh",
                 artifact.reference,
-                "-lc",
+                "-c",
                 "while :; do sleep 3600; done",
             ]
         )
@@ -361,23 +347,24 @@ class DockerRuntime(SandboxRuntime):
 
     @staticmethod
     def _gpu_args(request: SandboxRequest) -> list[str]:
-        """Translate the task-declared NVIDIA_VISIBLE_DEVICES into docker's `--gpus`.
+        """Translate the task-declared GPU count into docker's `--gpus`.
 
         The image side (CUDA base image) has always assumed libcuda.so.1 is injected by `--gpus`; only
-        this half was missing. Passing the variable via `-e`
-        into the container does not make GPUs visible: the host's default runtime is runc, and only
-        `--gpus` makes the nvidia hook actually inject device nodes and libcuda.so.1.
+        this half was missing. Passing device ids via `-e` into the container does not make GPUs
+        visible: the host's default runtime is runc, and only `--gpus` makes the nvidia hook
+        actually inject device nodes and libcuda.so.1. Docker itself exposes N cards as
+        cuda:0..N-1 inside the container, so a task only declares a count and never names
+        individual devices.
 
-        With no declaration, no flag is added, so CPU-only tasks and stages (grading almost always is) behave
-        exactly as before this wiring. `none` / `void` are NVIDIA_VISIBLE_DEVICES's own "no
-        GPU" values and are treated the same way.
+        With no declaration (gpus None or 0) no flag is added, so CPU-only tasks and stages
+        (grading almost always is) behave exactly as before this wiring.
 
-        AUTORLBENCH_DOCKER_GPUS is a host-side override, following the opt-in convention of _proxy_env:
-        a machine with only 2 GPUs should still run a task whose card says 8.
+        AUTORLBENCH_DOCKER_GPUS is a host-side override, following the opt-in convention of
+        _proxy_env: a machine with only 2 GPUs should still run a task whose card says 8.
 
-        Prepare only downloads models and datasets and needs no GPU. `docker create`
-        accepts --gpus, but on some hosts the NVIDIA runtime hook fails at `docker start` when it
-        tries to bind the actual device nodes.
+        Prepare only downloads models and datasets and needs no GPU. `docker create` accepts
+        --gpus, but on some hosts the NVIDIA runtime hook fails at `docker start` when it tries
+        to bind the actual device nodes.
 
         The rerun has to run real training, so it takes the cards the task declares, exactly as the
         agent stage does. The agent gets them too, but the protocol forbids it from launching
@@ -388,13 +375,10 @@ class DockerRuntime(SandboxRuntime):
             return []
         spec = os.environ.get("AUTORLBENCH_DOCKER_GPUS", "").strip()
         if not spec:
-            spec = str(request.task_env.get("NVIDIA_VISIBLE_DEVICES", "")).strip()
-        if not spec or spec in {"none", "void"}:
+            # `--gpus` accepts a bare number as a count (`docker run --gpus 8`).
+            spec = str(request.gpus) if request.gpus else ""
+        if not spec or spec in {"none", "void", "0"}:
             return []
-        # `all` and `device=...` are already --gpus syntax; task cards hold a bare device list
-        # ("0,1,2,3"), which must be wrapped for docker to recognize it.
-        if spec != "all" and not spec.startswith("device="):
-            spec = f"device={spec}"
         shm = os.environ.get("AUTORLBENCH_DOCKER_SHM_SIZE", "").strip() or DEFAULT_SHM_SIZE
         return ["--gpus", spec, f"--shm-size={shm}"]
 
@@ -435,12 +419,6 @@ class DockerRuntime(SandboxRuntime):
                 DockerMount(request.host_visible_task, "/task", read_only=True),
                 DockerMount(request.host_prepared, PREPARED_DIR),
             ]
-            # The repo's docker/ mounted read-only: before running the script, prepare uses it to install the latest fetch/dataset
-            # tools (see TOOLING_DIR / install-autorlbench-tooling.sh). Only prepare needs it.
-            if request.host_tooling is not None:
-                mounts.append(
-                    DockerMount(request.host_tooling, TOOLING_DIR, read_only=True)
-                )
         elif request.stage in {"agent", "rerun"}:
             # Rerun comes after the agent: the workspace stays writable, because the training script
             # writes checkpoints and ray writes scratch directories, and results stays writable
@@ -458,21 +436,23 @@ class DockerRuntime(SandboxRuntime):
                 DockerMount(request.host_task_root, "/task", read_only=True),
                 DockerMount(request.host_results, "/results"),
             ]
-        if request.host_environment is not None:
-            # Read-only in all three stages: no stage has a reason to modify the task definition in the repo.
+        if request.host_environment is not None and sees_environment_dir(request):
+            # Read-only: no stage has a reason to modify the task definition in the repo.
             mounts.append(
                 DockerMount(request.host_environment, AUTORLBENCH_ENVIRONMENT_DIR, read_only=True)
             )
         if request.stage != "prepare" and request.host_prepared is not None:
             mounts.append(DockerMount(request.host_prepared, PREPARED_DIR, read_only=True))
-        # Download caches: only prepare needs to write; the later two stages mount the same copy read-only.
-        read_only = request.stage != "prepare"
-        for host, container in (
-            (request.host_models, MODELS_DIR),
-            (request.host_datasets, DATASETS_DIR),
-        ):
-            if host is not None:
-                mounts.append(DockerMount(host, container, read_only=read_only))
+        # Download caches: prepare writes, the verifier reads read-only, the agent does not see them at
+        # all. The predicate is sees_download_cache() -- the environment variables use the same one.
+        if sees_download_cache(request):
+            read_only = request.stage != "prepare"
+            for host, container in (
+                (request.host_models, MODELS_DIR),
+                (request.host_datasets, DATASETS_DIR),
+            ):
+                if host is not None:
+                    mounts.append(DockerMount(host, container, read_only=read_only))
         return tuple(mounts)
 
     @staticmethod

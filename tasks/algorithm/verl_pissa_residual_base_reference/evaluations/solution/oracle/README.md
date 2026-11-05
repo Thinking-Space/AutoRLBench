@@ -7,6 +7,8 @@ valid only for standard LoRA checkpoints whose underlying weights are already
 the pretrained base.
 
 The matched runs change only this reference path. At step 4 the defective run
-has consistency `0.045778327704709`; the repaired run has `1.0`. Grading
+has consistency `0.045778327704709`; the repaired run has `1.0` (the frozen
+`observed_run` predates the validation-health probe and does not print the
+metric; the graded rerun does). Grading
 requires `>= 0.95` at exactly step 4. One run per side supports the observed
 margin but not a variance claim. Step-zero health is unavailable.

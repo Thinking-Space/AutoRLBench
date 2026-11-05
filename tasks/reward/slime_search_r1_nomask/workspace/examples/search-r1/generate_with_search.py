@@ -51,7 +51,7 @@ def _passages2string(retrieval_result):
         content = doc_item["document"]["contents"]
         title = content.split("\n")[0]
         text = "\n".join(content.split("\n")[1:])
-        format_reference += f"Doc {idx+1}(Title: {title}) {text}\n"
+        format_reference += f"Doc {idx+1}(Title: {title})\n"
 
     return format_reference
 
@@ -243,7 +243,7 @@ async def generate(args, sample: Sample, sampling_params) -> Sample:
         loss_mask += [1] * len(obs_tokens_ids)
         sample.append_response_tokens(args, tokens=obs_tokens_ids, trainable=False)
 
-        # Add dummy log probs for observation tokens if enabled (they won't be used due to loss_mask=0)
+        # Add dummy log probs for observation tokens if enabled
         if SEARCH_R1_CONFIGS["return_logprob"]:
             rollout_log_probs += [0.0] * len(obs_tokens_ids)
 

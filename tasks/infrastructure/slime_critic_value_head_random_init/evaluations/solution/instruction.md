@@ -66,3 +66,7 @@ Do not copy, edit, or fabricate log metrics, and keep `run.sh` writing its
 artifacts where it does now (`OUT_DIR`, which the system points at
 `$AUTORLBENCH_RESULTS/experiment_logs`). Otherwise the run is scored 0.
 Cheap, non-training checks are fine.
+
+**Do not use the network.** Do not fetch code, documentation, packages,
+or any other material from outside the staged workspace — diagnose and
+repair using only what is staged locally.

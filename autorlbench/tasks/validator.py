@@ -229,9 +229,9 @@ def _validate_training(
 
 
 def _validate_environment(report: ValidationReport, environment: Dict[str, Any]) -> None:
-    """Validate the environment section: `image` is required, `prepare` / `env` optional.
+    """Validate the environment section: `image` is required, `prepare` / `env` / `gpus` optional.
 
-    `image` is an environment name under docker/images/, built from docker/images/<image>.Dockerfile.
+    `image` is an environment name under docker/images/, resolved from docker/images/<image>.Dockerfile.
     Old-schema `conda` / `dockerfile` / `requirements` are errors rather than ignored:
     if ignored, task authors would think they still have an effect.
     """
@@ -252,7 +252,7 @@ def _validate_environment(report: ValidationReport, environment: Dict[str, Any])
         report.add("error", "metadata.environment.image", f"expected a string, got {image!r}")
     elif known and image not in known:
         # No error when docker/images/ is unavailable (e.g. installed as a wheel): we could only
-        # guess here; the real check is whether the build finds the Dockerfile.
+        # guess here; the real check is whether resolving the image finds the Dockerfile.
         report.add(
             "error",
             "metadata.environment.image",
@@ -288,6 +288,16 @@ def _validate_environment(report: ValidationReport, environment: Dict[str, Any])
                         f"metadata.environment.env.{key}",
                         "expected a string; quote the value in task.toml",
                     )
+
+    gpus = environment.get("gpus")
+    if gpus is not None and (isinstance(gpus, bool) or not isinstance(gpus, int)):
+        report.add(
+            "error",
+            "metadata.environment.gpus",
+            f"expected an integer GPU count, got {gpus!r}",
+        )
+    elif isinstance(gpus, int) and not isinstance(gpus, bool) and gpus < 0:
+        report.add("error", "metadata.environment.gpus", "must not be negative")
 
 
 def _expect_mapping(report: ValidationReport, value: Any, label: str) -> None:

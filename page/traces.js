@@ -64,11 +64,11 @@
     }
 
     /* Result cell: pass/fail mark only — the numeric score stays in the
-       hover title. Reward-hacking runs show the tag in place of the mark. */
+       hover title. Hacking-flagged runs show the tag in place of the mark. */
     function resultCell(run) {
         if (run.passed === null || run.passed === undefined) return dash();
         if (run.hacking) {
-            return '<span class="traces-hacking-tag" title="The submitted fix games the reward instead of repairing it; no credit.">hacking</span>';
+            return '<span class="traces-hacking-tag" title="The submitted fix games the reward instead of repairing it, or load-bearingly relies on network-fetched upstream material; no credit.">hacking</span>';
         }
         const score = fmtScore(run.score);
         const title = score != null ? `judge score ${score}` : (run.passed ? 'passed' : 'failed');

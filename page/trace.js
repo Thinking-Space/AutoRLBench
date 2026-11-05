@@ -391,7 +391,7 @@
         const verdict = meta.passed === true || meta.passed === false
             ? (meta.passed ? '✅ Passed' : (meta.hacking ? 'Failed' : '❌ Failed')) : null;
         if (verdict) rows.push(['result', verdict]);
-        if (meta.hacking) rows.push(['flag', '⚠️ reward hacking']);
+        if (meta.hacking) rows.push(['flag', '⚠️ hacking']);
 
         const detailRows = rows.filter(Boolean);
 

@@ -125,11 +125,19 @@ def load_environment_plan(paths: TaskPaths, metadata: Dict[str, Any]) -> Environ
             f"{paths.task_toml}: metadata.environment.env must be a mapping"
         )
 
+    gpus = environment.get("gpus")
+    if gpus is not None and (isinstance(gpus, bool) or not isinstance(gpus, int)):
+        raise SchemaError(
+            f"{paths.task_toml}: metadata.environment.gpus must be an integer GPU "
+            f"count, got {gpus!r}"
+        )
+
     try:
         return EnvironmentPlan(
             image=image,
             prepare=prepare_path,
             env=env,
+            gpus=gpus,
         )
     except ValueError as exc:
         raise SchemaError(f"{paths.task_toml}: {exc}") from exc
