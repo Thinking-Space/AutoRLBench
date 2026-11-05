@@ -100,7 +100,6 @@ Form 2 **publishes only the defective side**. Putting both sides in `workspace/`
    `task.toml`, and `README.md`.
 6. **Offline self-check.** Replay the grader on the log samples. With a control side, replay once per side: the defective side must fail and the control side must pass.
 7. **Validate.** `python3 -m autorlbench validate tasks/<domain>/<task_id>` must report no errors.
-   On a machine with Docker and network, also run `./docker/warm-cache.sh <task_id>` to confirm `prepare.sh` runs end to end.
 
 ## Rules
 

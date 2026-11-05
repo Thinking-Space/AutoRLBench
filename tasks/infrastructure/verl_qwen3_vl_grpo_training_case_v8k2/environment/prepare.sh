@@ -15,9 +15,8 @@ python3 -c 'import pyarrow' 2>/dev/null \
        'pyarrow==21.0.0'
 
 # Pinned assets are fetched with the standard autorlbench_fetch_hf tool,
-# driven by the revision + per-file size/SHA pins in assets.json (the
-# recorded tool's warm-cache staging is replaced by the shared cache roots;
-# pins and verification are unchanged). prepare_data.py then rebuilds the
+# driven by the revision + per-file size/SHA pins in assets.json, into the
+# shared cache roots. prepare_data.py then rebuilds the
 # selected rows and re-verifies the produced parquet outputs.
 python3 - "$HERE/assets.json" "$AUTORLBENCH_WORKSPACE" <<'EOF'
 import json, subprocess, sys
