@@ -1,16 +1,5 @@
 # autorlbench-image: autorlbench/areal-tau2:torch210-vllm018
 FROM modelbest-kt8zv1.swr-pro.myhuaweicloud.com/ptg/ptg-verl@sha256:7f849b97a9bbc0efec9540e066bf1ac0ff48314d06eb7d1cd4acb2cf9e4129bc
-RUN python -m pip install --no-cache-dir vllm==0.18.0 transformers==4.57.6 'tensordict==0.10.0'
-RUN python -m pip install --no-cache-dir https://codeload.github.com/Ascend/TransferQueue/zip/5c15a2c8d65f05a52514830da6de4c5ec4336c1c
-# Runtime used for the tau2 paired rollout case, 2026-11-04.
-RUN python3 -m pip install --no-cache-dir --index-url https://pypi.tuna.tsinghua.edu.cn/simple --ignore-installed blinker==1.9.0
-RUN python3 -m pip install --no-cache-dir --index-url https://pypi.tuna.tsinghua.edu.cn/simple \
-    litellm==1.81.3 openai==2.24.0 pydantic==2.12.5 colorlog==6.12.0 awex==0.8.1 \
-    redis==8.1.0 deepdiff==9.1.0 addict==2.4.0 fs==2.4.16 docstring-parser==0.17.0 \
-    pydantic-argparse==0.10.0 gymnasium==1.4.0 hydra-core==1.4.0.dev1 omegaconf==2.4.0.dev2 \
-    toml==0.10.2 zstandard==0.25.0 langfuse==2.60.7 watchdog==7.0.0 colorama==0.4.6 \
-    tensorboardx==2.6.5 pebble==5.2.3 prettytable==3.18.0 nltk==3.10.4 \
-    word2number==1.1 aiofiles==25.1.0 networkx==3.3 tenacity==9.1.4 Flask==3.1.3
 
 # ---- AutoRLBench tooling: keep identical in every docker/images/*.Dockerfile ----
 # Build context is docker/ (see docker/.dockerignore for what it may COPY).
