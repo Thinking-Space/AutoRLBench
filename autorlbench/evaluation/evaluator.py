@@ -327,12 +327,17 @@ class TaskEvaluator:
         run: PreparedRun,
         config: EvaluationConfig,
         artifact: Optional[EnvironmentArtifact],
+        live_log_path: Optional[Path] = None,
     ) -> Optional[CommandResult]:
         """Run the task's prepare.sh: download models and datasets, write prepared/env.
 
         This is the **only** one of the three stages with network. It runs before the agent instead of being baked
         into the image because downloads are per task; baking them in would mean a tens-of-GB image layer per task,
         which is exactly what this redesign removes.
+
+        live_log_path, when given, streams the stage's stdout and stderr combined into that one
+        file as prepare runs -- the harbor path points it at the run's persistent prepare.log,
+        which outlives the deleted staging.
         """
         script = self._prepare_script(package)
         if script is None:
@@ -379,6 +384,7 @@ class TaskEvaluator:
                     timeout_s=config.timeout_s,
                     live_log_name="prepare",
                     live_log_to_stderr=config.log_level == "debug",
+                    live_log_path=live_log_path,
                 ),
             )
         finally:
@@ -537,9 +543,8 @@ class TaskEvaluator:
             self.runtime.close_sandbox(sandbox)
 
     def _append_run_log(self, results_dir: Path, line: str) -> None:
-        path = results_dir / "run.log"
-        existing = path.read_text(encoding="utf-8") if path.exists() else ""
-        write_text(path, existing + line.rstrip() + "\n")
+        with open(results_dir / "run.log", "a", encoding="utf-8") as file:
+            file.write(line.rstrip() + "\n")
         if self.log_level == "debug":
             print(line.rstrip(), file=sys.stderr, flush=True)
 

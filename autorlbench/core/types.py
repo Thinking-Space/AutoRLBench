@@ -189,6 +189,9 @@ IMAGE_TAG_HEADER = "# autorlbench-image:"
 # next run and next task hit them. Defining the default here, not per entry point, keeps cli and harbor in sync.
 DEFAULT_MODELS_DIR = _REPO_ROOT / "models"
 DEFAULT_DATASETS_DIR = _REPO_ROOT / "datasets"
+# Default parent for persistent run logs. They sit next to the download caches for the same reason:
+# run staging is deleted afterwards, and logs exist to be reviewed after the fact.
+DEFAULT_OUTPUT_DIR = _REPO_ROOT / "outputs"
 
 
 def known_images() -> frozenset:

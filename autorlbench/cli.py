@@ -7,6 +7,7 @@ import os
 import re
 import shlex
 import subprocess
+import sys
 from pathlib import Path
 
 from .core.harbor_types import HarborEvaluationConfig
@@ -254,6 +255,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="parent directory for temporary materialized Harbor tasks",
     )
+    h.add_argument(
+        "--output-root",
+        default=os.environ.get("AUTORLBENCH_HARBOR_OUTPUT_DIR"),
+        help=(
+            "parent directory for persistent per-run logs and command records, laid out as "
+            "<output-root>/<task_id>/<agent>-<model>/<timestamp>/ (default: <repo>/outputs/"
+            "harbor-evaluate) [env: AUTORLBENCH_HARBOR_OUTPUT_DIR]"
+        ),
+    )
 
     s = sub.add_parser(
         "harbor-shell",
@@ -443,6 +453,10 @@ def main(argv=None) -> int:
                 ),
                 harbor_command=harbor_command,
                 harbor_args=tuple(harbor_args),
+                output_root=(
+                    None if args.output_root is None else Path(args.output_root)
+                ),
+                invocation_argv=tuple(sys.argv),
             ),
         )
         result = (

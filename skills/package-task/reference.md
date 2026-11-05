@@ -127,7 +127,7 @@ Listed causes are all essential. Identifying only part of them must receive part
 
 ## issue/verifier/README.md
 
-A fixed description of how this tier is graded, written after `tasks/reward/slime_retool_length_reward_bonus/evaluations/issue/verifier/README.md`: the judge reads `$AUTORLBENCH_RESULTS/agent_answer.md` and compares it with the hidden `oracle.md`, weights 0.2 / 0.6 / 0.2, pass mark 0.8, requires `AUTORLBENCH_JUDGE_MODEL`, `OPENAI_BASE_URL`, `OPENAI_API_KEY`, and writes the result to `$AUTORLBENCH_RESULTS/result.json`.
+A fixed description of how this tier is graded, written after `tasks/reward/slime_retool_length_reward_bonus/evaluations/issue/verifier/README.md`: the judge reads `$AUTORLBENCH_RESULTS/agent_answer.md` and compares it with the hidden `oracle.md`, weights 0.2 / 0.6 / 0.2, pass mark 0.8, requires `AUTORLBENCH_JUDGE_MODEL`, `OPENAI_BASE_URL`, `OPENAI_API_KEY`, writes the result to `$AUTORLBENCH_RESULTS/result.json`, and writes the raw judge response plus the request that produced it to `$AUTORLBENCH_RESULTS/judge-raw.json`.
 
 ## issue/verifier/gold.yaml (optional)
 

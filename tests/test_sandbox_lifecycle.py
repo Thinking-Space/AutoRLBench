@@ -311,6 +311,29 @@ class SandboxLifecycleTests(unittest.TestCase):
                 stderr,
             )
 
+    def test_docker_stream_log_file_combines_both_streams(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_path = Path(temp_dir) / "nested" / "prepare.log"
+            process = subprocess.Popen(
+                ["sh", "-c", "echo setup-out; echo setup-error >&2"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            stdout, stderr, timed_out = DockerRuntime._stream_log_file(
+                process,
+                timeout_s=5,
+                log_path=log_path,
+            )
+            self.assertFalse(timed_out)
+            # stdout and stderr stay separately captured for the CommandResult ...
+            self.assertEqual(stdout, "setup-out\n")
+            self.assertIn("setup-error\n", stderr)
+            # ... while the persistent log file holds both, in one file, parent created.
+            combined = log_path.read_text()
+            self.assertIn("setup-out\n", combined)
+            self.assertIn("setup-error\n", combined)
+
     def test_run_directory_prefix_is_readable_and_safe(self):
         prefix = TaskEvaluator._run_directory_prefix(
             "swe_slugfix/001: trial",
