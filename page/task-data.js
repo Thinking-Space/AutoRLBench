@@ -246,8 +246,7 @@ window.AUTORLBENCH_TASKS = [
       "idea",
       "verl",
       "awm",
-      "opsd",
-      "issue-only"
+      "opsd"
     ],
     "model": "locaszzz/IDEA_sft",
     "dataset": "locaszzz/IDEA_training_data; locaszzz/AgentWorldModel-1K",
@@ -515,5 +514,62 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "vLLM's list_loras() returns integer adapter IDs, but the generate path tests membership with the string name — the loaded PiSSA adapter is never attached, so every rollout samples the residual base.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO and a rank-8 PiSSA adapter on a fixed GSM8K subset. The vLLM request path gates the LoRA with lora_loaded = VLLM_LORA_NAME in loaded_loras, but engine.list_loras() returns the registered adapters' integer IDs, so the membership test \"123\" in {123, ...} is always false and every generation request omits the loaded adapter. vLLM samples the PiSSA residual base while the actor computes log probabilities with the adapter active: every rollout is off-policy, rewards and gradients are zero, and the run's final health check collapses (actor/rollout policy agreement 0.10476 versus 0.89072 after the one-line integer-ID fix)."
+  },
+  {
+    "id": "algorithm/verl_policy_loss_padded_unmasked",
+    "title": "Padded custom GRPO objective: unmasked loss",
+    "family": "Algorithm",
+    "tags": [
+      "verl",
+      "grpo",
+      "recorded-run",
+      "container-validation-pending"
+    ],
+    "model": "Qwen/Qwen3-1.7B",
+    "dataset": "DAPO-Math-17k original 1,791,700 rows (no dedup); AIME24/25 30 questions each",
+    "framework": "verl v0.6.1 / GRPO",
+    "image": "verl-v061-grpo",
+    "created": "2026-11-02",
+    "license": "Apache-2.0",
+    "brief": "A custom GRPO objective multiplies every token position — padded or not — by the full response length and averages the whole padded tensor, so with unpadding disabled the loss is dominated by almost pure padding.",
+    "issue": "Training Qwen3-1.7B with GRPO on DAPO-Math-17k (150 steps, batch 512, mini 32, rollout 8). The registered luspo_token loss computes loss = (per_token_loss * lengths).mean() over the whole padded tensor without applying response_mask, replacing standard token-mean normalization and native dual clipping; recorded_config.yaml also sets use_remove_padding: false where the shared repaired reference runs true. actor/padding_fraction climbs 0.82 to 0.9955, actor/entropy collapses 210 to 0.80, response_length/mean falls from about 1500 to about 37 tokens, actor/grad_norm reaches 3.0e7, training reward peaks at 0.304 (step 38) and falls back to 0.090; AIME24/25 mean@32 at step 150 is 0.0031 versus 0.144 for the repaired reference."
+  },
+  {
+    "id": "algorithm/verl_policy_loss_padded_mask_only",
+    "title": "Padded custom GRPO objective: mask-only repair",
+    "family": "Algorithm",
+    "tags": [
+      "verl",
+      "grpo",
+      "recorded-run",
+      "container-validation-pending"
+    ],
+    "model": "Qwen/Qwen3-1.7B",
+    "dataset": "DAPO-Math-17k original 1,791,700 rows (no dedup); AIME24/25 30 questions each",
+    "framework": "verl v0.6.1 / GRPO",
+    "image": "verl-v061-grpo",
+    "created": "2026-11-02",
+    "license": "Apache-2.0",
+    "brief": "A custom GRPO objective sums masked token losses per response and averages over responses — a coherent, correctly masked objective, but not the standard token-mean target this benchmark declares.",
+    "issue": "Training Qwen3-1.7B with GRPO on DAPO-Math-17k (150 steps, batch 512, mini 32, rollout 8). The registered luspo_token loss computes loss = (per_token_loss * mask).sum(-1).mean() — sequence-sum-then-average instead of token-mean aggregation — and omits native dual clipping; recorded_config.yaml also sets use_remove_padding: false where the shared repaired reference runs true. Training reward still rises (0.095 at step 1, peak 0.328 at step 46, 0.247 at step 150) but actor/grad_norm reaches 1.5e8 and AIME24/25 mean@32 at step 150 is 0.057 versus 0.144 for the repaired reference."
+  },
+  {
+    "id": "infrastructure/verl_rollout_weight_overwrite",
+    "title": "Initial checkpoint overwrites synchronized rollout weights",
+    "family": "Infrastructure",
+    "tags": [
+      "verl",
+      "grpo",
+      "recorded-run",
+      "container-validation-pending"
+    ],
+    "model": "Qwen/Qwen3-1.7B",
+    "dataset": "DAPO-Math-17k original 1,791,700 rows (no dedup); AIME24/25 30 questions each",
+    "framework": "verl v0.6.1 / GRPO",
+    "image": "verl-v061-grpo",
+    "created": "2026-11-02",
+    "license": "Apache-2.0",
+    "brief": "After each actor-to-vLLM weight sync, a post-sync hook reloads the initial checkpoint into the rollout engine — generation never uses the updated policy.",
+    "issue": "Training Qwen3-1.7B with GRPO on DAPO-Math-17k (150 steps, batch 512, mini 32, rollout 8). case/sync.py finalize_weights reloads the initial safetensors checkpoint into the vLLM engine after Actor weights have been synchronized, so rollout generation repeatedly uses the initial weights while the Actor trains against its own updates. sync_trace.jsonl shows after_sync_max_abs_delta up to 4.9e-4 with changed_parameters rising to 154-156 of 226 sampled; actor/grad_norm grows 0.24 to 83.7 and actor/ppo_kl to 1.38 while critic/score/mean stays flat around 0.08-0.12; val-core/aime24/acc/mean@32 is exactly equal at step 0 and step 150 (0.0229) — held-out accuracy frozen at the step-0 level."
   }
 ];

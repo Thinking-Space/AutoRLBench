@@ -1,0 +1,19 @@
+category: infrastructure
+framework: verl
+task: verl_rollout_weight_overwrite
+verdict: unhealthy
+root_cause:
+- name: rollout_weight_overwrite
+  where: workspace/case/sync.py::finalize_weights (hooked into the Actor-to-vLLM weight sync path, including the async update path)
+  observed: after Actor weights are synchronized into vLLM, finalize_weights reloads the initial safetensors checkpoint into the rollout engine, so rollout generation repeatedly uses the initial weights
+  expected: the post-sync hook is telemetry-only; it records the fingerprint diff without loading any checkpoint
+evidence_metrics:
+- sync_trace.jsonl holds 2224 records; changed_parameters is 0 in the early records and rises to 154-156 of 226 sampled parameters, with after_sync_max_abs_delta up to 4.9e-4 — the reload actively overwrites drifted weights
+- actor/grad_norm is nonzero and grows from 0.24 to a maximum of 83.7 (46.3 at step 150), so Actor updates do happen
+- actor/ppo_kl grows to 1.38 (0.69 at step 150) and actor/pg_clipfrac to 0.083 while critic/score/mean stays flat around 0.08-0.12
+- AIME24/25 mean@32 is 0.0125 at step 150; val-core/aime24/acc/mean@32 is exactly equal at step 0 and step 150 (0.0229), the frozen step-0 level
+- critic/advantages/mean is nonzero (about -0.013; extrema about +2.5/-2.5), unlike a zero-advantage failure
+fix:
+  must:
+  - target: rollout_weight_overwrite
+    direction: remove the post-sync initial-checkpoint reload

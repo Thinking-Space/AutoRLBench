@@ -1,0 +1,25 @@
+category: algorithm
+framework: verl
+task: verl_policy_loss_padded_mask_only
+verdict: unhealthy
+root_cause:
+- name: nonstandard_masked_sequence_sum_policy_loss
+  where: workspace/case/loss.py::compute_policy_loss (registered as luspo_token; enabled by actor.policy_loss.loss_mode=luspo_token with actor.loss_agg_mode=seq-mean-token-sum in the frozen config)
+  observed: the objective is loss = (per_token_loss * mask).sum(-1).mean() — a per-response sum over valid tokens averaged over responses, a coherent but nonstandard aggregation that omits token-mean normalization and native dual clipping and deviates from the declared standard-GRPO target
+  expected: the declared standard-GRPO target, vanilla policy loss with token-mean aggregation
+- name: remove_padding_disabled
+  where: workspace/case/recorded_config.yaml (actor_rollout_ref.model.use_remove_padding=false)
+  observed: the shared repaired reference runs with use_remove_padding=true, so this run differs from the reference by both the custom loss and the disabled unpadding
+  expected: use_remove_padding=true as in the reference
+evidence_metrics:
+- workspace/case/loss.py computes loss = (per_token_loss * mask).sum(-1).mean(), summing valid tokens per response rather than averaging per token
+- actor/grad_norm grows from 267 to a maximum of 1.5e8 (8.2e5 at step 150) and actor/luspo_token_loss reaches 1.9e5
+- training reward still rises (critic/score/mean 0.095 at step 1, 0.316 at step 30, peak 0.328, 0.247 at step 150)
+- actor/padding_fraction runs 0.82 to 0.63 and actor/entropy falls 212 to 62
+- AIME24/25 mean@32 ends at 0.057 at step 150 versus 0.144 for the shared repaired reference
+fix:
+  must:
+  - target: nonstandard_masked_sequence_sum_policy_loss
+    direction: restore the standard vanilla token-mean policy loss
+  - target: remove_padding_disabled
+    direction: set use_remove_padding=true

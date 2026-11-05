@@ -21,3 +21,7 @@ Training evidence is checked for steps 1–20, finite gradient norms with at
 least one positive value, validation at two or more distinct steps, and an
 offline W&B file. These checks inspect logs; they do not authenticate their
 origin or enforce every declared hyperparameter.
+
+## System rerun (`run_spec.json`)
+
+The solution protocol is debug-then-report: the agent fixes the workspace, submits `/workspace/report.md`, and does **not** launch training. The task-root `run_spec.json` drives the harness rerun stage — the command, environment (with `$AUTORLBENCH_*` references expanded per backend), timeout, and log roots — executed in the agent's workspace before this verifier runs. The harness deletes the declared log roots (`experiment_logs`) before the rerun, so grading only ever sees this fresh run's logs.
