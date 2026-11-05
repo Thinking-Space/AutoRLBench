@@ -1,0 +1,640 @@
+# SPDX-License-Identifier: Apache-2.0
+
+from contextlib import contextmanager
+from typing import Any
+
+import torch
+import torch.distributed as dist
+import torch.distributed.nn.functional as dist_F
+from megatron.core import parallel_state as mpu
+from megatron.core.packed_seq_params import PackedSeqParams
+
+from areal.engine.core.model import SequencePackingMode
+from areal.utils.data import (
+    MicroBatchItem,
+    MicroBatchList,
+    align_mb_list_sequences,
+    is_multi_modal_key,
+    pad_mb_list,
+)
+
+
+def prepare_microbatches_for_sequence_layout(
+    mb_list: MicroBatchList,
+    sequence_packing_mode: SequencePackingMode,
+    pad_to_maximum: bool,
+    seq_align_to: int,
+) -> MicroBatchList:
+    """Apply padding that remains inert in the model's input layout.
+
+    Wrapper-owned THD consumes trailing packed-token padding as a segment.
+    BSHD and model-owned THD reconstruct every segment as a batch row, so their
+    default path aligns only real sequences. ``pad_to_maximum`` keeps its
+    explicit legacy packed-axis behavior until it has a BSHD-native contract.
+    """
+    if sequence_packing_mode == SequencePackingMode.WRAPPER_THD or pad_to_maximum:
+        return pad_mb_list(
+            mb_list,
+            pad_value=0.0,
+            pad_to_maximum=pad_to_maximum,
+            seq_align_to=seq_align_to,
+        )
+    return align_mb_list_sequences(
+        mb_list,
+        pad_value=0.0,
+        seq_align_to=seq_align_to,
+    )
+
+
+def _unwrap_language_model(model: torch.nn.Module) -> torch.nn.Module:
+    current = model
+    while hasattr(current, "module"):
+        current = current.module
+    return getattr(current, "language_model", current)
+
+
+@contextmanager
+def _hidden_states_output(model: torch.nn.Module, enabled: bool):
+    if not enabled:
+        yield
+        return
+    language_model = _unwrap_language_model(model)
+    if not hasattr(language_model, "post_process"):
+        raise TypeError(
+            "chunked LM Head loss requires a model with a post_process attribute"
+        )
+    original = language_model.post_process
+    language_model.post_process = False
+    try:
+        yield
+    finally:
+        language_model.post_process = original
+
+
+def preprocess_packed_seqs_context_parallel(
+    input_ids: torch.Tensor,
+    cu_seqlens: torch.Tensor,
+) -> tuple[torch.Tensor, PackedSeqParams]:
+    """
+    Preprocess packed sequences.
+    CP splits sequence into CP*2 chunks, and each GPU gets 2 chunks (GPU0 gets first and last chunks, GPU1 gets second and second last chunks, and so on),
+    this is for load balancing with causal masking. See https://github.com/NVIDIA/TransformerEngine/issues/1368
+    """
+    input_lens = cu_seqlens[1:] - cu_seqlens[:-1]
+    max_seqlen = input_lens.max().item()
+    batch_size = input_lens.shape[0]
+
+    tp_size = mpu.get_tensor_model_parallel_world_size()
+    cp_size = mpu.get_context_parallel_world_size()
+    cp_rank = mpu.get_context_parallel_rank()
+
+    align_to_multiple_of = tp_size * cp_size * 2 if cp_size > 1 else tp_size
+    # assume input_ids and cu_seqlens are already padded to align_to_multiple_of
+    if any(length % align_to_multiple_of for length in input_lens) != 0:
+        raise ValueError(
+            f"Some of the input sequence length ({input_lens}) is not a multiple of align_to_multiple_of {align_to_multiple_of} "
+            "for context/sequence parallel in Megatron."
+        )
+
+    packed_seq_params = PackedSeqParams(
+        qkv_format="thd",
+        cu_seqlens_q=cu_seqlens,
+        max_seqlen_q=max_seqlen,
+        cu_seqlens_kv=cu_seqlens,
+        max_seqlen_kv=max_seqlen,
+        cu_seqlens_q_padded=cu_seqlens,
+        cu_seqlens_kv_padded=cu_seqlens,
+    )
+
+    if cp_size <= 1:
+        return input_ids.unsqueeze(0), packed_seq_params
+
+    shape = (input_lens.sum().item() // cp_size,)
+    splitted = torch.zeros(shape, dtype=input_ids.dtype, device=input_ids.device)
+    for i in range(batch_size):
+        seqlen = input_lens[i] // cp_size
+        half_seqlen = seqlen // 2
+        start_idx = cu_seqlens[i] // cp_size
+        # split to 2 chunks
+        d = input_ids[cu_seqlens[i] : cu_seqlens[i + 1]]
+        splitted[start_idx : start_idx + half_seqlen] = d[
+            half_seqlen * cp_rank : half_seqlen * (cp_rank + 1)
+        ]
+
+        remain_start = input_lens[i] - half_seqlen * (cp_rank + 1)
+        remain_end = input_lens[i] - half_seqlen * cp_rank
+        remain_end = min(remain_end, d.shape[0])
+        remain_len = remain_end - remain_start
+        splitted[start_idx + half_seqlen : start_idx + half_seqlen + remain_len] = d[
+            remain_start:remain_end
+        ]
+    return splitted.unsqueeze(0), packed_seq_params
+
+
+def split_packed_seqs_for_context_parallel(
+    tensor: torch.Tensor,
+    cu_seqlens: torch.Tensor,
+) -> torch.Tensor:
+    """Split a 1D packed tensor using the same interleaved pattern as
+    preprocess_packed_seqs_context_parallel."""
+    cp_size = mpu.get_context_parallel_world_size()
+    cp_rank = mpu.get_context_parallel_rank()
+    if cp_size <= 1:
+        return tensor
+
+    input_lens = cu_seqlens[1:] - cu_seqlens[:-1]
+    batch_size = input_lens.shape[0]
+    output_len = input_lens.sum().item() // cp_size
+
+    splitted = torch.zeros(output_len, dtype=tensor.dtype, device=tensor.device)
+    for i in range(batch_size):
+        seqlen = input_lens[i] // cp_size
+        half_seqlen = seqlen // 2
+        start_idx = cu_seqlens[i] // cp_size
+
+        d = tensor[cu_seqlens[i] : cu_seqlens[i + 1]]
+        splitted[start_idx : start_idx + half_seqlen] = d[
+            half_seqlen * cp_rank : half_seqlen * (cp_rank + 1)
+        ]
+
+        remain_start = input_lens[i] - half_seqlen * (cp_rank + 1)
+        remain_end = input_lens[i] - half_seqlen * cp_rank
+        remain_end = min(remain_end, d.shape[0])
+        remain_len = remain_end - remain_start
+        splitted[start_idx + half_seqlen : start_idx + half_seqlen + remain_len] = d[
+            remain_start:remain_end
+        ]
+    return splitted
+
+
+def _build_cp_reassemble_indices(
+    padded_cu_seqlens: torch.Tensor,
+    cp_size: int,
+) -> torch.Tensor:
+    """Build the index mapping from concatenated CP chunks to original order.
+
+    Returns a 1D LongTensor of length ``output_len`` where ``indices[dst] = src``
+    means the token at position ``dst`` in the full sequence comes from position
+    ``src`` in the flattened ``torch.cat(gathered_list)`` tensor.
+    """
+    input_lens = padded_cu_seqlens[1:] - padded_cu_seqlens[:-1]
+    batch_size = input_lens.shape[0]
+    output_len = int(padded_cu_seqlens[-1].item())
+    local_len = output_len // cp_size
+    device = padded_cu_seqlens.device
+
+    indices = torch.empty(output_len, dtype=torch.long, device=device)
+
+    for i in range(batch_size):
+        seq_len = int(input_lens[i].item())
+        chunk_size = seq_len // cp_size
+        half_chunk = chunk_size // 2
+        local_start = int(padded_cu_seqlens[i].item()) // cp_size
+        full_start = int(padded_cu_seqlens[i].item())
+
+        k = torch.arange(half_chunk, device=device)
+        for j in range(cp_size):
+            src_offset = j * local_len + local_start
+            # first half → positions [j*H, (j+1)*H) in full sequence
+            indices[full_start + j * half_chunk + k] = src_offset + k
+            # second half → mirror positions [L-(j+1)*H, L-j*H)
+            indices[full_start + seq_len - (j + 1) * half_chunk + k] = (
+                src_offset + half_chunk + k
+            )
+
+    return indices
+
+
+def reassemble_cp_packed_logprobs(
+    local_tensor: torch.Tensor,
+    padded_cu_seqlens: torch.Tensor,
+) -> torch.Tensor:
+    """All-gather CP-local 1D tensors and reassemble in original sequence order.
+
+    This is the differentiable inverse of ``split_packed_seqs_for_context_parallel``.
+    It uses ``torch.distributed.nn.functional.all_gather`` (backward = reduce_scatter)
+    followed by advanced indexing (differentiable permutation) so that gradients
+    flow correctly back to each CP rank's local logprobs.
+
+    Args:
+        local_tensor: 1D tensor of shape ``(total_packed_len // cp_size,)`` holding
+            this rank's CP-local values (e.g. logprobs, entropy, vocab stats).
+        padded_cu_seqlens: Cumulative sequence lengths in the *padded* (pre-split)
+            layout, of shape ``(batch_size + 1,)``.
+
+    Returns:
+        Full-sequence 1D tensor of shape ``(total_packed_len,)`` with values placed
+        back in original token order. Gradients flow back through the all-gather.
+    """
+    cp_size = mpu.get_context_parallel_world_size()
+    if cp_size <= 1:
+        return local_tensor
+
+    cp_group = mpu.get_context_parallel_group()
+
+    # Differentiable all-gather: backward is reduce_scatter(sum).
+    gathered_list = dist_F.all_gather(local_tensor, group=cp_group)
+
+    # Concatenate all gathered chunks into a single flat tensor.
+    # cat is differentiable (backward splits gradients back to each chunk).
+    gathered_flat = torch.cat(gathered_list, dim=0)
+
+    # Build index mapping and apply via advanced indexing (differentiable).
+    # indices[dst] = src means output[dst] = gathered_flat[src].
+    indices = _build_cp_reassemble_indices(padded_cu_seqlens, cp_size)
+    return gathered_flat[indices]
+
+
+def postprocess_packed_seqs_context_parallel(
+    output: torch.Tensor,
+    cu_seqlens: torch.Tensor | None,
+    post_process: bool,
+    gather_output: bool = True,
+) -> torch.Tensor:
+    """
+    Postprocess packed sequences
+    """
+    cp_size = mpu.get_context_parallel_world_size()
+    if not post_process:
+        return output
+    if cp_size <= 1 or cu_seqlens is None:
+        return output.squeeze(0)
+
+    if not gather_output:
+        return output.squeeze(0)
+
+    # shape = [batch_size, seq_len] + list(output.shape[2:])
+    # [1, packed, dim] -> [batch_size, seq_len, dim]
+    batch_size = cu_seqlens.shape[0] - 1
+    output_len = int(cu_seqlens[-1].item())
+    # output shape: [total_packed_seq_len] + list(output.shape[2:]
+    output_new = torch.empty(
+        (output_len, *output.shape[2:]), device=output.device, dtype=output.dtype
+    )
+    # all gather output across context parallel group
+    # need to gather across cp group and concatenate in sequence dimension
+    output_list = [torch.empty_like(output) for _ in range(cp_size)]
+    dist.all_gather(
+        output_list, output.detach(), group=mpu.get_context_parallel_group()
+    )
+    output_list[mpu.get_context_parallel_rank()] = output
+
+    for i in range(batch_size):
+        seq_len = cu_seqlens[i + 1] - cu_seqlens[i]
+        splitted_seq_len = (cu_seqlens[i + 1] - cu_seqlens[i]) // cp_size
+        half_splitted_seq_len = splitted_seq_len // 2
+
+        tmp = torch.empty(
+            (seq_len, *output.shape[2:]), device=output.device, dtype=output.dtype
+        )
+        for j in range(cp_size):
+            o = output_list[j].squeeze(0)
+            # split to 2 chunks
+            start = cu_seqlens[i] // cp_size
+            o0, o1 = (
+                o[start : start + half_splitted_seq_len],
+                o[start + half_splitted_seq_len : start + splitted_seq_len],
+            )
+            tmp[j * half_splitted_seq_len : (j + 1) * half_splitted_seq_len] = o0
+            splitted_start = seq_len - (j + 1) * half_splitted_seq_len
+            splitted_end = seq_len - j * half_splitted_seq_len
+            tmp[splitted_start:splitted_end] = o1
+
+        output_new[cu_seqlens[i] : cu_seqlens[i + 1]] = tmp[:seq_len]
+    return output_new
+
+
+_VLM_FORWARD_KEYS = ("pixel_values", "image_grid_thw", "video_grid_thw")
+
+
+def _is_multi_modal_payload_key(key: str) -> bool:
+    return key in _VLM_FORWARD_KEYS or is_multi_modal_key(key)
+
+
+def _drop_multi_modal_payload(data: dict[str, Any]) -> None:
+    for key in list(data.keys()):
+        if _is_multi_modal_payload_key(key):
+            data.pop(key, None)
+
+
+def extract_vision_from_multi_modal(
+    mb: dict[str, Any], padded_mb: dict[str, Any]
+) -> None:
+    """Extract pixel_values / image_grid_thw / video_grid_thw from multi_modal_input.
+
+    Mirrors FSDPEngine's `_prepare_multimodal_forward_inputs` (#1272): vision
+    tensors are placed only on ``padded_mb`` (forward side); ``mb`` is the
+    loss/bookkeeping side and does not need them. The original
+    ``multi_modal_input`` list-of-dicts is popped from both to avoid carrying
+    raw per-sample tensors alongside the concatenated batched form.
+    """
+    multi_modal_input = mb.pop("multi_modal_input", None)
+    if multi_modal_input is None:
+        multi_modal_input = padded_mb.pop("multi_modal_input", None)
+    else:
+        padded_mb.pop("multi_modal_input", None)
+
+    if multi_modal_input is not None:
+        for key in _VLM_FORWARD_KEYS:
+            items = [item[key] for item in multi_modal_input if key in item]
+            if items:
+                padded_mb[key] = torch.cat(items, dim=0)
+
+    _drop_multi_modal_payload(mb)
+
+
+def prepare_vision_microbatch(source: MicroBatchItem) -> MicroBatchItem:
+    """Assemble current vision inputs without mutating reusable CPU sources."""
+    orig_mb = dict(source.orig_mb)
+    padded_mb = dict(source.padded_mb)
+    extract_vision_from_multi_modal(orig_mb, padded_mb)
+    return source._replace(orig_mb=orig_mb, padded_mb=padded_mb)
+
+
+def _reconstruct_padded_2d(
+    input_ids: torch.Tensor,
+    cu_seqlens: torch.Tensor,
+    max_seqlen: int | None = None,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
+    """Reconstruct padded ``[B, S]`` ids and their validity mask."""
+    batch_size = cu_seqlens.shape[0] - 1
+    seq_lens = cu_seqlens[1:] - cu_seqlens[:-1]
+    # The engine supplies max_seqlen after sequence/page padding, so it covers
+    # every length in cu_seqlens without recomputing a CUDA scalar on the host.
+    if max_seqlen is None:
+        max_seqlen = int(seq_lens.max().item())
+    # Batches may carry int32 ids, while the padded scatter destination and
+    # bridge embedding/position indexing require int64 token ids.
+    input_ids = input_ids.to(torch.long)
+    attention_mask = (
+        torch.arange(max_seqlen, device=input_ids.device)[None, :] < seq_lens[:, None]
+    )
+    input_ids_2d = torch.zeros(
+        batch_size, max_seqlen, dtype=torch.long, device=input_ids.device
+    )
+    input_ids_2d[attention_mask] = input_ids
+    return input_ids_2d, attention_mask, seq_lens, max_seqlen
+
+
+def _build_thd_packed_seq_params(
+    cu_seqlens: torch.Tensor, max_seqlen: int
+) -> PackedSeqParams:
+    """Build THD metadata for sequences already aligned by AReaL."""
+    return PackedSeqParams(
+        qkv_format="thd",
+        cu_seqlens_q=cu_seqlens,
+        max_seqlen_q=max_seqlen,
+        cu_seqlens_kv=cu_seqlens,
+        max_seqlen_kv=max_seqlen,
+        cu_seqlens_q_padded=cu_seqlens,
+        cu_seqlens_kv_padded=cu_seqlens,
+    )
+
+
+def _prepare_mtp_forward_kwargs(
+    mtp_kwargs: dict[str, Any],
+    input_ids: torch.Tensor,
+    attention_mask: torch.Tensor | None,
+    *,
+    cu_seqlens: torch.Tensor | None,
+    packed_num_tokens: int,
+    uses_padded_form: bool,
+    uses_model_packed_seq: bool,
+) -> dict[str, torch.Tensor]:
+    """Align packed MTP labels and masks with the model's execution layout."""
+    labels = mtp_kwargs.get("mtp_labels")
+    loss_mask = mtp_kwargs.get("mtp_loss_mask")
+    if labels is None or loss_mask is None:
+        raise ValueError("MTP training requires both mtp_labels and mtp_loss_mask.")
+    if labels.shape != loss_mask.shape:
+        raise ValueError(
+            "MTP labels and loss mask must have identical shapes, got "
+            f"{labels.shape} and {loss_mask.shape}."
+        )
+
+    if cu_seqlens is None:
+        if labels.numel() != input_ids.numel():
+            raise ValueError(
+                "MTP labels must contain one value per input token, got "
+                f"{labels.numel()} labels for {input_ids.numel()} tokens."
+            )
+        return {
+            "mtp_labels": labels.reshape(input_ids.shape).contiguous(),
+            "mtp_loss_mask": loss_mask.reshape(input_ids.shape).contiguous(),
+        }
+
+    if labels.ndim != 1:
+        raise ValueError(
+            "MTP labels and loss mask must enter packed sequence-layout conversion "
+            f"as 1-D tensors, got {labels.shape=} and {loss_mask.shape=}."
+        )
+
+    if uses_model_packed_seq:
+        raise NotImplementedError(
+            "MTP training with model-owned THD packing is not supported yet."
+        )
+
+    if labels.numel() != packed_num_tokens:
+        raise ValueError(
+            "MTP labels must match the packed sequence length, got "
+            f"{labels.numel()} labels for {packed_num_tokens} tokens."
+        )
+
+    if uses_padded_form:
+        if attention_mask is None:
+            raise ValueError("Padded MTP training requires a 2-D validity mask.")
+        padded_labels = torch.zeros_like(input_ids)
+        padded_loss_mask = torch.zeros(
+            input_ids.shape,
+            dtype=loss_mask.dtype,
+            device=loss_mask.device,
+        )
+        padded_labels[attention_mask] = labels
+        padded_loss_mask[attention_mask] = loss_mask
+        return {
+            "mtp_labels": padded_labels,
+            "mtp_loss_mask": padded_loss_mask,
+        }
+
+    # Packed context parallelism assigns each rank two zigzag chunks per
+    # sequence. Apply the exact same mapping used for input_ids so every local
+    # hidden state keeps its token-aligned MTP target and validity mask. MCore's
+    # roll_tensor subsequently uses cp_group and packed_seq_params to exchange
+    # future-token boundaries across CP ranks.
+    labels = split_packed_seqs_for_context_parallel(labels, cu_seqlens)
+    loss_mask = split_packed_seqs_for_context_parallel(loss_mask, cu_seqlens)
+    return {
+        "mtp_labels": labels.unsqueeze(0).contiguous(),
+        "mtp_loss_mask": loss_mask.unsqueeze(0).contiguous(),
+    }
+
+
+def packed_context_parallel_forward(
+    model: torch.nn.Module,
+    input_: dict[str, Any],
+    gather_cp_output: bool = True,
+    is_vision_model: bool = False,
+    use_padded_seq: bool = False,
+    use_model_packed_seq: bool = False,
+    fp32_output: bool | None = None,
+    return_hidden_states: bool = False,
+):
+    input_ids = input_["input_ids"]
+    packed_num_tokens = input_ids.numel()
+    position_ids = input_.get("position_ids", None)
+    cu_seqlens = input_.get("cu_seqlens", None)
+    # `attention_mask`: dense torch.Tensor (flex attention with Megatron) or None.
+    # `tree_triton_data`: read from a separate key; takes priority over
+    # attention_mask when forwarded as the final attention mask argument.
+    attention_mask = input_.get("attention_mask", None)
+    tree_triton_data = input_.get("tree_triton_data", None)
+    packed_seq_params = None
+
+    # Whether this particular microbatch carries vision tensors. Gates only
+    # the vision kwargs and the dense-mask exception below — never the
+    # padded-vs-packed routing.
+    has_vision_inputs = is_vision_model and any(
+        key in input_ for key in _VLM_FORWARD_KEYS
+    )
+    # Padded-vs-packed routing is keyed on the MODEL type:
+    # - VLM models cannot consume the wrapper-packed [1, total_len] layout
+    #   (their internal packing needs a per-sequence 2D mask — mbridge
+    #   crashes on the missing mask and megatron-bridge silently corrupts
+    #   positions/packing), so image-free microbatches take the padded
+    #   branch too.
+    # - Architectures whose attention/SSM kernels reject packed sequences
+    #   (use_padded_seq, e.g. Qwen3.5 GDN) must run on [B, S] padded input.
+    needs_padded_form = is_vision_model or use_padded_seq
+
+    # Track shape metadata so the output can be repacked back to packed
+    # [total_len, ...] form on the last PP stage.
+    padded_repack_info = None
+
+    if cu_seqlens is not None:
+        if use_model_packed_seq:
+            if attention_mask is not None or tree_triton_data is not None:
+                raise ValueError(
+                    "Attention mask and tree attention are not supported with "
+                    "the model-packed THD forward."
+                )
+            if mpu.get_context_parallel_world_size() > 1:
+                raise NotImplementedError(
+                    "The model-packed THD forward does not support CP > 1 yet."
+                )
+            input_ids, attention_mask, _, max_seqlen = _reconstruct_padded_2d(
+                input_ids, cu_seqlens, input_.get("max_seqlen")
+            )
+            packed_seq_params = _build_thd_packed_seq_params(cu_seqlens, max_seqlen)
+            position_ids = None
+        elif not needs_padded_form:
+            if attention_mask is not None or tree_triton_data is not None:
+                raise ValueError(
+                    "Attention mask should be None when using packed sequences."
+                )
+            input_ids, packed_seq_params = preprocess_packed_seqs_context_parallel(
+                input_ids, cu_seqlens
+            )
+            input_ids = input_ids.contiguous()
+        else:
+            # VLM and BSHD-only models expect [B, S] padded input.
+            input_ids, attention_mask, seq_lens, max_seqlen = _reconstruct_padded_2d(
+                input_ids, cu_seqlens, input_.get("max_seqlen")
+            )
+            padded_repack_info = (cu_seqlens, seq_lens, max_seqlen)
+
+    # Every VLM forward is mask-free (attention_mask=None): the model
+    # computes (m)RoPE positions internally, each batch slot holds one
+    # sequence with trailing padding so causal attention yields correct
+    # outputs at non-padding positions, and padding outputs are discarded
+    # during repack. The one exception is the padded BSHD text forward of
+    # use_padded_seq models, which consumes the dense 2D mask so attention
+    # layers skip padding. The wrapper-packed path carries no mask either
+    # way (enforced above); tree data passes through untouched.
+    dense_mask_text_forward = use_padded_seq and not has_vision_inputs
+    if use_model_packed_seq:
+        final_attention_mask = attention_mask
+    elif is_vision_model and not dense_mask_text_forward:
+        final_attention_mask = None
+    else:
+        final_attention_mask = (
+            tree_triton_data if tree_triton_data is not None else attention_mask
+        )
+
+    # VLM: pass vision inputs through to model forward. The VLM model computes
+    # mRoPE position_ids internally, so position_ids remains None for VLM.
+    vlm_kwargs: dict[str, Any] = {}
+    if has_vision_inputs:
+        for key in _VLM_FORWARD_KEYS:
+            if key in input_:
+                vlm_kwargs[key] = input_[key]
+
+    # For BSHD text-only, drop the packed-form position_ids (a 1D tensor of
+    # length total_len) — they don't match the 2D [B, S] input. Let mcore
+    # compute the default torch.arange positions per row; padding positions
+    # are masked out by attention_mask.
+    if dense_mask_text_forward:
+        position_ids = None
+
+    # MTP training: convert the independent label and mask channels to the
+    # exact layout used by this forward. MCore rolls both once per MTP layer;
+    # keeping them aligned prevents cross-sequence targets and masks padding
+    # or unavailable future-token positions.
+    extra_forward_kwargs: dict[str, Any] = {}
+    mtp_kwargs = input_.get("mtp_kwargs", None)
+    if mtp_kwargs is not None:
+        extra_forward_kwargs["mtp_kwargs"] = _prepare_mtp_forward_kwargs(
+            mtp_kwargs,
+            input_ids,
+            attention_mask,
+            cu_seqlens=cu_seqlens,
+            packed_num_tokens=packed_num_tokens,
+            uses_padded_form=needs_padded_form,
+            uses_model_packed_seq=use_model_packed_seq,
+        )
+
+    try:
+        model_kwargs = {
+            "input_ids": input_ids,
+            "attention_mask": final_attention_mask,
+            "position_ids": position_ids,
+            "packed_seq_params": packed_seq_params,
+            **extra_forward_kwargs,
+            **vlm_kwargs,
+        }
+        if fp32_output is not None:
+            model_kwargs["fp32_output"] = fp32_output
+        with _hidden_states_output(model, return_hidden_states):
+            output = model(**model_kwargs)
+    except Exception as e:
+        raise RuntimeError(
+            f"Error occurred in packed context parallel forward pass on model {model} "
+            f"with input_ids shape {input_ids.shape} and packed_seq_params {packed_seq_params}."
+        ) from e
+
+    if return_hidden_states:
+        return output
+
+    model_vp_stage = getattr(model, "vp_stage", None)
+    is_pipeline_last_stage = mpu.is_pipeline_last_stage(
+        ignore_virtual=False, vp_stage=model_vp_stage
+    )
+
+    # Repack padded output to packed [total_len, ...] for the last PP stage only.
+    # Intermediate stages must return their output unchanged so the pipeline
+    # send/recv shapes match what the next stage expects (megatron-core's
+    # `_communicate_shapes` negotiates based on this return value).
+    #
+    # On the last PP stage, megatron-core GPTModel returns logits already
+    # transposed to [B, S, V] (gpt_model.py: `return logits.transpose(0, 1).contiguous()`),
+    # so a boolean mask of valid positions selects the packed sequence.
+    if padded_repack_info is not None and is_pipeline_last_stage:
+        _, repack_seq_lens, repack_max_seqlen = padded_repack_info
+        mask = (
+            torch.arange(repack_max_seqlen, device=output.device)[None, :]
+            < repack_seq_lens[:, None]
+        )
+        output = output[mask]
+    output = postprocess_packed_seqs_context_parallel(
+        output, cu_seqlens, is_pipeline_last_stage, gather_output=gather_cp_output
+    )
+    return output

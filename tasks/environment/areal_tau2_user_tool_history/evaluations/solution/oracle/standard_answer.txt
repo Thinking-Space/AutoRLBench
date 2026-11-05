@@ -1,0 +1,21 @@
+STANDARD_ANSWER_V1
+CASE_ID: areal_tau2_user_tool_history
+BENCHMARK_GROUP: B-TAU2-TELECOM
+EXPECTED_VERDICT: unhealthy
+EXPECTED_ATTRIBUTION: User-side filtering removes the simulator's own tool-call/result pairs after tau2 perspective conversion.
+PRIMARY_METRIC: telecom/user_tool_history_retention
+
+REQUIRED_ALL:
+- Identify Tau2Runner._clean_messages and the user completion path in _make_completion_fn.
+- Identify both deletion of tool result messages and stripping of assistant tool_calls.
+- Explain that flip_roles already isolates user-owned tool history.
+- Connect missing observations to repeated tool use and shared step-budget consumption.
+- Preserve null tool_calls cleanup and the caller's input when repairing the code.
+
+GLOBAL_JUDGE_POLICY:
+- The score must be exactly 0 or 1.
+- Agent A must explicitly classify the run as healthy or unhealthy.
+- Every REQUIRED_ALL item must be satisfied.
+- A verdict mismatch forces score 0.
+- Equivalent technical wording in any language is acceptable.
+- task.yaml may clarify targets and aliases but may not relax REQUIRED_ALL.

@@ -1,0 +1,3574 @@
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+import dataclasses
+import functools
+import gc
+import json
+import math
+import os
+import re
+import struct
+from collections.abc import Callable, Iterator
+from concurrent.futures import Future
+from contextlib import contextmanager
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
+
+import mbridge
+import torch
+import torch.distributed as dist
+from megatron.bridge import AutoBridge as MegatronBridgeAutoBridge
+from megatron.bridge.peft.lora import LoRA as MegatronBridgeLoRA
+from megatron.core import parallel_state as mpu
+from megatron.core import tensor_parallel
+from megatron.core.distributed import DistributedDataParallel as DDP
+from megatron.core.distributed import finalize_model_grads
+from megatron.core.optimizer import OptimizerConfig as MCoreOptimizerConfig
+from megatron.core.optimizer import get_megatron_optimizer
+from megatron.core.optimizer_param_scheduler import OptimizerParamScheduler
+from megatron.core.pipeline_parallel import get_forward_backward_func
+from megatron.core.transformer import TransformerConfig
+from megatron.core.utils import get_model_config
+from torch import nn
+from torchdata.stateful_dataloader import StatefulDataLoader
+from transformers import PretrainedConfig
+
+import areal.models.mcore.bailing_moe_bridge  # noqa: F401  # register bridge
+import areal.models.mcore.bailing_v3_bridge  # noqa: F401  # register bridge
+from areal.api import (
+    FinetuneSpec,
+    InferenceEngine,
+    MegatronParallelStrategy,
+    ParallelStrategy,
+    ParamSpec,
+    SaveLoadMeta,
+    TrainEngine,
+    WeightUpdateMeta,
+    WorkflowLike,
+)
+from areal.api.cli_args import MicroBatchSpec, PerfTracerConfig, TrainEngineConfig
+from areal.api.io_struct import DeviceRuntimeInfo
+from areal.engine.core import (
+    aggregate_eval_losses,
+    compute_microbatch_loss_weight,
+    compute_total_loss_weight,
+    reorder_and_pad_outputs,
+)
+from areal.engine.core.distributed import (
+    init_custom_process_group,
+    warmup_process_groups,
+)
+from areal.engine.core.model import (
+    SequencePackingMode,
+    disable_dropout_in_model,
+    is_valid_vision_model,
+    lang_config,
+    requires_padded_seq,
+    resolve_sequence_packing_mode,
+)
+from areal.engine.megatron_utils import megatron_bridge_patches  # noqa: F401
+from areal.engine.megatron_utils.bailing_v3 import (
+    BailingV3MlaWeightPairs,
+    is_bailing_v3,
+    validate_bailing_v3_weight_update,
+)
+from areal.engine.megatron_utils.checkpointer import MegatronCheckpointManager
+from areal.engine.megatron_utils.deterministic import set_deterministic_algorithms
+from areal.engine.megatron_utils.fp8 import FP8BlockwiseTensorHelper
+from areal.engine.megatron_utils.megatron import (
+    all_gather_param,
+    convert_to_hf,
+    get_named_parameters,
+    remove_padding,
+)
+from areal.engine.megatron_utils.megatron_lora import get_vllm_lora_target_modules
+from areal.engine.megatron_utils.packed_context_parallel import (
+    _VLM_FORWARD_KEYS,
+    _is_multi_modal_payload_key,
+    extract_vision_from_multi_modal,
+    packed_context_parallel_forward,
+    prepare_microbatches_for_sequence_layout,
+    prepare_vision_microbatch,
+    reassemble_cp_packed_logprobs,
+    split_packed_seqs_for_context_parallel,
+)
+from areal.engine.megatron_utils.pipeline_parallel import (
+    configure_pipeline_layer_splits,
+)
+from areal.engine.megatron_utils.transport import validate_transport_padding
+from areal.infra.dist_rollout import DistRolloutCoordinator
+from areal.infra.platforms import current_platform, is_npu_available
+from areal.models.mcore.bailing_v3_bridge import BailingV3Bridge
+from areal.models.mcore.hf_load import load_weights_from_hf_with_mbridge_fast
+from areal.models.mcore.hf_save import (
+    save_critic_value_head,
+    save_weights_to_hf_with_mbridge_fast,
+)
+from areal.models.mcore.registry import (
+    make_hf_and_mcore_config,
+    make_mcore_model,
+    unwrap_to_gpt_model,
+)
+from areal.models.mcore.vocab_parallel_head import (
+    ChunkedLMHeadOutput,
+    chunked_lm_head_logprobs_entropy,
+)
+from areal.models.tree_attn.functional import (
+    _gather_packed_tree_logprobs,
+    gather_packed_tree_logprobs_entropy,
+    gather_packed_tree_vocab_stats,
+    merge_packed_tree_results,
+)
+from areal.models.tree_attn.module import (
+    build_tree_attn_kwargs,
+    patch_bridge_for_tree_training,
+)
+from areal.models.tree_attn.tree import build_packed_tree_batch
+from areal.utils import logging, name_resolve, names, perf_tracer, stats_tracker
+from areal.utils.constants import (
+    DEFAULT_VECTORIZED_ALIGNMENT_BYTES,
+    DIST_GROUP_DEFAULT_TIMEOUT,
+)
+from areal.utils.data import (
+    MicroBatchItem,
+    MicroBatchList,
+    amend_position_ids,
+    batched_call,
+    broadcast_tensor,
+    concat_batch,
+    has_multi_modal_tensors,
+    pack_tensor_dict,
+    split_batch,
+    split_padded_tensor_dict_into_mb_list,
+    tensor_container_to,
+    unpad_logits,
+)
+from areal.utils.functional import gather_logprobs, gather_logprobs_entropy
+from areal.utils.hf_utils import (
+    finalize_hf_export,
+    load_hf_config_snapshot,
+    load_hf_processor_and_tokenizer,
+    load_hf_tokenizer,
+)
+from areal.utils.lock import DistributedLock
+from areal.utils.lr_scheduler import get_num_warmup_steps
+from areal.utils.network import find_free_ports, format_host_for_url, gethostip
+from areal.utils.offload import is_tms_enabled, torch_memory_saver
+from areal.utils.perf_tracer import trace_perf, trace_scope
+from areal.utils.seeding import get_seed
+from areal.v2.weight_update.awex.delta_config import DTERuntimeConfig
+
+if TYPE_CHECKING:
+    from areal.api import Scheduler
+    from areal.api.cli_args import (
+        DPOEngineConfig,
+        MOPDTeacherEngineConfig,
+        PPOActorConfig,
+        PPOCriticConfig,
+    )
+    from areal.engine.awex.colocate_writer import AwexWeightPublisher
+    from areal.engine.megatron_utils.weight_residency import MegatronWeightResidency
+
+
+# `model.named_modules()` yields LOCAL layer indices on each PP rank, while
+# `get_named_parameters` rewrites them to GLOBAL indices via layer_offset. Strip
+# the index so the GLU detection set matches across PP ranks. Also strip trailing
+# numeric suffixes on `weight`/`bias` so TEGroupedLinear MoE expert weights
+# (`weight0`, `weight1`, …, `weight{global_expert_idx}` after expert_offset
+# rewriting) collapse to the same canonical form.
+_LAYER_IDX_RE = re.compile(r"\.layers\.\d+\.")
+_EXPERT_NUM_RE = re.compile(r"\.(weight|bias)\d+$")
+
+
+def _normalize_glu_param_name(name: str) -> str:
+    name = _LAYER_IDX_RE.sub(".layers.", name)
+    name = _EXPERT_NUM_RE.sub(r".\1", name)
+    return name
+
+
+def _float16_wrapper_fp32_output(
+    enable_chunked_logits: bool,
+    model_dtype: torch.dtype,
+) -> bool | None:
+    if enable_chunked_logits and model_dtype in (
+        torch.float16,
+        torch.bfloat16,
+    ):
+        # The AReaL LM Head already produced FP32 logits. Bypass Megatron's
+        # output cast so the fused loss can reuse the original GEMM storage.
+        return False
+    # Omitting the override preserves Float16Module's default FP32 output.
+    return None
+
+
+def _reuse_chunked_logits_storage(
+    enable_chunked_logits: bool,
+    entropy_requires_grad: bool,
+) -> bool:
+    # Storage reuse makes entropy non-differentiable, so only enable it when
+    # entropy gradients are disabled.
+    return enable_chunked_logits and not entropy_requires_grad
+
+
+def _warn_if_areal_lm_head_entropy_is_nondifferentiable(
+    logger: Any,
+    *,
+    global_rank: int,
+    is_critic: bool,
+    enable_chunked_logits: bool,
+    entropy_requires_grad: bool,
+) -> None:
+    if (
+        global_rank != 0
+        or is_critic
+        or not enable_chunked_logits
+        or entropy_requires_grad
+    ):
+        return
+    logger.warning(
+        "AReaL LM Head destructive logits-storage reuse is enabled; entropy is "
+        "non-differentiable and will not contribute gradients. Set "
+        "megatron.entropy_requires_grad=true to use the differentiable fallback."
+    )
+
+
+def _validate_areal_lm_head_compatibility(
+    enable_chunked_logits: bool,
+    *,
+    enable_tree_training: bool,
+    npu_available: bool,
+) -> None:
+    if not enable_chunked_logits:
+        return
+    if npu_available:
+        raise NotImplementedError("AReaL LM Head does not support NPU training")
+    if enable_tree_training:
+        raise NotImplementedError("AReaL LM Head does not support tree training")
+
+
+def _map_chunked_lm_head_output(
+    output: ChunkedLMHeadOutput,
+    fn: Callable[[torch.Tensor], torch.Tensor],
+) -> ChunkedLMHeadOutput:
+    return ChunkedLMHeadOutput(*(fn(tensor) for tensor in output))
+
+
+def _padded_lm_head_labels(
+    input_ids: torch.Tensor,
+    cu_seqlens: torch.Tensor,
+    max_seqlen: int,
+) -> torch.Tensor:
+    """Build next-token labels matching Megatron's padded ``[S, B, H]`` layout."""
+    if input_ids.ndim != 1:
+        raise ValueError(
+            "padded LM Head expects packed 1D input_ids before BSHD reconstruction, "
+            f"got shape {tuple(input_ids.shape)}"
+        )
+    seq_lens = cu_seqlens[1:] - cu_seqlens[:-1]
+    mask = (
+        torch.arange(max_seqlen, device=input_ids.device)[None, :] < seq_lens[:, None]
+    )
+    padded_ids = torch.zeros(
+        (seq_lens.numel(), max_seqlen),
+        dtype=input_ids.dtype,
+        device=input_ids.device,
+    )
+    padded_ids[mask] = input_ids
+    return torch.roll(padded_ids, shifts=-1, dims=-1).transpose(0, 1).contiguous()
+
+
+def _repack_padded_lm_head_output(
+    tensor: torch.Tensor,
+    cu_seqlens: torch.Tensor,
+    max_seqlen: int,
+) -> torch.Tensor:
+    """Restore flattened padded LM Head values to packed sequence order."""
+    seq_lens = cu_seqlens[1:] - cu_seqlens[:-1]
+    batch_size = seq_lens.numel()
+    expected_tokens = batch_size * max_seqlen
+    if tensor.shape[0] != expected_tokens:
+        raise ValueError(
+            "padded LM Head output does not match the BSHD token layout: "
+            f"got shape {tuple(tensor.shape)}, expected first dimension "
+            f"{batch_size} * {max_seqlen} = {expected_tokens}"
+        )
+    mask = torch.arange(max_seqlen, device=tensor.device)[None, :] < seq_lens[:, None]
+    padded = tensor.reshape(max_seqlen, batch_size, *tensor.shape[1:])
+    return padded.transpose(0, 1)[mask]
+
+
+def _mbridge_precision_args(
+    enable_chunked_logits: bool,
+    enable_fp32_lm_head: bool,
+    cross_entropy_loss_fusion: bool,
+) -> dict[str, bool]:
+    args = {}
+    if not enable_chunked_logits and enable_fp32_lm_head:
+        args["enable_fp32_lm_head"] = True
+    if cross_entropy_loss_fusion:
+        args["cross_entropy_loss_fusion"] = True
+    return args
+
+
+class _MegatronModelList(list):
+    """List wrapper that exposes module-like helpers for Megatron model chunks."""
+
+    def forward(self, *args, **kwargs) -> Any:
+        if len(self) == 1:
+            return self[0](*args, **kwargs)
+        raise RuntimeError(
+            "Direct forward calls are only supported for single-chunk model list."
+        )
+
+    def named_parameters(self, *args, **kwargs) -> Iterator[tuple[str, nn.Parameter]]:
+        for module in self:
+            yield from module.named_parameters(*args, **kwargs)
+
+    def parameters(self, *args, **kwargs) -> Iterator[nn.Parameter]:
+        for _, parameter in self.named_parameters(*args, **kwargs):
+            yield parameter
+
+
+class MegatronEngine(TrainEngine):
+    # Trainers use this capability flag to release RPC/full-batch GPU payloads
+    # before constructing optimizer microbatches.
+    stream_microbatches_from_cpu = True
+    cpu_staged_rpc_methods = frozenset(
+        {
+            "compute_logp",
+            "compute_values",
+            "eval_batch",
+            "evaluate_dpo",
+            "evaluate_lm",
+            "evaluate_rw",
+            "forward",
+            "forward_batch",
+            "ppo_update",
+            "train_batch",
+            "train_dpo",
+            "train_lm",
+            "train_rw",
+        }
+    )
+
+    def __init__(self, config: TrainEngineConfig):
+        self.config = config
+        self.hf_config: PretrainedConfig
+        self.tf_config: TransformerConfig
+        self.model: _MegatronModelList | None = None
+        self.dtype = getattr(torch, self.config.dtype)
+        self.device = None
+        self.optimizer_config = config.optimizer
+        self.mcore_config = config.megatron
+        self.parallel_strategy = None
+        self.optimizer = None
+        self.lr_scheduler = None
+        self.bridge = None
+        self.process_group_initialized = False
+        self._initialized = False
+        self.rollout_engine: InferenceEngine | None = None
+        self.rollout_coordinator: DistRolloutCoordinator | None = None
+        self.weight_update_group_initialized: bool = False
+        self.weight_update_group_name: str
+        self.weight_update_master_addr: str
+        self.weight_update_master_port: int
+        self._version: int = 0
+        self.rank: int | None = None
+        self.is_pp_head: bool
+        self.world_size: int | None = None
+        self.rank_generator: mpu.RankGenerator | None = None
+        self.checkpointer: MegatronCheckpointManager | None = None
+        self.lr_scheduler: OptimizerParamScheduler | None = None
+        self.seed: int = 0
+        self.own_global_group: bool = False
+        self.is_offload: bool = False
+        self._offload_depth: int = 0
+        self._weight_residency: MegatronWeightResidency | None = None
+        self._awex_publisher: AwexWeightPublisher | None = None
+        self._dte_runtime_config = DTERuntimeConfig.from_env()
+        self._warned_unbounded_microbatch = False
+        self.enable_tree_training: bool = self.config.enable_tree_training
+        _validate_areal_lm_head_compatibility(
+            self.mcore_config.enable_chunked_logits,
+            enable_tree_training=self.enable_tree_training,
+            npu_available=is_npu_available,
+        )
+        # FP8 configuration
+        self.fp8_config = self.mcore_config.fp8_config
+        self.enable_fp8: bool = self.fp8_config is not None
+        self.fp8_direct_convert: bool = (
+            self.fp8_config.direct_convert if self.enable_fp8 else False
+        )
+        self.quantization_config: dict[str, int | str | list[str]] | None = None
+        self.bridge_cls: str = getattr(self.mcore_config, "bridge_type", "mbridge")
+        self.bridge_lora: MegatronBridgeLoRA | None = None
+        self.is_vision_model: bool = False
+        self.sequence_packing_mode: SequencePackingMode | None = None
+        self.use_model_packed_seq: bool = False
+        self.processor = None
+
+    def create_process_group(self, parallel_strategy: ParallelStrategy | None = None):
+        if parallel_strategy is None:
+            parallel_strategy = ParallelStrategy()
+        self.parallel_strategy = self._make_parallel_strategy(parallel_strategy)
+        backend = current_platform.communication_backend
+        if not dist.is_initialized():
+            # NOTE: device_id **SHOULD NOT** be passed into init_process_group,
+            # otherwise initializing the NCCL weight update group will be wrong!
+            dist.init_process_group(
+                backend=backend,
+                timeout=DIST_GROUP_DEFAULT_TIMEOUT,
+            )
+            # Initialize Megatron parallel states
+            # NOTE: we assume all MegatronEngine has the same parallel strategy.
+            vpp_size = self.parallel_strategy.virtual_pipeline_parallel_size
+            mpu.initialize_model_parallel(
+                tensor_model_parallel_size=self.parallel_strategy.tensor_parallel_size,
+                pipeline_model_parallel_size=self.parallel_strategy.pipeline_parallel_size,
+                virtual_pipeline_model_parallel_size=vpp_size if vpp_size > 1 else None,
+                use_sharp=False,
+                order="tp-cp-ep-dp-pp",
+                context_parallel_size=self.parallel_strategy.context_parallel_size,
+                expert_model_parallel_size=self.parallel_strategy.expert_parallel_size,
+                expert_tensor_parallel_size=self.parallel_strategy.expert_tensor_parallel_size,
+                distributed_timeout_minutes=int(
+                    DIST_GROUP_DEFAULT_TIMEOUT.seconds / 60
+                ),
+            )
+            # Set megatron model parallel seed
+            tensor_parallel.model_parallel_cuda_manual_seed(self.seed)
+            self.own_global_group = True
+        self.logger = logging.getLogger(f"[MegatronEngine Rank {dist.get_rank()}]")
+        self._context_and_model_parallel_group = None
+        self._cpu_model_parallel_group = None
+        self._init_context_and_model_parallel_group()
+        # This is needed for barrier synchronization when models are moved to CPU
+        self._cpu_group = dist.new_group(
+            timeout=DIST_GROUP_DEFAULT_TIMEOUT, backend="gloo"
+        )
+        self.process_group_initialized = True
+
+        # Eagerly initialize HCCL/NCCL communicators for the subgroups so
+        # that lazy init doesn't race with colocated engines (issue #1099).
+        warmup_process_groups(
+            self._context_and_model_parallel_group,
+            mpu.get_data_parallel_group(),
+        )
+
+    def _apply_megatron_bridge_lora(self) -> None:
+        assert self.model is not None, "Model must be initialized before applying LoRA."
+        assert self.bridge_cls == "megatron-bridge"
+
+        target_modules = list(self.config.target_modules or [])
+        if not target_modules or "all-linear" in target_modules:
+            # Expand all-linear to explicit Megatron-Bridge linear module targets.
+            target_modules = [
+                "linear_qkv",
+                "linear_proj",
+                "linear_fc1",
+                "linear_fc2",
+            ]
+        self.bridge_lora = MegatronBridgeLoRA(
+            target_modules=target_modules,
+            dim=self.config.lora_rank,
+            alpha=self.config.lora_alpha,
+            dropout=0.0,
+        )
+        self.model = _MegatronModelList(self.bridge_lora(self.model, training=True))
+        self.bridge_lora.set_params_to_save(self.model)
+
+        total_params = sum(param.numel() for param in self.model.parameters())
+        trainable_params = sum(
+            param.numel() for param in self.model.parameters() if param.requires_grad
+        )
+        self.logger.info(
+            "Applied Megatron Bridge LoRA: target_modules=%s, rank=%s, alpha=%s, trainable=%s/%s (%.4f%%)",
+            target_modules,
+            self.config.lora_rank,
+            self.config.lora_alpha,
+            trainable_params,
+            total_params,
+            100.0 * trainable_params / max(total_params, 1),
+        )
+
+    def initialize(self, addr: str | None, ft_spec: FinetuneSpec, *args, **kwargs):
+        try:
+            self.seed = get_seed()
+        except ValueError:
+            self.logger.warning("Seed not set, using default seed 42.")
+            self.seed = 42
+
+        assert addr is None, "FSDPEngine does not support remote initialization."
+
+        self._normalize_adam_bf16_config()
+
+        if is_tms_enabled():
+            torch_memory_saver.hook_mode = "preload"
+
+        current_platform.set_device(int(os.environ["LOCAL_RANK"]))
+        current_platform.set_numa_affinity(int(os.environ["LOCAL_RANK"]))
+        self.device = torch.device(int(os.environ["LOCAL_RANK"]))
+        self.rank = int(os.environ["RANK"])
+        self.world_size = int(os.environ["WORLD_SIZE"])
+        self.is_pp_head = (
+            mpu.get_data_parallel_rank(with_context_parallel=True) == 0
+            and mpu.get_tensor_model_parallel_rank() == 0
+        )
+        self.weight_update_group_name = (
+            f"update_weight_group_{mpu.get_pipeline_model_parallel_rank()}"
+        )
+        self.engine_lock = DistributedLock("train_engine_lock")
+
+        if self.config.use_lora and self.bridge_cls != "megatron-bridge":
+            raise NotImplementedError(
+                "MegatronEngine LoRA POC currently only supports bridge_type='megatron-bridge'. "
+                "mbridge does not support LoRA in this path."
+            )
+
+        self.tokenizer = load_hf_tokenizer(self.config.path)
+
+        with patch_bridge_for_tree_training(
+            self.enable_tree_training and self.bridge_cls == "mbridge"
+        ):
+            self.bridge = self._build_hf_mcore_bridge()
+
+            self.hf_config, self.tf_config = make_hf_and_mcore_config(
+                self.config.path,
+                dtype=self.dtype,
+                bridge=self.bridge,
+                bridge_type=self.bridge_cls,
+            )
+            self.tf_config = configure_pipeline_layer_splits(
+                self.parallel_strategy, self.hf_config, self.tf_config
+            )
+
+            # deterministic_mode must be engaged before the model is built:
+            # TP linear layers and TE modules copy config flags at __init__,
+            # so the post-build call below only reaches runtime consumers
+            # such as loss fusions.
+            if self.mcore_config.use_deterministic_algorithms:
+                set_deterministic_algorithms(self.tf_config, prebuild=True)
+
+            self.is_vision_model = is_valid_vision_model(self.hf_config.model_type)
+            self.sequence_packing_mode = resolve_sequence_packing_mode(
+                self.hf_config.model_type, self.bridge_cls
+            )
+            self.use_model_packed_seq = (
+                self.sequence_packing_mode == SequencePackingMode.MODEL_THD
+            )
+            # ``PADDED`` is the input-routing fallback for every VLM without a
+            # model-owned THD contract. ``use_padded_seq`` is narrower: it
+            # enables Qwen3.5/GDN-specific dense-mask and LM-head semantics.
+            self.use_padded_seq = requires_padded_seq(self.hf_config.model_type)
+            if self.is_vision_model:
+                if self.parallel_strategy.context_parallel_size > 1:
+                    raise NotImplementedError(
+                        "Context parallel (CP > 1) is not supported with VLM models. "
+                        f"Got context_parallel_size={self.parallel_strategy.context_parallel_size} "
+                        f"for model_type={self.hf_config.model_type}."
+                    )
+                self.processor, self.tokenizer = load_hf_processor_and_tokenizer(
+                    self.config.path
+                )
+                self.logger.info(
+                    f"VLM model detected (type={self.hf_config.model_type}). "
+                    f"Loaded processor and tokenizer."
+                )
+
+            if self.use_padded_seq and self.parallel_strategy.context_parallel_size > 1:
+                raise NotImplementedError(
+                    f"Context parallel (CP > 1) is not supported for "
+                    f"model_type={self.hf_config.model_type!r}, which requires the "
+                    "padded BSHD forward (it operates on [B, S] tensors while the "
+                    "CP path packs sequences). "
+                    f"Got context_parallel_size={self.parallel_strategy.context_parallel_size}."
+                )
+
+            self.quantization_config = getattr(
+                self.hf_config, "quantization_config", None
+            )
+
+            self._check_and_apply_fp8_config()
+            self._validate_fp8_consistency()
+
+            # Warn once if bridge-delegated weight sync was requested but a
+            # fallback condition forces the registry conversion path (the
+            # dispatch in _update_weights_from_distributed silently falls back).
+            if self.mcore_config.use_bridge_for_update_weights:
+                fallback_reasons = []
+                if self.bridge_cls != "megatron-bridge":
+                    fallback_reasons.append(f"bridge_type={self.bridge_cls!r}")
+                if self.quantization_config:
+                    fallback_reasons.append("FP8/quantized training")
+                if self.config.use_lora:
+                    fallback_reasons.append("LoRA enabled")
+                if fallback_reasons:
+                    self.logger.warning(
+                        "use_bridge_for_update_weights=True, but live weight sync "
+                        "will use the registry conversion path instead because: "
+                        f"{', '.join(fallback_reasons)}."
+                    )
+
+            with self.device:
+                models = make_mcore_model(
+                    hf_config=self.hf_config,
+                    tf_config=self.tf_config,
+                    mcore_config=self.mcore_config,
+                    bridge=self.bridge,
+                    bridge_type=self.bridge_cls,
+                    is_critic=self.config.is_critic,
+                    use_lora=self.config.use_lora,
+                )
+
+        self.model = _MegatronModelList(models)
+        _warn_if_areal_lm_head_entropy_is_nondifferentiable(
+            self.logger,
+            global_rank=self.rank,
+            is_critic=self.config.is_critic,
+            enable_chunked_logits=self.mcore_config.enable_chunked_logits,
+            entropy_requires_grad=self.mcore_config.entropy_requires_grad,
+        )
+
+        if self.config.use_lora:
+            self._apply_megatron_bridge_lora()
+
+        with self.device:
+            self._load_model_from_hf(self.config.path)
+
+        # NOTE: Clear high_precision_init_val for FP8 parameters.
+        #
+        # Background: When using distributed optimizer, Megatron uses
+        # high_precision_init_val to initialize optimizer's main parameters.
+        # TransformerEngine (TE) provides this via get_high_precision_init_val().
+        #
+        # Problem with publicly available HF FP8 models:
+        # - Megatron sets preserve_high_precision_init_val=True when loading FP8 models
+        # - This causes TE (transformer_engine/pytorch/module/base.py) to use the
+        #   init_method's random initialization as high_precision_init_val
+        # - But for pre-trained HF models, we load actual weights AFTER initialization,
+        #   so high_precision_init_val still holds the random init values, not the
+        #   loaded weights
+        #
+        # Solution: Clear high_precision_init_val here after loading HF weights.
+        # The optimizer will then use the actual FP8 weights (upcast to high precision)
+        # instead of stale random initialization values.
+        for model in self.model:
+            for _, param in model.named_parameters():
+                if hasattr(param, "get_high_precision_init_val"):
+                    param.clear_high_precision_init_val()
+                    delattr(param, "get_high_precision_init_val")
+                    delattr(param, "clear_high_precision_init_val")
+
+        assert self.model, "Megatron models failed to initialize."
+
+        self._glu_fc1_names: set[str] = self._build_glu_fc1_names()
+
+        modules = [m.module if isinstance(m, DDP) else m for m in self.model]
+        total_params = sum(
+            param.numel() for module in modules for param in module.parameters()
+        )
+        self.logger.info(
+            f"Model parameter count: {total_params / 1e6:.2f}M, pp_stage={mpu.get_pipeline_model_parallel_rank()}, vpp_chunks={len(self.model)}"
+        )
+
+        if self.config.disable_dropout:
+            for model in self.model:
+                disable_dropout_in_model(model)
+
+        primary_model = self.model[0]
+        model_config = get_model_config(primary_model)
+
+        # NOTE: It is recommended to set this option to True for RL training on MoE models for stability.
+        if self.mcore_config.use_deterministic_algorithms:
+            set_deterministic_algorithms(model_config)
+
+        # Set vp_stage for DDP models
+        for i, model_chunk in enumerate(self.model):
+            if (
+                isinstance(model_chunk, DDP)
+                and self.mcore_config.virtual_pipeline_parallel_size > 1
+            ):
+                vp_stage = getattr(model_chunk.module, "vp_stage", None)
+                self.logger.info(f"Setting vp_stage {vp_stage} for model chunk {i}.")
+                setattr(model_chunk, "vp_stage", vp_stage)
+
+        if self.mcore_config.ddp.overlap_grad_reduce and isinstance(primary_model, DDP):
+            model_config.no_sync_func = [
+                model_chunk.no_sync for model_chunk in self.model
+            ]
+            if len(self.model) == 1:
+                model_config.no_sync_func = model_config.no_sync_func[0]
+
+        if (
+            self.mcore_config.ddp.overlap_param_gather
+            and self.mcore_config.ddp.align_param_gather
+        ):
+            model_config.param_sync_func = [
+                model_chunk.start_param_sync for model_chunk in self.model
+            ]
+            if len(self.model) == 1:
+                model_config.param_sync_func = model_config.param_sync_func[0]
+        model_config.finalize_model_grads_func = finalize_model_grads
+        self._mark_duplicated_params()
+        self._create_optimizer(ft_spec)
+        self._set_optimizer_grad_scale_func()
+        self._initialized = True
+
+    def _set_optimizer_grad_scale_func(self) -> None:
+        """Use one optimizer loss scale for the main and auxiliary losses.
+
+        MCore seeds MTP and MoE auxiliary-loss gradients separately from the
+        main backward graph. Wiring the optimizer hook here ensures FP16
+        unscaling does not shrink those auxiliary gradients by the loss scale.
+        """
+        if self.optimizer is None:
+            return
+
+        grad_scale_func = self.optimizer.scale_loss
+        configured: set[int] = set()
+        for model_chunk in self.model:
+            model_config = get_model_config(model_chunk)
+            if id(model_config) in configured:
+                continue
+            model_config.grad_scale_func = grad_scale_func
+            configured.add(id(model_config))
+
+    def _build_glu_fc1_names(self) -> set[str]:
+        """Detect which `linear_fc1` parameters belong to GLU MLPs.
+
+        Compares weight shapes: if ``fc1.weight.shape[0] == 2 * fc2.weight.shape[1]``
+        at the TP-local level, the MLP is gated and fc1 needs stride-2 de-interleave
+        at TP>1. Shape-based detection is model-agnostic and doesn't rely on config
+        flags. Names are stored with layer indices and per-expert numeric suffixes
+        stripped so they match across PP ranks (`model.named_modules()` yields LOCAL
+        indices while `get_named_parameters` rewrites to GLOBAL via `layer_offset`)
+        and across TEGroupedLinear MoE expert weights (`weight0`, `weight1`, ...).
+        """
+        glu_fc1_names: set[str] = set()
+        for model in self.model:
+            for mod_name, module in model.named_modules():
+                fc1 = getattr(module, "linear_fc1", None)
+                fc2 = getattr(module, "linear_fc2", None)
+                if fc1 is None or fc2 is None:
+                    continue
+                # Pick a representative weight: standard linear has `.weight`;
+                # TEGroupedLinear has `weight0` per local expert (all experts
+                # share the same shape).
+                fc1_w = getattr(fc1, "weight", None)
+                if fc1_w is None:
+                    fc1_w = getattr(fc1, "weight0", None)
+                fc2_w = getattr(fc2, "weight", None)
+                if fc2_w is None:
+                    fc2_w = getattr(fc2, "weight0", None)
+                if fc1_w is None or fc2_w is None:
+                    continue
+                fc1_out = fc1_w.shape[0]
+                fc2_in = fc2_w.shape[1] if fc2_w.dim() >= 2 else fc2_w.shape[0]
+                if fc1_out != 2 * fc2_in:
+                    continue
+                # Iterate fc1's direct parameters (recurse=False) and pick
+                # `weight`/`bias` plus their grouped-MoE numbered variants.
+                for p_name, _ in fc1.named_parameters(recurse=False):
+                    base = p_name.rstrip("0123456789")
+                    if base not in ("weight", "bias"):
+                        continue
+                    full_name = (
+                        f"{mod_name}.linear_fc1.{p_name}"
+                        if mod_name
+                        else f"linear_fc1.{p_name}"
+                    )
+                    glu_fc1_names.add(_normalize_glu_param_name(full_name))
+        return glu_fc1_names
+
+    def _build_hf_mcore_bridge(self):
+        if self.bridge_cls == "mbridge":
+            hf_config = PretrainedConfig.from_pretrained(
+                self.config.path, trust_remote_code=True
+            )
+            architectures = getattr(hf_config, "architectures", None) or []
+            if "BailingMoeV3ForCausalLM" in architectures:
+                if self.mcore_config.enable_mtp:
+                    raise ValueError(
+                        "BailingMoeV3 mbridge does not support enable_mtp; "
+                        "the first open-source implementation intentionally "
+                        "drops the MTP head."
+                    )
+                if (self.mcore_config.virtual_pipeline_parallel_size or 1) > 1:
+                    raise ValueError(
+                        "BailingMoeV3 does not support virtual pipeline "
+                        "parallelism; set virtual_pipeline_parallel_size=1."
+                    )
+                # BailingMoeV3 flash checkpoints keep model_type="bailing_hybrid",
+                # which overlaps the v2.5 bridge registration. Dispatch by
+                # architecture so KDA + gated-MLA weights use the v3 bridge.
+                self.bridge = BailingV3Bridge(hf_config)
+            else:
+                self.bridge = mbridge.AutoBridge.from_pretrained(
+                    self.config.path, trust_remote_code=True
+                )
+            self.bridge.dtype = self.dtype
+            if self.config.gradient_checkpointing:
+                self.bridge.set_extra_args(
+                    recompute_granularity=self.mcore_config.recompute_granularity,
+                    recompute_method=self.mcore_config.recompute_method,
+                    recompute_num_layers=self.mcore_config.recompute_num_layers,
+                    distribute_saved_activations=self.mcore_config.distribute_saved_activations,
+                    recompute_modules=self.mcore_config.recompute_modules,
+                )
+
+            # Set MoE configuration overrides (aux-loss-free balancing, z-loss).
+            # mbridge extra_args override per-model bridge kwargs, so fields
+            # whose cli default may disagree with a bridge's deliberate
+            # default are forwarded only when explicitly configured
+            # (None = keep the bridge default).
+            moe_extra_args: dict = {
+                "moe_token_dispatcher_type": self.mcore_config.moe_token_dispatcher_type,
+                "moe_permute_fusion": self.mcore_config.moe_permute_fusion,
+                "moe_router_fusion": self.mcore_config.moe_router_fusion,
+            }
+            if self.mcore_config.moe_shared_expert_overlap is not None:
+                moe_extra_args["moe_shared_expert_overlap"] = (
+                    self.mcore_config.moe_shared_expert_overlap
+                )
+            if self.mcore_config.moe_router_bias_update_rate is not None:
+                moe_extra_args["moe_router_bias_update_rate"] = (
+                    self.mcore_config.moe_router_bias_update_rate
+                )
+            if self.mcore_config.moe_router_dtype is not None:
+                moe_extra_args["moe_router_dtype"] = self.mcore_config.moe_router_dtype
+            if self.mcore_config.moe_z_loss_coeff is not None:
+                moe_extra_args["moe_z_loss_coeff"] = self.mcore_config.moe_z_loss_coeff
+            if self.mcore_config.moe_enable_deepep:
+                moe_extra_args["moe_enable_deepep"] = True
+            # Filter out args not accepted by the target TransformerConfig class.
+            accepted = {
+                f.name for f in dataclasses.fields(self.bridge.TransformerConfigClass)
+            }
+            moe_extra_args = {k: v for k, v in moe_extra_args.items() if k in accepted}
+            self.bridge.set_extra_args(**moe_extra_args)
+
+            # AReaL handles FP32 output itself when its LM Head is enabled.
+            # Otherwise, preserve mbridge's native FP32 LM Head option.
+            precision_args = _mbridge_precision_args(
+                self.mcore_config.enable_chunked_logits,
+                self.mcore_config.enable_fp32_lm_head,
+                self.mcore_config.cross_entropy_loss_fusion,
+            )
+            if precision_args:
+                skipped_precision_args = [
+                    k for k in precision_args if k not in accepted
+                ]
+                precision_args = {
+                    k: v for k, v in precision_args.items() if k in accepted
+                }
+                if skipped_precision_args:
+                    self.logger.warning(
+                        "Some precision/loss args are not supported by this model "
+                        f"config ({self.bridge.TransformerConfigClass.__name__}); "
+                        f"skipping: {skipped_precision_args}"
+                    )
+                if precision_args:
+                    self.bridge.set_extra_args(**precision_args)
+
+            self.logger.info(
+                "Using mbridge to create models and hf model save/load in MegatronEngine."
+            )
+
+        elif self.bridge_cls == "megatron-bridge":
+            if self.enable_tree_training:
+                raise NotImplementedError(
+                    "Tree training is not supported with bridge_type='megatron-bridge'."
+                )
+            self.bridge = MegatronBridgeAutoBridge.from_hf_pretrained(
+                self.config.path,
+                trust_remote_code=True,
+                dtype=self.config.dtype,
+            )
+            self.logger.info(
+                "Using megatron-bridge to create models and hf model save/load in MegatronEngine."
+            )
+
+        else:
+            self.logger.info(
+                "Not using bridge to create models and hf model save/load in MegatronEngine."
+            )
+            self.bridge = None
+        return self.bridge
+
+    @property
+    def initialized(self) -> bool:
+        return self._initialized
+
+    @property
+    def data_parallel_rank(self) -> int:
+        assert self.process_group_initialized
+        return mpu.get_data_parallel_rank()
+
+    @property
+    def data_parallel_world_size(self) -> int:
+        assert self.process_group_initialized
+        return mpu.get_data_parallel_world_size()
+
+    @property
+    def data_parallel_group(self) -> dist.ProcessGroup:
+        assert self.process_group_initialized
+        return mpu.get_data_parallel_group()
+
+    def current_data_parallel_head(self) -> int:
+        """Get the rank of the head of the current data parallel group."""
+        assert self.process_group_initialized
+        ranks = dist.get_process_group_ranks(self.context_and_model_parallel_group)
+        return ranks[0]
+
+    def is_data_parallel_head(self) -> bool:
+        assert self.process_group_initialized
+        ranks = dist.get_process_group_ranks(self.context_and_model_parallel_group)
+        return ranks[0] == self.rank
+
+    @property
+    def pipeline_parallel_rank(self) -> int:
+        assert self.process_group_initialized
+        return mpu.get_pipeline_model_parallel_rank()
+
+    def is_pipeline_parallel_head(self) -> bool:
+        assert self.process_group_initialized
+        return self.is_pp_head
+
+    @property
+    def context_and_model_parallel_group(self) -> dist.ProcessGroup:
+        assert self.process_group_initialized
+        return self._context_and_model_parallel_group
+
+    @property
+    def cpu_model_parallel_group(self) -> dist.ProcessGroup:
+        assert self.process_group_initialized
+        return self._cpu_model_parallel_group
+
+    @property
+    def cpu_group(self) -> dist.ProcessGroup:
+        assert self.process_group_initialized
+        return self._cpu_group
+
+    def destroy(self):
+        self._initialized = False
+        self.process_group_initialized = False
+        # Drain any pending async checkpoint saves before tearing down process
+        # groups; the background save workers issue collectives during finalize.
+        if getattr(self, "checkpointer", None) is not None:
+            self.checkpointer.close()
+        if hasattr(self, "optimizer"):
+            del self.optimizer
+        if hasattr(self, "model"):
+            self.model = None
+        gc.collect()
+        current_platform.empty_cache()
+        gc.collect()
+        # NOTE: if `own_global_group` is true, we assume that
+        # no communications are needed after `destroy`, so we
+        # directly destroy all groups. Otherwise, process group
+        # handles still exist and we expect another engine to
+        # clean up these groups.
+        if dist.is_initialized() and self.own_global_group:
+            # Pre-destroy synchronization on a CPU (gloo) group so that all
+            # ranks leave the NCCL collective phase together. Without this
+            # barrier, rank-0 (which owns the TCPStore server) may exit
+            # before peers finish their final NCCL abort, causing
+            # HeartbeatMonitor background threads on other ranks to observe
+            # "recvValue failed" on the already-closed store.
+            if getattr(self, "_cpu_group", None) is not None:
+                try:
+                    dist.barrier(group=self._cpu_group)
+                except Exception as e:  # pragma: no cover - best-effort
+                    self.logger.warning(
+                        f"pre-destroy CPU barrier failed (ignored): {e}"
+                    )
+            mpu.destroy_model_parallel()
+            dist.destroy_process_group()
+            self.own_global_group = False
+
+    def train(self, mode: bool = True):
+        assert self.model is not None
+        for model in self.model:
+            model.train(mode=mode)
+        return self
+
+    def connect_engine(self, engine: InferenceEngine, meta: WeightUpdateMeta):
+        if self.rollout_engine is not None and self.rollout_engine != engine:
+            self.logger.warning(
+                f"Connected rollout engine changed from {self.rollout_engine} to {engine}."
+            )
+        self.rollout_engine = engine
+        self.rollout_coordinator = DistRolloutCoordinator(
+            rollout_engine=engine, train_engine=self
+        )
+
+        if meta.type == "xccl" and not self.weight_update_group_initialized:
+            self._init_weight_update_from_distributed(meta)
+            self.weight_update_group_initialized = True
+        elif meta.type == "awex":
+            publisher = self._ensure_awex_publisher()
+            publisher.init_colocate_weight_update(
+                meta_server_addr=meta.nccl_master_address,
+                pair_name=meta.nccl_group_name or "default",
+                transfer_rank=self.rank or 0,
+            )
+            self.logger.info("Initialized AWEX colocate adapter")
+
+        current_platform.synchronize()
+        dist.barrier(group=self.cpu_group)
+
+    def rollout_batch(
+        self,
+        data: list[dict[str, Any]],
+        workflow: WorkflowLike,
+        workflow_kwargs: dict[str, Any] | None = None,
+        group_size: int = 1,
+        reward_normalization: bool = False,
+        drop_incomplete_group: bool = False,
+        min_usable_group_size: int = 1,
+    ) -> list[dict[str, Any]]:
+        self._check_rollout_engine_connected()
+        return self.rollout_coordinator.rollout_batch(
+            data,
+            workflow=workflow,
+            workflow_kwargs=workflow_kwargs,
+            group_size=group_size,
+            min_usable_group_size=min_usable_group_size,
+            reward_normalization=reward_normalization,
+            drop_incomplete_group=drop_incomplete_group,
+        )
+
+    def prepare_batch(
+        self,
+        dataloader: StatefulDataLoader,
+        workflow: WorkflowLike,
+        workflow_kwargs: dict[str, Any] | None = None,
+        should_accept_fn: Callable[[dict[str, Any]], bool] | str | None = None,
+        group_size: int = 1,
+        dynamic_bs: bool = False,
+        reward_normalization: bool = False,
+        drop_incomplete_group: bool = False,
+        min_usable_group_size: int = 1,
+    ) -> list[dict[str, Any]]:
+        self._check_rollout_engine_connected()
+        return self.rollout_coordinator.prepare_batch(
+            dataloader,
+            workflow=workflow,
+            workflow_kwargs=workflow_kwargs,
+            should_accept_fn=should_accept_fn,
+            group_size=group_size,
+            min_usable_group_size=min_usable_group_size,
+            dynamic_bs=dynamic_bs,
+            reward_normalization=reward_normalization,
+            drop_incomplete_group=drop_incomplete_group,
+        )
+
+    def update_weights(self, meta: WeightUpdateMeta):
+        self._check_rollout_engine_connected()
+        if meta.type == "awex":
+            # Colocate mode flow (mirrors the AWEX reference integration):
+            # 1. execute_colocate_weight_update: release grad → convert → offload
+            #    weights → signal offloaded → IPC serialize → wait reader done →
+            #    cleanup shared → signal write_finished
+            # 2. finish: wait all infer engines done → cleanup MetaServer keys
+            # Restoring the rollout must happen in the controller after every
+            # actor worker returns. Calling back into the rollout from this RPC
+            # creates a nested controller/rollout call while the actor collective
+            # is still active and deadlocks at the final barrier.
+            if self._awex_publisher is None:
+                raise RuntimeError(
+                    "AWEX weight update requested before publisher initialization"
+                )
+            self._awex_publisher.execute_colocate_weight_update(meta.version or 0)
+            # Do NOT flip is_offload here: residency tracks released memory,
+            # and the trainer onloads explicitly
+            # at the next train phase. Marking is_offload would make every
+            # _offload_aware_context RPC (e.g. export_stats) reload optimizer
+            # states onto a GPU already fully occupied by the resumed rollout.
+
+            dist.barrier(group=self.cpu_group)
+
+            self._awex_publisher.finish_colocate_weight_update(
+                training_world_size=dist.get_world_size(self.cpu_group)
+            )
+
+            dist.barrier(group=self.cpu_group)
+            return
+        with self._offload_aware_context():
+            if meta.type == "xccl":
+                assert self.weight_update_group_initialized
+                self._update_weights_from_distributed(meta)
+            elif meta.type == "disk":
+                self._update_weights_from_disk(meta)
+            else:
+                raise ValueError(f"Unknown weight update type {meta.type}")
+
+    def set_version(self, version: int):
+        self._version = version
+
+    def get_version(self) -> int:
+        return self._version
+
+    def save(self, meta: SaveLoadMeta):
+        if self._weight_residency is not None:
+            # Post-ppo_update the fp32 grad buffers (~2x param bytes) are
+            # dead weight until the next train_batch (which rebuilds them via
+            # ensure_grad_buffers); drop them here to fund the HF saver's TP
+            # coalesced all-gather transient.
+            self._weight_residency.release_grad_memory()
+            gc.collect()
+            torch.cuda.empty_cache()
+        with self._offload_aware_context():
+            if meta.weight_format == "hf":
+                if meta.with_optim:
+                    raise ValueError(
+                        "HF format does not support optimizer state saving, please use DCP format instead."
+                    )
+                # HF export all-gathers full tensors across TP; reclaim allocator
+                # headroom first. Kept out of the dcp/recover path, which is
+                # frequency-driven and should not pay a full-heap GC per save.
+                gc.collect()
+                current_platform.empty_cache()
+                self._save_model_to_hf(
+                    meta.path,
+                    tokenizer=meta.tokenizer,
+                    processor=meta.processor,
+                    base_model_path=meta.base_model_path,
+                )
+            elif meta.weight_format == "dcp":
+                if self.checkpointer is None:
+                    raise NotImplementedError(
+                        "DCP checkpoint save is not available for this Megatron configuration "
+                        "(e.g., LoRA path without distributed optimizer support). "
+                        "Please use weight_format='hf' for adapter/full-model export."
+                    )
+                pointer_fields = (
+                    meta.checkpoint_pointer_path,
+                    meta.checkpoint_pointer_value,
+                )
+                if (pointer_fields[0] is None) != (pointer_fields[1] is None):
+                    raise ValueError(
+                        "checkpoint_pointer_path and checkpoint_pointer_value "
+                        "must be provided together"
+                    )
+                finalize_fn = None
+                if meta.checkpoint_pointer_path is not None:
+                    from areal.utils.checkpoint_pointer import (
+                        LATEST_FILENAME,
+                        publish_latest,
+                    )
+
+                    if (
+                        os.path.basename(meta.checkpoint_pointer_path)
+                        != LATEST_FILENAME
+                    ):
+                        raise ValueError(
+                            "checkpoint_pointer_path must name the recovery "
+                            f"pointer {LATEST_FILENAME!r}"
+                        )
+                    finalize_fn = functools.partial(
+                        publish_latest,
+                        os.path.dirname(meta.checkpoint_pointer_path),
+                        meta.checkpoint_pointer_value,
+                    )
+                save_kwargs: dict[str, Any] = {"with_optimizer": meta.with_optim}
+                if finalize_fn is not None:
+                    save_kwargs["finalize_fn"] = finalize_fn
+                self.checkpointer.save_checkpoint(meta.path, **save_kwargs)
+                if meta.wait_for_async_save:
+                    self.checkpointer.wait_async_saves()
+            else:
+                raise ValueError(f"Unknown weight format {meta.weight_format}. ")
+
+    def load(self, meta: SaveLoadMeta):
+        with self._offload_aware_context():
+            if meta.weight_format == "hf":
+                if meta.with_optim:
+                    raise ValueError(
+                        "HF format does not support optimizer state loading, please use DCP format instead."
+                    )
+                self._load_model_from_hf(meta.path)
+            elif meta.weight_format == "dcp":
+                if self.checkpointer is None:
+                    raise NotImplementedError(
+                        "DCP checkpoint load is not available for this Megatron configuration "
+                        "(e.g., LoRA path without distributed optimizer support). "
+                        "Please use weight_format='hf' for adapter/full-model load."
+                    )
+                self.checkpointer.load_checkpoint(
+                    meta.path, with_optimizer=meta.with_optim
+                )
+            else:
+                raise ValueError(f"Unknown weight format {meta.weight_format}. ")
+
+    @contextmanager
+    def _offload_aware_context(self):
+        """Temporarily onload parameters for offload-unsafe operations.
+
+        Reentrant: nested calls increment depth; only the outermost
+        call performs actual onload/offload transitions.
+        """
+        if not self.is_offload:
+            yield
+            return
+
+        self._offload_depth += 1
+        if self._offload_depth == 1:
+            self.onload()
+        try:
+            yield
+        finally:
+            self._offload_depth -= 1
+            if self._offload_depth == 0:
+                self.offload()
+
+    def optimizer_zero_grad(self):
+        assert self.optimizer is not None, "Optimizer is not initialized."
+        self.optimizer.zero_grad()
+        for model in self.model:
+            model.zero_grad_buffer()
+
+    def optimizer_step(self):
+        if self._dte_runtime_config.enabled:
+            # The LR scheduler advances before the subsequent weight update.
+            # Preserve the LR consumed by this optimizer step for AdamW
+            # inversion instead of reading the next-step LR later.
+            for param_group in self.optimizer.param_groups:
+                param_group["_areal_last_step_lr"] = float(param_group["lr"])
+        with trace_scope("megatron_engine.step"):
+            update_successful, grad_norm, _ = self.optimizer.step()
+        current_lr = self.optimizer.param_groups[0]["lr"]
+
+        return dict(
+            update_successful=float(update_successful),
+            grad_norm=float(grad_norm) if grad_norm is not None else float("nan"),
+            lr=current_lr,
+        )
+
+    def lr_scheduler_step(self):
+        assert self.lr_scheduler is not None, "LR Scheduler is not initialized."
+        self.lr_scheduler.step(1)
+
+    def forward_backward_batch(
+        self,
+        mb_list: MicroBatchList,
+        process_output_fn: Callable[
+            [torch.Tensor | ChunkedLMHeadOutput, dict[str, Any]],
+            torch.Tensor | None,
+        ],
+        forward_only: bool = False,
+        gather_cp_output: bool = False,
+    ) -> None:
+        self._ensure_ready()
+        validate_transport_padding(
+            mb_list,
+            has_internal_objectives=bool(self.tf_config.num_moe_experts)
+            or self.mcore_config.enable_mtp_training,
+            cpu_group=self.cpu_group,
+        )
+
+        def forward_step(batch_iter, model):
+            source_mb: MicroBatchItem = next(batch_iter)
+            # Keep MicroBatchList CPU-only. The returned accelerator dictionaries
+            # are owned solely by this forward step and cannot accumulate in the
+            # source list as the schedule consumes more microbatches.
+            mb_input = (
+                prepare_vision_microbatch(source_mb)
+                if self.is_vision_model
+                and not self.enable_tree_training
+                and has_multi_modal_tensors(source_mb.padded_mb)
+                else source_mb
+            ).to(
+                self.device,
+                non_blocking=True,
+            )
+
+            cu_seqlens = mb_input.padded_mb.get("cu_seqlens", None)
+
+            # Lazily create tree attention metadata just before forward.
+            # dense_mask=True because Megatron's gradient checkpointing uses
+            # save_for_backward() which can only save torch.Tensor objects;
+            # BlockMask is recreated inside PytorchFlexAttention.forward().
+            tree_attn_keys: list[str] = []
+            if self.enable_tree_training:
+                trie_node = mb_input.padded_mb.get("trie_node", None)
+                # Ensure trie_node is also in orig_mb for _compute_logprobs_and_loss
+                if trie_node is not None and "trie_node" not in mb_input.orig_mb:
+                    mb_input.orig_mb["trie_node"] = trie_node
+                padded_size = mb_input.padded_to_length
+                if trie_node is not None:
+                    assert padded_size is not None
+                    tree_kwargs = build_tree_attn_kwargs(
+                        trie_node,
+                        padded_size,
+                        mb_input.padded_mb["input_ids"].device,
+                        dense_mask=True,
+                    )
+                    mb_input.padded_mb.update(tree_kwargs)
+                    tree_attn_keys = list(tree_kwargs.keys())
+
+            cp_size = mpu.get_context_parallel_world_size()
+            # CP-local forward keeps the vocabulary logits sharded by sequence.
+            # Consumers reconstruct token scalars only; gathering logits here
+            # creates the full-vocabulary CP memory spike MOPD must avoid.
+            cp_local = cp_size > 1 and not gather_cp_output
+
+            model_vp_stage = getattr(model, "vp_stage", 0)
+            is_pipeline_last_stage = mpu.is_pipeline_last_stage(
+                ignore_virtual=False, vp_stage=model_vp_stage
+            )
+            use_chunked_lm_head = (
+                self.mcore_config.lm_head_loss_chunk_size > 0
+                and self.mcore_config.enable_chunked_logits
+                and not self.config.is_critic
+                and not self.enable_tree_training
+                and is_pipeline_last_stage
+            )
+            has_vision_inputs = any(
+                _is_multi_modal_payload_key(key) for key in mb_input.padded_mb
+            )
+            if use_chunked_lm_head and (
+                has_vision_inputs or (self.is_vision_model and not self.use_padded_seq)
+            ):
+                raise NotImplementedError(
+                    "chunked LM Head loss does not support vision inputs; padded "
+                    "BSHD is supported only for text-only models such as Qwen3.5"
+                )
+
+            # MTP training: feed the MTP head independent label and mask
+            # channels so the main forward keeps labels=None and returns
+            # logits. packed_context_parallel_forward converts both tensors to
+            # the model's actual THD or BSHD layout before forwarding them.
+            # This is intentionally enabled by the training config rather than
+            # gated by the model family: Qwen3.5 is registered as vision-capable
+            # but its text-only and multimodal batches use the same padded MTP
+            # label path. The token loss mask excludes prompt/image tokens;
+            # synchronized rolling additionally removes unavailable future-token
+            # targets at sequence and padding boundaries. For packed CP, the
+            # forward wrapper applies the same zigzag split to these channels as
+            # input_ids before MCore performs its CP-aware target rolling.
+            if not forward_only and self.mcore_config.enable_mtp_training:
+                mtp_loss_mask = mb_input.padded_mb.get("loss_mask")
+                if mtp_loss_mask is None:
+                    raise ValueError(
+                        "MTP training requires a token-aligned loss_mask so prompt, "
+                        "multimodal, padding, and sequence-boundary positions are "
+                        "not used as MTP supervision."
+                    )
+                mtp_labels = mb_input.padded_mb["input_ids"]
+                if mtp_loss_mask.shape != mtp_labels.shape:
+                    raise ValueError(
+                        "MTP training requires loss_mask to match input_ids before "
+                        f"layout conversion, got {mtp_loss_mask.shape} and "
+                        f"{mtp_labels.shape}."
+                    )
+                mb_input.padded_mb["mtp_kwargs"] = {
+                    "mtp_labels": mtp_labels,
+                    "mtp_loss_mask": mtp_loss_mask,
+                }
+
+            output = packed_context_parallel_forward(
+                model,
+                mb_input.padded_mb,
+                gather_cp_output=not cp_local,
+                is_vision_model=self.is_vision_model,
+                use_padded_seq=self.use_padded_seq,
+                use_model_packed_seq=self.use_model_packed_seq,
+                fp32_output=_float16_wrapper_fp32_output(
+                    self.mcore_config.enable_chunked_logits,
+                    self.dtype,
+                ),
+                return_hidden_states=use_chunked_lm_head,
+            )
+
+            if use_chunked_lm_head:
+                padded_lm_head = self.use_padded_seq and cu_seqlens is not None
+                if padded_lm_head:
+                    labels = _padded_lm_head_labels(
+                        mb_input.padded_mb["input_ids"],
+                        cu_seqlens,
+                        mb_input.padded_mb["max_seqlen"],
+                    )
+                else:
+                    rolled_ids = torch.roll(
+                        mb_input.padded_mb["input_ids"], shifts=-1, dims=-1
+                    )
+                if not padded_lm_head and cp_size > 1 and cu_seqlens is not None:
+                    labels = split_packed_seqs_for_context_parallel(
+                        rolled_ids, mb_input.padded_mb["cu_seqlens"]
+                    )
+                elif not padded_lm_head and rolled_ids.ndim == 2:
+                    labels = rolled_ids.transpose(0, 1).contiguous()
+                elif not padded_lm_head:
+                    labels = rolled_ids
+
+                gpt_model = unwrap_to_gpt_model(model)
+                output_layer = gpt_model.output_layer
+                if gpt_model.share_embeddings_and_output_weights:
+                    output_weight = gpt_model.shared_embedding_or_output_weight()
+                else:
+                    output_weight = output_layer.weight
+                logit_scale = (
+                    gpt_model.config.mup_output_mult
+                    if gpt_model.config.use_mup
+                    else 1.0
+                )
+                output = chunked_lm_head_logprobs_entropy(
+                    output_layer,
+                    output,
+                    output_weight,
+                    labels,
+                    temperature=self.config.temperature,
+                    chunk_size=self.mcore_config.lm_head_loss_chunk_size,
+                    logit_scale=logit_scale,
+                )
+
+                if padded_lm_head:
+                    output = _map_chunked_lm_head_output(
+                        output,
+                        lambda tensor: _repack_padded_lm_head_output(
+                            tensor,
+                            cu_seqlens,
+                            mb_input.padded_mb["max_seqlen"],
+                        ),
+                    )
+                if cp_size > 1 and cu_seqlens is not None and not cp_local:
+                    padded_cu_seqlens = mb_input.padded_mb["cu_seqlens"]
+                    output = _map_chunked_lm_head_output(
+                        output,
+                        lambda tensor: reassemble_cp_packed_logprobs(
+                            tensor, padded_cu_seqlens
+                        ),
+                    )
+                if not cp_local:
+                    output = _map_chunked_lm_head_output(
+                        output,
+                        lambda tensor: unpad_logits(
+                            tensor,
+                            padding_length=mb_input.padding_length,
+                            cu_seqlens=cu_seqlens,
+                            old_cu_seqlens=mb_input.old_cu_seqlens,
+                        ),
+                    )
+
+            # Release MTP label channel after forward pass
+            mb_input.padded_mb.pop("mtp_kwargs", None)
+
+            # Release tree attention metadata after forward pass
+            for key in tree_attn_keys:
+                del mb_input.padded_mb[key]
+
+            def _process_output(input_, output_):
+                loss = process_output_fn(output_, input_)
+                if loss is None:
+                    device = (
+                        output_.logprobs.device
+                        if isinstance(output_, ChunkedLMHeadOutput)
+                        else output_.device
+                    )
+                    loss = torch.tensor(1.0, device=device)
+                return loss, {}
+
+            if is_pipeline_last_stage:
+                if use_chunked_lm_head:
+                    if cp_local and cu_seqlens is not None:
+                        cp_inputs = dict(mb_input.orig_mb)
+                        cp_inputs["_cp_padded_cu_seqlens"] = mb_input.padded_mb[
+                            "cu_seqlens"
+                        ]
+                        cp_inputs["_cp_padding_length"] = mb_input.padding_length
+                        cp_inputs["_cp_old_cu_seqlens"] = mb_input.old_cu_seqlens
+                        return output, functools.partial(_process_output, cp_inputs)
+                    return output, functools.partial(_process_output, mb_input.orig_mb)
+                if cp_local and cu_seqlens is not None:
+                    padded_cu_seqlens = mb_input.padded_mb["cu_seqlens"]
+                    rolled_ids = torch.roll(
+                        mb_input.padded_mb["input_ids"], shifts=-1, dims=-1
+                    )
+                    cp_labels = split_packed_seqs_for_context_parallel(
+                        rolled_ids, padded_cu_seqlens
+                    )
+                    cp_inputs = dict(mb_input.orig_mb)
+                    cp_inputs["_cp_local_labels"] = cp_labels
+                    cp_inputs["_cp_padded_cu_seqlens"] = padded_cu_seqlens
+                    cp_inputs["_cp_padding_length"] = mb_input.padding_length
+                    cp_inputs["_cp_old_cu_seqlens"] = mb_input.old_cu_seqlens
+                    return output, functools.partial(_process_output, cp_inputs)
+                else:
+                    output = unpad_logits(
+                        output,
+                        padding_length=mb_input.padding_length,
+                        cu_seqlens=cu_seqlens,
+                        old_cu_seqlens=mb_input.old_cu_seqlens,
+                    )
+            return output, functools.partial(_process_output, mb_input.orig_mb)
+
+        forward_backward_func = get_forward_backward_func()
+        with trace_scope("megatron_engine.forward_backward"):
+            if len(self.model) > 1:
+                data_iterator = [iter(mb_list) for _ in range(len(self.model))]
+            else:
+                data_iterator = iter(mb_list)
+            forward_backward_func(
+                forward_step_func=forward_step,
+                data_iterator=data_iterator,
+                model=self.model if len(self.model) > 1 else self.model[0],
+                num_microbatches=len(mb_list),
+                seq_length=mb_list.max_seqlen,  # no use when input_shapes was set
+                micro_batch_size=1,  # no use when input_shapes was set
+                forward_only=forward_only,
+            )
+
+    def train_batch(
+        self,
+        input_: list[dict[str, Any]] | dict[str, Any],
+        loss_fn: Callable[..., torch.Tensor],
+        loss_weight_fn: Callable[[dict[str, Any]], torch.Tensor],
+    ) -> dict[str, float]:
+        self._ensure_ready()
+        if self._weight_residency is not None:
+            self._weight_residency.ensure_grad_buffers()
+        self.optimizer_zero_grad()
+
+        input_batched, _ = self._normalize_batch_input(input_)
+
+        # Step 1: Prepare micro-batches
+        mb_list = self._prepare_mb_list(
+            tensor_container_to(input_batched, "cpu"), allow_transport_padding=True
+        )
+
+        # Step 2: Compute total loss weight.
+        # Use DP+CP group: after CP all-gather each rank computes the full-sequence
+        # loss, so all_gather's backward (reduce_scatter) sums cp_size identical
+        # gradients, amplifying by cp_size. Including CP in the weight all-reduce
+        # introduces a matching cp_size factor in the denominator, cancelling out.
+        total_loss_weight = compute_total_loss_weight(
+            mb_list,
+            loss_weight_fn,
+            mpu.get_data_parallel_group(with_context_parallel=True),
+            device=self.device,
+        )
+
+        # Step 3: Forward-backward using Megatron's pipeline function.
+        # `len(mb_list)` compensates Megatron Core's `output_tensor /= num_microbatches`
+        # applied in the 2-tuple `(loss, {})` branch of
+        # `megatron.core.pipeline_parallel.schedules._forward_step_helper`. Our
+        # per-microbatch loss is already globally normalized via `w_i / W_total`, so
+        # that extra division would shrink every gradient (and thus grad_norm and the
+        # effective optimizer step) by `num_microbatches`. MCore applies the dynamic
+        # FP16 loss scale through `model_config.grad_scale_func` to both the main loss
+        # and auxiliary losses such as MTP and MoE.
+        loss_multiplier = mpu.get_data_parallel_world_size() * len(mb_list)
+
+        def process_output(
+            output: torch.Tensor, inputs: dict[str, Any]
+        ) -> torch.Tensor:
+            return self._compute_logprobs_and_loss(
+                output,
+                inputs,
+                loss_fn,
+                loss_weight_fn,
+                total_loss_weight,
+                loss_multiplier=loss_multiplier,
+            )
+
+        self.forward_backward_batch(
+            mb_list,
+            process_output,
+            forward_only=False,
+        )
+
+        # Step 4: Optimizer step
+        stats = self.optimizer_step()
+        stats["num_micro_batches"] = len(mb_list.mbs)
+
+        # Step 5: Surface the auxiliary MTP loss for logging (if enabled).
+        mtp_loss = self._collect_mtp_loss(len(mb_list.mbs))
+        if mtp_loss is not None:
+            stats["mtp_loss"] = mtp_loss
+        return stats
+
+    def _collect_mtp_loss(self, num_microbatches: int) -> float | None:
+        """Reduce and return the per-microbatch Multi-Token-Prediction loss.
+
+        Megatron-Core's ``process_mtp_loss`` accumulates the (detached) per-layer
+        MTP loss across micro-batches into ``MTPLossLoggingHelper.tracker`` and
+        records the reduce/avg groups. The tracker only holds ``values`` on the
+        last pipeline stage (where the MTP loss is computed); other stages skip
+        the reduction. The reduce step's collectives stay matched because the
+        avg_group (data-parallel + context-parallel) is contained within a single
+        pipeline stage. Returns ``None`` on ranks without an MTP loss value.
+        """
+        if not self.mcore_config.enable_mtp_training:
+            return None
+
+        from megatron.core.transformer.multi_token_prediction import (
+            MTPLossLoggingHelper,
+        )
+
+        tracker = MTPLossLoggingHelper.tracker
+        if "values" not in tracker:
+            return None
+
+        MTPLossLoggingHelper.reduce_loss_in_tracker()
+        # `values` is summed over micro-batches; normalize to a per-microbatch loss.
+        mtp_loss = tracker["values"].sum().item() / max(num_microbatches, 1)
+        MTPLossLoggingHelper.clean_loss_in_tracker()
+        return mtp_loss
+
+    @torch.no_grad()
+    def eval_batch(
+        self,
+        input_: list[dict[str, Any]] | dict[str, Any],
+        loss_fn: Callable[..., torch.Tensor],
+        loss_weight_fn: Callable[[dict[str, Any]], torch.Tensor],
+    ) -> torch.Tensor | None:
+        self._ensure_ready()
+
+        input_batched, _ = self._normalize_batch_input(input_)
+
+        # Step 1: Prepare micro-batches
+        mb_list = self._prepare_mb_list(
+            tensor_container_to(input_batched, "cpu"), allow_transport_padding=True
+        )
+
+        # Step 2: Compute total loss weight (DP+CP, see train_batch comment).
+        total_loss_weight = compute_total_loss_weight(
+            mb_list,
+            loss_weight_fn,
+            mpu.get_data_parallel_group(with_context_parallel=True),
+            device=self.device,
+        )
+
+        # Step 3: Forward using Megatron's pipeline function, collecting losses
+        losses: list[torch.Tensor] = []
+
+        def process_output(
+            output: torch.Tensor, inputs: dict[str, Any]
+        ) -> torch.Tensor:
+            loss = self._compute_logprobs_and_loss(
+                output, inputs, loss_fn, loss_weight_fn, total_loss_weight
+            )
+            losses.append(loss.detach())
+            return loss
+
+        self.forward_backward_batch(mb_list, process_output, forward_only=True)
+
+        # Step 4: Aggregate losses
+        if mpu.is_pipeline_last_stage():
+            return aggregate_eval_losses(
+                losses, mpu.get_data_parallel_group(with_context_parallel=True)
+            )
+        return None
+
+    @torch.no_grad()
+    def forward_batch(
+        self,
+        input_: list[dict[str, Any]] | dict[str, Any],
+        output_seqlens: list[int] | None = None,
+        aggregate_fn: Callable[[list[torch.Tensor]], torch.Tensor] = torch.cat,
+    ) -> torch.Tensor | list[torch.Tensor]:
+        self._ensure_ready()
+
+        input_batched, meta = self._normalize_batch_input(input_)
+
+        # Step 1: Prepare sequence lengths
+        if meta is not None:
+            assert isinstance(input_, list)
+            inferred_seqlens = [d["attention_mask"].shape[-1] for d in input_]
+            if output_seqlens is not None and output_seqlens != inferred_seqlens:
+                raise ValueError(
+                    f"output_seqlens mismatch for list input: "
+                    f"given {output_seqlens}, "
+                    f"inferred {inferred_seqlens} from attention_mask shapes."
+                )
+            output_seqlens = inferred_seqlens
+        if output_seqlens is None:
+            output_seqlens = (
+                input_batched["attention_mask"]
+                .sum(dim=1, dtype=torch.int64)
+                .cpu()
+                .tolist()
+            )
+        assert output_seqlens is not None
+        batch_size = len(output_seqlens)
+
+        # Step 2: Prepare micro-batches
+        mb_list = self._prepare_mb_list(
+            tensor_container_to(input_batched, "cpu"), allow_transport_padding=True
+        )
+
+        # Step 3: Forward using Megatron's pipeline function, collecting results
+        outputs: list[torch.Tensor] = []
+
+        def process_output(output: torch.Tensor, inputs: dict[str, Any]) -> None:
+            result = self._compute_forward_result(output, inputs)
+            outputs.append(result)
+            return None
+
+        self.forward_backward_batch(
+            mb_list, process_output, forward_only=True, gather_cp_output=False
+        )
+
+        # Step 4: Aggregate, reorder, and broadcast outputs
+        res = None
+        if mpu.is_pipeline_last_stage():
+            if self.enable_tree_training:
+                res = merge_packed_tree_results(outputs, batch_size)
+            else:
+                res = reorder_and_pad_outputs(
+                    outputs, output_seqlens, mb_list, aggregate_fn
+                )
+        res = broadcast_tensor(
+            res,
+            src_rank=mpu.get_pipeline_model_parallel_last_rank(),
+            group=mpu.get_pipeline_model_parallel_group(),
+        )
+        if meta is None:
+            return res
+        return split_batch(res, meta)
+
+    def export_stats(self) -> dict[str, float]:
+        key_sync_group = None
+        if self.parallel_strategy.context_parallel_size > 1:
+            key_sync_group = mpu.get_data_parallel_group(with_context_parallel=True)
+        with self._offload_aware_context():
+            data = stats_tracker.export_all(
+                reduce_group=self.data_parallel_group,
+                key_sync_group=key_sync_group,
+            )
+        if mpu.get_pipeline_model_parallel_world_size() > 1:
+            # Some log info only exist in last pipeline rank
+            data_list = [data]
+            dist.broadcast_object_list(
+                data_list,
+                src=mpu.get_pipeline_model_parallel_last_rank(),
+                group=mpu.get_pipeline_model_parallel_group(),
+            )
+            data.update(data_list[0])
+        return data
+
+    def init_awex_adapter(self, meta_server_addr: str | None = None) -> None:
+        """Create the AWEX publisher early for colocated weight transfer.
+
+        Must be called before offload() in colocate mode so that offload uses
+        flat-buffer residency instead of TMS, which is all-or-nothing and can
+        OOM when SGLang already occupies the GPU.
+        """
+        publisher = self._ensure_awex_publisher()
+        publisher.eager_publish_train_info(meta_server_addr)
+
+    def _ensure_weight_residency(self) -> MegatronWeightResidency:
+        if self._weight_residency is None:
+            from areal.engine.megatron_utils.weight_residency import (
+                MegatronWeightResidency,
+            )
+
+            self._weight_residency = MegatronWeightResidency(self)
+            self.logger.info("Created Megatron weight residency manager")
+        return self._weight_residency
+
+    def _ensure_awex_publisher(self) -> AwexWeightPublisher:
+        residency = self._ensure_weight_residency()
+        if self._awex_publisher is None:
+            from areal.engine.awex.colocate_writer import AwexWeightPublisher
+
+            self._awex_publisher = AwexWeightPublisher(self, residency)
+            self.logger.info("Created AWEX weight publisher")
+        elif self._awex_publisher.residency is not residency:
+            raise RuntimeError("AWEX publisher does not own the engine residency")
+        return self._awex_publisher
+
+    def init_weight_residency_adapter(self) -> None:
+        """Enable DDP-flat-buffer residency without AWEX publication state."""
+        self._ensure_weight_residency()
+
+    def _log_weight_residency_stats(self, phase: str) -> None:
+        """Log per-rank CUDA residency for persistent/AWEX flat buffers."""
+        stats = self.get_device_stats()
+        rank = dist.get_rank(self.cpu_group)
+        self.logger.info(
+            "[Megatron residency] rank=%d phase=%s allocated_gb=%.3f "
+            "reserved_gb=%.3f allocator_conf=%r",
+            rank,
+            phase,
+            stats.mem_allocated,
+            stats.mem_reserved,
+            os.environ.get("PYTORCH_CUDA_ALLOC_CONF", ""),
+        )
+
+    def offload(self) -> None:
+        """Offload model memory to CPU.
+
+        With explicit Megatron residency: manual tag-based flat-buffer offload.
+        Otherwise: torch_memory_saver pause.
+
+        Ref: https://github.com/THUDM/slime/blob/main/slime/backends/megatron_utils/actor.py
+        """
+        if self._weight_residency is not None:
+            self._log_weight_residency_stats("before_offload")
+            self.get_device_stats().log("before offload model")
+            current_platform.clear_memory()
+            self._weight_residency.release_memory(tags=["optimizer", "weights"])
+            current_platform.synchronize()
+            dist.barrier(group=self.cpu_group)
+            self._log_weight_residency_stats("after_offload")
+            self.get_device_stats().log("after offload model")
+            self.is_offload = True
+            return
+
+        if not is_tms_enabled():
+            raise RuntimeError(
+                "torch_memory_saver requires `enable_offload=True` in yaml config."
+            )
+
+        self.get_device_stats().log("before offload model")
+
+        # Discard gradient buffers via Megatron's native API *before* TMS pause.
+        # `DDP.offload_grad_buffers()` releases grad storage in-place
+        # (storage().resize_(0)); views like param.main_grad recover automatically
+        # on restore. Since grads are recomputed every step, they need no CPU
+        # backup. Doing this before pause() means the grad region has no physical
+        # memory left for TMS to back up.
+        if self.mcore_config.disable_grad_buffers_cpu_backup:
+            for m in self.model:
+                if isinstance(m, DDP):
+                    m.offload_grad_buffers(synchronize=False, empty_cache=False)
+
+        current_platform.clear_memory()
+        torch_memory_saver.pause()
+
+        # TODO: NCCL offload
+        current_platform.synchronize()
+        dist.barrier(group=self.cpu_group)
+        self.get_device_stats().log("after offload model")
+
+        self.is_offload = True
+
+    def onload(self) -> None:
+        """Onload model memory from CPU back to GPU.
+
+        Uses explicit Megatron residency when available, otherwise TMS.
+
+        Ref: https://github.com/THUDM/slime/blob/main/slime/backends/megatron_utils/actor.py
+        """
+        if self._weight_residency is not None:
+            self._weight_residency.resume_memory(tags=["optimizer", "weights"])
+            current_platform.clear_memory()
+            current_platform.synchronize()
+            dist.barrier(group=self.cpu_group)
+            self._log_weight_residency_stats("after_onload")
+            self.get_device_stats().log("after onload model")
+            self.is_offload = False
+            return
+
+        torch_memory_saver.resume()
+
+        # Reallocate gradient buffers released in offload(). resize_() restores
+        # storage and zeroes it; param.main_grad views become valid again.
+        if self.mcore_config.disable_grad_buffers_cpu_backup:
+            for m in self.model:
+                if isinstance(m, DDP):
+                    m.restore_grad_buffers(synchronize=False)
+
+        current_platform.clear_memory()
+
+        # TODO: NCCL onload
+        current_platform.synchronize()
+        dist.barrier(group=self.cpu_group)
+        self.get_device_stats().log("after onload model")
+
+        self.is_offload = False
+
+    def clear_batches(self, shard_ids: list[str] | None = None) -> int:
+        """Drain this worker's client-side RTensor fetch buffer.
+
+        Called via RPC by ``TrainController.clear_batches`` at step end so
+        cross-node consumer DP heads release cached tensors. See #1209.
+        Non-DP-head ranks receive no positional args via
+        ``_call_workers`` (see train_controller.py:575-577) — accept the
+        no-args call and noop, since their ``_fetch_buffer`` is empty.
+        """
+        from areal.infra.rpc.rtensor import clear_fetch_buffer
+
+        if not shard_ids:
+            return 0
+        return clear_fetch_buffer(shard_ids)
+
+    def fetch_buffer_stats(self, shard_ids: list[str] | None = None) -> dict[str, int]:
+        """Expose local fetch-buffer stats for post-step drain verification."""
+        from areal.infra.rpc.rtensor import (
+            fetch_buffer_matching_stats,
+            fetch_buffer_stats,
+        )
+
+        if shard_ids is not None:
+            return fetch_buffer_matching_stats(shard_ids)
+        return fetch_buffer_stats()
+
+    def _normalize_adam_bf16_config(self) -> None:
+        if self.optimizer_config is None or self.optimizer_config.type != "adam_bf16":
+            return
+
+        self.logger.info(
+            "Detected 'adam_bf16' optimizer with Megatron Engine. "
+            "Automatically converting to 'adam' with precision-aware optimizer "
+            "and setting exp_avg_dtype/exp_avg_sq_dtype to 'bfloat16'."
+        )
+
+        self.optimizer_config.type = "adam"
+        self.mcore_config.use_precision_aware_optimizer = True
+        self.mcore_config.exp_avg_dtype = "bfloat16"
+        self.mcore_config.exp_avg_sq_dtype = "bfloat16"
+
+        if self.dtype != torch.bfloat16:
+            self.logger.warning(
+                "Overriding dtype from %s to bfloat16 for adam_bf16 optimizer.",
+                self.config.dtype,
+            )
+            self.dtype = torch.bfloat16
+            self.config.dtype = "bfloat16"
+
+    def _check_and_apply_fp8_config(self):
+        if not self.enable_fp8:
+            return
+        fp8_config = self.fp8_config
+        special_mappings = {"mode": "fp8"}
+        # Fields that use the same name in both configs (no prefix needed)
+        same_fields = {
+            "tp_only_amax_red",
+            "first_last_layers_bf16",
+            "num_layers_at_start_in_bf16",
+            "num_layers_at_end_in_bf16",
+        }
+        # All other fields get the `fp8_` prefix
+        for field in dataclasses.fields(fp8_config):
+            fp8_field = field.name
+            if fp8_field in special_mappings:
+                tf_field = special_mappings[fp8_field]
+            elif fp8_field in same_fields:
+                tf_field = fp8_field
+            else:
+                tf_field = f"fp8_{fp8_field}"
+            if hasattr(self.tf_config, tf_field):
+                setattr(self.tf_config, tf_field, getattr(fp8_config, fp8_field))
+            else:
+                self.logger.warning(
+                    f"Unknown FP8 field in TransformerConfig: {fp8_field}"
+                )
+        self.logger.info(
+            f"FP8 training enabled: mode={fp8_config.mode}, "
+            f"recipe={fp8_config.recipe}, "
+            f"param={fp8_config.param}"
+        )
+        # fp8_param_gather is passed from make_mcore_model()
+
+    def _validate_fp8_consistency(self):
+        """Validate that FP8 configuration is consistent.
+
+        If either training uses FP8, quantization_config must exist
+        and quant_method must be "fp8" (weights must be FP8).
+        """
+        train_fp8 = self.enable_fp8
+        weights_fp8 = (
+            self.quantization_config is not None
+            and self.quantization_config.get("quant_method", None) == "fp8"
+        )
+
+        if train_fp8 and not weights_fp8:
+            raise RuntimeError(
+                "FP8 configuration error: "
+                "If training uses FP8, quantization_config must exist "
+                "and quant_method must be 'fp8' (weights must be FP8). "
+                f"Training fp8={train_fp8}, "
+                f"weights fp8={weights_fp8}, "
+                f"quantization_config={self.quantization_config}"
+            )
+
+    def get_device_stats(self) -> DeviceRuntimeInfo:
+        return DeviceRuntimeInfo.get_current()
+
+    def start_memory_profile(self, max_entries: int = 100000) -> None:
+        torch.cuda.memory._record_memory_history(max_entries=max_entries)
+
+    def stop_memory_profile(self, snapshot_dir: str) -> None:
+        pp = mpu.get_pipeline_model_parallel_rank()
+        dp = mpu.get_data_parallel_rank()
+        cp = mpu.get_context_parallel_rank()
+        tp = mpu.get_tensor_model_parallel_rank()
+        filename = f"snapshot_rank{self.rank:02d}_p{pp}d{dp}c{cp}t{tp}.pickle"
+        path = os.path.join(snapshot_dir, filename)
+        torch.cuda.memory._dump_snapshot(path)
+        torch.cuda.memory._record_memory_history(enabled=None)
+
+    def save_perf_tracer(self, step: int | None = None, force: bool = False) -> None:
+        perf_tracer.save(step=step, force=force)
+
+    def config_perf_tracer(
+        self, config: PerfTracerConfig, rank: int, role: str
+    ) -> None:
+        if perf_tracer.is_configured():
+            return
+        perf_tracer.configure(config, rank=rank, role=role)
+
+    def _make_parallel_strategy(
+        self, parallel_strategy: ParallelStrategy
+    ) -> MegatronParallelStrategy:
+        base_strategy = dataclasses.asdict(parallel_strategy)
+        vpp_size = self.mcore_config.virtual_pipeline_parallel_size
+        return MegatronParallelStrategy(
+            use_sequence_parallel=parallel_strategy.tensor_parallel_size > 1,
+            virtual_pipeline_parallel_size=vpp_size,
+            **base_strategy,
+        )
+
+    def _init_context_and_model_parallel_group(self) -> None:
+        # Initialize context and model parallel groups, which are only used in AReaL
+        # for data distribution
+        rank_generator = mpu.RankGenerator(
+            tp=self.parallel_strategy.tensor_parallel_size,
+            ep=1,
+            dp=self.parallel_strategy.data_parallel_size,
+            pp=self.parallel_strategy.pipeline_parallel_size,
+            cp=self.parallel_strategy.context_parallel_size,
+            order="tp-cp-ep-dp-pp",
+            rank_offset=0,
+        )
+        context_and_model_parallel_ranks = rank_generator.get_ranks("tp-cp-pp")
+        # create context and model_parallel_groups
+        for dp_rank, ranks in enumerate(context_and_model_parallel_ranks):
+            group = mpu.create_group(
+                ranks,
+                timeout=DIST_GROUP_DEFAULT_TIMEOUT,
+                pg_options=mpu.get_nccl_options("tp-cp-pp", {}),
+                group_desc="CONTEXT_AND_MODEL_PARALLEL_GROUP",
+            )
+            if dp_rank == mpu.get_data_parallel_rank():
+                self._context_and_model_parallel_group = group
+        # Offloaded engines and CPU-staged streaming RPCs cannot use accelerator
+        # collectives for payload distribution, so both require a gloo mirror.
+        if self.config.offload or self.stream_microbatches_from_cpu:
+            for dp_rank, ranks in enumerate(context_and_model_parallel_ranks):
+                cpu_group = dist.new_group(
+                    ranks, timeout=DIST_GROUP_DEFAULT_TIMEOUT, backend="gloo"
+                )
+                if dp_rank == mpu.get_data_parallel_rank():
+                    self._cpu_model_parallel_group = cpu_group
+
+    def _create_optimizer(self, ft_spec: FinetuneSpec) -> None:
+        if self.optimizer_config is None:
+            return
+        assert self.model is not None and len(self.model) > 0
+
+        use_distributed_optimizer = (
+            False
+            if self.config.use_lora
+            else self.mcore_config.ddp.use_distributed_optimizer
+        )
+
+        assert self.optimizer_config.type in [
+            "adam",
+            "sgd",
+        ], "Only AdamW/sgd optimizer is supported in this engine."
+        if self.optimizer_config.type == "sgd":
+            self.logger.warning(
+                "Using the 'sgd' optimizer with Megatron may be less stable. Consider using the 'adam' (AdamW) optimizer for improved stability."
+            )
+
+        total_train_steps = ft_spec.total_train_steps
+        warmup_steps = get_num_warmup_steps(
+            self.optimizer_config,
+            total_train_steps,
+        )
+        if total_train_steps <= 0:
+            raise ValueError(
+                "Megatron Core OptimizerParamScheduler requires "
+                "total_train_steps to be positive, "
+                f"got {total_train_steps}"
+            )
+        if warmup_steps >= total_train_steps:
+            raise ValueError(
+                "Megatron Core OptimizerParamScheduler requires warmup steps "
+                "to be less than total_train_steps, "
+                f"got {warmup_steps} warmup steps and "
+                f"total_train_steps={total_train_steps}"
+            )
+
+        # Make megatron optimizer config
+        mcore_opt_config = MCoreOptimizerConfig(
+            optimizer=self.optimizer_config.type,
+            lr=self.optimizer_config.lr,
+            min_lr=self.optimizer_config.min_lr_ratio * self.optimizer_config.lr,
+            weight_decay=self.optimizer_config.weight_decay,
+            bf16=self.dtype is torch.bfloat16,
+            fp16=self.dtype is torch.float16,
+            adam_beta1=self.optimizer_config.beta1,
+            adam_beta2=self.optimizer_config.beta2,
+            adam_eps=self.optimizer_config.eps,
+            use_distributed_optimizer=use_distributed_optimizer,
+            params_dtype=self.dtype,
+            clip_grad=self.optimizer_config.gradient_clipping,
+            fp8_recipe=(self.fp8_config.recipe if self.enable_fp8 else None),
+            overlap_param_gather_with_optimizer_step=(
+                self.mcore_config.overlap_param_gather_with_optimizer_step
+            ),
+            use_precision_aware_optimizer=(
+                self.mcore_config.use_precision_aware_optimizer
+            ),
+            main_grads_dtype=getattr(torch, self.mcore_config.main_grads_dtype),
+            main_params_dtype=getattr(torch, self.mcore_config.main_params_dtype),
+            exp_avg_dtype=getattr(torch, self.mcore_config.exp_avg_dtype),
+            exp_avg_sq_dtype=getattr(torch, self.mcore_config.exp_avg_sq_dtype),
+        )
+
+        self.optimizer = get_megatron_optimizer(mcore_opt_config, self.model)
+
+        lr_scheduler = OptimizerParamScheduler(
+            self.optimizer,
+            # Keep this independent of the current warmup configuration because
+            # Megatron checkpoints restore lr_warmup_steps but not init_lr.
+            # Zero-warmup schedules never read init_lr.
+            init_lr=0.0,
+            max_lr=self.optimizer_config.lr,
+            min_lr=self.optimizer_config.min_lr_ratio * self.optimizer_config.lr,
+            lr_warmup_steps=warmup_steps,
+            # Megatron Core treats `lr_decay_steps` as the absolute step at
+            # which decay ends (it subtracts `lr_warmup_steps` internally to
+            # get the decay-phase length). Previously this was passed as
+            # `total_train_steps - warmup_steps`, which caused Megatron to
+            # subtract warmup twice and the cosine schedule to reach min_lr
+            # ~one full warmup earlier than intended (e.g. lr=0 at step 198
+            # for a 220-step run). Pass the raw total so cosine spans
+            # [warmup_steps, total_train_steps], matching HF's
+            # get_cosine_schedule_with_warmup used by the FSDP engine.
+            lr_decay_steps=total_train_steps,
+            lr_decay_style=self.optimizer_config.lr_scheduler_type,
+            start_wd=self.optimizer_config.weight_decay,
+            end_wd=self.optimizer_config.weight_decay,
+            wd_incr_steps=total_train_steps,
+            wd_incr_style="constant",
+        )
+        self.lr_scheduler = lr_scheduler
+
+        # MegatronCheckpointManager now only support distributed optimizer which lora does not support
+        if not self.config.use_lora:
+            self.checkpointer = MegatronCheckpointManager(
+                model=self.model,
+                optimizer=self.optimizer,
+                lr_scheduler=self.lr_scheduler,
+                use_distributed_optimizer=use_distributed_optimizer,
+                use_checkpoint_opt_param_scheduler=self.mcore_config.use_checkpoint_opt_param_scheduler,
+                async_save=self.mcore_config.async_save,
+            )
+
+    def _check_rollout_engine_connected(self) -> None:
+        """Validate that rollout engine has been connected via connect_engine()."""
+        if self.rollout_engine is None or self.rollout_coordinator is None:
+            raise RuntimeError(
+                "Rollout engine not connected. Call connect_engine()"
+                " before using rollout/update_weight methods."
+            )
+
+    @staticmethod
+    def _normalize_batch_input(
+        input_: list[dict[str, Any]] | dict[str, Any],
+    ) -> tuple[dict[str, Any], Any | None]:
+        if isinstance(input_, list):
+            return concat_batch(input_)
+        return input_, None
+
+    def _ensure_ready(self) -> None:
+        if self.is_offload:
+            self.onload()
+
+        if self.model is None:
+            raise RuntimeError("Model is not initialized.")
+
+    def _update_bucket_weights_from_distributed(
+        self,
+        meta: WeightUpdateMeta,
+        converted_named_tensors: list[tuple[str, nn.Parameter | torch.Tensor]],
+    ) -> None:
+        # Early exit when chunk size is relatively small
+        if not converted_named_tensors:
+            return
+
+        self.engine_lock.acquire()
+
+        param_specs = [
+            ParamSpec(
+                name=name,
+                shape=tuple(tensor.shape),
+                dtype=str(tensor.dtype).split("torch.")[1],
+            )
+            for name, tensor in converted_named_tensors
+        ]
+
+        if self.config.use_lora:
+            meta.peft_config = {
+                "r": self.config.lora_rank,
+                "lora_alpha": self.config.lora_alpha,
+                "target_modules": get_vllm_lora_target_modules(
+                    list(self.config.target_modules or [])
+                ),
+                "bias": "none",
+            }
+
+        fut = self.rollout_engine.update_weights_from_distributed(meta, param_specs)
+
+        handles = []
+        for _, param in converted_named_tensors:
+            handles.append(
+                dist.broadcast(
+                    param.data, 0, group=self.weight_update_group, async_op=True
+                )
+            )
+        for handle in handles:
+            handle.wait()
+
+        fut.result()
+
+        converted_named_tensors.clear()
+
+        self.engine_lock.release()
+
+    @property
+    def _duplicated_param_names(self) -> set[str]:
+        """Parameter names whose parent module has parallel_mode='duplicated'.
+
+        These params are replicated (not TP-sharded) but TE incorrectly marks
+        them with tensor_model_parallel=True. Cached after first computation.
+        """
+        if not hasattr(self, "_cached_duplicated_param_names"):
+            duplicated = set()
+            if self.model is not None:
+                for model in self.model:
+                    for mod_name, module in model.named_modules():
+                        if getattr(module, "parallel_mode", None) == "duplicated":
+                            for p_name, _ in module.named_parameters(recurse=False):
+                                full = f"{mod_name}.{p_name}" if mod_name else p_name
+                                duplicated.add(full)
+            self._cached_duplicated_param_names = duplicated
+        return self._cached_duplicated_param_names
+
+    def _mark_duplicated_params(self) -> None:
+        """Fix TP metadata for params whose parent module is duplicated.
+
+        These params are replicated (not TP-sharded), but TE can mark them with
+        ``tensor_model_parallel=True``. Megatron's optimizer uses that attribute
+        to decide which TP ranks contribute to grad norm/clipping, so leaving it
+        true double-counts duplicated params when TP > 1. We also keep
+        ``_is_duplicated`` for weight collection code that needs the same signal.
+
+        Detection uses module.tp_size == 1 instead of module.parallel_mode ==
+        'duplicated', because Megatron's TELinear converts 'duplicated' to
+        te_parallel_mode=None before calling the TE base class, so
+        module.parallel_mode ends up as None.  tp_size=1 is reliably set for
+        duplicated mode while TP-sharded modules have tp_size > 1.
+
+        Expert modules with explicit TP communication also have tp_size=1
+        (Megatron pre-divides sizes), but their weights ARE TP-sharded.
+        These are excluded by checking the module name for "expert".
+        """
+        if getattr(self, "_duplicated_params_marked", False):
+            return
+        if self.model is not None:
+            for model in self.model:
+                for mod_name, module in model.named_modules():
+                    if getattr(module, "tp_size", None) == 1:
+                        if "expert" in mod_name:
+                            continue
+                        for _, param in module.named_parameters(recurse=False):
+                            if getattr(param, "tensor_model_parallel", False):
+                                param._is_duplicated = True
+                                param.tensor_model_parallel = False
+        self._duplicated_params_marked = True
+
+    def _collect_param(
+        self,
+        name: str,
+        param: nn.Parameter | torch.Tensor,
+    ) -> tuple[nn.Parameter | torch.Tensor, int]:
+        """Collect and prepare a parameter for conversion.
+
+        This method handles:
+        - All-gathering the parameter across tensor parallel ranks
+        - Removing padding for vocabulary-related parameters
+        - Dequantizing FP8 parameters to bf16s
+        - Calculating the parameter size in bytes
+
+        Returns:
+            Tuple of (prepared_param, param_size_in_bytes)
+        """
+        normalized = _normalize_glu_param_name(name)
+        is_glu = any(normalized.endswith(glu_name) for glu_name in self._glu_fc1_names)
+        param = all_gather_param(
+            name,
+            param,
+            self.fp8_direct_convert,
+            quantization_config=self.quantization_config,
+            duplicated_param_names=self._duplicated_param_names,
+            gated_linear_unit=is_glu,
+        )
+        param = remove_padding(name, param, lang_config(self.hf_config).vocab_size)
+
+        if isinstance(param, FP8BlockwiseTensorHelper):
+            # FP8 is stored as uint8, so element_size is 1 byte
+            param_size = param.numel()
+        else:
+            param_size = param.numel() * param.element_size()
+
+        return param, param_size
+
+    def _impl_update_weight_from_distributed(
+        self,
+        meta: WeightUpdateMeta,
+        name: str,
+        param: nn.Parameter | torch.Tensor,
+        converted_named_tensors: list[tuple[str, nn.Parameter | torch.Tensor]],
+        buffer_size: int,
+        weight_chunked_mem_size: int,
+        mla_weight_pairs: BailingV3MlaWeightPairs | None = None,
+    ) -> int:
+        param, param_size = self._collect_param(name, param)
+
+        if not self.is_pipeline_parallel_head():
+            return buffer_size
+
+        if (
+            mla_weight_pairs is None
+            and buffer_size + param_size > weight_chunked_mem_size
+        ):
+            self._update_bucket_weights_from_distributed(meta, converted_named_tensors)
+            buffer_size = 0
+
+        model_name = self.hf_config.model_type
+        if self.config.use_lora:
+            model_name = f"{model_name}_lora"
+
+        converted = convert_to_hf(
+            self.tf_config,
+            model_name,
+            name,
+            param,
+            quantization_config=self.quantization_config,
+            fp8_direct_convert=self.fp8_direct_convert,
+            hf_config=self.hf_config,
+            bridge=getattr(self, "bridge", None),
+        )
+        if mla_weight_pairs is not None:
+            converted = mla_weight_pairs.group(converted)
+            if not converted:
+                return buffer_size
+            param_size = sum(t.numel() * t.element_size() for _, t in converted)
+            if buffer_size + param_size > weight_chunked_mem_size:
+                self._update_bucket_weights_from_distributed(
+                    meta, converted_named_tensors
+                )
+                buffer_size = 0
+        converted_named_tensors.extend(converted)
+        buffer_size += param_size
+        return buffer_size
+
+    def _update_bucket_expert_weights_from_distributed(
+        self,
+        meta: WeightUpdateMeta,
+        named_tensors: list[tuple[str, nn.Parameter | torch.Tensor]],
+    ) -> None:
+        """Gather a bucket of MoE expert weights and broadcast them.
+
+        This function handles the distributed update for a bucket of Mixture-of-Experts
+        (MoE) parameters. Since expert parameters are sharded across the expert
+        parallel group, this function first performs an `all_gather` to collect all
+        shards from all expert ranks.
+
+        Once the full expert parameters are reconstructed on the pipeline parallel
+        head, it converts them to the HuggingFace format and calls
+        `_update_bucket_weights_from_distributed` to perform the actual broadcast
+        to the inference engine.
+        """
+
+        # Early exit when chunk size is relatively small
+        if not named_tensors:
+            return
+
+        group = mpu.get_expert_model_parallel_group()
+        world_size = mpu.get_expert_model_parallel_world_size()
+
+        names = [name for name, _ in named_tensors]
+        all_names: list[list[str]] = [None] * world_size
+        dist.all_gather_object(all_names, names, group=group)
+
+        for rank_names in all_names:
+            if len(named_tensors) != len(rank_names):
+                raise RuntimeError(
+                    "Named tensor count mismatch across expert parallel ranks: "
+                    f"expected {len(rank_names)} but got {len(named_tensors)}"
+                )
+
+        gathered_params = [[] for _ in range(world_size)]
+        handles = []
+        for idx, (_, tensor) in enumerate(named_tensors):
+            params = [
+                torch.empty_like(tensor.data, device=current_platform.current_device())
+                for _ in range(world_size)
+            ]
+            handle = dist.all_gather(params, tensor.data, group=group, async_op=True)
+            handles.append(handle)
+            for ep_rank, rank_names in enumerate(all_names):
+                gathered_params[ep_rank].append((rank_names[idx], params[ep_rank]))
+
+        for handle in handles:
+            handle.wait()
+
+        named_tensors.clear()
+        if not self.is_pipeline_parallel_head():
+            return
+
+        gathered_params = sum(gathered_params, [])
+
+        converted_hf_tensors = []
+        for name, param in gathered_params:
+            converted_hf_tensors.extend(
+                convert_to_hf(
+                    self.tf_config,
+                    self.hf_config.model_type,
+                    name,
+                    param,
+                    quantization_config=self.quantization_config,
+                    fp8_direct_convert=self.fp8_direct_convert,
+                    hf_config=self.hf_config,
+                    bridge=getattr(self, "bridge", None),
+                )
+            )
+
+        self._update_bucket_weights_from_distributed(meta, converted_hf_tensors)
+
+    def _impl_update_expert_weight_from_distributed(
+        self,
+        meta: WeightUpdateMeta,
+        name: str,
+        param: nn.Parameter | torch.Tensor,
+        named_tensors: list[tuple[str, nn.Parameter | torch.Tensor]],
+        buffer_size: int,
+        weight_chunked_mem_size: int,
+    ) -> int:
+        param, param_size = self._collect_param(name, param)
+
+        if (
+            buffer_size + param_size
+        ) * mpu.get_expert_model_parallel_world_size() > weight_chunked_mem_size:
+            self._update_bucket_expert_weights_from_distributed(meta, named_tensors)
+            buffer_size = 0
+
+        named_tensors.append((name, param))
+        buffer_size += param_size
+        return buffer_size
+
+    def _init_weight_update_from_distributed(self, meta: WeightUpdateMeta) -> None:
+        assert meta.type == "xccl"
+        if is_bailing_v3(self.hf_config):
+            validate_bailing_v3_weight_update(
+                self.hf_config,
+                use_lora=self.config.use_lora,
+                quantization_config=self.quantization_config,
+                fp8_direct_convert=self.fp8_direct_convert,
+            )
+        gen_pp_size = meta.gen_allocation.parallel.pp_size if meta.gen_allocation else 1
+        gen_backend = meta.gen_allocation.backend if meta.gen_allocation else None
+
+        # NOTE: Processes launched with torchrun will set the following env var to True,
+        # which blocks creating another TCP store for weight update.
+        os.environ["TORCHELASTIC_USE_AGENT_STORE"] = str(False)
+
+        # The per-PP-rank path is specific to SGLang: its rollout-side
+        # `build_init_weights_group_request` forms one NCCL group per PP stage
+        # (see areal/engine/sglang_remote.py), so it requires a 1:1 mapping to
+        # the training PP stages. vLLM instead joins a single flat group
+        # spanning every inference worker (see areal/engine/vllm_remote.py) and
+        # therefore does not need train_pp_size == gen_pp_size.
+        if gen_backend == "sglang" and gen_pp_size > 1:
+            # Per-PP-rank weight sync requires a 1:1 mapping between training
+            # PP stages and inference (sglang) PP stages, because each training
+            # PP head creates exactly the group update_weight_group_{train_pp_rank}
+            # and each sglang PP stage joins update_weight_group_{gen_pp_rank}.
+            # If the two sizes differ:
+            #   * train_pp_size > gen_pp_size: training heads with
+            #     train_pp_rank >= gen_pp_size create a group sglang never joins
+            #     -> rendezvous hang;
+            #   * train_pp_size < gen_pp_size: sglang stages with
+            #     gen_pp_rank >= train_pp_size find no training source
+            #     -> rendezvous hang.
+            # Fail fast here on every rank with a clear error.
+            train_pp_size = self.parallel_strategy.pipeline_parallel_size
+            if train_pp_size != gen_pp_size:
+                raise ValueError(
+                    f"Per-PP-rank weight sync requires train_pp_size == gen_pp_size, "
+                    f"got train_pp_size={train_pp_size}, gen_pp_size={gen_pp_size}. "
+                    f"Set the inference allocation pp_size to match the training "
+                    f"pipeline_parallel_size."
+                )
+            # PP>1: every PP source rank (dp=0, tp=0) creates its own per-PP-rank
+            # NCCL group. The group contains only the inference workers at the
+            # corresponding PP rank (TP * DP workers) plus one training rank.
+            if self.is_pipeline_parallel_head():
+                assert meta.gen_allocation is not None
+
+                self.engine_lock.acquire()
+                try:
+                    meta.nccl_master_address = self.weight_update_master_addr = (
+                        gethostip()
+                    )
+                    meta.nccl_master_port = self.weight_update_master_port = (
+                        find_free_ports(1)[0]
+                    )
+                    meta.nccl_group_name = self.weight_update_group_name
+
+                    fut = self.rollout_engine.init_weights_update_group(meta)
+
+                    per_pp_world_size = (
+                        meta.gen_allocation.parallel.world_size // gen_pp_size
+                    )
+                    init_method = (
+                        f"tcp://{format_host_for_url(meta.nccl_master_address)}"
+                        f":{meta.nccl_master_port}"
+                    )
+                    self.logger.info(
+                        f"Initializing per-PP-rank weight update group: "
+                        f"type={meta.type} init_method={init_method} "
+                        f"group={self.weight_update_group_name} "
+                        f"per_pp_world_size={per_pp_world_size}"
+                    )
+                    self.weight_update_group = init_custom_process_group(
+                        backend=current_platform.communication_backend,
+                        world_size=per_pp_world_size + 1,
+                        init_method=init_method,
+                        rank=0,
+                        group_name=self.weight_update_group_name,
+                        timeout=DIST_GROUP_DEFAULT_TIMEOUT,
+                    )
+
+                    fut.result()
+                finally:
+                    self.engine_lock.release()
+            else:
+                # Non-PP-head ranks do not create NCCL groups.  Set placeholder values so
+                # the attributes exist; they are never used for network I/O
+                # on non-PP-head ranks.
+                self.weight_update_master_addr = ""
+                self.weight_update_master_port = 0
+        else:
+            # Single-group path: taken when the inference side needs only one
+            # flat group per training PP stage. This covers both
+            #   * gen_pp_size == 1 (any backend), and
+            #   * vLLM with gen_pp_size > 1 (vLLM joins one flat group over all
+            #     inference workers regardless of its internal PP).
+            # Each training PP-stage head (dp=tp=0, one per PP rank) creates its
+            # own group update_weight_group_{pp_rank} spanning all inference
+            # workers and later broadcasts the parameters owned by that stage.
+            # When train_pp_size == 1 only one PP head exists, so no port race
+            # is possible; with train_pp_size > 1 the per-head engine_lock and
+            # distinct group names keep the concurrent heads isolated.
+            if self.is_pipeline_parallel_head():
+                assert meta.gen_allocation is not None
+
+                meta.nccl_master_address = self.weight_update_master_addr = gethostip()
+                meta.nccl_master_port = self.weight_update_master_port = (
+                    find_free_ports(1)[0]
+                )
+                meta.nccl_group_name = self.weight_update_group_name
+
+                self.engine_lock.acquire()
+                try:
+                    fut = self.rollout_engine.init_weights_update_group(meta)
+
+                    gen_world_size = meta.gen_allocation.parallel.world_size
+                    init_method = (
+                        f"tcp://{format_host_for_url(meta.nccl_master_address)}"
+                        f":{meta.nccl_master_port}"
+                    )
+                    self.logger.info(
+                        f"Initializing weight update group: type={meta.type} "
+                        f"init_method={init_method} "
+                        f"group={self.weight_update_group_name}"
+                    )
+                    self.weight_update_group = init_custom_process_group(
+                        backend=current_platform.communication_backend,
+                        world_size=gen_world_size + 1,
+                        init_method=init_method,
+                        rank=0,
+                        group_name=self.weight_update_group_name,
+                        timeout=DIST_GROUP_DEFAULT_TIMEOUT,
+                    )
+
+                    fut.result()
+                finally:
+                    self.engine_lock.release()
+            else:
+                self.weight_update_master_addr = ""
+                self.weight_update_master_port = 0
+
+    @trace_perf("megatron_engine.update_weights_from_distributed", category="comm")
+    def _update_weights_from_distributed(self, meta: WeightUpdateMeta) -> None:
+        # Reset weight weight meta with local info
+        meta.nccl_master_address = self.weight_update_master_addr
+        meta.nccl_master_port = self.weight_update_master_port
+        meta.nccl_group_name = self.weight_update_group_name
+
+        if dist.get_rank() == 0:
+            self.rollout_engine.pause_generation()
+
+        dist.barrier(group=self.cpu_group)
+
+        # Bridge delegation: when bridge_type=megatron-bridge and the user opts in,
+        # stream HF tensors directly from bridge.export_hf_weights. Falls back to
+        # the hand-rolled registry path for FP8 (quant_mapping in megatron-bridge
+        # is amax-style, not TE blockwise) and for LoRA (separate adapter export
+        # path not yet wired here).
+        use_bridge = (
+            self.bridge_cls == "megatron-bridge"
+            and self.mcore_config.use_bridge_for_update_weights
+            and not self.quantization_config
+            and not self.config.use_lora
+        )
+        if use_bridge:
+            self._update_weights_via_bridge(meta)
+        else:
+            self._update_weights_via_registry(meta)
+
+        if dist.get_rank() == 0:
+            self.rollout_engine.continue_generation()
+
+        current_platform.synchronize()
+        dist.barrier(group=self.cpu_group)
+
+    def _update_weights_via_registry(self, meta: WeightUpdateMeta) -> None:
+        """Hand-rolled conversion path via convert_to_hf registry.
+
+        Used for FP8, LoRA, and models with a converter entry. Iterates this PP
+        rank's local params, TP-gathers per param, converts to HF layout, and
+        bucket-broadcasts to the rollout engine.
+        """
+        num_moe_experts = self.tf_config.num_moe_experts
+        weight_chunked_mem_size = meta.weight_chunked_mem_mb * 1024 * 1024
+
+        buffer_size = 0
+        converted_named_tensors = []
+        mla_weight_pairs = (
+            BailingV3MlaWeightPairs()
+            if is_bailing_v3(self.hf_config)
+            and getattr(self.hf_config, "q_lora_rank", None) is not None
+            else None
+        )
+
+        for name, param in get_named_parameters(self.model, num_moe_experts):
+            if ".experts." in name and not self.config.use_lora:
+                continue
+            if self.config.use_lora and (
+                ".adapter." not in name or not getattr(param, "requires_grad", False)
+            ):
+                continue
+            buffer_size = self._impl_update_weight_from_distributed(
+                meta,
+                name,
+                param,
+                converted_named_tensors,
+                buffer_size,
+                weight_chunked_mem_size,
+                mla_weight_pairs=mla_weight_pairs,
+            )
+
+        if mla_weight_pairs is not None:
+            mla_weight_pairs.finish()
+
+        # Only pipeline parallel heads CAN contain named tensors here
+        if converted_named_tensors:
+            self._update_bucket_weights_from_distributed(meta, converted_named_tensors)
+        elif self.config.use_lora and self.is_pipeline_parallel_head():
+            self.logger.warning(
+                "No tensors were collected for distributed update at version %s.",
+                meta.version,
+            )
+
+        dist.barrier(group=self.cpu_group)
+
+        buffer_size = 0
+        named_tensors = []
+
+        for name, param in get_named_parameters(self.model, num_moe_experts):
+            if ".experts." not in name or self.config.use_lora:
+                continue
+            buffer_size = self._impl_update_expert_weight_from_distributed(
+                meta,
+                name,
+                param,
+                named_tensors,
+                buffer_size,
+                weight_chunked_mem_size,
+            )
+
+        if named_tensors:
+            # This function will early return if not pipeline parallel head
+            self._update_bucket_expert_weights_from_distributed(meta, named_tensors)
+
+        dist.barrier(group=self.cpu_group)
+
+    def _update_weights_via_bridge(self, meta: WeightUpdateMeta) -> None:
+        """Delegate live weight sync to megatron-bridge.export_hf_weights.
+
+        Streams (hf_name, hf_tensor) directly from the bridge, which handles
+        TP/EP/PP gather and layout transformation internally. Each PP rank
+        iterates the global parameter set (vs registry path which iterates only
+        local layers); non-PP-heads participate in collectives but do not bucket.
+        MoE expert weights are yielded inline by the bridge's grouped-export
+        path, so no separate second pass is needed.
+        """
+        weight_chunked_mem_size = meta.weight_chunked_mem_mb * 1024 * 1024
+        bucket: list[tuple[str, torch.Tensor]] = []
+        bucket_size = 0
+
+        for hf_name, hf_tensor in self.bridge.export_hf_weights(
+            self.model,
+            cpu=False,
+            show_progress=False,
+        ):
+            if not self.is_pipeline_parallel_head():
+                continue
+            size = hf_tensor.numel() * hf_tensor.element_size()
+            if bucket_size + size > weight_chunked_mem_size:
+                self._update_bucket_weights_from_distributed(meta, bucket)
+                bucket_size = 0
+            bucket.append((hf_name, hf_tensor.contiguous()))
+            bucket_size += size
+
+        if bucket:
+            self._update_bucket_weights_from_distributed(meta, bucket)
+
+        dist.barrier(group=self.cpu_group)
+
+    @trace_perf("megatron_engine.update_weights_from_disk", category="io")
+    def _update_weights_from_disk(self, meta: WeightUpdateMeta) -> None:
+        fut = Future()
+
+        if dist.get_rank() == 0:
+            self.rollout_engine.pause_generation()
+            fut = self.rollout_engine.update_weights_from_disk(meta)
+
+        self._save_model_to_hf(meta.path, self.tokenizer, self.processor)
+        # dist.barrier() are called when _save_model_to_hf finished
+
+        if dist.get_rank() == 0:
+            update_name = names.update_weights_from_disk(
+                self.config.experiment_name,
+                self.config.trial_name,
+                self.get_version(),
+            )
+            name_resolve.add(
+                update_name, str(datetime.now().timestamp()), keepalive_ttl=120
+            )
+
+            fut.result()
+            self.rollout_engine.continue_generation()
+        current_platform.synchronize()
+        dist.barrier(group=self.cpu_group)
+
+    def _save_model_to_hf(
+        self,
+        path: str,
+        tokenizer: Any | None = None,
+        processor: Any | None = None,
+        base_model_path: str | None = None,
+    ) -> None:
+        assert self.model is not None, "Model is not initialized."
+        os.makedirs(path, exist_ok=True)
+
+        if self.bridge_cls == "megatron-bridge":
+            if self.config.is_critic:
+                raise ValueError(
+                    "Saving critic model is not supported with megatron-bridge."
+                )
+            if self.config.use_lora:
+                self.bridge.save_hf_adapter(
+                    self.model,
+                    path=path,
+                    peft_config=self.bridge_lora,
+                    base_model_name_or_path=base_model_path or self.config.path,
+                )
+            else:
+                # When the MTP head was dropped (enable_mtp=False), the export
+                # yields no mtp.* tensors and strict=True would silently skip
+                # every source shard containing an MTP key -- discarding the
+                # non-MTP weights packed in those shards (e.g. lm_head).
+                # strict=False writes such shards with all present keys, so the
+                # export loses only the intentionally dropped MTP weights.
+                self.bridge.save_hf_pretrained(
+                    self.model,
+                    path,
+                    source_path=base_model_path,
+                    strict=not self._mtp_head_dropped,
+                )
+        else:
+            if self.mcore_config.use_mbridge_save:
+                source_config = (
+                    load_hf_config_snapshot(base_model_path)
+                    if dist.get_rank() == 0
+                    else None
+                )
+                # when loading model using AreaL's fast hf load, the safetensor_io is never set
+                if (
+                    not hasattr(self.bridge, "safetensor_io")
+                    or self.bridge.safetensor_io is None
+                ):
+                    self.bridge.safetensor_io = self.bridge._get_safetensor_io(
+                        self.config.path
+                    )
+                self.bridge.save_weights(models=self.model, weights_path=path)
+                if dist.get_rank() == 0:
+                    finalize_hf_export(
+                        self.bridge.hf_config,
+                        path,
+                        source_model_path=base_model_path,
+                        source_config=source_config,
+                    )
+            else:
+                save_weights_to_hf_with_mbridge_fast(
+                    bridge=self.bridge,
+                    models=self.model,
+                    weights_path=path,
+                    base_model_path=base_model_path,
+                    max_shard_size_byte=int(3e9),
+                    max_workers=None,
+                    fp8_direct_convert=self.fp8_direct_convert,
+                )
+
+            if self.config.is_critic:
+                save_critic_value_head(self.model, path)
+
+        if dist.get_rank() == 0:
+            if tokenizer is not None:
+                tokenizer.save_pretrained(path)
+            if processor is not None:
+                processor.save_pretrained(path)
+            if self._mtp_head_dropped:
+                self._scrub_mtp_from_saved_config(path)
+                self._rebuild_index_from_saved_shards(path)
+
+        current_platform.synchronize()
+        dist.barrier(group=self.cpu_group)
+
+    @property
+    def _mtp_head_dropped(self) -> bool:
+        """True when the model declares an MTP head but enable_mtp left it unbuilt."""
+        is_bailing_v3_mbridge = self.bridge_cls == "mbridge" and isinstance(
+            self.bridge, BailingV3Bridge
+        )
+        if self.bridge_cls != "megatron-bridge" and not is_bailing_v3_mbridge:
+            return False
+        if not is_bailing_v3_mbridge and getattr(
+            self.mcore_config, "enable_mtp", False
+        ):
+            return False
+        text_config = getattr(self.hf_config, "text_config", self.hf_config)
+        return any(
+            bool(getattr(text_config, key, 0))
+            for key in ("mtp_num_hidden_layers", "num_nextn_predict_layers")
+        )
+
+    def _scrub_mtp_from_saved_config(self, path: str) -> None:
+        """Zero MTP layer counts in an exported config.json so it matches the
+        MTP-stripped weights (the head is dropped when enable_mtp=False)."""
+        cfg_path = os.path.join(path, "config.json")
+        if not os.path.exists(cfg_path):
+            return
+        with open(cfg_path) as f:
+            cfg = json.load(f)
+
+        def _walk(node: Any) -> bool:
+            changed = False
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    if (
+                        key in ("mtp_num_hidden_layers", "num_nextn_predict_layers")
+                        and value
+                    ):
+                        node[key] = 0
+                        changed = True
+                    else:
+                        changed |= _walk(value)
+            elif isinstance(node, list):
+                for item in node:
+                    changed |= _walk(item)
+            return changed
+
+        if _walk(cfg):
+            with open(cfg_path, "w") as f:
+                json.dump(cfg, f, indent=2, sort_keys=True)
+            self.logger.info(
+                "Exported checkpoint is MTP-stripped (enable_mtp=False); "
+                "zeroed MTP layer counts in %s.",
+                cfg_path,
+            )
+
+    def _rebuild_index_from_saved_shards(self, path: str) -> None:
+        """Rewrite model.safetensors.index.json from the shard files' actual
+        contents. megatron-bridge's strict=False save marks each shard's full
+        expected key set as saved, leaving ghost entries for the dropped mtp.*
+        tensors and a stale metadata.total_size."""
+        index_path = os.path.join(path, "model.safetensors.index.json")
+        if not os.path.exists(index_path):
+            return
+        weight_map: dict[str, str] = {}
+        total_size = 0
+        for filename in sorted(os.listdir(path)):
+            if not filename.endswith(".safetensors"):
+                continue
+            with open(os.path.join(path, filename), "rb") as f:
+                header_len = struct.unpack("<Q", f.read(8))[0]
+                header = json.loads(f.read(header_len))
+            for key, meta in header.items():
+                if key == "__metadata__":
+                    continue
+                weight_map[key] = filename
+                begin, end = meta["data_offsets"]
+                total_size += end - begin
+        with open(index_path) as f:
+            index = json.load(f)
+        ghosts = set(index.get("weight_map", {})) - set(weight_map)
+        index["weight_map"] = weight_map
+        index.setdefault("metadata", {})["total_size"] = total_size
+        with open(index_path, "w") as f:
+            json.dump(index, f, indent=2, sort_keys=True)
+        if ghosts:
+            self.logger.info(
+                "Rebuilt safetensors index from shard contents; removed %d ghost "
+                "entries (e.g. %s).",
+                len(ghosts),
+                sorted(ghosts)[:3],
+            )
+
+    def _load_model_from_hf(self, path: str) -> None:
+        assert self.model is not None, "Model is not initialized."
+
+        if self.bridge_cls == "megatron-bridge":
+            if self.config.is_critic:
+                raise ValueError(
+                    "Loading critic model is not supported with megatron-bridge."
+                )
+            # megatron-bridge's load path builds shard-index tensors via
+            # ``torch.arange(...)`` to index HF weights that live on CPU. Under
+            # the caller's ``with self.device:`` (CUDA) context, those indices
+            # become CUDA tensors and the CPU-tensor indexing raises
+            # ``RuntimeError: indices should be either on cpu or on the same
+            # device as the indexed tensor (cpu)`` — triggered by ChunkedMapping
+            # for any model with GDN/Mamba-style conv1d weights (e.g. Qwen3.5).
+            # Force CPU as the factory-op default here; tensor data assignment
+            # to GPU model params is unaffected (handled by .copy_()).
+            with torch.device("cpu"):
+                self.bridge.load_hf_weights(self.model, hf_path=path)
+        else:
+            load_weights_from_hf_with_mbridge_fast(
+                bridge=self.bridge,
+                models=self.model,
+                weights_path=path,
+                max_workers=None,
+                is_critic=self.config.is_critic,
+                fp8_direct_convert=self.fp8_direct_convert,
+            )
+
+    def _prepare_mb_list(
+        self,
+        input_: dict[str, Any],
+        *,
+        allow_transport_padding: bool = False,
+    ) -> MicroBatchList:
+        assert "attention_mask" in input_ and "input_ids" in input_
+        # Parallel sizes
+        pp_size = self.parallel_strategy.pipeline_parallel_size
+        cp_size = self.parallel_strategy.context_parallel_size
+        tp_size = self.parallel_strategy.tensor_parallel_size
+        if self.enable_tree_training:
+            assert cp_size == 1, (
+                "Context parallelism is not supported in tree training."
+            )
+            mb_list = build_packed_tree_batch(
+                input_,
+                mb_spec=self.config.mb_spec,
+                pad_to_maximum=self.config.pad_to_maximum,
+                dp_group=self.data_parallel_group,
+                parallel_size=tp_size,
+            )
+            recommended_min_n_mbs = 2 * pp_size if pp_size > 1 else 1
+            self.logger.info(
+                f"Packed tree #microbatch: {len(mb_list)}, microbatch #tokens: {mb_list.group_lens}, "
+                f"padded to: {mb_list.padded_to_lengths}, padding lengths: {mb_list.padding_lengths}."
+            )
+            if len(mb_list) < recommended_min_n_mbs:
+                self.logger.warning(
+                    f"Number of tree micro-batches ({len(mb_list)}) is less than recommended"
+                    f" minimum ({recommended_min_n_mbs}) to avoid pipeline bubbles."
+                )
+            # The schedule only consumes mbs/padded_mbs and metadata. Releasing
+            # the original dense batch avoids retaining a third CPU copy.
+            mb_list.data = {}
+            return mb_list
+        # Amend position ids (skip for VLM — model computes mRoPE internally)
+        if not self.is_vision_model:
+            input_ = amend_position_ids(input_)
+        # Split the input into micro-batches
+        # NOTE: Here we use 2*pp_size in forward to align logprob precision
+        # TODO: Performance check
+        min_n_mbs = (
+            2 * pp_size if pp_size > 1 else 1
+        )  # avoid pipeline bubbles in training
+        if self.config.mb_spec.max_tokens_per_mb is None and not getattr(
+            self, "_warned_unbounded_microbatch", False
+        ):
+            self.logger.warning(
+                "Megatron CPU streaming bounds full-batch input residency, but "
+                "mb_spec.max_tokens_per_mb is unset. A growing batch can still "
+                "form a growing microbatch and increase activation memory."
+            )
+            self._warned_unbounded_microbatch = True
+        # NOTE: self.config.mb_spec.max_tokens_per_mb determines
+        # the expected **total** number of tokens per micro-batch **in the forward pass**.
+        # The micro batch list splitted here will be splitted to each
+        # context parallel rank, so the total number of tokens per
+        # GPU in a forward pass here will be `max_tokens_per_mb / cp_size`.
+        mb_spec = MicroBatchSpec.new(
+            self.config.mb_spec,
+            n_mbs=max(min_n_mbs, self.config.mb_spec.n_mbs),
+            n_mbs_divisor=pp_size,
+        )
+        mb_list = split_padded_tensor_dict_into_mb_list(
+            input_,
+            mb_spec,
+            group=mpu.get_data_parallel_group(),
+            allow_transport_padding=allow_transport_padding,
+        )
+        mb_list.mbs = [pack_tensor_dict(mb) for mb in mb_list.mbs]
+        # Project each micro-batch to the model's sequence layout. Wrapper-owned
+        # THD can use a trailing padding segment to reduce memory fragmentation;
+        # The default BSHD/model-owned THD path cannot, because reconstruction
+        # would turn that segment into a synthetic batch row. Every layout
+        # still aligns each real sequence for Megatron parallelism.
+        align_to_multiple_of = tp_size * cp_size * 2 if cp_size > 1 else tp_size
+        align_to_multiple_of = (
+            math.lcm(align_to_multiple_of, DEFAULT_VECTORIZED_ALIGNMENT_BYTES)
+            if self.enable_fp8
+            else align_to_multiple_of
+        )
+        assert self.sequence_packing_mode is not None
+        mb_list = prepare_microbatches_for_sequence_layout(
+            mb_list,
+            sequence_packing_mode=self.sequence_packing_mode,
+            pad_to_maximum=self.config.pad_to_maximum,
+            seq_align_to=align_to_multiple_of,
+        )
+        self.logger.info(
+            f"#microbatch: {len(mb_list.group_lens)}, microbatch #tokens: {mb_list.group_lens}, "
+            f"aligned to: {mb_list.align_to_lengths}, padded to: {mb_list.padded_to_lengths}, "
+            f"padding lengths: {mb_list.padding_lengths}."
+        )
+        # Modern model implementations takes a dict as the input.
+        # This eliminates a bug of Qwen2.5-VL for transformers<=4.53.1
+        for i, mb in enumerate(mb_list.mbs):
+            mb_list.mbs[i] = dict(**mb)
+        for i, mb in enumerate(mb_list.padded_mbs):
+            mb_list.padded_mbs[i] = dict(**mb)
+        for mb in mb_list.mbs:
+            mb["max_seqlen"] = int(mb["max_seqlen"])
+        for mb in mb_list.padded_mbs:
+            mb["max_seqlen"] = int(mb["max_seqlen"])
+
+        # Keep shared CPU vision tensors on the forward side. Concatenate only
+        # when forward_step consumes a microbatch, avoiding a second full batch
+        # of pixels while the microbatch list waits for the schedule.
+        if self.is_vision_model:
+            for mb, padded_mb in zip(mb_list.mbs, mb_list.padded_mbs):
+                if has_multi_modal_tensors((mb, padded_mb)):
+                    if "multi_modal_input" in mb:
+                        padded_mb["multi_modal_input"] = mb["multi_modal_input"]
+                    # Drop stale batched fields that eager extraction would
+                    # overwrite; do not retain another batch of pixels while
+                    # deferring the concatenation. Top-level-only fields stay.
+                    images = padded_mb.get("multi_modal_input") or ()
+                    for key in _VLM_FORWARD_KEYS:
+                        if any(key in image for image in images):
+                            padded_mb.pop(key, None)
+                    for key in list(mb):
+                        if _is_multi_modal_payload_key(key):
+                            mb.pop(key)
+                else:
+                    # VLM text-only/empty-image microbatches retain the eager
+                    # preparation path; they need no lazy vision assembly.
+                    extract_vision_from_multi_modal(mb, padded_mb)
+
+        # No Megatron schedule or output reordering path consumes the original
+        # dense batch after packing. Keep only the CPU microbatch sources.
+        mb_list.data = {}
+
+        return mb_list
+
+    def _compute_logprobs_and_loss(
+        self,
+        output: torch.Tensor | ChunkedLMHeadOutput,
+        inputs: dict[str, Any],
+        loss_fn: Callable[..., torch.Tensor],
+        loss_weight_fn: Callable[[dict[str, Any]], torch.Tensor],
+        total_loss_weight: torch.Tensor,
+        loss_multiplier: float = 1.0,
+    ) -> torch.Tensor:
+        local_weight = compute_microbatch_loss_weight(inputs, loss_weight_fn)
+        if local_weight == 0:
+            connected_output = (
+                output.logprobs if isinstance(output, ChunkedLMHeadOutput) else output
+            )
+            return connected_output.mean() * 0.0
+
+        if self.config.is_critic and self.enable_tree_training:
+            raise NotImplementedError(
+                "Tree training with critic model is not supported yet."
+            )
+        if not self.config.is_critic:
+            if self.enable_tree_training:
+                # Handle dummy trie (empty tree for DP synchronization)
+                # When trie has no sequences, return zero loss with grad connection
+                trie_node = inputs.get("trie_node")
+                if trie_node is None or not trie_node.all_sequence_ids:
+                    # Return zero loss that maintains gradient connection to output
+                    # This ensures backward() works correctly for distributed synchronization
+                    return output.mean() * 0.0
+
+                # For tree training, use gather_packed_tree_vocab_stats to properly
+                # unpack vocab stats from tree structure back to per-sequence format.
+                # This is necessary because the logits are in packed tree format where
+                # multiple sequences share prefix positions.
+                vocab_min_logits, vocab_max_logits = gather_packed_tree_vocab_stats(
+                    output, trie_node
+                )
+                # Tree training only supports packed min/max vocab stats; mean/norm
+                # would need per-sequence unpacking, so leave them unset.
+                vocab_mean_logits = None
+                vocab_norm_logits = None
+                logprobs, entropy = gather_packed_tree_logprobs_entropy(
+                    output,
+                    trie_node,
+                    inputs["input_ids"],
+                    temperature=self.config.temperature,
+                    tp_group=mpu.get_tensor_model_parallel_group()
+                    if mpu.get_tensor_model_parallel_world_size() > 1
+                    else None,
+                    chunk_size=self.config.logprobs_chunk_size,
+                )
+            else:
+                cp_padded_cu_seqlens = inputs.get("_cp_padded_cu_seqlens")
+                if isinstance(output, ChunkedLMHeadOutput):
+                    (
+                        logprobs,
+                        entropy,
+                        vocab_min_logits,
+                        vocab_max_logits,
+                        vocab_mean_logits,
+                        vocab_norm_logits,
+                    ) = output
+                else:
+                    cp_local_labels = inputs.get("_cp_local_labels")
+                    if cp_local_labels is not None:
+                        labels = cp_local_labels
+                    else:
+                        labels = torch.roll(inputs["input_ids"], shifts=-1, dims=-1)
+                    # The fused Megatron loss path destructively reuses FP32 logits as
+                    # softmax/dlogits storage, so diagnostics must consume logits first.
+                    vocab_min_logits = output.detach().min(-1).values.float()
+                    vocab_max_logits = output.detach().max(-1).values.float()
+                    vocab_mean_logits = output.detach().mean(-1, dtype=torch.float32)
+                    vocab_norm_logits = torch.linalg.vector_norm(
+                        output.detach(), dim=-1, dtype=torch.float32
+                    )
+                    logprobs, entropy = gather_logprobs_entropy(
+                        output,
+                        labels,
+                        temperature=self.config.temperature,
+                        tp_group=mpu.get_tensor_model_parallel_group()
+                        if mpu.get_tensor_model_parallel_world_size() > 1
+                        else None,
+                        chunk_size=self.config.logprobs_chunk_size,
+                        reuse_logits=_reuse_chunked_logits_storage(
+                            self.mcore_config.enable_chunked_logits,
+                            self.mcore_config.entropy_requires_grad,
+                        ),
+                    )
+                if cp_padded_cu_seqlens is not None:
+                    logprobs = reassemble_cp_packed_logprobs(
+                        logprobs, cp_padded_cu_seqlens
+                    )
+                    entropy = reassemble_cp_packed_logprobs(
+                        entropy, cp_padded_cu_seqlens
+                    )
+                    vocab_min_logits = reassemble_cp_packed_logprobs(
+                        vocab_min_logits, cp_padded_cu_seqlens
+                    )
+                    vocab_max_logits = reassemble_cp_packed_logprobs(
+                        vocab_max_logits, cp_padded_cu_seqlens
+                    )
+                    vocab_mean_logits = reassemble_cp_packed_logprobs(
+                        vocab_mean_logits, cp_padded_cu_seqlens
+                    )
+                    vocab_norm_logits = reassemble_cp_packed_logprobs(
+                        vocab_norm_logits, cp_padded_cu_seqlens
+                    )
+                    cp_padding_length = inputs.get("_cp_padding_length", 0)
+                    cp_old_cu_seqlens = inputs.get("_cp_old_cu_seqlens")
+                    logprobs = unpad_logits(
+                        logprobs,
+                        cp_padding_length,
+                        cp_padded_cu_seqlens,
+                        cp_old_cu_seqlens,
+                    )
+                    entropy = unpad_logits(
+                        entropy,
+                        cp_padding_length,
+                        cp_padded_cu_seqlens,
+                        cp_old_cu_seqlens,
+                    )
+                    vocab_min_logits = unpad_logits(
+                        vocab_min_logits,
+                        cp_padding_length,
+                        cp_padded_cu_seqlens,
+                        cp_old_cu_seqlens,
+                    )
+                    vocab_max_logits = unpad_logits(
+                        vocab_max_logits,
+                        cp_padding_length,
+                        cp_padded_cu_seqlens,
+                        cp_old_cu_seqlens,
+                    )
+                    vocab_mean_logits = unpad_logits(
+                        vocab_mean_logits,
+                        cp_padding_length,
+                        cp_padded_cu_seqlens,
+                        cp_old_cu_seqlens,
+                    )
+                    vocab_norm_logits = unpad_logits(
+                        vocab_norm_logits,
+                        cp_padding_length,
+                        cp_padded_cu_seqlens,
+                        cp_old_cu_seqlens,
+                    )
+                    inputs = {
+                        k: v for k, v in inputs.items() if not k.startswith("_cp_")
+                    }
+
+            loss = loss_fn(
+                logprobs,
+                entropy,
+                inputs,
+                vocab_min_logits=vocab_min_logits,
+                vocab_max_logits=vocab_max_logits,
+                vocab_mean_logits=vocab_mean_logits,
+                vocab_norm_logits=vocab_norm_logits,
+            )
+        else:
+            values = output.squeeze(-1)
+            loss = loss_fn(values, inputs)
+
+        loss_scale = local_weight / total_loss_weight * loss_multiplier
+        return loss * loss_scale
+
+    def _compute_forward_result(
+        self,
+        output: torch.Tensor | ChunkedLMHeadOutput,
+        inputs: dict[str, Any],
+    ) -> torch.Tensor | dict[int, torch.Tensor]:
+        if self.config.is_critic and self.enable_tree_training:
+            raise NotImplementedError(
+                "Tree training with critic model is not supported yet."
+            )
+        if not self.config.is_critic:
+            if isinstance(output, ChunkedLMHeadOutput):
+                return output.logprobs
+            if self.enable_tree_training:
+                logprobs = _gather_packed_tree_logprobs(
+                    output,
+                    inputs["trie_node"],
+                    inputs["input_ids"],
+                    temperature=self.config.temperature,
+                    tp_group=mpu.get_tensor_model_parallel_group()
+                    if mpu.get_tensor_model_parallel_world_size() > 1
+                    else None,
+                    chunk_size=self.config.logprobs_chunk_size,
+                )
+                return logprobs
+            labels = inputs.get("_cp_local_labels")
+            if labels is None:
+                labels = torch.roll(inputs["input_ids"], shifts=-1, dims=-1)
+            logprobs = gather_logprobs(
+                output,
+                labels,
+                temperature=self.config.temperature,
+                tp_group=mpu.get_tensor_model_parallel_group()
+                if mpu.get_tensor_model_parallel_world_size() > 1
+                else None,
+                chunk_size=self.config.logprobs_chunk_size,
+            )
+            return self._reassemble_cp_forward_scalars(logprobs, inputs)
+        else:
+            values = output.squeeze(-1)
+            return self._reassemble_cp_forward_scalars(values, inputs)
+
+    @staticmethod
+    def _reassemble_cp_forward_scalars(
+        local_values: torch.Tensor, inputs: dict[str, Any]
+    ) -> torch.Tensor:
+        """Reassemble CP token scalars without ever gathering vocabulary logits."""
+        padded_cu_seqlens = inputs.get("_cp_padded_cu_seqlens")
+        if padded_cu_seqlens is None:
+            return local_values
+        values = reassemble_cp_packed_logprobs(local_values, padded_cu_seqlens)
+        return unpad_logits(
+            values,
+            inputs.get("_cp_padding_length", 0),
+            padded_cu_seqlens,
+            inputs.get("_cp_old_cu_seqlens"),
+        )
+
+    def assert_mopd_runtime_topology(self) -> None:
+        """Verify that MOPD scoring uses the configured MCore pipeline size."""
+        configured_pp_size = self.parallel_strategy.pipeline_parallel_size
+        runtime_pp_size = mpu.get_pipeline_model_parallel_world_size()
+        if runtime_pp_size != configured_pp_size:
+            raise RuntimeError(
+                "MOPD compute_logp pipeline topology mismatch: "
+                f"configured PP={configured_pp_size}, runtime PP={runtime_pp_size}"
+            )
+
+
+# =============================================================================
+# Algorithm-specific Megatron Engines
+# =============================================================================
+
+
+class MegatronScoringEngine(MegatronEngine):
+    """Forward-only Megatron engine used by persistent MOPD teachers."""
+
+    def __init__(self, config: MOPDTeacherEngineConfig):
+        super().__init__(config)
+
+    @torch.no_grad()
+    def compute_logp(self, data: list[dict[str, Any]]) -> list[torch.Tensor] | None:
+        return batched_call(self._compute_logp, data)
+
+    def _compute_logp(self, data: dict[str, Any]) -> torch.Tensor | None:
+        self.eval()
+        return self.forward(
+            input_=data,
+            aggregate_fn=lambda xs: torch.cat(xs, dim=-1),
+        )
+
+    @classmethod
+    def as_controller(
+        cls,
+        config: MOPDTeacherEngineConfig,
+        scheduler: Scheduler,
+    ):
+        from areal.trainer.mopd.scoring import MOPDTeacherController
+
+        return MOPDTeacherController(
+            train_engine=cls,
+            config=config,
+            scheduler=scheduler,
+        )
+
+
+class MegatronPPOActor(MegatronEngine):
+    """PPO Actor implementation using Megatron backend."""
+
+    def __init__(self, config: PPOActorConfig):
+        from areal.trainer.ppo.actor import PPOActor
+
+        super().__init__(config)
+        self.actor = PPOActor(config, self)
+
+    def initialize(
+        self,
+        addr: str | None,
+        ft_spec: FinetuneSpec,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().initialize(addr, ft_spec, *args, **kwargs)
+
+    def configure_mopd_loss(self, config) -> None:
+        self.actor.configure_mopd_loss(config)
+
+    @torch.no_grad()
+    def compute_logp(self, *args, **kwargs) -> list[torch.Tensor] | None:
+        return self.actor.compute_logp(*args, **kwargs)
+
+    @torch.no_grad()
+    def compute_advantages(self, *args, **kwargs) -> list[dict[str, Any]]:
+        return self.actor.compute_advantages(*args, **kwargs)
+
+    def prepare_mopd_batch(self, *args, **kwargs) -> list[dict[str, Any]]:
+        return self.actor.prepare_mopd_batch(*args, **kwargs)
+
+    def aggregate_mopd_targets(self, *args, **kwargs):
+        return self.actor.aggregate_mopd_targets(*args, **kwargs)
+
+    def ppo_update(self, *args, **kwargs) -> None:
+        self.actor.ppo_update(*args, **kwargs)
+
+    @classmethod
+    def as_controller(cls, config: PPOActorConfig, scheduler: Scheduler):
+        if config._version == "v2":
+            from areal.trainer.ppo.actor import PPOActorControllerV2
+
+            return PPOActorControllerV2(
+                train_engine=cls,
+                config=config,
+                scheduler=scheduler,
+            )
+
+        from areal.trainer.ppo.actor import PPOActorController
+
+        return PPOActorController(train_engine=cls, config=config, scheduler=scheduler)
+
+
+class MegatronPPOCritic(MegatronEngine):
+    """PPO Critic implementation using Megatron backend."""
+
+    def __init__(self, config: PPOCriticConfig):
+        from areal.trainer.ppo.critic import PPOCritic
+
+        super().__init__(config)
+        self.critic = PPOCritic(config, self)
+
+    @torch.no_grad()
+    def compute_values(self, *args, **kwargs) -> torch.Tensor:
+        return self.critic.compute_values(*args, **kwargs)
+
+    def ppo_update(self, *args, **kwargs) -> None:
+        self.critic.ppo_update(*args, **kwargs)
+
+    @classmethod
+    def as_controller(cls, config: PPOCriticConfig, scheduler: Scheduler):
+        if config._version == "v2":
+            from areal.trainer.ppo.critic import PPOCriticControllerV2
+
+            return PPOCriticControllerV2(
+                train_engine=cls,
+                config=config,
+                scheduler=scheduler,
+            )
+
+        from areal.trainer.ppo.critic import PPOCriticController
+
+        return PPOCriticController(train_engine=cls, config=config, scheduler=scheduler)
+
+
+class MegatronLMEngine(MegatronEngine):
+    """Language model engine for SFT using Megatron backend."""
+
+    def __init__(self, config: TrainEngineConfig):
+        from areal.trainer.sft.lm_engine import LMEngine
+
+        super().__init__(config)
+        self.lm_engine = LMEngine(self)
+
+    def train_lm(self, data):
+        return self.lm_engine.train_lm(data)
+
+    def evaluate_lm(self, data):
+        return self.lm_engine.evaluate_lm(data)
+
+    @classmethod
+    def as_controller(cls, config: TrainEngineConfig, scheduler: Scheduler):
+        if config._version == "v2":
+            from areal.trainer.sft.lm_engine import LMControllerV2
+
+            return LMControllerV2(
+                train_engine=cls,
+                config=config,
+                scheduler=scheduler,
+            )
+
+        from areal.trainer.sft.lm_engine import LMController
+
+        return LMController(train_engine=cls, config=config, scheduler=scheduler)
+
+
+class MegatronRWEngine(MegatronEngine):
+    """Reward model engine using Megatron backend."""
+
+    def __init__(self, config: TrainEngineConfig):
+        from copy import deepcopy
+
+        from areal.trainer.rw.rw_engine import RWEngine
+
+        super().__init__(config)
+        self.rw_engine = RWEngine(self)
+        if self.config.mb_spec.granularity != 2:
+            rw_logger = logging.getLogger("RWEngine")
+            rw_logger.warning("mb_spec.granularity must be 2 for reward modeling")
+            self.config = deepcopy(self.config)
+            self.config.mb_spec.granularity = 2
+
+    def train_rw(self, data):
+        return self.rw_engine.train_rw(data)
+
+    def evaluate_rw(self, data):
+        return self.rw_engine.evaluate_rw(data)
+
+    @classmethod
+    def as_controller(cls, config: TrainEngineConfig, scheduler: Scheduler):
+        if config._version == "v2":
+            from areal.trainer.rw.rw_engine import RWControllerV2
+
+            return RWControllerV2(train_engine=cls, config=config, scheduler=scheduler)
+
+        from areal.trainer.rw.rw_engine import RWController
+
+        return RWController(train_engine=cls, config=config, scheduler=scheduler)
+
+
+class MegatronDPOEngine(MegatronEngine):
+    """DPO training engine using Megatron backend."""
+
+    def __init__(self, config: DPOEngineConfig):
+        from copy import deepcopy
+
+        from areal.trainer.dpo.dpo_engine import DPOEngine
+
+        super().__init__(config)
+        self.dpo_engine = DPOEngine(self)
+        if self.config.mb_spec.granularity != 2:
+            dpo_logger = logging.getLogger("DPOEngine")
+            dpo_logger.warning("mb_spec.granularity must be 2 for DPO training")
+            self.config = deepcopy(self.config)
+            self.config.mb_spec.granularity = 2
+
+    def train_dpo(self, data):
+        return self.dpo_engine.train_dpo(data)
+
+    def evaluate_dpo(self, data):
+        return self.dpo_engine.evaluate_dpo(data)
+
+    def compute_logp(self, data: list[dict[str, Any]]) -> list[torch.Tensor] | None:
+        return self.dpo_engine.compute_logp(data)
+
+    @classmethod
+    def as_controller(
+        cls,
+        config: DPOEngineConfig,
+        scheduler: Scheduler,
+    ):
+        if config._version == "v2":
+            from areal.trainer.dpo.dpo_engine import DPOControllerV2
+
+            return DPOControllerV2(train_engine=cls, config=config, scheduler=scheduler)
+
+        from areal.trainer.dpo.dpo_engine import DPOController
+
+        return DPOController(train_engine=cls, config=config, scheduler=scheduler)

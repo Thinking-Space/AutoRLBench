@@ -1,0 +1,24 @@
+task_id: areal_tau2_user_tool_history
+category: tau2_telecom_user_tool_history
+framework: AReaL
+launch_script: launch.py
+model: Qwen3-4B agent + Qwen3-8B user simulator
+dataset: tau2-bench telecom, 4 tasks x 4 seeds
+algo: GRPO rollout evaluation
+expected_verdict: unhealthy
+evidence_kind: historical_run
+buggy_commit: b90011b61ee301e7197564cabe5faff617c693b0
+baseline_commit: a0bcd93a9d5710d8ee00883c48a134c816ee7bef
+eval_metric_key: telecom/user_tool_history_retention
+last_eval_step: 16
+causes:
+  - path: areal/examples/tau2/agent.py
+    kind: symbol
+    observed: User-side cleaning discards simulator tool calls and results.
+    expected: Preserve simulator tool history and normal API cleanup.
+key_files:
+  - areal/examples/tau2/agent.py
+  - tau2/src/tau2/user/base.py
+external_assets_not_in_git:
+  - Qwen/Qwen3-4B at 1cfa9a7208912126459214e8b04321603b3df60c
+  - Qwen/Qwen3-8B at b968826d9c46dd6066d109eabc6255188de91218
