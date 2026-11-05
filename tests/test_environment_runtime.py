@@ -18,7 +18,6 @@ from autorlbench.core.types import (
     MODELS_DIR,
     PREPARED_DIR,
     AUTORLBENCH_ENVIRONMENT_DIR,
-    TOOLING_DIR,
     EnvironmentPlan,
 )
 from autorlbench.runtimes import SandboxRequest
@@ -105,12 +104,15 @@ class MountTableTests(unittest.TestCase):
             self.assertFalse(mounts[container_path].read_only, container_path)
 
     def test_later_stages_see_the_download_cache_read_only(self) -> None:
-        # Visible so debugging can reconcile them; read-only because the grading basis must not be agent-editable.
-        for stage in ("agent", "verifier"):
-            mounts = self._mounts(make_request(stage))
-            for container_path in (MODELS_DIR, DATASETS_DIR):
-                self.assertIn(container_path, mounts, (stage, container_path))
-                self.assertTrue(mounts[container_path].read_only, (stage, container_path))
+        # The verifier reads them read-only for grading; the agent does not see them at all --
+        # an HF cache's directory names are its repo names, and a repo name can spell out the
+        # answer. See sees_download_cache().
+        self.assertNotIn(MODELS_DIR, self._mounts(make_request("agent")))
+        self.assertNotIn(DATASETS_DIR, self._mounts(make_request("agent")))
+        mounts = self._mounts(make_request("verifier"))
+        for container_path in (MODELS_DIR, DATASETS_DIR):
+            self.assertIn(container_path, mounts, container_path)
+            self.assertTrue(mounts[container_path].read_only, container_path)
 
     def test_stages_without_a_download_cache_still_run(self) -> None:
         # No shared cache only means "this download will not be reused next time", not an error.
@@ -119,39 +121,21 @@ class MountTableTests(unittest.TestCase):
             self.assertNotIn(MODELS_DIR, mounts, stage)
             self.assertNotIn(DATASETS_DIR, mounts, stage)
 
-    # --- tooling: only prepare mounts the repo docker/ read-only ---------------
+    # --- environment: read-only wherever it is mounted -------------------------
 
-    def test_prepare_mounts_the_tooling_dir_read_only(self) -> None:
-        # Before its script, prepare uses docker/install-autorlbench-tooling.sh to install the latest fetch/dataset
-        # tools, so the repo docker/ must be mounted; read-only, since prepare has no reason to modify the repo.
-        mount = self._mounts(make_request("prepare", host_tooling=ROOT / "docker"))[
-            TOOLING_DIR
-        ]
-        self.assertEqual(mount.host_path, ROOT / "docker")
-        self.assertTrue(mount.read_only)
-
-    def test_later_stages_never_mount_tooling(self) -> None:
-        # Agent / verifier do not run prepare, so the tools are useless there, and they run in separate containers.
-        for stage in ("agent", "verifier"):
-            self.assertNotIn(
-                TOOLING_DIR,
-                self._mounts(make_request(stage, host_tooling=ROOT / "docker")),
-                stage,
-            )
-
-    def test_prepare_without_tooling_still_runs(self) -> None:
-        # docker/ may not ship with a wheel install; if absent, do not mount it (the installer step also skips).
-        self.assertNotIn(
-            TOOLING_DIR, self._mounts(make_request("prepare", host_tooling=None))
-        )
-
-    # --- environment: read-only in all three stages ---------------------------
-
-    def test_environment_is_read_only_in_every_stage(self) -> None:
-        for stage in ("prepare", "agent", "verifier"):
+    def test_environment_is_read_only_wherever_mounted(self) -> None:
+        for stage in ("prepare", "rerun", "verifier"):
             mount = self._mounts(make_request(stage))[AUTORLBENCH_ENVIRONMENT_DIR]
             self.assertEqual(mount.host_path, ROOT / "environment", stage)
             self.assertTrue(mount.read_only, stage)
+
+    def test_the_agent_never_sees_the_environment_dir(self) -> None:
+        # prepare.sh describes how the task was assembled -- which HF repo, which sha256 --
+        # and any of those names can point straight at the defect being diagnosed.
+        # See sees_environment_dir().
+        self.assertNotIn(
+            AUTORLBENCH_ENVIRONMENT_DIR, self._mounts(make_request("agent"))
+        )
 
     def test_task_without_environment_dir_mounts_nothing(self) -> None:
         # environment/ is optional; if absent, do not mount it rather than mounting a missing directory.
@@ -172,58 +156,56 @@ class MountTableTests(unittest.TestCase):
 
 
 class GpuWiringTests(unittest.TestCase):
-    """How GPUs declared on the task card become `docker create` flags.
+    """How the GPU count declared on the task card becomes `docker create` flags.
 
     This is the entire implementation of "can the task actually train". The host's default runtime is runc,
-    and passing NVIDIA_VISIBLE_DEVICES via `-e` makes no device visible in the container; only --gpus
-    triggers the nvidia hook. The image side (CUDA base image) has always assumed libcuda.so.1 is
-    injected by --gpus; this supplies the missing half.
+    and passing device ids via `-e` makes no device visible in the container; only --gpus triggers the nvidia
+    hook. Docker exposes N cards as cuda:0..N-1 inside the container, so the task declares a count, not
+    device names. The image side (CUDA base image) has always assumed libcuda.so.1 is injected by --gpus;
+    this supplies the missing half.
     """
 
     def _args(self, **kwargs) -> list:
         return DockerRuntime._gpu_args(make_request("agent", **kwargs))
 
-    def test_a_device_list_becomes_a_device_spec(self) -> None:
-        # Task cards hold a bare device list (rlve_hyper/task_001 has "0,1,2,3"),
-        # and docker only recognizes the device= prefix.
-        args = self._args(task_env={"NVIDIA_VISIBLE_DEVICES": "0,1,2,3"})
-        self.assertEqual(args[:2], ["--gpus", "device=0,1,2,3"])
-
-    def test_all_is_passed_through(self) -> None:
-        self.assertEqual(self._args(task_env={"NVIDIA_VISIBLE_DEVICES": "all"})[:2],
-                         ["--gpus", "all"])
+    def test_a_declared_count_becomes_the_gpus_flag(self) -> None:
+        # `--gpus` accepts a bare number as a count (`docker run --gpus 8`).
+        self.assertEqual(self._args(gpus=8), ["--gpus", "8", "--shm-size=16g"])
 
     def test_gpu_stages_get_a_usable_shm(self) -> None:
         # Docker's default 64MB /dev/shm makes ray/sglang blow up on the first rollout,
         # with an unhelpful bus error.
-        args = self._args(task_env={"NVIDIA_VISIBLE_DEVICES": "0"})
+        args = self._args(gpus=8)
         self.assertIn("--shm-size=16g", args)
 
     def test_a_cpu_only_task_is_untouched(self) -> None:
         # Byte-for-byte identical to before the wiring: CPU-only tasks and the grading stage have no reason to use more memory.
         self.assertEqual(self._args(), [])
 
-    def test_explicitly_asking_for_no_gpu_is_honoured(self) -> None:
-        # `none` / `void` are NVIDIA_VISIBLE_DEVICES's own "no GPU" values.
-        for value in ("none", "void", ""):
-            self.assertEqual(self._args(task_env={"NVIDIA_VISIBLE_DEVICES": value}), [], value)
+    def test_declaring_zero_gpus_is_the_same_as_declaring_none(self) -> None:
+        self.assertEqual(self._args(gpus=0), [])
 
     def test_the_host_can_override_the_task_card(self) -> None:
         # A machine with only 2 GPUs should still run a task whose card says 8.
         with mock.patch.dict(os.environ, {"AUTORLBENCH_DOCKER_GPUS": "device=0,1"}):
-            args = self._args(task_env={"NVIDIA_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7"})
+            args = self._args(gpus=8)
         self.assertEqual(args[:2], ["--gpus", "device=0,1"])
 
     def test_the_host_can_override_the_shm_size(self) -> None:
         with mock.patch.dict(os.environ, {"AUTORLBENCH_DOCKER_SHM_SIZE": "64g"}):
-            args = self._args(task_env={"NVIDIA_VISIBLE_DEVICES": "0"})
+            args = self._args(gpus=8)
         self.assertIn("--shm-size=64g", args)
 
-    def test_every_stage_can_reach_the_gpu_it_declares(self) -> None:
-        # Prepare needs GPUs to convert HF weights to torch_dist, and the agent runs training. The verifier gets them
-        # too because task_env treats all three stages alike; if it declares none, it naturally has none.
-        for stage in ("prepare", "agent", "verifier"):
-            request = make_request(stage, task_env={"NVIDIA_VISIBLE_DEVICES": "0"})
+    def test_prepare_never_takes_the_cards(self) -> None:
+        # Prepare only downloads models and datasets; on some hosts the NVIDIA runtime hook
+        # fails at `docker start` when it tries to bind the device nodes.
+        self.assertEqual(DockerRuntime._gpu_args(make_request("prepare", gpus=8)), [])
+
+    def test_the_training_stages_take_the_cards_the_task_declares(self) -> None:
+        # The rerun runs real training; the agent gets them too, but the protocol forbids it
+        # from launching training -- there the GPU is headroom for cheap offline checks.
+        for stage in ("agent", "rerun", "verifier"):
+            request = make_request(stage, gpus=8)
             self.assertIn("--gpus", DockerRuntime._gpu_args(request), stage)
 
 
@@ -279,22 +261,39 @@ class StandardEnvTests(unittest.TestCase):
         self.assertEqual(env["AUTORLBENCH_MODELS"], MODELS_DIR)
         self.assertEqual(env["AUTORLBENCH_DATASETS"], DATASETS_DIR)
 
-    def test_the_download_cache_is_exported_to_every_stage(self) -> None:
-        # All three stages can mount them, so all three should get real paths rather than empty strings.
-        for stage in ("prepare", "agent", "verifier"):
+    def test_the_download_cache_reaches_prepare_and_verifier_only(self) -> None:
+        # Prepare writes the caches, the verifier reads them; the agent and rerun see nothing,
+        # matching sees_download_cache() and the mount table.
+        for stage in ("prepare", "verifier"):
             env = self._env(stage)
             self.assertEqual(env["AUTORLBENCH_MODELS"], MODELS_DIR, stage)
             self.assertEqual(env["AUTORLBENCH_DATASETS"], DATASETS_DIR, stage)
+        for stage in ("agent", "rerun"):
+            env = self._env(stage)
+            self.assertEqual(env["AUTORLBENCH_MODELS"], "", stage)
+            self.assertEqual(env["AUTORLBENCH_DATASETS"], "", stage)
 
     def test_unmounted_directories_are_the_empty_string(self) -> None:
         # "You cannot see it", not "the path is there but the directory is empty"; the latter would make prepare.sh
         # download the model somewhere that vanishes after the run.
-        env = self._env("agent", host_models=None, host_datasets=None)
+        env = self._env("verifier", host_models=None, host_datasets=None)
         self.assertEqual(env["AUTORLBENCH_MODELS"], "")
         self.assertEqual(env["AUTORLBENCH_DATASETS"], "")
-        env = self._env("agent", host_environment=None, host_prepared=None)
+        # The prepare stage always has a prepared dir (the request validation demands
+        # one); the rerun is where a missing one is legal.
+        env = self._env("rerun", host_environment=None, host_prepared=None)
         self.assertEqual(env["AUTORLBENCH_ENVIRONMENT"], "")
         self.assertEqual(env["AUTORLBENCH_PREPARED"], "")
+
+    def test_the_agent_does_not_see_the_environment_dir(self) -> None:
+        # The variable follows the mount table, not whoever set the field, so the two
+        # cannot drift: an agent-stage AUTORLBENCH_ENVIRONMENT is always the empty string.
+        # The rerun, harness-initiated and running only the task's declared command,
+        # keeps the mount like the verifier does.
+        self.assertEqual(self._env("agent")["AUTORLBENCH_ENVIRONMENT"], "")
+        self.assertEqual(
+            self._env("rerun")["AUTORLBENCH_ENVIRONMENT"], AUTORLBENCH_ENVIRONMENT_DIR
+        )
 
 
 class NetworkPolicyEnvTests(unittest.TestCase):
@@ -324,10 +323,16 @@ class NetworkPolicyEnvTests(unittest.TestCase):
 
     def test_agent_stage_does_not_see_the_task_id(self) -> None:
         # Task ids often spell out the diagnosis (e.g. "context_parallel_oom"); printenv in
-        # the sandbox must not hand over the answer. The other stages keep the real id --
-        # no task-side script consumes it, but it is part of prepare.sh's interface.
-        self.assertEqual(DockerRuntime().standard_env(make_request("agent"))["AUTORLBENCH_TASK_ID"], "task")
-        for stage in ("prepare", "verifier", "rerun"):
+        # the sandbox must not hand over the answer. The rerun is harness-initiated and gets
+        # the same neutral placeholder; the other stages keep the real id -- no task-side
+        # script consumes it, but it is part of prepare.sh's interface.
+        for stage in ("agent", "rerun"):
+            self.assertEqual(
+                DockerRuntime().standard_env(make_request(stage))["AUTORLBENCH_TASK_ID"],
+                "task",
+                stage,
+            )
+        for stage in ("prepare", "verifier"):
             env = DockerRuntime().standard_env(make_request(stage))
             self.assertEqual(env["AUTORLBENCH_TASK_ID"], "task_001", stage)
 
@@ -335,7 +340,7 @@ class NetworkPolicyEnvTests(unittest.TestCase):
 class PrepareScriptTests(unittest.TestCase):
     """How the evaluator translates prepare.sh into a container path."""
 
-    def _package(self, root: Path, *, prepare: Path | None, image: str | None = "verl"):
+    def _package(self, root: Path, *, prepare: Path | None, image: str | None = "verl-qwen3vl-cu130"):
         from autorlbench.core.types import TaskPaths
 
         paths = TaskPaths(

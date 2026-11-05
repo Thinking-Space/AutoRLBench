@@ -40,6 +40,8 @@ from autorlbench.evaluation.harbor_evaluator import (
 from autorlbench.tasks import load_task_package
 
 
+FIXTURE_IMAGE = "verl-qwen3vl-cu130"
+
 METADATA = """title = "Harbor fixture"
 license = "MIT"
 created_date = "2026-09-13"
@@ -64,15 +66,16 @@ algo = "grpo"
 script = "train.sh"
 
 [environment]
-image = "verl"
+image = "verl-qwen3vl-cu130"
+gpus = 1
 
 [environment.env]
-CUDA_VISIBLE_DEVICES = "0"
+TASK_FLAG = "on"
 """
 
 
 def create_task(root: Path, name: str = "harbor_fixture") -> Path:
-    """A minimal task with issue / solution evaluations, prepare.sh, and the verl image."""
+    """A minimal task with issue / solution evaluations, prepare.sh, and a real image."""
     task = root / name
     (task / "workspace" / "pkg").mkdir(parents=True)
     (task / "workspace" / "train.sh").write_text(
@@ -97,6 +100,18 @@ def create_task(root: Path, name: str = "harbor_fixture") -> Path:
             (evaluation / "oracle").mkdir()
             (evaluation / "oracle" / "fix.diff").write_text("diff\n", encoding="utf-8")
     (task / "task.toml").write_text(METADATA, encoding="utf-8")
+    return task
+
+
+def _fixture_with_gpus(root: Path, name: str, gpus: int | None) -> Path:
+    """A copy of the fixture task with a different (or absent) environment.gpus value."""
+    task = create_task(root, name)
+    metadata = METADATA
+    if gpus is None:
+        metadata = metadata.replace("\ngpus = 1\n", "\n")
+    else:
+        metadata = metadata.replace("gpus = 1", f"gpus = {gpus}")
+    (task / "task.toml").write_text(metadata, encoding="utf-8")
     return task
 
 
@@ -151,7 +166,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
         task_dir = self.materialize()
 
         self.assertIn(
-            f'docker_image = "{EnvironmentImage("verl").tag}"', self.toml(task_dir)
+            f'docker_image = "{EnvironmentImage(FIXTURE_IMAGE).tag}"', self.toml(task_dir)
         )
         self.assertIn('workdir = "/workspace"', self.toml(task_dir))
         self.assertFalse((task_dir / "environment" / "Dockerfile").exists())
@@ -240,8 +255,8 @@ class HarborTaskMaterializerTests(FixtureTestCase):
         small = self.toml(self.materialize())
         big = self.toml(self.materialize(workspace=staged))
 
-        self.assertIn("build_timeout_sec = 660", small)
-        self.assertIn("build_timeout_sec = 780", big)
+        self.assertIn("build_timeout_sec = 1860", small)
+        self.assertIn("build_timeout_sec = 1980", big)
 
     def test_no_solution_without_solve_script(self):
         self.assertFalse((self.materialize() / "solution").exists())
@@ -260,7 +275,8 @@ class HarborTaskMaterializerTests(FixtureTestCase):
             self.assertIn(f'BASH_ENV = "{ACTIVATE_HOOK}"', section)
             self.assertIn('HF_HUB_OFFLINE = "1"', section)
             self.assertIn('WANDB_MODE = "offline"', section)
-            self.assertIn('CUDA_VISIBLE_DEVICES = "0"', section)
+            # Task-declared env reaches both stages.
+            self.assertIn('TASK_FLAG = "on"', section)
         self.assertIn('AUTORLBENCH_STAGE = "agent"', agent_env)
         self.assertIn('AUTORLBENCH_STAGE = "verifier"', verifier_env)
 
@@ -340,7 +356,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
             (task_dir / "adapter-manifest.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(manifest["docker_image"], EnvironmentImage("verl").tag)
+        self.assertEqual(manifest["docker_image"], EnvironmentImage(FIXTURE_IMAGE).tag)
         self.assertEqual(manifest["verifier_mode"], "shared")
         self.assertNotIn("debian_mirror", manifest)
 
@@ -497,27 +513,42 @@ class HarborRunnerTests(unittest.TestCase):
         )
 
     @patch.object(HarborRunner, "_run_streaming")
-    def test_task_compose_file_is_passed_as_an_overlay(self, run_mock):
+    def test_gpu_compose_is_synthesized_from_the_declared_count(self, run_mock):
         run_mock.return_value.returncode = 0
         run_mock.return_value.stdout = ""
         run_mock.return_value.stderr = ""
-        compose = self.package.paths.environment / "docker-compose.yaml"
-        compose.write_text("services:\n  main:\n    shm_size: 16gb\n", encoding="utf-8")
         with tempfile.TemporaryDirectory() as temp_dir:
-            HarborRunner().run(self._prepared(Path(temp_dir)), HarborEvaluationConfig())
+            root = Path(temp_dir)
+            prepared = self._prepared(root)
+            HarborRunner().run(prepared, HarborEvaluationConfig())
 
-        argv = run_mock.call_args.args[0]
-        self.assertEqual(
-            argv[argv.index("--extra-docker-compose") + 1], str(compose.resolve())
-        )
+            argv = run_mock.call_args.args[0]
+            overlay = Path(argv[argv.index("--extra-docker-compose") + 1])
+            # Written under prepared.root, which lives as long as the job; never in the
+            # materialized task's environment/ (a compose file there stops the workspace upload).
+            self.assertEqual(overlay.parent, Path(prepared.root).resolve())
+            content = overlay.read_text(encoding="utf-8")
+
+        self.assertIn("driver: nvidia", content)
+        self.assertIn(f"count: {self.package.environment.gpus}", content)
+        self.assertIn('shm_size: "16g"', content)
 
     @patch.object(HarborRunner, "_run_streaming")
-    def test_no_overlay_without_task_compose_file(self, run_mock):
+    def test_no_overlay_without_declared_gpus(self, run_mock):
         run_mock.return_value.returncode = 0
         run_mock.return_value.stdout = ""
         run_mock.return_value.stderr = ""
+        cpu_package = load_task_package(
+            _fixture_with_gpus(Path(self._fixture.name), "harbor_fixture_cpu", None)
+        )
         with tempfile.TemporaryDirectory() as temp_dir:
-            HarborRunner().run(self._prepared(Path(temp_dir)), HarborEvaluationConfig())
+            root = Path(temp_dir)
+            prepared = PreparedHarborTask(
+                root=root,
+                tasks_dir=root / "tasks",
+                units=[make_unit(cpu_package, "solution")],
+            )
+            HarborRunner().run(prepared, HarborEvaluationConfig())
 
         self.assertNotIn("--extra-docker-compose", run_mock.call_args.args[0])
 
@@ -1035,7 +1066,7 @@ class HarborPreparerTests(FixtureTestCase):
         self.assertEqual(unit.prepared, self.root / "prep")
         self.assertEqual(unit.environment, self.root / "env")
         self.assertEqual(
-            evaluator.runtime.ensure_environment.call_args.args[0], EnvironmentImage("verl")
+            evaluator.runtime.ensure_environment.call_args.args[0], EnvironmentImage(FIXTURE_IMAGE)
         )
         eval_config = evaluator._prepare_run.call_args.args[2]
         self.assertEqual(eval_config.huggingface_mirror, "https://hf-mirror.com")

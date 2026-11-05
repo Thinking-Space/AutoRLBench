@@ -10,9 +10,12 @@ defaults and the budget the protocol requires are often different (the
 search-r1 script defaults to `--num-rollout 200` where the protocol wants 100;
 retool defaults to 3000 where it wants 70), and a budget override that exists
 only in the prose of instruction.md gives the harness no way to run it
-correctly on the agent's behalf. So every training task pins one down in
-`evaluations/solution/verifier/resources/run_spec.json`: which command to run,
-with which environment, how long it may take, and where the logs land.
+correctly on the agent's behalf. So every training task pins one down in the
+task-root `run_spec.json`: which command to run, with which environment, how
+long it may take, and where the logs land. The file lives at the task root --
+not under evaluations/solution/ -- because the rerun it drives is the same
+experiment for both evaluation levels, so the spec is level-neutral and sits
+above the level directories.
 
 A solution task without a run_spec.json is still bound by the agent-side half
 of the protocol -- repair, submit report.md, do not train -- the harness simply
@@ -84,15 +87,21 @@ class RunSpec:
         return expanded
 
 
-def load_run_spec(evaluation_root: Path, task_id: str) -> Optional[RunSpec]:
-    """Load the task's run_spec.json, or None when it has none (no system rerun).
+def load_run_spec(task_root: Path, task_id: str) -> Optional[RunSpec]:
+    """Load the task-root run_spec.json, or None when the task has none (no system rerun).
 
     A spec that exists but is invalid must fail here and now: discovering a broken spec halfway
     into the rerun looks like a harness bug when it is the task author who needs to fix it.
     """
-    path = evaluation_root / "verifier" / "resources" / RUN_SPEC_FILENAME
+    path = task_root / RUN_SPEC_FILENAME
     if not path.is_file():
-        return None
+        # Legacy location: evaluations/solution/verifier/resources/run_spec.json. Tasks migrated to
+        # the task-root layout win; only tasks that never moved are read from here. The fallback
+        # exists so a harness upgrade does not have to move 16 task directories in the same commit.
+        legacy = task_root / "evaluations" / "solution" / "verifier" / "resources" / RUN_SPEC_FILENAME
+        if not legacy.is_file():
+            return None
+        path = legacy
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:

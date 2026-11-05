@@ -14,6 +14,9 @@ from autorlbench.tasks import SchemaError, load_task_package
 from autorlbench.tasks.validator import validate_metadata
 
 
+# A real environment from docker/images/, so the loader's known_images() check passes.
+FIXTURE_IMAGE = "verl_checkpoint_host_memory_oom"
+
 METADATA_HEAD = """title = "Image task"
 license = "MIT"
 created_date = "2026-09-13"
@@ -74,25 +77,25 @@ class EnvironmentPlanTests(unittest.TestCase):
         # Nearly every task has a prepare.sh; forcing each task.toml to repeat the path only
         # invites typos.
         package = self._load(
-            '[environment]\nimage = "verl"\n',
+            f'[environment]\nimage = "{FIXTURE_IMAGE}"\n',
             prepare="#!/usr/bin/env bash\n",
         )
         plan = package.environment
         self.assertTrue(package.report.ok, package.report.to_dict())
-        self.assertEqual(plan.image, "verl")
-        self.assertEqual(plan.environment_image, EnvironmentImage("verl"))
+        self.assertEqual(plan.image, FIXTURE_IMAGE)
+        self.assertEqual(plan.environment_image, EnvironmentImage(FIXTURE_IMAGE))
         self.assertEqual(plan.prepare.name, "prepare.sh")
 
     def test_explicit_prepare_wins_over_the_convention(self) -> None:
         package = self._load(
-            '[environment]\nimage = "verl"\nprepare = "environment/fetch.sh"\n',
+            f'[environment]\nimage = "{FIXTURE_IMAGE}"\nprepare = "environment/fetch.sh"\n',
         )
         self.assertEqual(package.environment.prepare.name, "fetch.sh")
 
     def test_absent_prepare_leaves_the_plan_empty_rather_than_dangling(self) -> None:
         # A plan carrying a missing path would conflate "the task has no prepare.sh" with "declared but wrong path",
         # and the latter must be an error.
-        plan = self._load('[environment]\nimage = "slime-v0.3.2"\n').environment
+        plan = self._load('[environment]\nimage = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"\n').environment
         self.assertIsNone(plan.prepare)
 
     def test_unknown_image_is_a_schema_error(self) -> None:
@@ -139,14 +142,14 @@ class EnvironmentPlanTests(unittest.TestCase):
         # If ignored, task authors would think they still have an effect.
         for key in ("conda", "dockerfile", "requirements"):
             self.assertEqual(
-                self._environment_issues({"image": "verl", key: "x"}),
+                self._environment_issues({"image": FIXTURE_IMAGE, key: "x"}),
                 [f"metadata.environment.{key}"],
                 key,
             )
 
     def test_validator_rejects_a_non_path_prepare(self) -> None:
         self.assertEqual(
-            self._environment_issues({"image": "verl", "prepare": 3}),
+            self._environment_issues({"image": FIXTURE_IMAGE, "prepare": 3}),
             ["metadata.environment.prepare"],
         )
 
@@ -161,7 +164,7 @@ class EnvironmentEnvTests(unittest.TestCase):
 
     def test_env_is_parsed_into_the_plan(self):
         package = self._load(
-            '[environment]\nimage = "verl"\n'
+            f'[environment]\nimage = "{FIXTURE_IMAGE}"\n'
             '[environment.env]\n'
             'CUDA_VISIBLE_DEVICES = "0,1"\n'
             'NVIDIA_VISIBLE_DEVICES = "0,1"\n'
@@ -172,13 +175,13 @@ class EnvironmentEnvTests(unittest.TestCase):
         )
 
     def test_absent_env_is_an_empty_mapping(self):
-        self.assertEqual(self._load('[environment]\nimage = "verl"\n').environment.env, {})
+        self.assertEqual(self._load(f'[environment]\nimage = "{FIXTURE_IMAGE}"\n').environment.env, {})
 
     def test_tasks_cannot_hijack_the_harness_channel(self):
         # AUTORLBENCH_* is how the harness tells the container "which stage you are".
         with self.assertRaises(SchemaError) as ctx:
             self._load(
-                '[environment]\nimage = "verl"\n[environment.env]\nAUTORLBENCH_STAGE = "verifier"\n'
+                f'[environment]\nimage = "{FIXTURE_IMAGE}"\n[environment.env]\nAUTORLBENCH_STAGE = "verifier"\n'
             )
         self.assertIn("AUTORLBENCH_STAGE", str(ctx.exception))
 
@@ -187,13 +190,13 @@ class EnvironmentEnvTests(unittest.TestCase):
         # "use only GPU 0" indistinguishable from "a typo".
         with self.assertRaises(SchemaError) as ctx:
             self._load(
-                '[environment]\nimage = "verl"\n[environment.env]\nCUDA_VISIBLE_DEVICES = 0\n'
+                f'[environment]\nimage = "{FIXTURE_IMAGE}"\n[environment.env]\nCUDA_VISIBLE_DEVICES = 0\n'
             )
         self.assertIn("CUDA_VISIBLE_DEVICES", str(ctx.exception))
 
     def test_scalar_env_is_rejected(self):
         with self.assertRaises(SchemaError):
-            self._load('[environment]\nimage = "verl"\nenv = "nope"\n')
+            self._load(f'[environment]\nimage = "{FIXTURE_IMAGE}"\nenv = "nope"\n')
 
 
 class EnvironmentEnvRuntimeTests(unittest.TestCase):
@@ -235,24 +238,30 @@ class EnvironmentEnvRuntimeTests(unittest.TestCase):
 
 
 class EnvironmentImageTests(unittest.TestCase):
-    def test_image_name_maps_to_a_fixed_tag_and_its_dockerfile(self):
-        image = EnvironmentImage("verl")
-        self.assertEqual(image.tag, "autorlbench/verl:vllm0.17-torch2.10-cu129")
-        self.assertEqual(image.dockerfile, IMAGES_DIR / "verl.Dockerfile")
+    def test_image_name_resolves_to_its_dockerfiles_from_ref(self):
+        image = EnvironmentImage(FIXTURE_IMAGE)
+        froms = re.findall(
+            r"^FROM\s+(\S+)",
+            image.dockerfile.read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
+        )
+        self.assertEqual(image.tag, froms[0])
+        self.assertEqual(image.dockerfile, IMAGES_DIR / f"{FIXTURE_IMAGE}.Dockerfile")
         self.assertEqual(image.context, IMAGES_DIR.parent)
 
-    def test_every_dockerfile_declares_a_unique_tag(self):
-        # Tags are named per stack, one per environment; if two collide, the later build overwrites the earlier.
+    def test_every_dockerfile_resolves_to_a_unique_reference(self):
+        # Each environment pulls a distinct upstream image; two environments sharing a
+        # reference would silently run the same stack under two names.
         tags = {name: EnvironmentImage(name).tag for name in sorted(known_images())}
-        for name, tag in tags.items():
-            self.assertRegex(tag, r"^autorlbench/[a-z0-9.-]+:[A-Za-z0-9._-]+$", name)
-            self.assertNotIn(":latest", tag, name)
+        self.assertTrue(tags)
         self.assertEqual(len(set(tags.values())), len(tags), tags)
 
-    def test_missing_tag_header_is_an_error_not_a_default(self):
+    def test_a_dockerfile_without_a_from_line_is_an_error(self):
+        # Neither a header nor a FROM line: there is nothing to pull, and defaulting
+        # to a tag would hide the broken Dockerfile until the first run.
         with tempfile.TemporaryDirectory() as temp:
             dockerfile = Path(temp) / "x.Dockerfile"
-            dockerfile.write_text("FROM scratch\n", encoding="utf-8")
+            dockerfile.write_text("# nothing to run\n", encoding="utf-8")
             with mock.patch.object(
                 EnvironmentImage, "dockerfile", new_callable=mock.PropertyMock,
                 return_value=dockerfile,
@@ -270,16 +279,24 @@ class EnvironmentImageTests(unittest.TestCase):
             for ref in froms:
                 self.assertRegex(ref, r"@sha256:[0-9a-f]{64}$", name)
 
-    def test_tooling_block_is_identical_in_every_dockerfile(self):
-        # Every image connects to the harness through the same tooling layer (activate hook, fetch shims, etc.);
-        # if one copy drifts, that environment's tasks fail in odd ways only at runtime.
-        marker = "# ---- AutoRLBench tooling: keep identical in every docker/images/*.Dockerfile ----"
-        blocks = {}
+    def test_no_image_bakes_harness_tooling_anymore(self):
+        # The activate hook and the fetch/dataset tools moved to the prepare stage: the
+        # harness bind-mounts /autorlbench/prepared per run and injects the activation
+        # logic inline. Any Dockerfile creating those directories is a leftover from
+        # the old bake-it-in era. (miles-ngc2506-distributable is a build recipe with
+        # several layers rather than a pull file, but the same rule applies to it.)
+        # FROM lines and comments are exempt: registry paths and prose may carry the
+        # string (ghcr.io/.../autorlbench-justrl2), instructions may not.
         for name in sorted(known_images()):
             text = EnvironmentImage(name).dockerfile.read_text(encoding="utf-8")
-            self.assertIn(marker, text, name)
-            blocks[name] = text[text.index(marker):]
-        self.assertEqual(len(set(blocks.values())), 1, sorted(blocks))
+            body = "\n".join(
+                line for line in text.splitlines()
+                if line.strip()
+                and not line.lstrip().startswith("#")
+                and not line.lstrip().upper().startswith("FROM ")
+            )
+            self.assertNotIn("/ptdbench", body, name)
+            self.assertNotIn("/autorlbench", body, name)
 
 
 class EnsureEnvironmentTests(unittest.TestCase):
@@ -287,38 +304,36 @@ class EnsureEnvironmentTests(unittest.TestCase):
         from autorlbench.runtimes.providers.docker import DockerRuntime
 
         runtime = DockerRuntime()
-        image = EnvironmentImage("verl")
+        image = EnvironmentImage(FIXTURE_IMAGE)
         with mock.patch.object(DockerRuntime, "_image_exists", return_value=exists), \
                 mock.patch("autorlbench.runtimes.providers.docker.subprocess.run") as run:
             artifact = runtime.ensure_environment(image, rebuild=rebuild)
-        self.assertEqual(artifact.reference, "autorlbench/verl:vllm0.17-torch2.10-cu129")
+        self.assertEqual(artifact.reference, image.tag)
         return run
 
-    def test_existing_image_is_reused_without_building(self):
+    def test_existing_image_is_reused_without_pulling(self):
         self.assertFalse(self._run(exists=True).called)
 
-    def test_missing_image_is_built_from_its_dockerfile(self):
+    def test_missing_image_is_pulled_by_reference(self):
         run = self._run(exists=False)
         argv = run.call_args.args[0]
-        self.assertEqual(argv[:2], ["docker", "build"])
-        self.assertEqual(argv[argv.index("-f") + 1], str(IMAGES_DIR / "verl.Dockerfile"))
-        self.assertEqual(argv[argv.index("-t") + 1], "autorlbench/verl:vllm0.17-torch2.10-cu129")
-        self.assertEqual(argv[-1], str(IMAGES_DIR.parent))
+        self.assertEqual(argv[:2], ["docker", "pull"])
+        self.assertEqual(argv[2], EnvironmentImage(FIXTURE_IMAGE).tag)
         self.assertTrue(run.call_args.kwargs["check"])
 
-    def test_rebuild_builds_even_when_the_image_exists(self):
+    def test_rebuild_repulls_even_when_the_image_exists(self):
         self.assertTrue(self._run(exists=True, rebuild=True).called)
 
-    def test_build_failure_propagates(self):
+    def test_pull_failure_propagates(self):
         from autorlbench.runtimes.providers.docker import DockerRuntime
 
         with mock.patch.object(DockerRuntime, "_image_exists", return_value=False), \
                 mock.patch(
                     "autorlbench.runtimes.providers.docker.subprocess.run",
-                    side_effect=subprocess.CalledProcessError(1, ["docker", "build"]),
+                    side_effect=subprocess.CalledProcessError(1, ["docker", "pull"]),
                 ):
             with self.assertRaises(subprocess.CalledProcessError):
-                DockerRuntime().ensure_environment(EnvironmentImage("verl"))
+                DockerRuntime().ensure_environment(EnvironmentImage(FIXTURE_IMAGE))
 
 
 class BuildImagesCommandTests(unittest.TestCase):
@@ -337,11 +352,11 @@ class BuildImagesCommandTests(unittest.TestCase):
         self.assertEqual(calls, [(name, False) for name in sorted(known_images())])
 
     def test_names_and_rebuild_are_passed_through(self):
-        self.assertEqual(self._main("verl", "--rebuild"), (0, [("verl", True)]))
+        self.assertEqual(self._main(FIXTURE_IMAGE, "--rebuild"), (0, [(FIXTURE_IMAGE, True)]))
 
     def test_unknown_name_is_rejected_before_building(self):
         with self.assertRaises(SystemExit) as ctx:
-            self._main("verl", "pytorch")
+            self._main(FIXTURE_IMAGE, "pytorch")
         self.assertIn("pytorch", str(ctx.exception))
 
 

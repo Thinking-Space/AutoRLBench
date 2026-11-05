@@ -1,264 +1,190 @@
-"""Cache-hit trust behavior of docker/autorlbench_fetch.py.
+"""Caching and aliasing behavior of the per-task fetch_hf.py.
 
-A present cache is trusted by default (no size/sha256 re-check) because
-re-hashing multi-GB weights on every prepare is the dominant cost of a
-warm-cache run; --recheck-cache restores the full check on a hit. A fresh
-download is always verified regardless. These tests lock that contract without
-touching the network: require_verified / sha256_file are spied on, and
-materialize is stubbed so no bytes are copied.
+The central docker/autorlbench_fetch.py is gone; each task's environment/ now
+ships its own standalone copy next to prepare.sh (the image contains the task's
+stack, not the harness, so the script must not import autorlbench). The copy
+tested here is the ported task's; the other shipped copies differ only in
+comments. Watched, without touching the network:
+
+- a warm cache dir is trusted as a complete download (the .partial staging
+  rename guarantees "exists" means "complete"), so snapshot_download is not
+  called again;
+- an interrupted download leaves a .partial dir, which must NOT count as a hit;
+- --cache-as lands a leaky repo name under a neutral alias, and the revealing
+  slug never appears on disk;
+- materialize() turns the cache into real bytes at --dest, replacing whatever
+  was there.
 """
 
 from __future__ import annotations
 
 import importlib.util
+import sys
+import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
 
-_SCRIPT = Path(__file__).resolve().parents[1] / "docker" / "autorlbench_fetch.py"
-_spec = importlib.util.spec_from_file_location("autorlbench_fetch", _SCRIPT)
+
+_SCRIPT = (
+    Path(__file__).resolve().parents[1]
+    / "tasks"
+    / "algorithm"
+    / "verl_grpo_advantage_broadcast"
+    / "environment"
+    / "fetch_hf.py"
+)
+_spec = importlib.util.spec_from_file_location("task_fetch_hf", _SCRIPT)
 assert _spec and _spec.loader
 fetch = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(fetch)
 
 
-def _hf_args(**over):
+def _args(tmp: Path, **over) -> types.SimpleNamespace:
     argv = [
-        "hf",
         "--repo",
-        "org/model",
-        "--revision",
-        "a" * 40,
+        over.pop("repo", "org/model"),
         "--dest",
-        over.pop("dest", "/tmp/dest"),
-        "--expect",
-        "model.safetensors=deadbeef",
-        "--expect-size",
-        "model.safetensors=10",
+        str(over.pop("dest", tmp / "dest")),
     ]
-    if over.pop("recheck", False):
-        argv.append("--recheck-cache")
+    if "type" in over:
+        argv += ["--type", over.pop("type")]
+    if "cache_as" in over:
+        argv += ["--cache-as", over.pop("cache_as")]
     return fetch.build_parser().parse_args(argv)
 
 
-def _url_args(tmp, **over):
-    argv = [
-        "url",
-        "--url",
-        "https://example.org/x.bin",
-        "--sha256",
-        over.pop("sha", "f" * 64),
-        "--dest",
-        str(tmp / "dest.bin"),
-    ]
-    if over.pop("recheck", False):
-        argv.append("--recheck-cache")
-    return fetch.build_parser().parse_args(argv)
+def _fake_hub(download_to: Path):
+    """A huggingface_hub whose snapshot_download populates local_dir."""
+    hub = types.ModuleType("huggingface_hub")
+
+    def snapshot_download(**kwargs):
+        target = Path(kwargs["local_dir"])
+        target.mkdir(parents=True, exist_ok=True)
+        (target / "model.safetensors").write_bytes(b"0123456789")
+        return str(target)
+
+    hub.snapshot_download = snapshot_download
+    return hub
 
 
-class HfCacheHitTests(unittest.TestCase):
-    def _seed_cache(self, tmp: Path) -> None:
-        fetch.MODELS_ROOT = tmp / "models"
-        cached = fetch.hf_cache_dir("org/model", "a" * 40, "model")
-        cached.mkdir(parents=True)
-        (cached / "model.safetensors").write_bytes(b"0123456789")
-
-    def test_hit_trusted_by_default_skips_verification(self):
-        with mock.patch.object(fetch, "materialize") as materialize, mock.patch.object(
-            fetch, "require_verified"
-        ) as verify:
-            import tempfile
-
-            with tempfile.TemporaryDirectory() as td:
-                self._seed_cache(Path(td))
-                fetch.fetch_hf(_hf_args(dest=str(Path(td) / "dest")))
-        verify.assert_not_called()
-        materialize.assert_called_once()
-
-    def test_recheck_cache_verifies_on_hit(self):
-        with mock.patch.object(fetch, "materialize"), mock.patch.object(
-            fetch, "require_verified"
-        ) as verify:
-            import tempfile
-
-            with tempfile.TemporaryDirectory() as td:
-                self._seed_cache(Path(td))
-                fetch.fetch_hf(_hf_args(dest=str(Path(td) / "dest"), recheck=True))
-        verify.assert_called_once()
-
-
-class UrlCacheHitTests(unittest.TestCase):
-    def _seed_blob(self, tmp: Path, sha: str) -> None:
-        fetch.DATASETS_ROOT = tmp / "datasets"
-        blob = fetch.DATASETS_ROOT / "url" / sha.lower() / "blob"
-        blob.parent.mkdir(parents=True)
-        blob.write_bytes(b"cached-bytes")
-
-    def test_hit_trusted_by_default_skips_hashing(self):
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as td, mock.patch.object(
-            fetch, "sha256_file"
-        ) as hasher:
-            tmp = Path(td)
-            self._seed_blob(tmp, "f" * 64)
-            fetch.fetch_url(_url_args(tmp))
-        hasher.assert_not_called()
-
-    def test_recheck_cache_hashes_on_hit(self):
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as td, mock.patch.object(
-            fetch, "sha256_file", return_value="f" * 64
-        ) as hasher:
-            tmp = Path(td)
-            self._seed_blob(tmp, "f" * 64)
-            fetch.fetch_url(_url_args(tmp, recheck=True))
-        hasher.assert_called_once()
-
-
-class LocalBlobReuseTests(unittest.TestCase):
-    """Content-addressed reuse: a byte-identical blob already in the shared cache
-    satisfies a sha-pinned file without the network. This is the only working path
-    for an xet-stored weight on a cluster whose egress proxy blocks the xet CDN.
-    """
-
-    def _sibling_blob(self, tmp: Path, sha: str, data: bytes) -> Path:
-        fetch.MODELS_ROOT = tmp / "models"
-        blob = fetch.MODELS_ROOT / "hf" / "hub" / "models--other--repo" / "blobs" / sha
-        blob.parent.mkdir(parents=True)
-        blob.write_bytes(data)
-        return blob
-
-    def test_find_local_blobs_matches_by_sha_and_size(self):
-        import tempfile
-
+class WarmCacheTests(unittest.TestCase):
+    def test_hit_is_reused_without_a_second_download(self):
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
-            blob = self._sibling_blob(tmp, "deadbeef", b"0123456789")
-            found = fetch.find_local_blobs(
-                "model", {"model.safetensors": "deadbeef"}, {"model.safetensors": 10}
+            fetch.MODELS_ROOT = tmp / "models"
+            cache = fetch.repo_cache_dir("org/model", "model")
+            cache.mkdir(parents=True)
+            (cache / "model.safetensors").write_bytes(b"warm")
+
+            calls = []
+
+            def no_download(**kw):
+                calls.append(kw)
+                raise AssertionError("warm cache must not re-download")
+
+            hub = types.ModuleType("huggingface_hub")
+            hub.snapshot_download = no_download
+            with mock.patch.dict(sys.modules, {"huggingface_hub": hub}):
+                fetch.fetch_hf(_args(tmp))
+            self.assertEqual(calls, [])
+            self.assertEqual(
+                (tmp / "dest" / "model.safetensors").read_bytes(), b"warm"
             )
-            self.assertEqual(found, {"model.safetensors": blob})
 
-    def test_find_local_blobs_rejects_size_mismatch(self):
-        import tempfile
-
+    def test_an_interrupted_partial_dir_is_not_a_hit(self):
+        # Only a completed download is renamed into place; .partial means the
+        # next run has to try again, not serve half a repo.
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
-            self._sibling_blob(tmp, "deadbeef", b"0123456789")
-            found = fetch.find_local_blobs(
-                "model", {"model.safetensors": "deadbeef"}, {"model.safetensors": 11}
+            fetch.MODELS_ROOT = tmp / "models"
+            partial = fetch.repo_cache_dir("org/model", "model").with_name(
+                fetch.repo_cache_dir("org/model", "model").name + ".partial"
             )
-            self.assertEqual(found, {})
+            partial.mkdir(parents=True)
+            (partial / "model.safetensors").write_bytes(b"half a file")
 
-    def test_seed_hf_cache_builds_pointer_to_real_bytes(self):
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            blob = self._sibling_blob(tmp, "deadbeef", b"0123456789")
-            rev = "a" * 40
-            fetch.seed_hf_cache("org/model", rev, "model", {"model.safetensors": blob})
-            pointer = fetch.hf_cache_dir("org/model", rev, "model") / "model.safetensors"
-            # The pointer resolves (not dangling) to the right 10 bytes.
-            self.assertTrue(pointer.is_symlink())
-            self.assertEqual(pointer.read_bytes(), b"0123456789")
-            # And it lives in this repo's own blobs/, keyed by the sha (= etag).
-            own_blob = (
-                fetch.hf_repo_dir("org/model", "model") / "blobs" / "deadbeef"
+            with mock.patch.dict(
+                sys.modules, {"huggingface_hub": _fake_hub(tmp)}
+            ):
+                fetch.fetch_hf(_args(tmp))
+            # The stale .partial was cleared, the real cache completed, and the
+            # destination carries the downloaded bytes rather than the partial ones.
+            self.assertFalse(partial.exists())
+            self.assertEqual(
+                (tmp / "dest" / "model.safetensors").read_bytes(), b"0123456789"
             )
-            self.assertTrue(own_blob.is_file())
 
 
 class CacheAsAliasTests(unittest.TestCase):
-    """--cache-as lands a leaky repo name under a neutral alias: only the cache
-    dir name changes, a warm alias is a trusted hit, and the revealing slug is
-    gone after a download."""
-
-    def _download_args(self, cache_as: bool):
-        argv = [
-            "hf",
-            "--repo",
-            "org/answer-repo",
-            "--revision",
-            "a" * 40,
-            "--dest",
-            "/tmp/dest",
-        ]
-        if cache_as:
-            argv += ["--cache-as", "org/neutral-asset"]
-        return fetch.build_parser().parse_args(argv)
-
-    def test_rename_moves_tree_and_second_call_hits_alias(self):
-        import sys
-        import tempfile
-        import types
-
+    def test_a_leaky_repo_name_never_lands_on_disk(self):
         with tempfile.TemporaryDirectory() as td:
-            fetch.MODELS_ROOT = Path(td) / "models"
-            real_snap = fetch.hf_repo_dir("org/answer-repo", "model") / "snapshots" / ("a" * 40)
-            real_snap.mkdir(parents=True)
-            (real_snap / "model.safetensors").write_bytes(b"0123456789")
+            tmp = Path(td)
+            fetch.MODELS_ROOT = tmp / "models"
+            with mock.patch.dict(sys.modules, {"huggingface_hub": _fake_hub(tmp)}):
+                fetch.fetch_hf(
+                    _args(tmp, repo="org/answer-repo", cache_as="org/neutral-asset")
+                )
+            self.assertFalse(
+                (fetch.MODELS_ROOT / "org__answer-repo").exists(),
+                "the revealing slug must never be written to the shared cache",
+            )
+            alias = fetch.repo_cache_dir(
+                "org/answer-repo", "model", cache_as="org/neutral-asset"
+            )
+            self.assertTrue((alias / "model.safetensors").is_file())
+
+    def test_a_warm_alias_is_a_trusted_hit(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            fetch.MODELS_ROOT = tmp / "models"
+            with mock.patch.dict(sys.modules, {"huggingface_hub": _fake_hub(tmp)}):
+                fetch.fetch_hf(
+                    _args(tmp, repo="org/answer-repo", cache_as="org/neutral-asset")
+                )
+
+            def no_download(**kw):
+                raise AssertionError("warm alias must not re-download")
 
             hub = types.ModuleType("huggingface_hub")
-            hub.snapshot_download = lambda **kw: str(real_snap)
-            sys.modules["huggingface_hub"] = hub
-            try:
-                with mock.patch.object(fetch, "materialize"), mock.patch.object(
-                    fetch, "require_verified"
-                ), mock.patch.object(fetch, "find_local_blobs", return_value={}):
-                    # No --expect: nothing to verify, download path is stubbed.
-                    fetch.fetch_hf(self._download_args(cache_as=True))
-                self.assertFalse(
-                    fetch.hf_repo_dir("org/answer-repo", "model").exists(),
-                    "revealing slug must be gone after the rename",
+            hub.snapshot_download = no_download
+            with mock.patch.dict(sys.modules, {"huggingface_hub": hub}):
+                fetch.fetch_hf(
+                    _args(tmp, repo="org/answer-repo", cache_as="org/neutral-asset")
                 )
-                alias_snap = (
-                    fetch.hf_repo_dir("org/answer-repo", "model", "org/neutral-asset")
-                    / "snapshots"
-                    / ("a" * 40)
-                )
-                self.assertTrue((alias_snap / "model.safetensors").is_file())
 
-                # Warm alias: trusted hit, snapshot_download never called.
-                calls = []
 
-                def no_download(**kw):
-                    calls.append(kw)
-                    raise AssertionError("warm alias must not re-download")
-
-                hub.snapshot_download = no_download
-                fetch.fetch_hf(self._download_args(cache_as=True))
-                self.assertEqual(calls, [])
-            finally:
-                sys.modules.pop("huggingface_hub", None)
-
-    def test_no_cache_as_keeps_repo_slug(self):
-        import sys
-        import tempfile
-        import types
-
+class MaterializeTests(unittest.TestCase):
+    def test_dest_is_real_bytes_and_replaces_what_was_there(self):
         with tempfile.TemporaryDirectory() as td:
-            fetch.MODELS_ROOT = Path(td) / "models"
-            real_snap = fetch.hf_repo_dir("org/answer-repo", "model") / "snapshots" / ("a" * 40)
-            real_snap.mkdir(parents=True)
-            (real_snap / "model.safetensors").write_bytes(b"0123456789")
+            tmp = Path(td)
+            source = tmp / "cache" / "model"
+            source.mkdir(parents=True)
+            (source / "model.safetensors").write_bytes(b"real")
+            dest = tmp / "workspace" / "model"
+            dest.mkdir(parents=True)
+            (dest / "stale-run.log").write_text("an earlier attempt", encoding="utf-8")
 
-            hub = types.ModuleType("huggingface_hub")
-            hub.snapshot_download = lambda **kw: str(real_snap)
-            sys.modules["huggingface_hub"] = hub
-            try:
-                with mock.patch.object(fetch, "materialize"), mock.patch.object(
-                    fetch, "require_verified"
-                ), mock.patch.object(fetch, "find_local_blobs", return_value={}):
-                    fetch.fetch_hf(self._download_args(cache_as=False))
-                self.assertTrue(
-                    fetch.hf_repo_dir("org/answer-repo", "model").is_dir(),
-                    "without --cache-as the slug is the repo's own name",
-                )
-            finally:
-                sys.modules.pop("huggingface_hub", None)
+            fetch.materialize(source, dest)
+            self.assertEqual((dest / "model.safetensors").read_bytes(), b"real")
+            self.assertFalse((dest / "stale-run.log").exists())
+
+    def test_a_dataset_routes_to_the_datasets_root(self):
+        # --type picks which of the two cache roots holds the repo; routing a
+        # dataset into models/ would make the next warm run miss.
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            fetch.MODELS_ROOT = tmp / "models"
+            fetch.DATASETS_ROOT = tmp / "datasets"
+            self.assertEqual(
+                fetch.repo_cache_dir("org/ds", "dataset"),
+                fetch.DATASETS_ROOT / "org__ds",
+            )
+            self.assertEqual(
+                fetch.repo_cache_dir("org/model", "model"),
+                fetch.MODELS_ROOT / "org__model",
+            )
 
 
 if __name__ == "__main__":

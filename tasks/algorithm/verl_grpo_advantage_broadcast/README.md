@@ -82,19 +82,34 @@ Required fix targets:
 (weights 0.2 / 0.6 / 0.2). Pass requires `verdict_score` == 1.0, and `root_cause_score` and `evidence_score` each > 0.8; the weighted total alone is not a pass condition.
 
 `solution` does not grade a structured diagnosis. The agent repairs the staged workspace and submits `report.md` without
-launching training. The harness runs the designated launch script for 400 steps
+launching training. The harness runs the designated launch script for 300 steps
 and produces fresh experiment logs. Scoring is weighted:
 
-- validation: a finite `val-core/taco/acc/mean@1` peak of at least `0.10`
-  (10%) scores `1`, otherwise `0`. The healthy reference on this data and
-  launch (`torch_functional`, fixed) peaks at 0.125; the defective run here
-  peaks at 0.076.
-- training reward: the mean `critic/rewards/mean` over training steps must be
-  strictly above `0.14` to score `1`, otherwise `0`
+- validation: the mean finite `val-core/taco/acc/mean@1` over the pinned steps
+  `200, 250, 300` (all present) must land in `[0.095, 0.35]` to score `1`,
+  otherwise `0`. Calibration runs (300 steps, same launch): the repaired arm
+  means 0.1105, the defective arm 0.0815.
+- training reward: the mean `critic/rewards/mean` over training steps `1..300`
+  (all present) must land in `(0.155, 0.6]` to score `1`, otherwise `0`.
+  Calibration runs: repaired 0.1763, defective 0.1397.
 - final `score = 0.8 * validation + 0.2 * training reward`
 
 Pass requires both components (`score == 1.0`). The framework still records
-the weighted float when only one component passes.
+the weighted float when only one component passes. The mean over pinned steps
+replaces the earlier best-peak rule: on the 184-row validation set a single
+point carries SE ≈ 0.019, and a fresh defective run's peak hit 0.0978 — one
+correct answer from the old 0.10 peak bar — while its pinned mean stays
+0.0815; pinning the steps also closes the `TEST_FREQ` /
+`TOTAL_TRAINING_STEPS` short-run shortcut, since both are plain env overrides
+in the launch script. The ceilings (0.35 / 0.6) guard against a scorer
+rewritten to a constant reward, since both graded quantities come from
+agent-repairable code.
+
+Thresholds were recalibrated 2026-11-03 from a fresh same-revision A/B —
+repaired arm (devspace 1446084) vs two defective arms (devspace 1177503, full
+400 steps; devspace 1236983, 241 steps, preempted) — and the protocol was
+shortened from 400 to 300 steps (the recorded run had hit the job time limit
+at step 284). Margins only, no variance — one run per arm.
 
 ## External dataset asset
 
@@ -147,10 +162,10 @@ longer checks them.
 - Base image: `verlai/verl:vllm017.latest`
 - Use the Docker agent backend after external asset publication.
 - The local backend does not build the task image or hydrate external assets.
-- The designated experiment uses 8 GPUs, a 400-step budget, and a large shared-memory allocation.
+- The designated experiment uses 8 GPUs, a 300-step budget, and a large shared-memory allocation.
 - Launch script: `examples/grpo_trainer/run_qwen2_5_1.5b_instruct_taco_fsdp.sh`
 
 
-The grader requires the final validation point and every training-reward step
-from 1 through the declared horizon; partial or over-budget logs score 0.
-This completion gate does not change the existing metric thresholds.
+The grader requires every pinned validation point and every training-reward
+step from 1 through the graded horizon; partial logs score 0. This completion
+gate does not change the existing metric thresholds.

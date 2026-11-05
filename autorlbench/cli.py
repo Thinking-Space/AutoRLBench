@@ -159,13 +159,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     b = sub.add_parser(
         "build-images",
-        help="build the environment images under docker/images/ ahead of time",
+        help="pull the environment images under docker/images/ ahead of time",
         description=(
-            "Build each environment image from docker/images/<name>.Dockerfile, "
-            "tagged as declared by its `# autorlbench-image:` header. "
-            "`evaluate` builds a missing image on demand; this command lets a "
+            "Pull each environment image referenced by docker/images/<name>.Dockerfile's "
+            "FROM line. Nothing is baked anymore, so there is no build step -- "
+            "`evaluate` pulls a missing image on demand; this command lets a "
             "machine pay that cost up front. Images that already exist are "
-            "skipped unless --rebuild is given."
+            "skipped unless --repull is given."
         ),
         allow_abbrev=False,
     )
@@ -177,10 +177,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     b.add_argument(
         "--rebuild",
+        "--repull",
         action="store_true",
         help=(
-            "rebuild even if the image exists; needed after editing a Dockerfile "
-            "or the tooling under docker/, since the tag does not change"
+            "re-pull even if the image exists (the digest is pinned, so the "
+            "same image is fetched again)"
         ),
     )
 
@@ -318,16 +319,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--gpus",
         default=None,
         help=(
-            "value passed to docker run --gpus; auto-detected from "
-            "environment/docker-compose.yaml when absent"
+            "value passed to docker run --gpus; defaults to the task's "
+            "environment.gpus when absent"
         ),
     )
     s.add_argument(
         "--shm-size",
         default=None,
         help=(
-            "value passed to docker run --shm-size; auto-detected from "
-            "environment/docker-compose.yaml when absent"
+            "value passed to docker run --shm-size; defaults to the standard "
+            "size when the task declares GPUs"
         ),
     )
 
@@ -371,7 +372,7 @@ def main(argv=None) -> int:
             try:
                 runtime.ensure_environment(image, rebuild=args.rebuild)
             except subprocess.CalledProcessError as exc:
-                raise SystemExit(f"building {image.tag} failed (exit {exc.returncode})")
+                raise SystemExit(f"pulling {image.tag} failed (exit {exc.returncode})")
             print(image.tag)
         return 0
 

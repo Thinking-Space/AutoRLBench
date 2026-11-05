@@ -1,0 +1,1 @@
+FROM slimerl/slime:v0.5.0rc0-cu126@sha256:8685221e76f85e89b7ffe8e13a9e8c57041c15c63b3878bd2cecc8ae50deec11
