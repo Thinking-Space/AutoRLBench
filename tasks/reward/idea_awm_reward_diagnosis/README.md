@@ -6,12 +6,12 @@ Training `locaszzz/IDEA_sft` with OPSD on `locaszzz/IDEA_training_data` optimize
 | --- | --- |
 | **Author** | Jinyang Wu |
 | **Domain** | reward |
-| **Tags** | `idea` `verl` `awm` `opsd` `issue-only` |
+| **Tags** | `idea` `verl` `awm` `opsd` |
 | **Model** | locaszzz/IDEA_sft |
 | **Dataset** | locaszzz/IDEA_training_data; locaszzz/AgentWorldModel-1K; 9,872 train / 128 validation tasks |
 | **Framework** | IDEA / veRL / Agent World Model, `run_local.sh --train` |
 | **Environment** | `idea-issue` · CPU-only diagnosis; no GPU or training required |
-| **Evaluations** | issue |
+| **Evaluations** | issue; solution |
 | **Recorded runs** | 1 historical run, 0 corrected/control runs; 200 configured steps, W&B history covers 1-199 |
 
 ## Difficulty
@@ -36,10 +36,12 @@ a separate training failure.
 ## Reference solution
 
 - **issue**: identify inaccurate rule-based completion rewards, name the configuration/code path, and connect a concrete verifier defect to a rewarded but unsuccessful trajectory. Do not require a patch, an LLM replacement, or a new training run. Detailed reviewer evidence is in [verifier resources](evaluations/issue/verifier/resources/README.md).
+- **solution**: repair the defective completion-verifier rules in `data/AgentWorldModel-1K/gen_verifier.pure_code.jsonl` in place — the misjudging rules must reject the rewarded-but-unsucessful trajectories while still accepting correct completions of the same tasks, with every original entry kept intact. Reference repairs and validation evidence are in [oracle resources](evaluations/solution/oracle/README.md).
 
 ## Verification
 
 - **issue**: an LLM judge compares `agent_answer.md` with the hidden oracle on verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2. Passing requires verdict = 1.0, root cause > 0.8, and evidence > 0.8, matching the current benchmark judge.
+- **solution**: a deterministic replay classifier — 14 held-out episodes (7 audited false positives that must be rejected, 7 synthesized correct completions that must be accepted) replayed through the repaired rule file; passing requires 14/14 with the entry set intact. Design in [verifier resources](evaluations/solution/verifier/README.md).
 
 Prepare downloads dataset inputs from `locaszzz/AgentWorldModel-1K` at commit
 `6f8a98a043c631ba9c88dd1d1d1d1829a1f9dca5`, checking SHA-256 and byte sizes.

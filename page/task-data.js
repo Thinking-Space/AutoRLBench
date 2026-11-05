@@ -246,8 +246,7 @@ window.AUTORLBENCH_TASKS = [
       "idea",
       "verl",
       "awm",
-      "opsd",
-      "issue-only"
+      "opsd"
     ],
     "model": "locaszzz/IDEA_sft",
     "dataset": "locaszzz/IDEA_training_data; locaszzz/AgentWorldModel-1K",
