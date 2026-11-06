@@ -5,14 +5,13 @@ Training `locaszzz/IDEA_sft` with OPSD on `locaszzz/IDEA_training_data` optimize
 | | |
 | --- | --- |
 | **Author** | Jinyang Wu |
-| **Domain** | reward |
-| **Tags** | `idea` `verl` `awm` `opsd` |
-| **Model** | locaszzz/IDEA_sft |
-| **Dataset** | locaszzz/IDEA_training_data; locaszzz/AgentWorldModel-1K; 9,872 train / 128 validation tasks |
-| **Framework** | IDEA / veRL / Agent World Model, `run_local.sh --train` |
-| **Environment** | `idea-issue` · CPU-only diagnosis; no GPU or training required |
-| **Evaluations** | issue; solution |
-| **Recorded runs** | 1 historical run, 0 corrected/control runs; 200 configured steps, W&B history covers 1-199 |
+| **Affiliation** | Tsinghua University |
+| **Type** | Reward |
+| **Domain** | Agentic RL |
+| **Tags** | `rule-based-verifier` `false-positive-reward` `code-reward-mode` |
+| **Framework** | IDEA / veRL / Agent World Model (OPSD) |
+| **Run time** | ~4 days |
+| **Resources** | CPU-only |
 
 ## Difficulty
 

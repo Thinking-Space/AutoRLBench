@@ -9,14 +9,14 @@ clock completes 92 training steps instead of 148.
 
 | | |
 | --- | --- |
-| **Author** | heqingfeng |
-| **Domain** | infrastructure |
-| **Model** | Qwen3-1.7B |
-| **Dataset** | DAPO-Math-17k (dedup, 17917 prompts); no held-out eval set |
-| **Framework** | `miles` (Megatron train + SGLang rollout + Ray), fully-async GRPO, `scripts/train_grpo.sh` |
-| **Environment** | `miles-async-rollout` · 4×H800 (actor 2 + rollout 2) |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 1 defective + 1 control run, 4×H800, fixed 8h wall clock (defective 92 steps / control 148 steps) |
+| **Author** | Qingfeng He |
+| **Affiliation** | Tsinghua University |
+| **Type** | Infrastructure |
+| **Domain** | Math RL |
+| **Tags** | `pause-mode-override` `inflight-rollouts` `throughput-regression` |
+| **Framework** | miles (fully-async GRPO), Megatron train + SGLang rollout + Ray |
+| **Run time** | 8 hours (fixed wall clock) |
+| **Resources** | 4 GPU |
 
 This document is for maintainers and reviewers. It is not exposed to the agent
 during evaluation. The agent sees only `workspace/` and the one evaluation's

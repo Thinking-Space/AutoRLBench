@@ -1,25 +1,40 @@
-# Qwen3-VL GRPO training case v8k2
+# Fused sequence-parallel GRPO trains on misaligned next-token labels
 
-Submitter: Gaoyuan. Created: 2026-10-24. Domain: infrastructure; framework: verl; algorithm: GRPO. Sources: https://github.com/verl-project/verl/issues/6068 and https://github.com/verl-project/verl/pull/6268. Base commit4b9c14f2c306d43f84eccf47315323e3f1ce1270; paired repair consists of six production-file changes from the linked PR plus identical public compatibility changes. Source/patch/resource SHA and licenses are in evaluations/issue/reference/provenance.
+Training Qwen3-VL-8B-Instruct with GRPO on ScienceQA image multiple choice (2560 train / 1024 validation, seed 42). In the fused FSDP/Ulysses path the model adapters roll their own labels instead of consuming the engine's globally shifted, SP-sliced labels, so wrong-token positions enter the response loss mask and receive nonzero advantages and gradients — training stays silent while validation drifts down.
 
-One issue-level diagnostic task, one public recorded session. The complete source workspace preserves necessary upstream modules/tests and the recorded compatibility changes. Detached answer-bearing observers and unrelated agent instructions are moved out of the public source; the transformation inventory and arithmetic-AST comparison are hidden references. The target reference patch applies to the delivered source.
+| | |
+| --- | --- |
+| **Author** | Yuan Gao |
+| **Affiliation** | THUNLP, Tsinghua University |
+| **Type** | Infrastructure |
+| **Domain** | Multimodal RL |
+| **Tags** | `label-misalignment` `sequence-parallel` `fused-ppo-loss` `silent-failure` |
+| **Framework** | verl @ `4b9c14f2` (GRPO), FSDP4 FULL_SHARD DP2×SP2, fused/remove-padding, torch 2.8 / vLLM 0.11 / cu129 |
+| **Run time** | ~6.6 hours |
+| **Resources** | 4 GPU |
 
-Recipe: Qwen3-VL-8B-Instruct, ScienceQA image train2560/validation1024, seed42, FSDP4 FULL_SHARD DP2×SP2, fused/remove-padding, batch128/mini32/n8/micro1, lr1e-6, lengths16384+4096, scheduler200 and normal stop40. Two independent original-weight formal runs, one per arm. Each has40 updates,160 AdamW calls per rank,9 validations,scalar/W&B0–40 and step20/40 nonempty checkpoint inventories. Sampling n1 is the recorded validation protocol.
+## Difficulty
 
-|Metric|Before|After|
-|---|---:|---:|
-|First20 reward|0.951416015625|0.967578125|
-|Last20 reward|0.91787109375|0.982861328125|
-|Initial validation|0.9384765625|0.9462890625|
-|Step40 validation|0.900390625|0.97265625|
-|Last5 validation change|−2.578125pp|+2.7734375pp|
+The defect is in the fused FSDP/Ulysses path. The engine prepares globally rolled and SP-sliced next-token labels in `output_args["input_ids_rmpad_rolled"]` (`framework/verl/workers/engine/fsdp/transformer_impl.py`), but the fused model adapters — `framework/verl/models/transformers/qwen3_vl.py::forward_with_torch_backend` and `FusedLinearForPPO` in `framework/verl/utils/experimental/torch_functional.py` — generate their own rolled labels from their input/labels rather than consuming the prepared tensor. In the measured multimodal execution the effective label extent can exceed the local hidden-state extent, and the fused loop consumes its first `T` labels.
 
-Paired validation-change improvement=+5.3515625pp. Frozen before quality-drop criterion (≤−5pp): false. Response-label / nonzero-advantage / wrong-position-gradient observations: before16,311,325/2,896,350/381,610; after0/0/0. Counts are repeated capped events. Experiment scope is one seed and a public replacement for the source issue's internal dataset.
+Nothing fails loudly: both formal runs complete 40 updates with exit 0 and finite gradients, training reward stays plausible (first-20 0.951, last-20 0.918), and the validation decline is mild enough to pass the frozen ≤ −5 pp quality-drop criterion (last-5 change −2.58 pp) — quality trends alone do not flag it. The strongest evidence is the paired instrumentation: response-label mismatches 16,311,325, nonzero-advantage mismatches 2,896,350, and wrong-position nonzero gradients 381,610 on the defective arm (capped repeated observations, not unique token counts), against 0 / 0 / 0 on the repaired arm. A correct explanation relates next-token labels, sequence partition, response loss positions and the PPO gradient.
 
-Historical allocation ledger:59.2506188121107 GPU card-hours across17 closed sessions. Before used a historical finite deadline that did not trigger; after usedinf and an unbounded parent wait. Both normal stop40. Large model/data resources use pinned manifests and online/cache preparation; checkpoints and full tensor observations stay at the recorded remote experiment. Tensor SHA inventories are included; checkpoint shard SHA and restore test status arefalse.
+| Recorded metric (40 updates, 4 GPU, one run per arm) | Defective | Repaired |
+| --- | ---: | ---: |
+| Response-label mismatches | 16,311,325 | 0 |
+| Nonzero-advantage mismatches | 2,896,350 | 0 |
+| Wrong-position nonzero gradients | 381,610 | 0 |
+| Validation step 0 → 40 (`val-core/scienceqa_image_mc/acc/mean@1`) | 0.9385 → 0.9004 | 0.9463 → 0.9727 |
+| Last-5 validation change | −2.58 pp | +2.77 pp |
 
-Environment integration: task.toml and AUTORLBENCH_* channels follow the current AutoRLBench interface; the recorded training provenance retains its original revisions. The environment uses a digest-pinned base and an isolated torch2.8/cu129, vLLM0.11/cu129, Python3.12 runtime (`vl-grpo-cu129-recorded`), distinct from the shared `verl` image stack. The image is not yet published; fresh GPU validation status is recorded separately from schema validation.
+## Reference solution
 
-Issue verifier: the current framework's shared OpenAI-compatible judge is reused unchanged. It reads agent_answer.md and hidden oracle.md, requires AUTORLBENCH_JUDGE_MODEL,OPENAI_BASE_URL,OPENAI_API_KEY, and writes result.json. The judge was not invoked during construction. No solution-level evaluation is declared. The hidden six-file patch and successful paired mechanism metrics are reference materials.
+- **issue**: a passing diagnosis names the fused FSDP/Ulysses label path — the adapters' locally rolled labels versus the engine-prepared `input_ids_rmpad_rolled` (globally shifted, SP-sliced) — and connects the wrong-label positions to the response loss mask, nonzero advantages, and PPO gradients. Attributions that must fail: reward extraction, data leakage, NaNs or optimizer crashes, and the unverified reduction to "exactly one wrong token per rank".
 
-Only evaluations/issue/instruction.md and workspace belong in an agent sandbox. Metadata, oracle, and paired references stay outside that sandbox. Public log paths were mapped to/workspace; numerical values and record order are preserved.
+Issue-only: no solution tier is declared — the paired evidence is single-seed on a public substitute for the source issue's internal dataset, and the reference patch stays hidden material. That patch (from upstream verl PR #6268, against base commit `4b9c14f2` recorded from issue #6068) passes the engine-provided `shift_labels` into the five model-adapter files with precedence over the local roll; with it, the paired mismatch counts become 0 / 0 / 0 and the paired validation-change improvement is +5.35 pp.
+
+## Verification
+
+- **issue**: an LLM judge compares `agent_answer.md` with the hidden `oracle.md` on verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2. Passing is a conjunctive gate, not the weighted sum: `verdict_score == 1.0` and `root_cause_score > 0.8` and `evidence_score > 0.8`.
+
+The `vl-grpo-cu129-recorded` image (isolated torch 2.8 / cu129, vLLM 0.11, Python 3.12, digest-pinned base) is not yet published; fresh GPU validation is pending and recorded separately from schema validation.

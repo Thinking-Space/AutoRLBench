@@ -194,9 +194,11 @@ is not byte-for-byte reproducible, do not pin it with a checksum.
 
 - `task.toml` fields are in [reference.md](reference.md#tasktoml). The file `training.script` points to must exist in
   `workspace/`.
-- Write `README.md` per [readme-template.md](readme-template.md): a one-sentence summary, an identity table, and the
-  Difficulty / Reference solution / Verification sections. The agent sees `instruction.md`;
-  the README is for reviewers only and must not be mounted into the agent stage.
+- Write `README.md` per [readme-template.md](readme-template.md): a one-sentence summary, an eight-row identity table
+  (Author / Affiliation / Type / Domain / Tags / Framework / Run time / Resources — `Run time` is the buggy run's
+  duration), then the Difficulty / Reference solution / Verification sections, whose content is free-form except that
+  the latter two need `- **issue**` bullets and, with a solution tier, `- **solution**` bullets. The agent sees
+  `instruction.md`; the README is for reviewers only and must not be mounted into the agent stage.
 
 ## Pre-completion checklist
 

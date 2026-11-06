@@ -5,14 +5,13 @@ Training Qwen2.5-1.5B-Instruct with GRPO and a merged LoRA adapter on GSM8K. The
 | | |
 | --- | --- |
 | **Author** | Jianing Yin |
-| **Domain** | infrastructure |
-| **Tags** | `verl` `grpo` `lora` `fsdp2` `weight-sync` |
-| **Model** | Qwen/Qwen2.5-1.5B-Instruct |
-| **Dataset** | openai/gsm8k main, 7473 train / 1319 test |
-| **Framework** | verl @ `6f2aa24` with the pre-#7014 `transformer_impl.py`, GRPO, `run_grpo_lora.sh` |
-| **Environment** | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` · 1 GPU |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 2 defective + 2 repaired runs, 60 steps each (seed 1 on 1 GPU, ~50 min; seed 2 on 2 GPUs, ~30 min) |
+| **Affiliation** | University of Pennsylvania |
+| **Type** | Infrastructure |
+| **Domain** | Math RL |
+| **Tags** | `lora-merge` `weight-sync` `stale-rollout-policy` |
+| **Framework** | verl (GRPO) @ `6f2aa24`, pre-#7014 `transformer_impl.py` |
+| **Run time** | ~50 minutes |
+| **Resources** | 1 GPU |
 
 ## Difficulty
 

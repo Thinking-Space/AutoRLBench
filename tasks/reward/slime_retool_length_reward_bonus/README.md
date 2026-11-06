@@ -4,15 +4,14 @@ Training Qwen3-4B with GRPO on DAPO-Math-17k. Two independent defects were injec
 
 | | |
 | --- | --- |
-| **Author** | AutoRLBench |
-| **Domain** | reward |
-| **Tags** | `slime` `grpo` `reward-hacking` `length-bonus` `tool-call-parsing` `aime` |
-| **Model** | Qwen3-4B (Instruct-2507, SFT → RL) |
-| **Dataset** | DAPO-Math-17k (RL), ReTool-SFT (SFT warm-up), AIME-2024 (eval) |
-| **Framework** | slime (Megatron + SGLang), `examples/retool/retool_qwen3_4b_rl.sh` |
-| **Environment** | `slime-v0.3.2` · 8 GPUs |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 1 dual-defect run (70 rollouts, 8 eval points to step 69) · 1 repaired reference run (70 rollouts) |
+| **Author** | Yinghao Chen |
+| **Affiliation** | THUNLP, Tsinghua University |
+| **Type** | Reward |
+| **Domain** | Math RL |
+| **Tags** | `reward-hacking` `length-bonus` `tool-call-parsing` |
+| **Framework** | slime (GRPO), Megatron + SGLang |
+| **Run time** | ~3.7 hours |
+| **Resources** | 8 GPU |
 
 ## Difficulty
 

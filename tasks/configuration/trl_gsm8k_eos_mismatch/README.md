@@ -6,15 +6,14 @@ despite apparently encouraging training reward.
 
 | | |
 | --- | --- |
-| **Author** | PostTrainBench contributor |
-| **Domain** | configuration |
-| **Tags** | `trl` `grpo` `gsm8k` `eos` `historical-snapshot` `issue-only` |
-| **Model** | Qwen3-1.7B-Base + GSM8K SFT |
-| **Dataset** | openai/gsm8k |
-| **Framework** | trl, `scripts/run_training.sh` |
-| **Environment** | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` · 1 GPU (issue-only, offline inspection; the count matches the recorded recipe) |
-| **Evaluations** | issue |
-| **Recorded runs** | A single historical training run (frozen evidence) |
+| **Author** | Xin Huang |
+| **Affiliation** | THUNLP, Tsinghua University |
+| **Type** | Configuration |
+| **Domain** | Math RL |
+| **Tags** | `eos-mismatch` `chat-template` `rollout-continuation` |
+| **Framework** | TRL (GRPO) |
+| **Run time** | ~37 minutes |
+| **Resources** | 8 GPU |
 
 ## Difficulty
 

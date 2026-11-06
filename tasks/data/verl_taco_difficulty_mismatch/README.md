@@ -7,15 +7,14 @@ vanish on most steps, and held-out accuracy never improves.
 
 | | |
 | --- | --- |
-| **Author** | AutoRLBench |
-| **Domain** | data |
-| **Tags** | `verl` `grpo` `taco` `data-difficulty` `issue-only` |
-| **Model** | Qwen2.5-1.5B-Instruct |
-| **Dataset** | TACO: 2,329 `VERY_HARD` train / 184 `EASY` held-out |
-| **Framework** | verl (GRPO), `examples/grpo_trainer/run_qwen2_5_1.5b_instruct_taco_fsdp.sh` |
-| **Environment** | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` · 4 GPUs |
-| **Evaluations** | issue |
-| **Recorded runs** | 1 defective run, 400/400 steps in 15 h 18 m (137.7 s/step); no control run — issue-only, no threshold to calibrate |
+| **Author** | Yaohui Li |
+| **Affiliation** | THUNLP, Tsinghua University |
+| **Type** | Data |
+| **Domain** | Code RL |
+| **Tags** | `data-difficulty` `all-zero-groups` `vanishing-advantages` |
+| **Framework** | verl (GRPO) |
+| **Run time** | ~15.3 hours |
+| **Resources** | 4 GPU |
 
 ## Difficulty
 

@@ -7,14 +7,13 @@ checkpoint writer stages tensor data for disk at step 10.
 | | |
 | --- | --- |
 | **Author** | Jinyang Wu |
-| **Domain** | infrastructure |
-| **Tags** | `verl` `grpo` `fsdp` `checkpoint` `optimizer-offload` `host-memory` |
-| **Model** | Qwen/Qwen2.5-0.5B-Instruct |
-| **Dataset** | openai/gsm8k main; all 7473 train rows, all 1319 official test rows for held-out validation |
-| **Framework** | verl 0.3.0.post1, FSDP, `scripts/train.sh` |
-| **Environment** | `verl_checkpoint_host_memory_oom` · 1 × A800 80 GB GPU · 20 GiB container RAM (Harbor backend only) |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 1 defective + 1 repaired run, 10-step budget; save at step 10 |
+| **Affiliation** | Tsinghua University |
+| **Type** | Infrastructure |
+| **Domain** | Math RL |
+| **Tags** | `optimizer-offload` `checkpoint-serialization` `host-memory-exhaustion` |
+| **Framework** | verl 0.3.0.post1 (GRPO), FSDP |
+| **Run time** | ~3.2 minutes |
+| **Resources** | 1 GPU · 20 GiB RAM |
 
 ## Difficulty
 

@@ -5,14 +5,13 @@ Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K with a hand-written reward tha
 | | |
 | --- | --- |
 | **Author** | Ziqi Zhou |
-| **Domain** | reward |
-| **Tags** | `verl` `grpo` `gsm8k` `reward-hacking` `lenient-verifier` `answer-extraction` |
-| **Model** | Qwen2.5-0.5B-Instruct |
-| **Dataset** | GSM8K train 7,473 / held-out GSM8K test 1,319 |
-| **Framework** | verl v0.9.0 (`483b8a0`), FSDP + vLLM 0.28 colocated, `run_gsm8k_grpo.sh`, custom reward `rewards/gsm8k_reward.py` |
-| **Environment** | `verl-0.9-vllm0.28` (not yet built) · 1 × GPU (recorded on 1 × RTX A6000 48 GB) |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 1 defective + 1 control run, 100 steps, eval every 10 incl. step 0, seed 42. Defective ≈ 2.7 h, control ≈ 2.1 h |
+| **Affiliation** | Duke University |
+| **Type** | Reward |
+| **Domain** | Math RL |
+| **Tags** | `reward-hacking` `lenient-verifier` `answer-extraction` |
+| **Framework** | verl v0.9.0 (`483b8a0`), FSDP + vLLM 0.28 colocated, custom reward `rewards/gsm8k_reward.py` |
+| **Run time** | ~2.7 hours per run (control ≈ 2.1 h) |
+| **Resources** | 1 GPU (recorded on 1 × RTX A6000 48 GB) |
 
 ## Difficulty
 

@@ -10,14 +10,14 @@ where it reads like checkpoint corruption.
 
 | | |
 | --- | --- |
-| **Author** | czx |
-| **Domain** | infrastructure |
-| **Model** | Qwen3-1.7B |
-| **Dataset** | Endless Terminals (1489 of 2492 tasks admitted; train 1039 / val 150 / test 300) |
-| **Framework** | `slime` v0.3.2 (Megatron train + SGLang rollout + Ray), Multi-Turn PPO, `run.sh` |
-| **Environment** | `slime-v0.3.2` · 2×80GB GPU (1 also works) |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 1 defective + 1 control run, 1×H800, Stage A 2 rollouts + Stage B 30 rollouts |
+| **Author** | Zixi Chen |
+| **Affiliation** | Tsinghua University |
+| **Type** | Infrastructure |
+| **Domain** | Agentic RL |
+| **Tags** | `value-head-init` `checkpoint-reload` `advantage-corruption` |
+| **Framework** | slime 0.3.2 (Multi-Turn PPO), Megatron train + SGLang rollout + Ray |
+| **Run time** | ~1.7 hours per run |
+| **Resources** | 2 GPU |
 
 This document is for maintainers and reviewers. It is not exposed to the agent
 during evaluation. The agent sees only `workspace/` and the one evaluation's
@@ -37,7 +37,7 @@ pass rate *falls* from 0.078 to 0.043 while the repaired arm's rises from 0.080
 to 0.169 — a paired difference of +0.126 over 300 held-out tasks, permutation
 *p* 5e-05.
 
-## The defect
+## Difficulty
 
 `slime/backends/megatron_utils/model_provider.py`, in `LinearForLastLayer`:
 
@@ -114,7 +114,18 @@ bounded by the reward scale. The two regimes differ by ~77× with no overlap
 which is why the decider threshold is **1.0**: an order of magnitude from
 either side.
 
-## The fix
+## Reference solution
+
+- **issue**: a passing diagnosis names the value head, its non-zero
+  initialisation at construction, and does not blame the checkpoint. The
+  symptom reads like "the critic forgot everything and is relearning" after a
+  reload, which sends you looking at checkpoint and optimizer-state code —
+  that attribution must fail: the defect is one line in a constructor,
+  equally present on a from-scratch run.
+- **solution**: `self.weight.data.zero_()`. One line; `LinearForLastLayer` is
+  only ever instantiated for the critic with `output_size=1`, so zeroing is
+  both minimal and unconditionally correct, and the actor's LM head is
+  untouched.
 
 ```diff
 -        init_method_std = getattr(config, "init_method_std", None)
@@ -125,10 +136,6 @@ either side.
          if bias:
              self.bias.data.zero_()
 ```
-
-One line. `LinearForLastLayer` is only ever instantiated for the critic with
-`output_size=1`, so zeroing is both minimal and unconditionally correct, and
-the actor's LM head is untouched.
 
 The production incident was closed with four layers of defence: zero at
 construction, zero again after `load_checkpoint`, `optimizer.reload_model_params()`
@@ -532,28 +539,29 @@ so the reported +0.1258 is a lower bound on the gap rather than a
 converged-vs-converged comparison; the broken arm had clearly stopped improving
 long before. Nothing about either run was conditioned on `et_test`.
 
-## Evaluations
+## Verification
 
-| | what it asks | decider |
-|---|---|---|
-| `issue` | diagnose the snapshot | the shared issue protocol: an LLM judge scores `agent_answer.md` against the hidden `oracle.md` on verdict / root cause / evidence (0.2 / 0.6 / 0.2), pass requires verdict_score 1.0 and root_cause/evidence each above 0.8. A passing diagnosis names the value head, its non-zero initialisation at construction, and *does not* blame the checkpoint |
-| `solution` | apply the fix | `verifier/tests/check_value_head.py` (the verifier's own offline check) passes, and Stage B reports `first_value_loss < 1.0` and `warmup_value_loss_mean < 1.0` over ≥1 critic step, with ≥1 rollout actually generated |
-
-The `issue` level uses the standard shared protocol (`instruction.md` +
-`verifier/{test.sh,judge.py,judge_prompt.md}`, byte-identical to the other
-LLM-judge tasks); only `oracle.md` is task-specific. It diagnoses the workspace
-as a historical snapshot — the symptom is readable in the frozen
-`workspace/logs/`, the root cause is visible in
-`slime/slime/backends/megatron_utils/model_provider.py` — and does not launch
-training.
-
-The `solution` level is a deterministic metric verifier: the agent applies the
-fix and reruns, and Stage B's first critic step must land inside the reward
-scale. It guards the degenerate ways to satisfy it — a run with zero critic
-steps, zero rollouts, or no generated tokens fails rather than passes, so the
-metric cannot be brought under the bound by never reporting it. It accepts
-`AUTORLBENCH_SKIP_TRAIN=1` to run the offline check alone on a GPU-less machine; it
-then exits 2 and prints `SOLUTION_PARTIAL`, which is not a pass.
+- **issue**: the shared issue protocol — an LLM judge scores `agent_answer.md`
+  against the hidden `oracle.md` on verdict / root cause / evidence
+  (0.2 / 0.6 / 0.2), pass requires verdict_score 1.0 and root_cause/evidence
+  each above 0.8. A passing diagnosis names the value head, its non-zero
+  initialisation at construction, and does not blame the checkpoint. The
+  protocol (`instruction.md` + `verifier/{test.sh,judge.py,judge_prompt.md}`)
+  is byte-identical to the other LLM-judge tasks; only `oracle.md` is
+  task-specific. It diagnoses the workspace as a historical snapshot — the
+  symptom is readable in the frozen `workspace/logs/`, the root cause is
+  visible in `slime/slime/backends/megatron_utils/model_provider.py` — and
+  does not launch training.
+- **solution**: a deterministic metric verifier — the agent applies the fix
+  and reruns. `verifier/tests/check_value_head.py` (the verifier's own offline
+  check) passes, and Stage B reports `first_value_loss < 1.0` and
+  `warmup_value_loss_mean < 1.0` over ≥1 critic step, with ≥1 rollout actually
+  generated: Stage B's first critic step must land inside the reward scale. It
+  guards the degenerate ways to satisfy it — a run with zero critic steps,
+  zero rollouts, or no generated tokens fails rather than passes, so the
+  metric cannot be brought under the bound by never reporting it. It accepts
+  `AUTORLBENCH_SKIP_TRAIN=1` to run the offline check alone on a GPU-less
+  machine; it then exits 2 and prints `SOLUTION_PARTIAL`, which is not a pass.
 
 The solution verifier does not gate on the held-out score, deliberately.
 Settling that question costs 30 rollouts and seven eval points — about 100

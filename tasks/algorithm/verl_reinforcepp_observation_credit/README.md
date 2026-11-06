@@ -4,15 +4,14 @@ Qwen3-4B learns read-only warehouse SQL with REINFORCE++, but masked tool observ
 
 | | |
 | --- | --- |
-| **Author** | PurvaChiniya |
-| **Domain** | algorithm |
-| **Tags** | `verl` `tool-use` `issue-only` |
-| **Model** | Qwen/Qwen3-4B |
-| **Dataset** | Generated operations SQL: 512 train, 12 pilot development, 128 sealed cases |
-| **Framework** | veRL, `run.sh` |
-| **Environment** | `tool-rl-vllm024`; recorded on 2 × H100 80 GB, 24 CPUs, 128 GiB RAM |
-| **Evaluations** | issue |
-| **Recorded runs** | 1 defective + 1 control, seed 17, 3 optimizer updates; 389 s + 390 s including startup |
+| **Author** | Purva Chiniya |
+| **Affiliation** | Independent Researcher |
+| **Type** | Algorithm |
+| **Domain** | Tool-use RL |
+| **Tags** | `reinforcepp` `tool-observations` `return-reset` `credit-assignment` |
+| **Framework** | verl (REINFORCE++) |
+| **Run time** | 6.5 minutes per run |
+| **Resources** | 2 GPU |
 
 ## Difficulty
 
@@ -24,13 +23,13 @@ Exact counterfactual replay of the same full recorded batches through the upstre
 
 ## Reference solution
 
-**Issue:** trace terminal reward through the tool-observation gaps in `compute_reinforce_plus_plus_outcome_advantage`, identify the incorrect accumulator reset, and distinguish policy-loss masking from reward propagation. The upstream repair preserves accumulated reward across zero-mask positions; tool observations remain excluded from the policy loss. See [repair.patch](reference/repair.patch) and [the identical-batch replay](reference/credit_replay.json).
+- **issue**: trace terminal reward through the tool-observation gaps in `compute_reinforce_plus_plus_outcome_advantage`, identify the incorrect accumulator reset, and distinguish policy-loss masking from reward propagation. The upstream repair preserves accumulated reward across zero-mask positions; tool observations remain excluded from the policy loss. See [repair.patch](reference/repair.patch) and [the identical-batch replay](reference/credit_replay.json).
 
 Source snapshots are pinned to the upstream defect and repair. Both GPU arms use the same compatibility adaptation: veRL's existing pure-Torch padding helpers support SDPA without the optional compiled flash-attention extension. This adaptation does not change return computation. Prompt wording and operational correctness reminders were tuned on training/development pilots before the final pair; reward remained strict binary and sealed test performance was not consulted.
 
 ## Verification
 
-**Issue:** the shared LLM judge compares `agent_answer.md` with the hidden oracle, weighting verdict/root cause/evidence 0.2/0.6/0.2. The canonical verifier requires verdict score 1.0 and both root-cause and evidence scores strictly greater than 0.8 to pass. No solution tier or calibrated performance threshold is claimed. The proposed three-seed, 60-update campaign was not run, and the short control does not exceed its step-zero development score.
+- **issue**: the shared LLM judge compares `agent_answer.md` with the hidden oracle, weighting verdict/root cause/evidence 0.2/0.6/0.2. The canonical verifier requires verdict score 1.0 and both root-cause and evidence scores strictly greater than 0.8 to pass. No solution tier or calibrated performance threshold is claimed. The proposed three-seed, 60-update campaign was not run, and the short control does not exceed its step-zero development score.
 
 The package includes all per-step metrics, complete reward/mask/return/advantage batches, tool traces, and rollout evidence. Raw W&B binaries are preserved outside the agent workspace under `reference/raw_wandb`. See [verification.md](reference/verification.md) for CPU, image, preparation, and structural checks.
 

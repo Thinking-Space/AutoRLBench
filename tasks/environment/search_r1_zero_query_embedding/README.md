@@ -4,15 +4,14 @@ Training Qwen2.5-1.5B-Instruct with GRPO on HotpotQA through Search-R1. The quer
 
 | | |
 | --- | --- |
-| **Author** | AutoRLBench |
-| **Domain** | environment |
-| **Tags** | `verl` `grpo` `hotpotqa` `query_vector` |
-| **Model** | Qwen2.5-1.5B-Instruct · e5-base-v2 retriever |
-| **Dataset** | HotpotQA distractor, 1024 train / 128 held-out, 12,468-passage corpus |
-| **Framework** | Search-R1 with vendored veRL `598e61bd`, FSDP + vLLM 0.6.3 |
-| **Environment** | `vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10` · 1 × A100-40G |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 2 defective + 2 control runs (recorded delivery pair + 2026-11-03 devspace rerun pair), same data and budget (32 steps) |
+| **Author** | Shouzheng Huang |
+| **Affiliation** | Harbin Institute of Technology (Shenzhen) |
+| **Type** | Environment |
+| **Domain** | Search RL |
+| **Tags** | `zero-query-vector` `cross-device-copy` `degenerate-retrieval` |
+| **Framework** | Search-R1 (GRPO), verl, FSDP + vLLM 0.6.3 |
+| **Run time** | ~1 hour |
+| **Resources** | 1 GPU |
 
 ## Difficulty
 

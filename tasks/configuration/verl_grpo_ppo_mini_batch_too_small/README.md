@@ -5,14 +5,13 @@ Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K where the launch script sets `
 | | |
 | --- | --- |
 | **Author** | Ziqi Zhou |
-| **Domain** | configuration |
-| **Tags** | `verl` `grpo` `gsm8k` `ppo_mini_batch_size` `off-policy` `hyperparameter` |
-| **Model** | Qwen2.5-0.5B-Instruct |
-| **Dataset** | GSM8K train 7,473 / held-out GSM8K test 1,319. `\boxed{}` prompt (`examples/data_preprocess/gsm8k_boxed.py`) |
-| **Framework** | verl v0.9.0 (`483b8a0`), FSDP + vLLM 0.28 colocated, `run_gsm8k_grpo.sh`, Math-Verify reward through `rewards/math_verify_reward.py` |
-| **Environment** | `verl-0.9-vllm0.28` (not yet built) · 1 × GPU (recorded on 1 × RTX A6000 48 GB) |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 1 defective + 1 control (+ 1 dose-response reference) run, 100 steps, eval every 10 incl. step 0, seed 42, same day and node. Defective ≈ 2.7 h, control ≈ 2.6 h |
+| **Affiliation** | Duke University |
+| **Type** | Configuration |
+| **Domain** | Math RL |
+| **Tags** | `ppo-mini-batch` `off-policy-drift` `peak-then-decline` |
+| **Framework** | verl 0.9.0 (GRPO), FSDP + vLLM 0.28 colocated |
+| **Run time** | ~2.7 hours per run |
+| **Resources** | 1 GPU |
 
 ## Difficulty
 

@@ -7,14 +7,15 @@ path fails to attach the adapter even though it is loaded in the engine.
 | | |
 | --- | --- |
 | **Author** | Ruijia Zhang |
-| **Domain** | infrastructure |
-| **Framework** | verl, FSDP actor + asynchronous vLLM rollout |
-| **Data** | fixed GSM8K subset: 16 train / 8 validation |
-| **Budget** | 4 GRPO updates, rollout n=4, response length 32, 1 GPU |
-| **Environment** | `verl-vllm011` (not yet built) |
-| **Recorded runs** | 1 defective + 1 repaired run |
+| **Affiliation** | Johns Hopkins University |
+| **Type** | Infrastructure |
+| **Domain** | Math RL |
+| **Tags** | `type-mismatch` `adapter-omission` `actor-rollout-divergence` |
+| **Framework** | verl (GRPO), FSDP actor + asynchronous vLLM rollout |
+| **Run time** | ~2.5 minutes |
+| **Resources** | 1 GPU |
 
-## Defect and evidence
+## Difficulty
 
 `engine.list_loras()` returns integer IDs. Comparing that set with the string
 adapter name makes `lora_loaded` false, so vLLM samples from the residual base
@@ -28,14 +29,30 @@ not a training crash: all four rollout/update/validation steps completed. No
 format or auxiliary reward was added, so the control variable remains the
 adapter request.
 
+## Reference solution
+
+- **issue**: identify the string-name versus integer-ID mismatch that
+  suppresses the vLLM `LoRARequest` — `engine.list_loras()` returns integer
+  IDs, the request path compares that set with the string adapter name, so
+  `lora_loaded` is false and rollout requests omit the loaded PiSSA adapter
+  while the actor evaluates with it.
+- **solution**: the one-line integer-ID repair, so the adapter is attached to
+  rollout requests; the step-4 `val-health/actor_rollout_policy_agreement`
+  rises from `0.10476375009925555` to `0.8907221660212565`.
+
 ## Verification
 
-The solution harness runs `bash run_experiment.sh` and grades only fresh files
-under `$AUTORLBENCH_RESULTS/experiment_logs`. Step 4 must report
-`val-health/actor_rollout_policy_agreement >= 0.80`. The threshold has margins
-`0.6952362499` above the defective run and `0.0907221660` below the repaired
-run. Calibration uses one run per side; step-zero health and cross-seed
-variance are unavailable.
+- **issue**: the LLM judge compares `$AUTORLBENCH_RESULTS/agent_answer.md` with
+  the hidden oracle. Verdict, root cause and evidence are weighted
+  0.2 / 0.6 / 0.2; passing requires at least 0.8. The essential attribution is
+  the string-name versus integer-ID mismatch that suppresses the vLLM
+  `LoRARequest`.
+- **solution**: the solution harness runs `bash run_experiment.sh` and grades
+  only fresh files under `$AUTORLBENCH_RESULTS/experiment_logs`. Step 4 must
+  report `val-health/actor_rollout_policy_agreement >= 0.80`. The threshold has
+  margins `0.6952362499` above the defective run and `0.0907221660` below the
+  repaired run. Calibration uses one run per side; step-zero health and
+  cross-seed variance are unavailable.
 
 Because the metric is computed by instrumentation inside the shipped
 workspace, the grader anchors the value: verl's per-step file log must show a

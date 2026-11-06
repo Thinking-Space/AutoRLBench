@@ -4,15 +4,14 @@ Qwen2.5-0.5B-Instruct is trained with GRPO on GSM8K. Process-local custom metric
 
 | | |
 | --- | --- |
-| Author | Haoyang Su |
-| Domain | infrastructure |
-| Tags | `trl` `grpo` `gsm8k` |
-| Model | Qwen2.5-0.5B-Instruct |
-| Dataset | GSM8K, 256 training questions and 64 held-out questions |
-| Framework | TRL, `train.sh` |
-| Environment | `trl-grpo-torch26`, 2 H100 80 GB GPU(s) in recorded runs |
-| Evaluations | issue and solution |
-| Recorded runs | One defective and one control run, seed 42, 24-step budget |
+| **Author** | Haoyang Su |
+| **Affiliation** | Fudan University; Shanghai Innovation Institute |
+| **Type** | Infrastructure |
+| **Domain** | Math RL |
+| **Tags** | `collective-mismatch` `rank-divergent-metrics` `conditional-logging` |
+| **Framework** | TRL (GRPO) |
+| **Run time** | ~4.2 minutes per run |
+| **Resources** | 2 GPU |
 
 ## Difficulty
 
@@ -24,15 +23,15 @@ Reject diagnoses of GPU out-of-memory, inaccessible model weights, a generic net
 
 ## Reference solution
 
-The defective workspace is TRL commit 03b22f5f93868a8aa73c5089ab99fbceb05ae144. The control applies the conditional logging repair from upstream PR #7382, commit cc5bb3f8c94b7f9cf5c24029d7812e78849ccace. All experiment settings are identical between arms. The source and repair are available in [upstream PR #7382](https://github.com/huggingface/trl/pull/7382).
-The issue tier requires the causal diagnosis. The solution tier includes a minimal patch and the control's actual run artifacts.
+- **issue**: The issue tier requires the causal diagnosis.
+- **solution**: The defective workspace is TRL commit 03b22f5f93868a8aa73c5089ab99fbceb05ae144. The control applies the conditional logging repair from upstream PR #7382, commit cc5bb3f8c94b7f9cf5c24029d7812e78849ccace. All experiment settings are identical between arms. The source and repair are available in [upstream PR #7382](https://github.com/huggingface/trl/pull/7382). The solution tier includes a minimal patch and the control's actual run artifacts.
+
 The original TRL Apache 2.0 license is retained in `workspace/LICENSE`. GSM8K is MIT licensed and the Qwen model is Apache 2.0 licensed.
 
 ## Verification
 
-The issue judge reports a weighted score for verdict, root cause and evidence, with weights 0.2, 0.6 and 0.2. Passing requires a verdict score of exactly 1.0 and both root-cause and evidence scores strictly greater than 0.8.
-The solution protocol requires `report.md`, followed by a protected fresh training run: the system runs the workspace's `run_training.sh`, which byte-matches the verifier's pristine copy, and grading reads both ranks' metric streams from the run.
-Both ranks must complete all 24 optimizer steps. The custom answer_parse_rate metric must remain present at all 12 generation events on both ranks, on the same steps, and equal the fraction of parsed answers in this run's rank-0 rollouts at the preceding step, within absolute and relative tolerance 0.000001. Disabling the metric, logging it on rank 0 only, replacing an absent rank contribution with zero, or concentrating the rank-1 events on a subset of the 12 steps does not satisfy this criterion.
+- **issue**: The issue judge reports a weighted score for verdict, root cause and evidence, with weights 0.2, 0.6 and 0.2. Passing requires a verdict score of exactly 1.0 and both root-cause and evidence scores strictly greater than 0.8.
+- **solution**: The solution protocol requires `report.md`, followed by a protected fresh training run: the system runs the workspace's `run_training.sh`, which byte-matches the verifier's pristine copy, and grading reads both ranks' metric streams from the run. Both ranks must complete all 24 optimizer steps. The custom answer_parse_rate metric must remain present at all 12 generation events on both ranks, on the same steps, and equal the fraction of parsed answers in this run's rank-0 rollouts at the preceding step, within absolute and relative tolerance 0.000001. Disabling the metric, logging it on rank 0 only, replacing an absent rank contribution with zero, or concentrating the rank-1 events on a subset of the 12 steps does not satisfy this criterion.
 
 The score `synchronized_steps` is 0 in the defective run and 24 in the control. The threshold 23.5 has observed margins of 23.5 and 0.5.
 The pre-training score is zero. Calibration uses one run per arm with seed 42.

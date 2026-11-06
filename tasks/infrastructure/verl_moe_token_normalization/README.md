@@ -6,15 +6,14 @@ auxiliary losses, so the z-loss gradients are never divided back.
 
 | | |
 | --- | --- |
-| **Author** | AutoRLBench |
-| **Domain** | infrastructure |
-| **Tags** | `verl` `grpo` `moe` `gradient-normalization` |
-| **Model** | Qwen/Qwen1.5-MoE-A2.7B-Chat |
-| **Dataset** | openai/gsm8k main; 7473 train rows, 64 held-out validation rows from the official 1319-row test split |
-| **Framework** | verl, Megatron engine, `scripts/train.sh` |
-| **Environment** | shared `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` image · `prepare.sh` stages the patched MCore router into `$AUTORLBENCH_PREPARED` · 2 GPUs with at least 56 GiB free per card · ~600 GiB host RAM (optimizer/master states are fully CPU-offloaded) |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 1 defective + 1 repaired run, 150 steps each |
+| **Author** | Yuan Gao |
+| **Affiliation** | THUNLP, Tsinghua University |
+| **Type** | Infrastructure |
+| **Domain** | Math RL |
+| **Tags** | `moe-z-loss` `token-normalization` `gradient-explosion` |
+| **Framework** | verl (GRPO), Megatron engine |
+| **Run time** | ~6.2 hours |
+| **Resources** | 2 GPU · ~600 GiB RAM |
 
 ## Difficulty
 

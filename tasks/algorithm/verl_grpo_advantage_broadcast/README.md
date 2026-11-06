@@ -5,13 +5,13 @@ Training Qwen2.5-1.5B-Instruct with GRPO on TACO. The per-sample advantage vecto
 | | |
 | --- | --- |
 | **Author** | Yaohui Li |
-| **Type** | algorithm |
-| **Model** | Qwen2.5-1.5B-Instruct |
-| **Dataset** | TACO EASY (8368 train / 184 test) |
-| **Framework** | verl (GRPO), `examples/grpo_trainer/run_qwen2_5_1.5b_instruct_taco_fsdp.sh` |
-| **Environment** | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` · 8 GPUs |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 1 defective run bundled (284 of 400 steps, ~8 h, job time limit); protocol shortened to 300 steps and thresholds recalibrated 2026-11-03 from a fresh same-revision A/B — repaired arm (devspace 1446084) vs two defective arms (devspace 1177503 full 400 steps; devspace 1236983, 241 steps, preempted) |
+| **Affiliation** | THUNLP, Tsinghua University |
+| **Type** | Algorithm |
+| **Domain** | Code RL |
+| **Tags** | `advantage-broadcast` `credit-assignment` `silent-failure` |
+| **Framework** | verl (GRPO) |
+| **Run time** | 8 hours |
+| **Resources** | 8 GPU |
 
 ## Difficulty
 

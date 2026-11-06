@@ -4,15 +4,14 @@ Qwen2.5-0.5B-Instruct is trained with GRPO on GSM8K. The generation token denomi
 
 | | |
 | --- | --- |
-| Author | Haoyang Su |
-| Domain | algorithm |
-| Tags | `trl` `grpo` `gsm8k` |
-| Model | Qwen2.5-0.5B-Instruct |
-| Dataset | GSM8K, 256 training questions and 64 held-out questions |
-| Framework | TRL, `train.sh` |
-| Environment | `trl-grpo-torch26`, 1 H100 80 GB GPU(s) in recorded runs |
-| Evaluations | issue and solution |
-| Recorded runs | One defective and one control run, seed 42, 24-step budget |
+| **Author** | Haoyang Su |
+| **Affiliation** | Fudan University; Shanghai Innovation Institute |
+| **Type** | Algorithm |
+| **Domain** | Math RL |
+| **Tags** | `dapo` `loss-normalization` `gradient-accumulation` `silent-failure` |
+| **Framework** | TRL (GRPO) |
+| **Run time** | ~7 minutes |
+| **Resources** | 1 GPU |
 
 ## Difficulty
 
@@ -24,15 +23,15 @@ Reject diagnoses of no learning, corrupted GSM8K labels, an incorrect numerical-
 
 ## Reference solution
 
-The reproduction starts from TRL commit 03b22f5f93868a8aa73c5089ab99fbceb05ae144 and removes only the training denominator correction corresponding to upstream PR #6024. The task reproduces this documented historical defect. The source and repair are available in [upstream PR #6024](https://github.com/huggingface/trl/pull/6024).
-The issue tier requires the causal diagnosis. The solution tier includes a minimal patch and the control's actual run artifacts.
+- **issue**: The issue tier requires the causal diagnosis.
+- **solution**: The reproduction starts from TRL commit 03b22f5f93868a8aa73c5089ab99fbceb05ae144 and removes only the training denominator correction corresponding to upstream PR #6024. The task reproduces this documented historical defect; the source and repair are available in [upstream PR #6024](https://github.com/huggingface/trl/pull/6024). The solution tier includes a minimal patch and the control's actual run artifacts.
+
 The original TRL Apache 2.0 license is retained in `workspace/LICENSE`. GSM8K is MIT licensed and the Qwen model is Apache 2.0 licensed.
 
 ## Verification
 
-The issue judge reports a weighted score for verdict, root cause and evidence, with weights 0.2, 0.6 and 0.2. Passing requires a verdict score of exactly 1.0 and both root-cause and evidence scores strictly greater than 0.8.
-The solution protocol requires `report.md`, followed by a protected fresh training run: the system runs the workspace's `run_training.sh`, which byte-matches the verifier's pristine copy, and grading compares the run's captured records against the accumulation-window reference recomputed from them.
-For every optimizer step, the verifier recomputes the DAPO objective from the recorded per-token probabilities, advantages and completion masks. Both microbatches must agree with the accumulation-window objective within relative tolerance 0.0005 and absolute tolerance 0.000002. All 24 optimizer steps must pass, with 48 records, the run-shape metadata pinned to the recorded configuration, the logged step losses agreeing with the recorded microbatch losses, and at least one nonzero objective comparison.
+- **issue**: The issue judge reports a weighted score for verdict, root cause and evidence, with weights 0.2, 0.6 and 0.2. Passing requires a verdict score of exactly 1.0 and both root-cause and evidence scores strictly greater than 0.8.
+- **solution**: The solution protocol requires `report.md`, followed by a protected fresh training run: the system runs the workspace's `run_training.sh`, which byte-matches the verifier's pristine copy, and grading compares the run's captured records against the accumulation-window reference recomputed from them. For every optimizer step, the verifier recomputes the DAPO objective from the recorded per-token probabilities, advantages and completion masks. Both microbatches must agree with the accumulation-window objective within relative tolerance 0.0005 and absolute tolerance 0.000002. All 24 optimizer steps must pass, with 48 records, the run-shape metadata pinned to the recorded configuration, the logged step losses agreeing with the recorded microbatch losses, and at least one nonzero objective comparison.
 
 The score `correct_objective_steps` is 12 in the defective run and 24 in the control; the defective run's 12 passing steps compare zero-valued objectives, so the pass/fail margin rests on the nonzero comparisons. The threshold 23.5 has observed margins of 11.5 and 0.5.
 The pre-training score is zero. Calibration uses one run per arm with seed 42.
