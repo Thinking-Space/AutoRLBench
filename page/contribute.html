@@ -39,8 +39,8 @@
             <aside class="guide-hero-card" aria-label="Required materials">
                 <span class="guide-card-label">Required</span>
                 <div class="guide-hero-row"><span>01</span><strong>Workspace</strong><em>the recorded run</em></div>
-                <div class="guide-hero-row"><span>02</span><strong>Environment</strong><em>runtime environment</em></div>
-                <div class="guide-hero-row"><span>03</span><strong>Evaluations</strong><em>issue / solution</em></div>
+                <div class="guide-hero-row"><span>02</span><strong>Environment</strong><em>image pin + prepare.sh</em></div>
+                <div class="guide-hero-row"><span>03</span><strong>README</strong><em>defect, fix, outcome</em></div>
             </aside>
             <ol class="guide-timeline-track" id="timeline" aria-label="Timeline">
                 <li>
@@ -472,51 +472,42 @@ metrics. Otherwise the run is scored 0.</pre>
             <div class="guide-section-heading">
                 <span class="guide-eyebrow">Submission</span>
                 <h2>How to submit</h2>
-                <p>Use an agent when the workspace already exists. Open a pull request for a workspace, or an idea for how to construct one.</p>
+                <p>Three steps from a recorded run to a merged task.</p>
             </div>
             <div class="submit-ways">
-                <article class="submit-way is-agent" id="agent">
+                <article class="submit-way" id="prepare">
                     <div class="submit-way-head">
                         <span>01</span>
                         <div>
-                            <h3>Agent</h3>
-                            <p>Paste this prompt. It follows <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task" target="_blank" rel="noopener noreferrer">package-task</a>. Change the level to <code>solution</code> when a repaired run is included.</p>
+                            <h3>Prepare</h3>
+                            <p>Assemble the recorded run as raw material — it does not have to be tidy, the packaging step sanitizes it. What matters, item by item; the full checklist and a suggested layout are in <a href="https://github.com/Thinking-Space/AutoRLBench/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a>.</p>
                         </div>
-                        <button type="button" id="copy-agent-prompt">Copy</button>
                     </div>
-                    <pre id="agent-prompt">Package the workspace at &lt;path&gt; as an AutoRLBench issue task using https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task.</pre>
+                    <div class="guide-file-rows">
+                        <div><span>Workspace</span>The code that reproduces the defect, plus that run's artifacts — logs, W&B, per-step metrics. The same tree with the fix, when you have it: anything else that differs confounds the comparison.</div>
+                        <div><span>Dockerfile</span>Package the heavy training stack into a single image, and leave a single FROM line in Dockerfile. Model and dataset downloads and other small environment touches should reside in separate scripts. When one of the existing environments in <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/docker/images" target="_blank" rel="noopener noreferrer">docker/images</a> matches your stack, reuse it.</div>
+                        <div><span>README</span>The defect, the fix as a diff, the measured outcome of both arms, and every plausible-but-wrong diagnosis.</div>
+                    </div>
                 </article>
-                <article class="submit-way" id="pr">
+                <article class="submit-way is-agent" id="agent">
                     <div class="submit-way-head">
                         <span>02</span>
                         <div>
+                            <h3>Package with agent</h3>
+                            <p>Paste this prompt. The agent follows <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task" target="_blank" rel="noopener noreferrer">package-task</a>, produces <code>tasks/&lt;domain&gt;/&lt;task_id&gt;/</code>, decides whether the task is issue-only or gets a solution tier, and validates with zero errors.</p>
+                        </div>
+                        <button type="button" id="copy-agent-prompt">Copy</button>
+                    </div>
+                    <pre id="agent-prompt">Package &lt;your_task&gt; as an AutoRLBench task using https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task.</pre>
+                </article>
+                <article class="submit-way" id="pr">
+                    <div class="submit-way-head">
+                        <span>03</span>
+                        <div>
                             <h3>Pull request</h3>
-                            <p>Open a PR on <a href="https://github.com/Thinking-Space/AutoRLBench" target="_blank" rel="noopener noreferrer">Thinking-Space/AutoRLBench</a>.</p>
+                            <p>Open a PR against <code>main</code> on <a href="https://github.com/Thinking-Space/AutoRLBench" target="_blank" rel="noopener noreferrer">Thinking-Space/AutoRLBench</a> with the generated task. Include the raw material only if it is small enough to be useful as evidence.</p>
                         </div>
                     </div>
-                    <ol class="guide-publish-steps">
-                        <li>
-                            <span>01</span>
-                            <div>
-                                <strong>Name the task</strong>
-                                <p>Issue or solution, the failure category.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <span>02</span>
-                            <div>
-                                <strong>Add what you have</strong>
-                                <p>Diagnosis instruction, workspace, and environment. Solution adds repair-and-rerun evaluation.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <span>03</span>
-                            <div>
-                                <strong>Push the branch</strong>
-                                <p>Use the commands below when <code>tasks/your-task-name</code> is already built.</p>
-                            </div>
-                        </li>
-                    </ol>
                     <pre class="submit-git">git clone https://github.com/Thinking-Space/AutoRLBench.git
 cd AutoRLBench
 git checkout -b contrib/your-task-name
@@ -532,7 +523,7 @@ git push -u origin contrib/your-task-name</pre>
         <div class="footer-grid">
             <div class="footer-brand"><div class="nav-logo"><img src="images/logo.png" alt="AutoRLBench" width="150" height="24"></div><p>A benchmark and open call for reproducible RL runs.</p></div>
             <div class="footer-col"><h4>Benchmark</h4><a href="tasks.html">Tasks</a><a href="index.html#leaderboard">Leaderboard</a></div>
-            <div class="footer-col"><h4>Contact</h4><a href="#timeline">Timeline</a><a href="#levels">Issue and solution</a><a href="#agent">Agent</a><a href="#pr">Pull request</a></div>
+            <div class="footer-col"><h4>Contact</h4><a href="#timeline">Timeline</a><a href="#levels">Issue and solution</a><a href="#prepare">Prepare</a><a href="#agent">Package with agent</a><a href="#pr">Pull request</a></div>
         </div>
         <div class="footer-bottom">&copy; 2026 AutoRLBench. Released under Apache-2.0 License.</div>
     </footer>

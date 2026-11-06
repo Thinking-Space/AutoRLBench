@@ -44,18 +44,18 @@ Keep only code and launch scripts, plus the training settings, hyperparameters, 
 
 ### Environment and assets
 
-- Environment image name: the `<name>` of `<name>.Dockerfile` under `docker/images/`; currently `verl`, `slime-v0.3.2`, `vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10`
-- GPUs to use: `CUDA_VISIBLE_DEVICES` / `NVIDIA_VISIBLE_DEVICES`
-- Each HF asset: repo, 40-char commit sha revision, `--type` (`model` or `dataset`), `--allow` list, SHA-256 and byte size of files to verify, `--dest`
-- Datasets using a built-in recipe: recipe name (`dapo_math_17k`, `gsm8k`, `search_r1_nq_hotpotqa`, `wiki18_e5`), SHA-256 and byte size of output files, `--dest`
-- Single-URL assets: URL, SHA-256, byte size, whether to `--extract`
-- Whether `docker-compose.yaml` is needed (multi-GPU or large `/dev/shm`, on the harbor backend)
+- Environment: an existing `docker/images/` name matching the recorded stack (see the table in `docker/README.md`), or the raw task's one-line digest-pinned Dockerfile, which becomes a new `docker/images/<name>.Dockerfile`
+- GPU count to declare under `[environment] gpus` in `task.toml` (never device ids)
+- Each HF asset: repo (`org/name`), `--type` (`model` or `dataset`), the pinned 40-char commit sha, `--dest`
+- URL assets (e.g. pure-Python wheels the image lacks): URL, SHA-256, byte size
+- Any derived asset the recorded run built from fetched data (parquet files, FAISS indexes, torch_dist weights) that `prepare.sh` must rebuild
+- Any env vars the run needs beyond what the harness already sets (they go through `$AUTORLBENCH_PREPARED/env`)
 
-Do not collect a base image: environment images are defined by `docker/images/*.Dockerfile`, and tasks do not ship a Dockerfile.
+Do not collect a build recipe: the repo keeps only one-line digest pins, and an elaborate stack is built and pushed by the contributor to a public registry (ghcr.io, Docker Hub, …).
 
-### Scoring keys (user input for this task)
+### Scoring keys (needed only when the task gets a solution tier)
 
-The eval-set key is always required:
+Collect these only after deciding the task has a solution tier (see the decision rule in [SKILL.md](SKILL.md#does-the-task-get-a-solution-tier)). A solution tier needs an eval-set key:
 
 - Eval-set key name
 - Where the key appears: text log, offline wandb, or both
@@ -69,7 +69,7 @@ The scoring method is optional. If not given, the score depends entirely on the 
 
 When the user specifies a scoring method, each reference score needs a key name, threshold, weight, where it appears, and one log sample, plus a pass rule. A reference score can be a training score or another logged value such as learning rate. See [examples.md](examples.md) for a filled-in example.
 
-### Historical evidence
+### Historical evidence (solution tier only)
 
 - The failed run's eval point series (step, value), used to write `historical_evidence_manifest.json` and calibrate the threshold
 
@@ -148,6 +148,8 @@ fix:
 ```
 
 ## solution/instruction.md
+
+The sections from here through `grader_spec.json` apply **only when the task gets a solution tier** (decision rule in [SKILL.md](SKILL.md#does-the-task-get-a-solution-tier)). An issue-only task produces none of these files.
 
 The solution protocol is debug-then-report: the agent repairs the workspace and submits `report.md`, and the **harness** re-runs the experiment afterwards. So `instruction.md` never tells the agent to launch anything.
 
@@ -343,53 +345,48 @@ Common naming sets: `training_reward_key` / `required_training_reward` / `traini
 
 ## Environment image
 
-`environment.image` in `task.toml` is the `<name>` of some `<name>.Dockerfile` under `docker/images/`. The image tag comes from `# autorlbench-image:` at the top of the Dockerfile; if it is not available locally, it is built first (or prebuild with `python3 -m autorlbench build-images <name>`).
+`environment.image` in `task.toml` is the `<name>` of some `<name>.Dockerfile` under `docker/images/`. Every runtime Dockerfile is a **single digest-pinned `FROM` line** — either an upstream framework image or an image the contributor built once and pushed to a public registry. The reference is resolved from that `FROM` line by `EnvironmentImage` (an optional `# autorlbench-image:` header still wins, for backwards compatibility) and reaches the Docker backend, `build-images`, and the Harbor adapter unchanged. Nothing is built at evaluation time: `python3 -m autorlbench build-images <name>` just pulls the digest on demand.
 
-Images are shared across tasks, and their contents are those tasks' common ground-truth environment. Do not modify an existing Dockerfile for a new task; that would also change the other tasks' environments. If no existing image fits, create a new `docker/images/<name>.Dockerfile`: pin `FROM` to a digest, and at the end copy verbatim the whole block after `# ---- AutoRLBench tooling ...` from another Dockerfile (tests compare it character by character). See `docker/README.md`.
+Images are shared across tasks, and their contents are those tasks' common ground-truth environment. Do not modify an existing Dockerfile for a new task; that would also change the other tasks' environments. If no existing image fits, add a new `docker/images/<name>.Dockerfile` containing the raw task's one-line pin, named per the slot grammar in `docker/README.md` (only what is actually baked into the image: framework, engine, torch, flash-attn, CUDA, python).
 
-The framework itself (verl / slime) does not count as part of the image: it comes from the checkout in the task workspace.
+The framework (verl / slime) usually travels with the task's workspace checkout rather than the image; environments that bake it in lead their name with its version (e.g. `slime-v0.3.2-...`).
 
 ## environment/prepare.sh
 
 ```bash
 #!/usr/bin/env bash
-# <task_id>: what to prepare before training.
+# <task_id>: prepare stage.
 #
-# Runs in a separate prepare-stage container: root, the `<image-name>` image, **the only
-# networked stage**, and $AUTORLBENCH_WORKSPACE, $AUTORLBENCH_MODELS, and $AUTORLBENCH_DATASETS are all writable.
+# Runs in a separate prepare-stage container: root, the `<image-name>` image,
+# **the only networked stage**, and $AUTORLBENCH_WORKSPACE is writable.
 set -euo pipefail
+: "${AUTORLBENCH_WORKSPACE:?}"
+W="$AUTORLBENCH_WORKSPACE"
+env_dir="$AUTORLBENCH_ENVIRONMENT"
 
 # --- Base model ---------------------------------------------------------------
 # <why dest must be exactly this path: which guard on which line of the launch script looks for it>
-autorlbench_fetch_hf \
+# Pinned revision, for reference: <org/repo> @ <40-char commit sha>
+python3 "$env_dir/fetch_hf.py" \
     --repo <org/repo> \
-    --revision <40-char commit sha> \
-    --allow config.json \
-    --allow tokenizer.json \
-    --allow model.safetensors \
-    --expect model.safetensors=<sha256> \
-    --expect-size model.safetensors=<bytes> \
-    --dest "$AUTORLBENCH_WORKSPACE/<relative model path>"
+    --dest "$W/<relative model path>"
 
 # --- Dataset ------------------------------------------------------------------
-autorlbench_dataset \
-    --recipe <dapo_math_17k|gsm8k|search_r1_nq_hotpotqa|wiki18_e5> \
-    --expect train.parquet=<sha256> \
-    --expect-size train.parquet=<bytes> \
-    --expect test.parquet=<sha256> \
-    --expect-size test.parquet=<bytes> \
-    --dest "$AUTORLBENCH_WORKSPACE/<relative dataset path>"
+python3 "$env_dir/fetch_hf.py" \
+    --type dataset \
+    --repo <org/repo> \
+    --dest "$W/<relative dataset path>"
 ```
 
-Three commands:
+`fetch_hf.py` lives in the task's own `environment/` directory — copy it verbatim from an existing task (most tasks carry the same file) and invoke it with the image's own interpreter. It downloads whole HF repos into the shared caches, keyed by repo id, and hard-links the bytes into `--dest`, so tens of GB of weights are not duplicated on disk.
 
-| Command | Purpose | Required |
-| --- | --- | --- |
-| `autorlbench_fetch_hf` | Fetch an HF repo by allow list | `--repo`, `--revision` (40-char sha), `--dest`; `--type dataset` for dataset repos |
-| `autorlbench_fetch_url` | Single URL | `--url`, `--sha256`, `--dest`; add `--extract` for archives |
-| `autorlbench_dataset` | Recipe built into the image | `--recipe`, `--dest` |
+Fetches are cache-first **without checksum verification**, so the pinning is yours to write:
 
-All three accept repeatable `--expect PATH=SHA256` and `--expect-size PATH=BYTES`. Verify at least one main file per asset. A failed check is a **hard failure**, with no fallback retry.
+- for each HF repo, record the pinned 40-char commit sha in a comment next to the call;
+- for anything fetched by URL (e.g. pure-Python wheels the image lacks), verify SHA-256 and byte size in-flight and fail loudly on drift;
+- guard derived outputs (parquet files, indexes) with a `.complete` marker so re-runs skip finished work.
+
+Use `--cache-as <owner/name>` when a repo's name would reveal the task's answer: only the cache directory name changes, the bytes stay shared.
 
 Available variables:
 
@@ -428,10 +425,12 @@ script_args = ["<arg>"]          # only when the launch script takes positional 
 
 [environment]
 image = "<environment name under docker/images/>"
+# Optional GPU count; the docker backend turns it into `--gpus <n> --shm-size=16g`,
+# harbor synthesizes the compose device reservation from it. Never device ids.
+gpus = 8
 
-[environment.env]                # optional
-CUDA_VISIBLE_DEVICES = "0,1"
-NVIDIA_VISIBLE_DEVICES = "0,1"
+[environment.env]                # optional, run-time env vars the task needs
+VLLM_ATTENTION_BACKEND = "XFORMERS"
 
 [outcome]
 failure_type = "<see below>"
@@ -448,6 +447,7 @@ The validator rejects:
 - `script` that is absolute, contains `..`, or points to a file not in `workspace/`
 - `script_args` without `script`; `script_args` that is not a list of strings
 - `env` values that are not strings (`CUDA_VISIBLE_DEVICES = 0` is rejected), or that set `AUTORLBENCH_*`
+- `gpus` that is not a non-negative integer
 
 Declaring `framework` without `script` only gives a warning, but the task card relies on it to record how the task runs, so do not omit it.
 

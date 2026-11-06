@@ -4,6 +4,8 @@ Provide everything in this structure in one go when packaging. If any item is mi
 
 When packaging, read the code and launch-script diff between the buggy commit and the baseline commit, write the root cause as one sentence, and include the metric symptoms given here.
 
+The scoring keys in this example (from `metric_key` down) are needed **only when the task gets a solution tier** — the packaging agent decides this, and an issue-only task neither asks for nor uses them. Everything above them is required for every task.
+
 ## Evaluation score only
 
 ```yaml
@@ -33,28 +35,14 @@ failure_logs:
   - logs/train.log
 include_wandb: true
 
-image: verl-moe-token
-gpus: "0,1"
-needs_compose: true
+image: verl-vllm0.8.5-torch2.6.0-flashattn2.7.4-cu124-py3.10
+gpus: 2
 
 assets:
   - kind: hf
     repo: Qwen/Qwen1.5-MoE-A2.7B-Chat
     type: model
     revision: ec052fda178e241c7c443468d2fa1db6618996be
-    allow:
-      - LICENSE
-      - config.json
-      - tokenizer.json
-      - tokenizer_config.json
-      - vocab.json
-      - model-00001-of-00008.safetensors
-      # … one allow/expect/expect_size triple per remaining shard plus
-      # model.safetensors.index.json, all listed verbatim in the real input
-    expect:
-      model-00001-of-00008.safetensors: a51a84c031e0f6c8808bc284106c488ab3db6069a3f6f5a231be1e963206d020
-    expect_size:
-      model-00001-of-00008.safetensors: 3999614664
     dest: models/Qwen1.5-MoE-A2.7B-Chat
     why_this_path: >-
       scripts/train.sh exports PYTHONPATH from $W and the resolved config
@@ -64,16 +52,6 @@ assets:
     repo: openai/gsm8k
     type: dataset
     revision: 740312add88f781978c0658806c59bc2815b9866
-    allow:
-      - main/train-00000-of-00001.parquet
-      - main/test-00000-of-00001.parquet
-      - README.md
-    expect:
-      main/train-00000-of-00001.parquet: ea82612ea9582142387730c793eb67d3b12849002bc0b7fa6f8efafa7351419d
-      main/test-00000-of-00001.parquet: ee7b8da9e381df27b9e3f7758a159ab2bdaa4dbaa910546cbbc47e0cb44e4f59
-    expect_size:
-      main/train-00000-of-00001.parquet: 2306545
-      main/test-00000-of-00001.parquet: 419088
     dest: data/raw/gsm8k
     why_this_path: >-
       scripts/prepare_gsm8k.py converts the raw parquet into
@@ -93,7 +71,7 @@ historical_eval_points:
 
 A `failure_reason` written from this diff would look like: `the per-token loss callback returns (loss, metrics) instead of the native (loss sum, token count, metrics), so MCore never normalizes the MoE z-loss gradients; final val-core is 0.0`. The exact wording follows the filtered diff.
 
-Each entry in `assets` becomes one `autorlbench_fetch_hf` / `autorlbench_dataset` / `autorlbench_fetch_url` call in `environment/prepare.sh`, with `$AUTORLBENCH_WORKSPACE/` prefixed to `dest`. `why_this_path` becomes the comment in the script, because a wrong path only blows up midway through training.
+Each entry in `assets` becomes one `fetch_hf.py` call in `environment/prepare.sh`, with `$AUTORLBENCH_WORKSPACE/` prefixed to `dest`; `revision` becomes the pinned-sha comment next to the call. `why_this_path` becomes the comment in the script, because a wrong path only blows up midway through training.
 ## No scoring method given
 
 The example above, up to `required_final_score`, is the default scoring: the score depends entirely on the eval-set key. Per `score_mode`, take that key's highest finite value (default `best`) or the value at `final_step` (`final`). If it reaches `required_final_score`, score is 1; otherwise 0.
@@ -145,15 +123,13 @@ pass_rule: "score = sum over components of weight times whether the component me
 
 Implement `pass_rule` exactly as the user wrote it. If the user did not provide `score_components`, do not apply this weighting.
 
-## Add when multi-GPU or large shm is needed
+## Add when the run needs more GPUs
+
+Just declare the count; the docker backend derives `--gpus <n> --shm-size=16g` from it and the harbor backend synthesizes the compose device reservation. Never list device ids.
 
 ```yaml
-gpus: "0,1,2,3,4,5,6,7"
-needs_compose: true
-shm_size: "16gb"
+gpus: 8
 ```
-
-With `needs_compose: true`, copy `tasks/reward/slime_retool_length_reward_bonus/environment/docker-compose.yaml` verbatim (changing one line for `shm_size`). It only applies to the harbor backend; the native docker path derives `--gpus` itself from `NVIDIA_VISIBLE_DEVICES` in `[environment.env]` of `task.toml`.
 
 ## Add when an asset needs on-site conversion
 
@@ -172,4 +148,4 @@ assets:
     guard_in_launch_script: 'if [ ! -d "$DIST_MODEL_DIR" ]'
 ```
 
-With `skip_without_cuda: true`, `prepare.sh` must probe for CUDA first and, if unavailable, print one line and skip. The harbor backend runs prepare as a build-time layer with no GPU, so the `guard_in_launch_script` guard does the work in the agent stage. If the output is not byte-for-byte reproducible, do not write `--expect` for it.
+With `skip_without_cuda: true`, `prepare.sh` must probe for CUDA first and, if unavailable, print one line and skip. The harbor backend runs prepare as a build-time layer with no GPU, so the `guard_in_launch_script` guard does the work in the agent stage. If the output is byte-for-byte reproducible, record its sha256 in the script and assert it after building; if it is not, do not pin it.

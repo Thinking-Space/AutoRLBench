@@ -3,9 +3,11 @@ name: package-task
 description: >-
   Packages a buggy RL training workspace (a raw task, a git commit pair, or a
   historical snapshot) into an AutoRLBench task under tasks/<domain>/<task_id>/:
-  task.toml, README.md, workspace/, environment/prepare.sh, and issue/solution
-  evaluations. Use when the user asks to package, build, or convert a run into
-  the task format, for any model, framework, or dataset.
+  task.toml, README.md, workspace/, environment/prepare.sh, and evaluations —
+  an issue tier always, a solution tier only when the fix outcome is gradeable
+  (decided during packaging, never assumed). Use when the user asks to package,
+  build, or convert a run into the task format, for any model, framework, or
+  dataset.
 ---
 
 # package-task
@@ -33,7 +35,8 @@ tasks/<domain>/<task_id>/
 ├── workspace/                    # defective side's code, launch script, and frozen evidence
 ├── environment/
 │   ├── prepare.sh                # the only networked stage: fetch model, fetch data
-│   ├── docker-compose.yaml       # optional: multi-GPU / large shm on Harbor
+│   ├── docker-compose.yaml       # exceptional: only for contracts the harness cannot express
+│   ├── fetch_hf.py               # the HF fetch helper, copied verbatim from an existing task
 │   ├── data_manifest.json        # optional: when data ships with the task
 │   └── source_manifest.json      # optional: when packaging modified the source
 └── evaluations/
@@ -49,6 +52,7 @@ tasks/<domain>/<task_id>/
 
 Do not produce `agent_trace.json`, `environment/Dockerfile`, `requirements.txt`, or `validation/`.
 Tasks do not ship their own image: `environment.image` in `task.toml` points to `docker/images/<name>.Dockerfile`.
+A task whose stack matches no existing environment adds one new file there — a one-line digest-pinned `FROM` — instead.
 
 ## Required inputs
 
@@ -58,9 +62,12 @@ If any item is missing, stop and ask. Field list in [reference.md](reference.md#
 - `domain`, `task_id`, title; model, dataset, framework, algorithm
 - Launch script (relative to `workspace/`), positional args, env vars; in-container paths for model, train set, and validation set
 - Logs of the failed run (keep W&B too if present)
-- Environment image name, GPUs to use
-- For each asset: source, 40-char revision, SHA-256 and byte size, destination
-- Solution tier: metric key, one log sample, `final_step`, `required_final_score`, and **how many runs per side** the threshold was calibrated on
+- Environment: an existing `docker/images/` name matching the recorded stack, or the raw task's one-line
+  digest-pinned Dockerfile (becomes a new environment); the GPU count to declare
+- For each asset: source (HF repo or URL), the 40-char revision or wheel SHA-256 + byte size to pin, destination
+- Only when you will build a solution tier (see [Does the task get a solution tier?](#does-the-task-get-a-solution-tier)):
+  metric key, one log sample, `final_step`, `required_final_score`, and **how many runs per side** the threshold was
+  calibrated on
 
 ## Three source forms
 
@@ -80,26 +87,46 @@ Form 2 **publishes only the defective side**. Putting both sides in `workspace/`
 | Defective-side code + launch script + run artifacts | `workspace/` |
 | Changed files from the control side | `evaluations/solution/oracle/` |
 | Control-side run results and curves | `evaluations/solution/oracle/` (used to calibrate the threshold) |
-| The raw `Dockerfile` | Map to an existing image under `docker/images/`, or add a new one |
+| The raw `Dockerfile` | Map to an existing image under `docker/images/`, or add its one-line digest-pinned `FROM` as a new `docker/images/<name>.Dockerfile` |
 | The raw `README.md` | Rewrite as the task `README.md` |
+
+## Does the task get a solution tier?
+
+**You decide this during packaging — it is never an obligation, and never assumed.** A control side (a fixed run, a
+baseline commit) is an invitation, not a requirement: not every defect has a canonical fix, and not every fix has an
+outcome a rerun can grade. Write a solution tier only when **all** of these hold:
+
+- There is a control side or a post-fix run, and the comparison is clean — same seed, data, and budget; nothing but the
+  fix differs (placement differences like GPU or port do not count, but say so).
+- A metric the rerun's grader can read separates the arms with margin on both sides: a threshold fits between the
+  defective side's upper bound and the control side's lower bound, and sits above the control side's step-0 value.
+- **Any correct repair reaches that outcome, not just the recorded one.** When several defensible fixes produce genuinely
+  different outcomes, or the fix's effect is qualitative, or a single-seed margin is too thin to trust, a threshold would
+  grade repairs against one arbitrarily chosen fix — package issue-only instead.
+
+When you decide against it, do not ask the user for scoring keys, do not write `evaluations/solution/`, and state the
+reason in one line of the task README (e.g. "issue-only: the post-fix margin is single-seed and under one point").
 
 ## Workflow
 
 1. **Identify the root cause.** Take the diff for the source form and filter out unrelated parts. If nothing substantive remains after filtering, stop.
-2. **Copy the evaluation scaffolding.** Copy issue `instruction.md`, `judge.py`, `judge_prompt.md`, `test.sh`,
-   and solution `verifier/test.sh` verbatim from `tasks/reward/slime_retool_length_reward_bonus/`,
-   then check them with `cmp`.
-3. **Write the oracle.** Use the diff from step 1 to write `evaluations/issue/oracle.md` and `solution/oracle/`.
-   When there are multiple root causes, `oracle.md` must state that naming only some of them earns partial credit.
-4. **Write the solution tier** (only when there is a control side or a post-fix run): `instruction.md`, `grader_spec.json`,
+2. **Decide the tiers.** Apply [Does the task get a solution tier?](#does-the-task-get-a-solution-tier). The issue tier is
+   always written; the solution tier only when the decision rule says so.
+3. **Copy the evaluation scaffolding.** Copy issue `instruction.md`, `judge.py`, `judge_prompt.md`, `test.sh`,
+   and — when there is a solution tier — solution `verifier/test.sh` verbatim from
+   `tasks/reward/slime_retool_length_reward_bonus/`, then check them with `cmp`.
+4. **Write the oracle.** Use the diff from step 1 to write `evaluations/issue/oracle.md` and `solution/oracle/` (when there
+   is a solution tier). When there are multiple root causes, `oracle.md` must state that naming only some of them earns partial credit.
+5. **Write the solution tier** (skip entirely when step 2 decided against it): `instruction.md`, `grader_spec.json`,
    `run_spec.json`, `grade_submission.py`. If the log format matches, reuse an existing `grade_submission.py` and change only the spec.
    `instruction.md` tells the agent to repair and submit `report.md` and **not** to launch training; `run_spec.json` is what the
    harness runs on its behalf. The two must agree — the agent is graded on a run it never starts, so a command or budget that
    appears in only one of them is how a correct repair still scores 0.
-5. **Assemble the workspace.** Add the defective-side code and frozen evidence, slim and sanitize it (see below), then write `environment/prepare.sh`,
-   `task.toml`, and `README.md`.
-6. **Offline self-check.** Replay the grader on the log samples. With a control side, replay once per side: the defective side must fail and the control side must pass.
-7. **Validate.** `python3 -m autorlbench validate tasks/<domain>/<task_id>` must report no errors.
+6. **Assemble the workspace.** Add the defective-side code and frozen evidence, slim and sanitize it (see below), copy
+   `fetch_hf.py` from an existing task's `environment/`, then write `environment/prepare.sh`, `task.toml`, and `README.md`.
+7. **Offline self-check.** With a solution tier, replay the grader on the log samples once per side: the defective side must
+   fail and the control side must pass.
+8. **Validate.** `python3 -m autorlbench validate tasks/<domain>/<task_id>` must report no errors.
 
 ## Rules
 
@@ -142,18 +169,26 @@ Any remaining hit must be an upstream word, with the reason noted in the manifes
 Anything computable from shipped content plus a pinned model (FAISS indexes, torch_dist weights) is generated by
 `environment/<script>.py` during prepare, not shipped. The generator must be self-contained, fall back to CPU,
 and assert only **the side unrelated to the defect**: `environment/` is readable by the agent, so asserting query-side quality here
-points at the defect. Guard outputs with a `.complete` marker, hard-link them into the workspace, and do not write `--expect`.
+points at the defect. Guard outputs with a `.complete` marker and hard-link them into the workspace; if the output
+is not byte-for-byte reproducible, do not pin it with a checksum.
 
 ### Environment
 
-- Pick an image from `docker/images/` that matches the recorded stack. Do not modify existing Dockerfiles. If none fits, add one
-  as described in `docker/README.md`; if it is not built yet, write `not yet built` in the README.
-- `prepare.sh` fetches assets with `autorlbench_fetch_hf` / `autorlbench_fetch_url` / `autorlbench_dataset`,
-  each with `--expect` and `--expect-size`. HF revisions are 40-char commit shas.
+- Pick an image from `docker/images/` that matches the recorded stack; do not modify existing Dockerfiles. If none fits,
+  the raw task's Dockerfile must be a single digest-pinned `FROM` on a publicly pullable registry (ghcr.io, Docker Hub, …):
+  copy that line to `docker/images/<name>.Dockerfile`, named per the conventions in `docker/README.md`, and reference the
+  name in `environment.image`. An elaborate stack is built and pushed once by the contributor; the repo keeps only the pin.
+  If the image is not pushed yet, say so in the README (see the build-recipe exceptions in `docker/README.md`).
+- `prepare.sh` is the only networked stage. Invoke the task-local `fetch_hf.py` with the image's own interpreter; it
+  downloads whole HF repos into the shared caches and hard-links the bytes into the workspace. Fetches are cache-first
+  without checksum verification, so record each pinned 40-char revision in a comment next to the call, and for anything
+  fetched by URL (e.g. pure-Python wheels the image lacks) verify SHA-256 and byte size in-flight, failing loudly on drift.
+  Use `--cache-as` when a repo name would reveal the task's answer.
 - Set `--dest` to `$AUTORLBENCH_WORKSPACE/<path the launch script actually reads>`. `$AUTORLBENCH_MODELS` /
   `$AUTORLBENCH_DATASETS` are only caches; task scripts must not reference them directly.
-- GPUs go in `[environment.env]` of `task.toml`, and values must be strings. Do not set `AUTORLBENCH_*`
-  or `HF_HUB_OFFLINE` here: the framework sets online and offline mode per stage.
+- GPUs are a count — `gpus = <n>` under `[environment]` in `task.toml` — never device ids; the backend derives the
+  device spec. Values under `[environment.env]` must be strings, and must not set `AUTORLBENCH_*` or `HF_HUB_OFFLINE`
+  there: the framework sets online and offline mode per stage.
 
 ### task.toml and README.md
 
@@ -166,12 +201,14 @@ points at the defect. Guard outputs with a `.complete` marker, hard-link them in
 ## Pre-completion checklist
 
 - [ ] Skeleton complete; no `agent_trace.json`, `environment/Dockerfile`, `validation/`
-- [ ] The four issue files and solution `test.sh` all match their source under `cmp`
+- [ ] The tier decision is recorded: issue-only tasks say why in the README, one line
+- [ ] The four issue files (and solution `test.sh`, when present) all match their source under `cmp`
 - [ ] Oracle root causes match the filtered diff; partial-credit sentence present for multiple causes
-- [ ] Grader replay: defective side exit 1, control side exit 0
-- [ ] Solution tier: `instruction.md` forbids launching training and requires `report.md`; its command, env and budget match `run_spec.json`
+- [ ] With a solution tier: grader replay — defective side exit 1, control side exit 0
+- [ ] With a solution tier: `instruction.md` forbids launching training and requires `report.md`; its command, env and budget match `run_spec.json`
 - [ ] Workspace has the launch script and failure logs; sanitize scan shows only upstream hits
-- [ ] All `env` values in `task.toml` are strings, no `AUTORLBENCH_*`
-- [ ] Every asset in `prepare.sh` has `--expect` / `--expect-size`, and every revision is a 40-char sha
+- [ ] `task.toml` declares an integer `gpus` count (no device ids); `env` values are strings, no `AUTORLBENCH_*`
+- [ ] A new environment, if any, is one digest-pinned `FROM` line under `docker/images/`, named per `docker/README.md`
+- [ ] Every fetched asset has a pinned 40-char revision or verified wheel sha256 + byte size, and a `--dest` the launch script reads
 - [ ] `python3 -m autorlbench validate <task_dir>` reports no errors
-- [ ] README states how many runs per side calibrated the threshold, and which steps were not verified
+- [ ] With a solution tier: README states how many runs per side calibrated the threshold, and which steps were not verified

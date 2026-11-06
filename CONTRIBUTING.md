@@ -1,58 +1,55 @@
 # Contributing a task
 
-You contribute the raw material: a real training run that went wrong, and when you have
-one, the run where you fixed it. An agent turns that into a task. This file describes what
-the raw material must contain; the [package-task](skills/package-task/SKILL.md) skill
-describes how it is packaged.
+You contribute the raw material: a real training run that went wrong, and optionally the run where you fixed it. An agent turns that into a task with the
+[package-task](skills/package-task/SKILL.md) skill. 
 
-The site version of this guide is at
-[thinking-space.github.io/AutoRLBench/contribute.html](https://thinking-space.github.io/AutoRLBench/contribute.html).
+## What to prepare
 
-## What to send
-
-Package your run as a directory named after the case. Nothing here has to be tidy — absolute
-paths, hostnames and `broken`/`fixed` labels in your logs are expected; the packaging step
-sanitizes them.
+We suggest something like this:
 
 ```text
 <your_task>/
 ├── buggy_workspace/   code that reproduces the defect, plus that run's artifacts
 ├── fixed_workspace/   the same tree with the fix, plus its run's artifacts   (optional)
-├── Dockerfile         the environment both runs were recorded on
+├── Dockerfile         one digest-pinned FROM line naming the environment both runs used
 └── README.md          the defect, the fix, and the measured outcome
 ```
 
-**The two workspaces differ only by the fix.** Anything else that differs is something the
-comparison is also measuring, and the threshold will be calibrated on a confounded pair.
-Each workspace is self-contained: its own code, its own inputs, no sibling directory either
-side reaches into.
+Nothing here has to be tidy, the packaging step sanitizes them. But we suggest:
 
-**Each workspace carries its own run's artifacts**, where the run wrote them. At minimum:
+- **The two workspaces differ only by the fix**, and each is self-contained: its own code,
+its own inputs. Anything else that differs confounds the comparison the threshold is
+calibrated on.
+- **Each workspace carries its run's artifacts** where the run wrote them: full
+stdout/stderr, the offline W&B directory (including `run-*.wandb`, or `wandb sync`
+cannot replay the run), every per-step metric file, and a couple of rollout dumps as
+samples.
+- **The Dockerfile is a pin, not a recipe.** Package the heavy training stack — torch,
+CUDA, compiled kernels, the framework — into a single image, and leave a single `FROM`
+line in the Dockerfile. Push the image to a public registry (ghcr.io, Docker Hub, …) and
+submit exactly one line:
+  ```dockerfile
+  FROM ghcr.io/<you>/<your-image>@sha256:4c43bbf1...
+  ```
 
-- the full stdout/stderr of the run;
-- the offline W&B directory, including the `run-*.wandb` binary (without it `wandb sync`
-  cannot replay the run);
-- every per-step metric file — they are small, and a threshold is read off them;
-- a couple of rollout dumps as samples. Full rollout dumps are large and are not needed.
+  The digest, not the tag, is what makes the environment deterministic. When one of the
+  existing environments in [docker/images/](docker/images/) matches your stack, reuse it. Things like these can reside in seperate scripts: model and dataset
+downloads, a couple of pure-Python wheels the image lacks, env vars the run needs, or
+specific post-processing of the dataset or model.
+- **The README** states the defect, the fix as a diff, the measured outcome of both arms,
+and every plausible-but-wrong diagnosis. If you ran each arm once, say so — a
+single-seed result supports margins, not variance.
+- **Leave out** model weights, checkpoints, and anything derivable from what you did
+ship. Record how to obtain them in the scripts instead.
 
-**The Dockerfile** pins versions and says in a comment which recorded run they came from.
-Prefer one that builds without a build context.
-
-**The README** states the defect, the fix as a diff, the measured outcome of both arms, and
-a section for every plausible-but-wrong diagnosis. If you ran each arm once, say so: a
-single-seed result supports margins, not variance, and whoever calibrates a threshold needs
-to know which they have.
-
-**Leave out** model weights, checkpoints, and anything derivable from what you did ship (a
-FAISS index whose corpus is already in the bundle). Record how to obtain them instead.
-
-Without a fixed run, the task is issue-only (diagnosis). With one, it also gets a solution
-level.
+Without a fixed run, the task is issue-only (diagnosis). A fixed run does not guarantee a
+solution level: not every defect has a canonical fix or a reproducible post-fix outcome, and
+the packaging step decides whether grading a repair is meaningful.
 
 ### A worked example
 
 [`tasks/environment/search_r1_zero_query_embedding`](tasks/environment/search_r1_zero_query_embedding/)
-started life as raw material in this form.
+started life as raw material in this form:
 
 ```text
 search-r1-zero-query-embedding/
@@ -65,49 +62,39 @@ search-r1-zero-query-embedding/
 │                          plus its own results/baseline32/
 ├── Dockerfile             CUDA 12.1, Python 3.10, torch 2.4.0, vLLM 0.6.3,
 │                          flash-attn 2.6.3, faiss-cpu 1.14.2
+├── prepare.sh             downloads the two models (Qwen2.5-1.5B-Instruct,
+│                          e5-base-v2), rebuilds the FAISS index
 └── README.md
 ```
 
-What the README said, in brief:
+Its README described the defect (a
+cross-device `torch.as_tensor` copy that silently returns zero embeddings, so FAISS
+retrieves a constant top-3 while training still improves), the fix as a four-line diff,
+the measured outcome —
 
-- **The defect.** `Encoder.encode()` fills a host buffer, then writes the GPU embedding
-  through `torch.as_tensor(buffer, device=cuda)`. Across devices that call copies instead of
-  aliasing, so the write lands in a temporary and the function returns a zero vector.
-- **Why it is silent.** Under inner-product search a zero query scores `0.0` against every
-  document. FAISS returns a well-formed constant top-3, with no exception and no shape
-  change. The run still trains and still improves — `val/searched` is `1.0` and `val/format`
-  stays above 0.977 — only the retrieved text is unrelated to the question.
-- **The measured outcome.** Same host, seed, data and 32-step budget; the two workspaces
-  differ only in those four lines.
+| Step | buggy `val/em` | fixed `val/em` |
+| ---: | ---: | ---: |
+| 0 | 3.12% | 13.28% |
+| 20 | 11.72% | 31.25% |
+| **32** | **15.62%** | **32.81%** |
 
-  | Step | buggy `val/em` | fixed `val/em` |
-  | ---: | ---: | ---: |
-  | 0 | 3.12% | 13.28% |
-  | 20 | 11.72% | 31.25% |
-  | **32** | **15.62%** | **32.81%** |
-
-  Both arms improve, so "the run did not learn" is the wrong diagnosis. The gap is already
-  open at step 0, which rules out every learning-side explanation.
-- **Wrong diagnoses to reject.** The checkpoint, the reward, the data, the model size, or
-  "training is not working".
-- **The fix.** Replace the four lines with `query_emb.detach().cpu().numpy()` followed by
-  `.astype(np.float32, order="C")`.
-- **Non-fix differences.** The arms used different GPUs and retriever ports because they ran
-  concurrently on one host. Those are placement parameters, not reproduction conditions.
-
-The packaged result is the task linked above: one workspace, the fix sealed into the
-solution oracle, and the run artifacts thinned and sanitized.
+— and why the obvious diagnoses (checkpoint, reward, data, model size, "training is not
+working") are wrong: both arms improve, and the gap is already open at step 0. The
+packaged task keeps one workspace, the fix sealed into the solution oracle, and the run
+artifacts thinned and sanitized.
 
 ## Package it
 
-Point an agent at the raw material with the package-task skill:
+Point an agent at the raw material with the
+[package-task](skills/package-task/SKILL.md) skill shipped in this repo:
 
 ```text
-Use the package-task skill to turn <your_task> into an AutoRLBench task under tasks/.
+Package <your_task> as an AutoRLBench task using https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task.
 ```
 
-It produces `tasks/<domain>/<task_id>/` in the [task layout](README.md#task-layout).
-Then check:
+It produces `tasks/<domain>/<task_id>/` in the [task layout](README.md#task-layout), and
+if your environment is a new image, its one-line Dockerfile lands under
+[docker/images/](docker/images/).
 
 ```bash
 python3 -m autorlbench validate tasks/<domain>/<task_id>
@@ -117,5 +104,5 @@ It must report zero errors.
 
 ## Open a pull request
 
-Open it against `main` with the generated task. Include the raw material only if it is small
-enough to be useful as evidence.
+Open it against `main` with the generated task. Include the raw material only if it is
+small enough to be useful as evidence.
