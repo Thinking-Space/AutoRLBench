@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoRLBench — Overview</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #f4f2ef;
+            --surface: #fbfaf8;
+            --border: rgba(36, 52, 71, 0.12);
+            --border-strong: rgba(36, 52, 71, 0.22);
+            --text: #141414;
+            --text-secondary: #5c5c5c;
+            --accent: #2c415c;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: #e6e4e0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            color: var(--text);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        a:hover {
+            opacity: 0.7;
+        }
+
+        /* ── The rectangular figure: a fixed 856×711 stage, scaled to fit the window ── */
+        #stage {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 856px;
+            height: 711px;
+            transform: translate(-50%, -50%);
+            transform-origin: center;
+            overflow: hidden;
+            border-radius: 18px;
+            box-shadow: 0 24px 80px rgba(20, 20, 18, 0.22);
+            /* Static stand-in for the drifting aurora orbs (same palette as globe.js) */
+            background:
+                radial-gradient(320px 260px at 16% 26%, rgba(160, 58, 50, 0.14), transparent 68%),
+                radial-gradient(300px 240px at 84% 20%, rgba(38, 60, 92, 0.15), transparent 68%),
+                radial-gradient(280px 240px at 72% 78%, rgba(38, 100, 90, 0.10), transparent 68%),
+                radial-gradient(290px 250px at 28% 82%, rgba(85, 55, 95, 0.10), transparent 68%),
+                radial-gradient(240px 200px at 52% 8%, rgba(175, 95, 38, 0.08), transparent 68%),
+                var(--bg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Hero: logo → tagline → buttons → category grid ── */
+        .hero {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+            padding: 3rem;
+            min-height: 0;
+        }
+
+        .hero > * {
+            max-width: 760px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-logo {
+            display: block;
+            margin: 0 auto 2rem;
+            max-width: 500px;
+            width: 100%;
+            height: auto;
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Fixed gap between the tagline and the grid */
+        .hero-push {
+            flex: none;
+            height: 2.5rem;
+        }
+
+        /* ── Category grid: 3 per row × 2 rows, no scrolling ── */
+        .category-grid {
+            max-width: none;
+            display: grid;
+            grid-template-columns: repeat(3, 240px);
+            justify-content: center;
+            gap: 1.25rem;
+        }
+
+        .cat-card {
+            height: 192px;
+            perspective: 900px;
+            cursor: default;
+        }
+
+        .cat-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.55s cubic-bezier(0.22, 0.8, 0.2, 1);
+        }
+
+        .cat-card:hover .cat-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .cat-card-face {
+            position: absolute;
+            inset: 0;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            box-shadow: 0 2px 6px rgba(24, 22, 18, 0.06), 0 8px 28px rgba(24, 22, 18, 0.1);
+        }
+
+        .cat-card-front {
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+        }
+
+        .cat-card-front img {
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
+            padding: 0.9rem 1rem 0.4rem;
+            object-fit: contain;
+        }
+
+        .cat-card-label {
+            padding: 0 1rem 0.75rem;
+            color: var(--text-secondary);
+            font-size: 0.68rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .cat-card-back {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 1.3rem 1.4rem;
+            background: var(--surface);
+            transform: rotateY(180deg);
+        }
+
+        .cat-card-back .cat-card-label {
+            padding: 0 0 0.7rem;
+            color: var(--text);
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            text-transform: none;
+        }
+
+        .cat-card-back .cat-card-blurb {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div id="stage">
+        <!-- Hero -->
+        <section class="hero">
+            <img src="images/logo.png" alt="AutoRLBench" class="hero-logo">
+            <p>A Benchmark for AI agents to diagnose and repair real RL training runs.
+                <br>Can an agent diagnose why a run fails — and repair it?
+            </p>
+            <div class="hero-push" aria-hidden="true"></div>
+
+            <!-- Six failure categories: static 3 × 2 grid (no scrolling) -->
+            <div class="category-grid">
+                <div class="cat-card">
+                    <div class="cat-card-inner">
+                        <div class="cat-card-face cat-card-front">
+                            <img src="images/domain-configuration.png" alt="">
+                            <span class="cat-card-label">Configuration</span>
+                        </div>
+                        <div class="cat-card-face cat-card-back">
+                            <span class="cat-card-label">Configuration</span>
+                            <span class="cat-card-blurb">Bad hyperparameters and training settings.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="cat-card">
+                    <div class="cat-card-inner">
+                        <div class="cat-card-face cat-card-front">
+                            <img src="images/domain-reward.png" alt="">
+                            <span class="cat-card-label">Reward</span>
+                        </div>
+                        <div class="cat-card-face cat-card-back">
+                            <span class="cat-card-label">Reward</span>
+                            <span class="cat-card-blurb">Rewards that miss or punish the right behavior.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="cat-card">
+                    <div class="cat-card-inner">
+                        <div class="cat-card-face cat-card-front">
+                            <img src="images/domain-data.png" alt="">
+                            <span class="cat-card-label">Data</span>
+                        </div>
+                        <div class="cat-card-face cat-card-back">
+                            <span class="cat-card-label">Data</span>
+                            <span class="cat-card-blurb">Input, format, or distribution / difficulty issues.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="cat-card">
+                    <div class="cat-card-inner">
+                        <div class="cat-card-face cat-card-front">
+                            <img src="images/domain-environment.png" alt="">
+                            <span class="cat-card-label">Environment</span>
+                        </div>
+                        <div class="cat-card-face cat-card-back">
+                            <span class="cat-card-label">Environment</span>
+                            <span class="cat-card-blurb">Unstable or mis-specified training environments.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="cat-card">
+                    <div class="cat-card-inner">
+                        <div class="cat-card-face cat-card-front">
+                            <img src="images/domain-algorithm.png" alt="">
+                            <span class="cat-card-label">Algorithm</span>
+                        </div>
+                        <div class="cat-card-face cat-card-back">
+                            <span class="cat-card-label">Algorithm</span>
+                            <span class="cat-card-blurb">Algorithm design flaws, unstable updates, and exploration failures.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="cat-card">
+                    <div class="cat-card-inner">
+                        <div class="cat-card-face cat-card-front">
+                            <img src="images/domain-infrastructure.png" alt="">
+                            <span class="cat-card-label">Infrastructure</span>
+                        </div>
+                        <div class="cat-card-face cat-card-back">
+                            <span class="cat-card-label">Infrastructure</span>
+                            <span class="cat-card-blurb">Runtime, engine, and systems failures.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Scale the fixed 856×711 stage to fit any window, no scrollbars ever.
+        (function () {
+            var stage = document.getElementById('stage');
+            function fit() {
+                var s = Math.min(window.innerWidth / 956, window.innerHeight / 811, 1);
+                stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+            }
+            window.addEventListener('resize', fit);
+            fit();
+        })();
+    </script>
+</body>
+</html>

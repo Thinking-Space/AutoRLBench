@@ -76,7 +76,20 @@
  * that replaced its first attempt, which died at turn one on a
  * gateway quota error; the three passing runs were audited clean of
  * network access.
- * The 90 solution records are reconciled against AutoRLBench validation-first
+ * The ten slime_retool_length_reward_bonus solution records were
+ * re-published on 6 Nov 2026 from the fresh dual-defect round: the
+ * 4 Nov round had been recorded against the pre-re-record single-defect
+ * task revision and was withdrawn on 5 Nov. The agent trials ran 0-GPU,
+ * so the in-run wrapper reports are zeroed placeholders; the verdicts
+ * come from BATCH replays recorded in each trial's verifier file and
+ * the evaluation ledger, joined by run_id (see
+ * import_retool_dual_defect_solution_traces.py). None pass: eight
+ * repairs removed the length bonus but left the tool-call key mismatch,
+ * so the reruns land near the B-only calibration state and below the
+ * healthy eval/aime floor; Kimi-K3.1-Pro and GLM-5.3 submitted no
+ * report.md and left the workspace byte-identical, taking the
+ * report-gate zero with no replay.
+ * The 100 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -5751,6 +5764,184 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "2769e92a-c912-46bb-828d-569c6c0b829b",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "305107d1f72b625f16b49a636c9ec94d2f02b4b0fe01edd19aee245aaa9bf3e7"
+  },
+  {
+    "task": "reward/slime_retool_length_reward_bonus",
+    "slug": "kimi-retool-length-sol",
+    "file": "agent-trace/kimi-retool-length-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 852181,
+    "steps": 40,
+    "costUsd": 1.4916,
+    "sourceRunId": "20261105-134359-ad54a3b5",
+    "sessionId": "19982d9e-91c5-49f6-8bfa-cf20eec43c2a",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "be7a81b769270340a59e46b6ef56a6e8a8f5fa2b4d84b155af0c22eab301e78e"
+  },
+  {
+    "task": "reward/slime_retool_length_reward_bonus",
+    "slug": "kimi31-retool-length-sol",
+    "file": "agent-trace/kimi31-retool-length-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 358822,
+    "steps": 9,
+    "costUsd": 0.6513,
+    "sourceRunId": "20261105-140158-69dbbb96",
+    "sessionId": "2364af58-13e5-487c-936e-c87ea83fc782",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "0ace390183684fa2dc90cbb54bbc69fa02e4e81042b7d6ca06a0ef5995acef78"
+  },
+  {
+    "task": "reward/slime_retool_length_reward_bonus",
+    "slug": "dsv4-retool-length-sol",
+    "file": "agent-trace/dsv4-retool-length-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 3363225,
+    "steps": 104,
+    "costUsd": 34.3369,
+    "sourceRunId": "20261105-141041-7b86704a",
+    "sessionId": "e915cc72-4a62-4eda-926d-bbf39c9cdfcb",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "484dcb89eff48c9af7b19917668e1b9eff59fed85cb6f6cc6ebd98a51639d333"
+  },
+  {
+    "task": "reward/slime_retool_length_reward_bonus",
+    "slug": "fable51-retool-length-sol",
+    "file": "agent-trace/fable51-retool-length-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 383851,
+    "steps": 24,
+    "costUsd": 3.849,
+    "sourceRunId": "20261105-151011-70a3cf84",
+    "sessionId": "a7cf4c3c-541e-4c7a-a0b4-3b40290902d5",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "287aed3c77b53d499718a20d0243a4a33e7364909f8da00ab1bc8e2be48876b4"
+  },
+  {
+    "task": "reward/slime_retool_length_reward_bonus",
+    "slug": "gemini4-retool-length-sol",
+    "file": "agent-trace/gemini4-retool-length-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1163039,
+    "steps": 27,
+    "costUsd": 2.3285,
+    "sourceRunId": "20261105-151921-7c50fa63",
+    "sessionId": "e563b418-a4c3-4a8a-9edc-67acefa5f423",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "d65adb1e7dcd2d147135bf76f434246e0467450a139ca656b6d70ee19ed4e680"
+  },
+  {
+    "task": "reward/slime_retool_length_reward_bonus",
+    "slug": "glm53-retool-length-sol",
+    "file": "agent-trace/glm53-retool-length-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 440185,
+    "steps": 31,
+    "costUsd": 3.8078,
+    "sourceRunId": "20261105-154137-fb9cf33d",
+    "sessionId": "17023f4e-d5a1-49bf-8736-a9b5c39927d1",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "aabfcd610ac5b9bf134ebd509314dd1c92657d16f1fba5e115b75a7aff9693fc"
+  },
+  {
+    "task": "reward/slime_retool_length_reward_bonus",
+    "slug": "gpt6astra-retool-length-sol",
+    "file": "agent-trace/gpt6astra-retool-length-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 744916,
+    "steps": 19,
+    "costUsd": 2.6375,
+    "sourceRunId": "20261105-155142-5066020c",
+    "sessionId": "01a1aab1-7833-7d71-b623-087d14f2b08e",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "b5ecaccc1d19c5abaa6a83c1b77fa74a0e17c8740ec3f7c0ef3c70811a02e2ba"
+  },
+  {
+    "task": "reward/slime_retool_length_reward_bonus",
+    "slug": "gpt61sol-retool-length-sol",
+    "file": "agent-trace/gpt61sol-retool-length-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1380108,
+    "steps": 26,
+    "costUsd": 0.6869,
+    "sourceRunId": "20261105-160713-50e97982",
+    "sessionId": "01a1aabf-9b60-79d1-b127-f72bc62c1b9a",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a2dc3249448d6b5856729137ae90fadcff229ad5de4f26c0f4165885054f7904"
+  },
+  {
+    "task": "reward/slime_retool_length_reward_bonus",
+    "slug": "qwen38-retool-length-sol",
+    "file": "agent-trace/qwen38-retool-length-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1513584,
+    "steps": 46,
+    "sourceRunId": "20261105-163258-be3b6027",
+    "sessionId": "eb7aa2b6-0787-400e-adb5-a452cf261fe9",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "2ef4a33b75bf65faa0cdc0c17a39a103766d0e638679c133daf4c338c33ffbbf"
+  },
+  {
+    "task": "reward/slime_retool_length_reward_bonus",
+    "slug": "grok47-retool-length-sol",
+    "file": "agent-trace/grok47-retool-length-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 176711,
+    "steps": 21,
+    "sourceRunId": "20261105-170126-d463a2be",
+    "sessionId": "64de37d4-ec03-4148-937a-23e38a832b3f",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "af5a89d090ee971236ce1a3d33483f220e8bdc00a2940818d0c712959f3fc31a"
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];
