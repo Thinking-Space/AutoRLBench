@@ -89,6 +89,20 @@
  * healthy eval/aime floor; Kimi-K3.1-Pro and GLM-5.3 submitted no
  * report.md and left the workspace byte-identical, taking the
  * report-gate zero with no replay.
+ * Eighteen issue records across verl_grpo_rollout_top_p_off_policy and
+ * verl_grpo_adamw_eps_too_large were imported from the 6 Nov 2026
+ * configuration-pair round. The rollout_top_p evidence rubric was
+ * recalibrated mid-round (oracle renumbered to a six-item core
+ * denominator); nine of its ten runs were re-judged locally with the
+ * same judge model and the Grok-4.7 run started after the change, so
+ * the round is published under the final rubric: values come from the
+ * evaluation ledger joined by run_id, cross-checked against each
+ * trial's verifier result (see
+ * import_verl_grpo_config_issue_traces.py), and the in-run wrapper
+ * reports are stale pre-recalibration snapshots or judge-timeout
+ * placeholders. The Gemini-4-Argon rollout_top_p and DeepSeek-V4-Pro
+ * adamw_eps runs died at the agent stage (answers uploaded and judged,
+ * no session capture) and stay pending stream recovery.
  * The 100 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -5942,6 +5956,258 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "64de37d4-ec03-4148-937a-23e38a832b3f",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "af5a89d090ee971236ce1a3d33483f220e8bdc00a2940818d0c712959f3fc31a"
+  },
+  {
+    "task": "configuration/verl_grpo_adamw_eps_too_large",
+    "slug": "fable51-adamw-eps",
+    "file": "agent-trace/fable51-adamw-eps.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 487011,
+    "steps": 13,
+    "costUsd": 8.4859
+  },
+  {
+    "task": "configuration/verl_grpo_adamw_eps_too_large",
+    "slug": "glm53-adamw-eps",
+    "file": "agent-trace/glm53-adamw-eps.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.15,
+    "durationMs": 1983459,
+    "steps": 450,
+    "costUsd": 88.0847
+  },
+  {
+    "task": "configuration/verl_grpo_adamw_eps_too_large",
+    "slug": "gemini4-adamw-eps",
+    "file": "agent-trace/gemini4-adamw-eps.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 442354,
+    "steps": 17,
+    "costUsd": 4.6453
+  },
+  {
+    "task": "configuration/verl_grpo_adamw_eps_too_large",
+    "slug": "gpt6astra-adamw-eps",
+    "file": "agent-trace/gpt6astra-adamw-eps.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.05,
+    "durationMs": 523494,
+    "steps": 19,
+    "costUsd": 2.3573
+  },
+  {
+    "task": "configuration/verl_grpo_adamw_eps_too_large",
+    "slug": "gpt61sol-adamw-eps",
+    "file": "agent-trace/gpt61sol-adamw-eps.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 421977,
+    "steps": 17,
+    "costUsd": 0.3714
+  },
+  {
+    "task": "configuration/verl_grpo_adamw_eps_too_large",
+    "slug": "grok47-adamw-eps",
+    "file": "agent-trace/grok47-adamw-eps.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 426557,
+    "steps": 34,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_grpo_adamw_eps_too_large",
+    "slug": "kimi-adamw-eps",
+    "file": "agent-trace/kimi-adamw-eps.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 1616327,
+    "steps": 20,
+    "costUsd": 2.7971
+  },
+  {
+    "task": "configuration/verl_grpo_adamw_eps_too_large",
+    "slug": "kimi31-adamw-eps",
+    "file": "agent-trace/kimi31-adamw-eps.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.123077,
+    "durationMs": 455341,
+    "steps": 14,
+    "costUsd": 0.9459
+  },
+  {
+    "task": "configuration/verl_grpo_adamw_eps_too_large",
+    "slug": "qwen38-adamw-eps",
+    "file": "agent-trace/qwen38-adamw-eps.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 1272791,
+    "steps": 20,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "slug": "fable51-rollout-top-p",
+    "file": "agent-trace/fable51-rollout-top-p.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 353040,
+    "steps": 10,
+    "costUsd": 7.106
+  },
+  {
+    "task": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "slug": "dsv4-rollout-top-p",
+    "file": "agent-trace/dsv4-rollout-top-p.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3334,
+    "durationMs": 2301376,
+    "steps": 56,
+    "costUsd": 16.1654
+  },
+  {
+    "task": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "slug": "glm53-rollout-top-p",
+    "file": "agent-trace/glm53-rollout-top-p.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.366667,
+    "durationMs": 1101352,
+    "steps": 59,
+    "costUsd": 12.8122
+  },
+  {
+    "task": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "slug": "gpt6astra-rollout-top-p",
+    "file": "agent-trace/gpt6astra-rollout-top-p.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.366667,
+    "durationMs": 735336,
+    "steps": 23,
+    "costUsd": 3.8051
+  },
+  {
+    "task": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "slug": "gpt61sol-rollout-top-p",
+    "file": "agent-trace/gpt61sol-rollout-top-p.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.966667,
+    "durationMs": 1373001,
+    "steps": 42,
+    "costUsd": 1.2214
+  },
+  {
+    "task": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "slug": "grok47-rollout-top-p",
+    "file": "agent-trace/grok47-rollout-top-p.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.366667,
+    "durationMs": 786899,
+    "steps": 47,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "slug": "kimi-rollout-top-p",
+    "file": "agent-trace/kimi-rollout-top-p.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.066667,
+    "durationMs": 1167659,
+    "steps": 15,
+    "costUsd": 1.8994
+  },
+  {
+    "task": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "slug": "kimi31-rollout-top-p",
+    "file": "agent-trace/kimi31-rollout-top-p.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 1424592,
+    "steps": 31,
+    "costUsd": 3.632
+  },
+  {
+    "task": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "slug": "qwen38-rollout-top-p",
+    "file": "agent-trace/qwen38-rollout-top-p.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 1742893,
+    "steps": 29,
+    "costUsd": null
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

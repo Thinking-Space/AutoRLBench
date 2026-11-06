@@ -1,0 +1,99 @@
+{
+  "note": "Sanitizing changed labels and paths only, never a metric value. Applied to workspace/results and evaluations/solution/oracle/recorded_comparison.",
+  "replacements": [
+    {
+      "from": "<recording workspace or run directory>",
+      "to": "/workspace or /workspace/results/run100"
+    },
+    {
+      "from": "<cluster image path>",
+      "to": "verl-image"
+    },
+    {
+      "from": "<cluster project root>",
+      "to": "/autorlbench"
+    },
+    {
+      "from": "<cluster home>",
+      "to": "/root"
+    },
+    {
+      "from": "<recorded run name>",
+      "to": "run100"
+    },
+    {
+      "from_regex": "/tmp/arb-\\d+",
+      "to": "/tmp/run"
+    },
+    {
+      "from_regex": "job \\d+ host \\S+ gpu \\S+",
+      "to": "job - host - gpu 0"
+    },
+    {
+      "from_regex": "\"host\": \"c0\\d\"",
+      "to": "\"host\": \"node\""
+    },
+    {
+      "from_regex": "\"username\": \"hou\"",
+      "to": "\"username\": \"user\""
+    },
+    {
+      "from_regex": "\\bhou@",
+      "to": "user@"
+    }
+  ],
+  "dropped": "W&B run-*.wandb binaries and tmp/, rollout dumps other than steps 1/50/100, validation dumps other than steps 0/50/100",
+  "files": [
+    {
+      "file": "workspace/results/run100/launch.log",
+      "sha256_before": "7d33c7d90d81a82f89f6006ec0cc1adeab99edfab67c52a1e762aa2d295d6638",
+      "sha256_after": "cc8384f0ef74820c703d4e5bcd8632b5dafd165465c1a11e9763a9b3601f32f2"
+    },
+    {
+      "file": "workspace/results/run100/stdout_stderr.log",
+      "sha256_before": "e6ea3ae6572376ea5a804214bdf752a86f6fbb836f4760b0435ea81bd0451a2e",
+      "sha256_after": "ba76972dad20d322fe7809c319e5e17c5a165d6d336ead760e8054307d66848d"
+    },
+    {
+      "file": "workspace/results/run100/train.log",
+      "sha256_before": "cad7844aea8fb7214a0d506574e94b4d2e0153b1d3abcc5b35b223c388a2ebc2",
+      "sha256_after": "7ef300bf6d495254c16eabfc6b62bc2ba086b824d6b898220a2e96e72eb587dd"
+    },
+    {
+      "file": "workspace/results/run100/wandb/offline-run-20261105_154659-9615pkew/logs/debug-core.log",
+      "sha256_before": "b481cab20326dfbe0e356511346361cd9a2a5fc395a31acae3cca522146797ca",
+      "sha256_after": "b9d5ac8d6a695dcda0751e901a9b387a46e8f24cef35820382edcce47efe5f04"
+    },
+    {
+      "file": "workspace/results/run100/wandb/offline-run-20261105_154659-9615pkew/logs/debug.log",
+      "sha256_before": "33667a1a8bc475c3674b23c43f206e5b6500a88aa7547b02b39c7d3d051aa5cb",
+      "sha256_after": "fdfba97100f0de110ce4f1dded049a4e7847998b3f7d6b84cee4569560dd27db"
+    },
+    {
+      "file": "evaluations/solution/oracle/recorded_comparison/control/run100/launch.log",
+      "sha256_before": "0e5c378bc7ccee98b400da2a0f4e058db6da3137f2287bb38ea3915a8b887cb1",
+      "sha256_after": "846294fc5d344bfc51b38158857c6b5bb291afa09f2cda184bd4840adbfe806f"
+    },
+    {
+      "file": "evaluations/solution/oracle/recorded_comparison/control/run100/stdout_stderr.log",
+      "sha256_before": "e0d0705146264af06423dffd0f8562347881cc6f50db5ff9f6ceed479e96d295",
+      "sha256_after": "db7fe1dd1b74af0e58ac119d7eb4cce08a88ce4c52aaff569a3ddb28ef9f4e32"
+    },
+    {
+      "file": "evaluations/solution/oracle/recorded_comparison/control/run100/train.log",
+      "sha256_before": "2c73f5b8af097b19c93c6ca11136e2467e766b20d2f1fdbdf72559a401895d14",
+      "sha256_after": "cf45a75c17f07cd8bf438c608cf80aebb7cadc6f056295e6834492ff29ce427e"
+    },
+    {
+      "file": "evaluations/solution/oracle/recorded_comparison/control/run100/wandb/offline-run-20261104_214828-0k57hw9o/logs/debug-core.log",
+      "sha256_before": "8032bee921fbbb10864dd075e3112861096651204ca03dad11c6f3e139538876",
+      "sha256_after": "b44c6ad25a937540d53b7664cc2e3497f5a0d37c022fa908eeab3d94fb9701cb"
+    },
+    {
+      "file": "evaluations/solution/oracle/recorded_comparison/control/run100/wandb/offline-run-20261104_214828-0k57hw9o/logs/debug.log",
+      "sha256_before": "acb20731860e25b1dfde3175470d0f83f82d182be2ebc425586aa4ee1eec5366",
+      "sha256_after": "6b1e9c7951e8656ffc0bf0691ccc614dd9608d929368b0ec03523174eab32ff3"
+    }
+  ],
+  "residual_word_scan": "After sanitizing, `grep -rIil 'broken\\|fixed' workspace/` still hits only upstream or content words: verl source, docs and CI files (verl/, recipe/, examples/, docker/, scripts/, .github/, .agent/, setup.py, requirements.txt, VERL_README.md), the model's own GSM8K answers in rollouts/ and val_generations/ (problem text such as 'broken vases'), and verl's resolved configuration in train.log, stdout_stderr.log and the W&B debug.log (`'type': 'fixed'` of KLControlConfig). None of them labels a side."
+}

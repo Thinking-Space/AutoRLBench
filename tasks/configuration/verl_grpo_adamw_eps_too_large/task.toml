@@ -1,0 +1,37 @@
+title = "AdamW epsilon larger than the gradients it normalizes"
+license = "Apache-2.0"
+created_date = "2026-11-05"
+domain = "configuration"
+tags = ["verl", "grpo", "gsm8k", "optimizer", "adamw", "epsilon", "slow-learning"]
+
+[submitter]
+name = "Dengzhe Hou"
+affiliation = "Tohoku University"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_gsm8k_grpo.sh"
+
+[environment]
+image = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+# Single-GPU task: FSDP actor and vLLM rollout are colocated on one GPU (recorded on 1 x RTX PRO 6000 96 GB).
+[environment.env]
+WANDB_MODE = "offline"
+WANDB_API_KEY = "autorlbench-offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "optimizer_misconfiguration"
+failure_reason = "run_gsm8k_grpo.sh overrides the actor AdamW eps to 1e-3 (override_optimizer_config, forwarded to torch.optim.AdamW); per-parameter RMS gradients of this 0.5B model are about 1e-5 to 5e-5, so eps dominates the Adam denominator and the update becomes momentum SGD 10-100x smaller than lr 2e-6 implies: pg_clipfrac averages 8e-5 over steps 1-10 (control 2e-3), the training score first reaches 0.3 at step 35 (control step 5), and held-out strict accuracy ends at 0.486 against 0.566 with the default eps, while every per-step metric looks stable."
+
+[security]
+requires_isolated_stages = true

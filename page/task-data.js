@@ -571,5 +571,49 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "Qwen3-4B learns real Python repairs with GRPO, but post-tool generation reuses the initial multiplicity and subsamples distinct histories, associating actions with the wrong rollout.",
     "issue": "Training Qwen3-4B with GRPO on BugsInPy Python repairs (16 train, 4 development, 8 sealed bugs across two projects; seed 17, 3 optimizer updates). After independently executed tools, generation takes every fourth input history and draws four outputs from each retained history: the defective run has 338/844 continuation mismatches across training and development evaluation versus 0/832 after the upstream fix, with 0/160 initial-input mismatches in each arm and 337/615 versus 0/357 among rows in naturally divergent continuation groups. Shapes remain valid and the model still repairs bugs (development success 4/16 trajectories at steps 0-3 in both arms), so correspondence rather than reward establishes the failure: replaying captured natural histories through both production dispatch functions gives 1/4 versus 0/4 mismatches, with identical-history and initial-generation controls both 0/4."
+  },
+  {
+    "id": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "title": "Nucleus-sampled rollouts trained as if on-policy",
+    "family": "Configuration",
+    "tags": [
+      "verl",
+      "grpo",
+      "gsm8k",
+      "sampling",
+      "top-p",
+      "off-policy",
+      "entropy"
+    ],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test",
+    "framework": "verl / GRPO",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-05",
+    "license": "Apache-2.0",
+    "brief": "Training rollouts are nucleus-sampled at top_p=0.5 but trained as if on-policy, so the unsampled half of the distribution is never pushed down and entropy explodes.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. run_gsm8k_grpo.sh sets ROLLOUT_TOP_P=0.5 while verl recomputes old_log_probs over the full softmax with rollout_correction disabled, so GRPO treats the nucleus-truncated samples as on-policy: tokens outside the nucleus never receive a negative advantage while updates move their mass into the unsampled tail. actor/entropy rises 0.26 -> 5.06 (control 0.06), 227 of 1,024 training responses at step 50 derail into mixed-script garbage, 45 of 128 GRPO groups become eight byte-identical responses, and held-out strict accuracy peaks at 0.500 at step 10 and ends at 0.486 against 0.566 with top_p=1.0. No crash, RUN_EXIT 0."
+  },
+  {
+    "id": "configuration/verl_grpo_adamw_eps_too_large",
+    "title": "AdamW epsilon larger than the gradients it normalizes",
+    "family": "Configuration",
+    "tags": [
+      "verl",
+      "grpo",
+      "gsm8k",
+      "optimizer",
+      "adamw",
+      "epsilon",
+      "slow-learning"
+    ],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test",
+    "framework": "verl / GRPO",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-05",
+    "license": "Apache-2.0",
+    "brief": "An AdamW eps override of 1e-3 sits far above this model's per-parameter gradients, turning every update into momentum SGD 10-100x smaller than the learning rate implies.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. run_gsm8k_grpo.sh overrides the actor AdamW eps to 1e-3; per-parameter RMS gradients of this 0.5B model are about 1e-5 to 5e-5, so eps dominates the Adam denominator and the update becomes momentum SGD 10-100x smaller than lr 2e-6 implies: pg_clipfrac averages 8e-5 over steps 1-10 (control 2e-3), the training score first reaches 0.3 at step 35 (control step 5), and held-out strict accuracy ends at 0.486 against 0.566 with the default eps, while every per-step metric looks stable. No crash, RUN_EXIT 0."
   }
 ];

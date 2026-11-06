@@ -1,0 +1,19 @@
+category: configuration
+framework: verl
+task: verl_grpo_rollout_top_p_off_policy
+verdict: unhealthy
+root_cause:
+- name: truncated_sampler_trained_on_policy
+  where: run_gsm8k_grpo.sh (ROLLOUT_TOP_P=0.5 -> actor_rollout_ref.rollout.top_p=0.5; old_log_probs recomputed over the full softmax, rollout_correction disabled)
+  observed: training rollouts come from the top-50% nucleus but the update treats them as full-policy samples, so the unsampled tail is never penalized, entropy rises 0.26 -> 5.06, garbage continuations appear in about a fifth of rollouts and held-out accuracy peaks at step 10 (0.500) and ends at 0.486
+  expected: sample training rollouts with top_p=1.0 (or correct for the truncated sampler)
+  required: top_p=0.5 and the on-policy mismatch must be named. "Entropy exploded" or "the policy drifted" alone is partial; top_p as one of several co-equal causes next to a weak KL is partial. KL, response-cap, learning-rate, reward, data and healthy explanations are wrong
+evidence_metrics:
+- rollout_corr/kl 0.086 at step 1 before any update (control 0.0005)
+- actor/entropy 0.26 -> 2.25 (step 17) -> peak 5.06 (step 63) -> 2.86; response_length/clip_ratio 0.04 -> 0.31 (17), 0.18 at 100; kl_loss to 0.52
+- rollouts at steps 1/50/100 - garbage 0/227/188 of 1,024 (all scored 0); identical-8 groups 0/32/45; zero-advantage groups 128/111/109
+- held-out strict accuracy 0.500 (step 10) -> 0.430 (40) -> 0.486 (100), repetition loops 175 at step 100; control 0.566
+fix:
+  must:
+  - target: truncated_sampler_trained_on_policy
+    direction: training rollouts sampled from the full distribution (ROLLOUT_TOP_P=1.0)

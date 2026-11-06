@@ -1,0 +1,37 @@
+title = "Nucleus-sampled rollouts trained as if on-policy"
+license = "Apache-2.0"
+created_date = "2026-11-05"
+domain = "configuration"
+tags = ["verl", "grpo", "gsm8k", "sampling", "top-p", "off-policy", "entropy"]
+
+[submitter]
+name = "Dengzhe Hou"
+affiliation = "Tohoku University"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_gsm8k_grpo.sh"
+
+[environment]
+image = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+# Single-GPU task: FSDP actor and vLLM rollout are colocated on one GPU (recorded on 1 x RTX PRO 6000 96 GB).
+[environment.env]
+WANDB_MODE = "offline"
+WANDB_API_KEY = "autorlbench-offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "off_policy_sampling"
+failure_reason = "run_gsm8k_grpo.sh samples training rollouts with ROLLOUT_TOP_P=0.5 while verl recomputes old_log_probs over the full softmax and rollout_correction is disabled, so the update treats nucleus-truncated samples as on-policy: tokens outside the nucleus are never penalized, actor/entropy rises 0.26 -> 5.06, about a fifth of training rollouts derail into mixed-script garbage, 32-45 of 128 GRPO groups become eight identical responses, and held-out strict accuracy peaks at 0.500 at step 10 and ends at 0.486 against 0.566 for the same run with top_p=1.0."
+
+[security]
+requires_isolated_stages = true
