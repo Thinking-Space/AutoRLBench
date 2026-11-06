@@ -51,53 +51,12 @@ saving.
 - **issue**: identify CPU-resident Adam state, the additional host-memory
   pressure during native checkpoint serialization and Ray's worker
   eviction. Explain why the trainer log stops before the tenth record.
-- **solution**: set
-  `actor_rollout_ref.actor.fsdp_config.optimizer_offload: false`, keeping
-  optimizer state on the GPU, then complete a fresh 10-step run and save
-  the full checkpoint. The reference configuration and calibration
-  evidence are hidden in the solution oracle.
 
 ## Verification
 
 - **issue**: an LLM judge scores verdict / root cause / evidence, weighted
   0.2 / 0.6 / 0.2. Passing requires verdict = 1.0 and both root cause
   and evidence scores > 0.8.
-- **solution**: complete a fresh 10-step run within the fixed 20 GiB RAM
-  budget, save the full step-10 checkpoint, and restore it in a new process
-  for validation without further training. Score: 1.0 if all checks pass,
-  otherwise 0.0.
-
-The solution verifier gates the run on a full workspace integrity check:
-`protected_source_sha256` pins all 228 workspace files (training driver,
-vendored `verl/`, data, frozen logs); only `configs/experiment.yaml` is
-editable (semantically compared against `fixed_config`) and only
-`report.md` may be added. Modified pinned files or unexpected added files
-fail the submission before training starts, so the launch script, Ray
-memory-monitor threshold, and vendored framework cannot be altered to
-mask the failure. The frozen defective-run evidence must also pass
-`check_checkpoint_failure` (10 completed updates, eviction inside
-`_save_checkpoint`, no `save_complete`, kernel `oom_kill` zero) as a
-pre-flight semantic check of the pinned logs.
-
-## Submission checks
-
-The packaged source and protected-evidence hashes were verified locally.
-The frozen defective run passes the checkpoint-failure evidence checks;
-the frozen repaired run passes the 10-step update and checkpoint-event checks.
-These are offline evidence checks, not a new GPU reproduction. Docker image
-building, model preparation, full checkpoint deserialization, and fresh GPU
-training/restoration were not rerun during submission. The supplied integration
-report records the original defective and repaired runs.
-
-Offline packaging checks (no GPU, standard library only):
-
-```bash
-python3 -B -m unittest discover -s evaluations/solution/verifier/tests -v
-```
-
-The solution verifier drives training and restoration itself, so no separate
-`run_spec.json` is needed. The agent repairs the workspace and submits
-`report.md` without launching training.
 
 ## Runtime requirements
 
