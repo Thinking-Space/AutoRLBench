@@ -1,0 +1,1718 @@
+{
+  "schema_version": 1,
+  "source_kind": "two_git_commits",
+  "source_policy": "Upstream portable code, localhost endpoints, temporary-path defaults and dynamic hostname logging remain unchanged. Only recorded evidence paths/labels are sanitized; explicit shared portability edits are listed separately.",
+  "buggy_commit": "0207b9a9f95eee575eaf829ca95ce20d39e4672b",
+  "baseline_commit": "797c70b77930d4f975b004a096745a77b0a5438a",
+  "excluded_later_commit": "0ebdac431271b86b1949bcf347583a9c62b1ee24",
+  "training_script_sha256": "2673904cb99495a9840400e90744c6738ec9bfba4a53f0aa6c7e82b212215a97",
+  "training_script_matches_historical_git": true,
+  "original_run_locations": {
+    "recorded_run": {
+      "logs": "2026-11-02/training-201520-181950-2210033-kgqmxugt",
+      "wandb": "offline-run-20261102_122507-yfs1z686",
+      "rollouts": "torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520"
+    },
+    "control_run": {
+      "logs": "2026-11-04/training-094709-396188-2720577-s0mq3i4k",
+      "wandb": "offline-run-20261104_015529-gexufgda",
+      "rollouts": "torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3"
+    }
+  },
+  "files": [
+    {
+      "source": "scripts/wandb_offline.sh",
+      "destination": "workspace/scripts/wandb_offline.sh",
+      "sha256_before": "932eca8d7ba8b21093a46304e62316ce7aaa050613b25dc2f661458eb1af6838",
+      "sha256_after": "72ba7a6185b83b8ab54df93bae5084773fdd4f78be42bff4ba7655572f695179",
+      "replacements": [
+        {
+          "rule": "portable-runtime",
+          "reason": "Route new offline W&B records into the benchmark results directory.",
+          "from": "export WANDB_DIR=.",
+          "to": "export WANDB_DIR=\"${WANDB_DIR:-${LOG_DIR:-.}}\""
+        }
+      ]
+    },
+    {
+      "source": "tools/log_paths.py",
+      "destination": "workspace/tools/log_paths.py",
+      "sha256_before": "59302c0bca1eeffdaded5d7162dad3a264350b6287442072e57a73323252f01f",
+      "sha256_after": "9dff522f2481a7cecc8c0308dfbd90ef9c2b9b10ab749fd52b7ef44e0f574756",
+      "replacements": [
+        {
+          "rule": "portable-runtime",
+          "reason": "Honor the foreground wrapper results path without changing training settings.",
+          "from": "    inherited = os.environ.get(RUN_LOG_ENV)",
+          "to": "    results = os.environ.get(\"LOG_DIR\")\n    if results:\n        directory = Path(results).resolve()\n        directory.mkdir(parents=True, exist_ok=True)\n        os.environ[RUN_LOG_ENV] = str(directory)\n        return directory\n    inherited = os.environ.get(RUN_LOG_ENV)"
+        }
+      ]
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/gpu_keepalive.log",
+      "destination": "workspace/results/recorded_run/logs/gpu_keepalive.log",
+      "sha256_before": "23a88f024499006411f25ead195dfbd2a1d9780d938e2f6e2964b1a98074de7a",
+      "sha256_after": "23a88f024499006411f25ead195dfbd2a1d9780d938e2f6e2964b1a98074de7a",
+      "replacements": [],
+      "packaged_path": "workspace/results/recorded_run/logs/gpu_keepalive.log.gz",
+      "packaged_sha256": "c5013190b389330b16fae0ecefd5f2b5391cbac0c0bfe16fda1e2743a1318391",
+      "packaged_bytes": 112,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/model_services/chart.log",
+      "destination": "workspace/results/recorded_run/logs/model_services/chart.log",
+      "sha256_before": "ab856172d24e30580b469a0f542702229cc7d010b3f6d5c7daa26a0e56243db5",
+      "sha256_after": "ab856172d24e30580b469a0f542702229cc7d010b3f6d5c7daa26a0e56243db5",
+      "replacements": [
+        {
+          "rule": "ipv4",
+          "count": 32500,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/model_services/chart.log.gz",
+      "packaged_sha256": "07979835c3f440d60633a9de981827be00f26468d51e868887c15e8609901837",
+      "packaged_bytes": 135077,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/model_services/deepeyes.log",
+      "destination": "workspace/results/recorded_run/logs/model_services/deepeyes.log",
+      "sha256_before": "935487acbc6c97c9cd68657da5a2f93fe055e07d1bcdc2a5165d838d9e139a62",
+      "sha256_after": "935487acbc6c97c9cd68657da5a2f93fe055e07d1bcdc2a5165d838d9e139a62",
+      "replacements": [
+        {
+          "rule": "ipv4",
+          "count": 77090,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/model_services/deepeyes.log.gz",
+      "packaged_sha256": "762f0e1ddbc7ed346ac07dee1c8d09e438d20af699a54dab998c271f184911c7",
+      "packaged_bytes": 354655,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/model_services/glm.log",
+      "destination": "workspace/results/recorded_run/logs/model_services/glm.log",
+      "sha256_before": "0f83e62ec4ccf5ae3c6030ba05678643cb11961be8e7ef392cd8467687b4c520",
+      "sha256_after": "90db6f7e5f8dbeda5e24788ba10d849ac37d6c29a8691d66da0a36244214ecc6",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 1,
+          "replacement": "./"
+        },
+        {
+          "rule": "host-home",
+          "count": 48,
+          "replacement": "/runtime/path"
+        },
+        {
+          "rule": "ipv4",
+          "count": 66230,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/model_services/glm.log.gz",
+      "packaged_sha256": "48b571d69da761b428c0093be2a3266794cf78dea769b6395c92c6885c28106b",
+      "packaged_bytes": 358290,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/model_services/intern.log",
+      "destination": "workspace/results/recorded_run/logs/model_services/intern.log",
+      "sha256_before": "c8271acafc2a84ec8af0f4a3a594af496ff11c8e0522dc744baf7788468a1858",
+      "sha256_after": "03ee6ceec6a1091e59a4ae62986e03bbdcab25f2e7c3c2b29d84b2a3b71a1799",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 1,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 28779,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/model_services/intern.log.gz",
+      "packaged_sha256": "5f12ae2f07af5205ace090bfff0a2e3345d0141197e63736cb3be20e42bc51f3",
+      "packaged_bytes": 178213,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/model_services/medgemma.log",
+      "destination": "workspace/results/recorded_run/logs/model_services/medgemma.log",
+      "sha256_before": "2f5f5d16316a70d7e21b0488c344a0825cacf3730b9eeb386a33275b0fce3837",
+      "sha256_after": "4561282b1d90ef7754b744bc1dfc1e3459ca14e411b4b90c1df11af86db460ff",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 1,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 26380,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/model_services/medgemma.log.gz",
+      "packaged_sha256": "574f734d32eea0a01c30f851291fe508b7a7a0c79211d218d496d199e26bc12c",
+      "packaged_bytes": 141667,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/model_services/qwen_vl.log",
+      "destination": "workspace/results/recorded_run/logs/model_services/qwen_vl.log",
+      "sha256_before": "e1f4c9b48f7d3618c67a5b21f45c936dc7505561db7b2bd6683e0c52b4c8b1b0",
+      "sha256_after": "e1f4c9b48f7d3618c67a5b21f45c936dc7505561db7b2bd6683e0c52b4c8b1b0",
+      "replacements": [
+        {
+          "rule": "ipv4",
+          "count": 35421,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/model_services/qwen_vl.log.gz",
+      "packaged_sha256": "a67e08e888fb9c4b9c9b2a79851b2126d3e56e1541c1a98670351ea42ec0fb81",
+      "packaged_bytes": 200887,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/tool-server-logs-9lt879ok/tool_server_backend_0.log",
+      "destination": "workspace/results/recorded_run/logs/tool-server-logs-9lt879ok/tool_server_backend_0.log",
+      "sha256_before": "ff6af209e448a9861941d8361229fa7da85463afd80286a0d9440b4375aeea9d",
+      "sha256_after": "4478d839d5247fc2a096b8584bd7549668b43b4966820415fdfb6f51e18b99f0",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 12,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 4,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/tool-server-logs-9lt879ok/tool_server_backend_0.log.gz",
+      "packaged_sha256": "c7174c962d2052f3e0420e080fe416815e3cf5e2bcc5fe4c6a8ef9bb824ce4dc",
+      "packaged_bytes": 30754,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/tool-server-logs-9lt879ok/tool_server_backend_1.log",
+      "destination": "workspace/results/recorded_run/logs/tool-server-logs-9lt879ok/tool_server_backend_1.log",
+      "sha256_before": "e2b221e5764e0fc0fa442e31701d5807d3a52401e566133cc25d60b6fda3c1e8",
+      "sha256_after": "2bf6426979cf2a86506f3c0648d76f6c95f213f1918860618eb9a73bc61b5029",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 7,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 4,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/tool-server-logs-9lt879ok/tool_server_backend_1.log.gz",
+      "packaged_sha256": "b4497fc1431252bc588e2d803a38d2d2cc2834e7ecf30547966e8a4ec1af8da6",
+      "packaged_bytes": 30522,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/tool-server-logs-9lt879ok/tool_server_backend_2.log",
+      "destination": "workspace/results/recorded_run/logs/tool-server-logs-9lt879ok/tool_server_backend_2.log",
+      "sha256_before": "41fd0599153f04664c5a8d770d4f4ccf7f120c876856bdddb5f1fec4c2cb4c49",
+      "sha256_after": "2a8254e7c107c068e2edeedb0e0bc6dc1ac4cd3a341a7d75659c523d03f44746",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 5,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 4,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/tool-server-logs-9lt879ok/tool_server_backend_2.log.gz",
+      "packaged_sha256": "52462ebd24140662310b009004ef36f0b5794e0b6e372aedb33cdb65c7599785",
+      "packaged_bytes": 30212,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/tool-server-logs-9lt879ok/tool_server_backend_3.log",
+      "destination": "workspace/results/recorded_run/logs/tool-server-logs-9lt879ok/tool_server_backend_3.log",
+      "sha256_before": "ea38456c36d1e46f6c4295237050f9504439b5299cc752c02b6a39404e73b6aa",
+      "sha256_after": "ecfc1980e1b773d0f715e2d1ec46381d7ccfcda347875ff280780778d2820076",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 5,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 4,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/tool-server-logs-9lt879ok/tool_server_backend_3.log.gz",
+      "packaged_sha256": "435245cd53966b105a16ccfee2fc127ef8aa4a1783271d536f811264989cd618",
+      "packaged_bytes": 30027,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/tool_server.log",
+      "destination": "workspace/results/recorded_run/logs/tool_server.log",
+      "sha256_before": "0e46a7de9e08e3d332726c3888a3cb323096566d6e3d087b3ae9c357d764b942",
+      "sha256_after": "1ea13412d3eb1a9ba4efc833c3a2f9c5ecf0f8c6fde0650d26d118f4be4734e3",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 5,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 21,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/tool_server.log.gz",
+      "packaged_sha256": "420890d7ff99f5fa21fc0946b6ef6819265f0a3b28f3b8dafbc3c9cdff977fe4",
+      "packaged_bytes": 1512,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-02/training-201520-181950-2210033-kgqmxugt/train_4_gpus.log",
+      "destination": "workspace/results/recorded_run/logs/train_4_gpus.log",
+      "sha256_before": "02641b6b9dfb1d367d6a082ac58c887813680ffecf3cccd86dacd22af6b8ea4a",
+      "sha256_after": "b6318dfe9b6f18f947beccc55fe315eac65ee356f86bebbd55826614d2fd22c2",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 29,
+          "replacement": "./"
+        },
+        {
+          "rule": "host-tmp",
+          "count": 4,
+          "replacement": "/runtime/tmp"
+        },
+        {
+          "rule": "ipv4",
+          "count": 17,
+          "replacement": "127.0.0.1"
+        },
+        {
+          "rule": "run-label",
+          "from": "torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520",
+          "to": "experiment",
+          "count": 225
+        },
+        {
+          "rule": "run-label",
+          "from": "offline-run-20261102_122507-yfs1z686",
+          "to": "offline-run-recorded",
+          "count": 3
+        },
+        {
+          "rule": "hostname",
+          "count": 1,
+          "replacement": "container"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/logs/train_4_gpus.log.gz",
+      "packaged_sha256": "7b5b4d2e7ee48a0f6c57419ddf7a0f5f3601e28f949b19dfcaf752805a7efb07",
+      "packaged_bytes": 617942,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "wandb/offline-run-20261102_122507-yfs1z686/logs/debug.log",
+      "destination": "workspace/results/recorded_run/wandb/logs/debug.log",
+      "sha256_before": "a9f47b8cb9f74eaeb75ea208bf13742179b37252c49c6c2bb523703f1f901ad6",
+      "sha256_after": "0edeb6d5d45340cac9d529b8996f82fb7ab27f1495cd6dd7912dfa2a99a8fdf2",
+      "replacements": [
+        {
+          "rule": "host-tmp",
+          "count": 1,
+          "replacement": "/runtime/tmp"
+        },
+        {
+          "rule": "ipv4",
+          "count": 1,
+          "replacement": "127.0.0.1"
+        },
+        {
+          "rule": "run-label",
+          "from": "torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520",
+          "to": "experiment",
+          "count": 3
+        },
+        {
+          "rule": "run-label",
+          "from": "offline-run-20261102_122507-yfs1z686",
+          "to": "offline-run-recorded",
+          "count": 2
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/wandb/logs/debug.log.gz",
+      "packaged_sha256": "9e11d383d8e2fb62e8d7e43c6d62665266ee778f1eef70f5ab9f5181587eb114",
+      "packaged_bytes": 4170,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "wandb/offline-run-20261102_122507-yfs1z686/logs/debug-internal.log",
+      "destination": "workspace/results/recorded_run/wandb/logs/debug-internal.log",
+      "sha256_before": "9fd3ccba29157f866b6258cd1c171d693c138f51c675b39f78a1cc6b27955531",
+      "sha256_after": "9fd3ccba29157f866b6258cd1c171d693c138f51c675b39f78a1cc6b27955531",
+      "replacements": [],
+      "packaged_path": "workspace/results/recorded_run/wandb/logs/debug-internal.log.gz",
+      "packaged_sha256": "4e89ba73e0298b89046438af133851d690df5e2e670c08758e56c05b5d121442",
+      "packaged_bytes": 447,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "wandb/offline-run-20261102_122507-yfs1z686/logs/debug-core.log",
+      "destination": "workspace/results/recorded_run/wandb/logs/debug-core.log",
+      "sha256_before": "b3120ac9a6ef163aef22322b71ebaba6ca8f846f24b29ad48d0cee8586f554d4",
+      "sha256_after": "905cb320197125363148693eb0a557da628618f5b1f403cfe233c7a730194b48",
+      "replacements": [
+        {
+          "rule": "host-tmp",
+          "count": 2,
+          "replacement": "/runtime/tmp"
+        }
+      ],
+      "packaged_path": "workspace/results/recorded_run/wandb/logs/debug-core.log.gz",
+      "packaged_sha256": "14a2e08b0ab3aa47cc151fc0f04653dc61a5955fe7b1f31c3e830b8249084906",
+      "packaged_bytes": 446,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "wandb/offline-run-20261102_122507-yfs1z686/files/requirements.txt",
+      "destination": "workspace/results/recorded_run/wandb/files/requirements.txt",
+      "sha256_before": "79c98f32fed4508d68442134f390f888da85f80f31518f4f3c12b2bb83eab98f",
+      "sha256_after": "738d2dddf1be40e23405127cd87e10df2fb4bbc0aedf800c1947f23544aca91e",
+      "replacements": [
+        {
+          "rule": "ipv4",
+          "count": 15,
+          "replacement": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "source": "outputs/2026-11-02/12-22-09/.hydra/config.yaml",
+      "destination": "workspace/results/recorded_run/configuration/config.yaml",
+      "sha256_before": "a9f7acb7db18c6486551b1160adad655e8e5ad4e2b554575b9f97bbc5388fa74",
+      "sha256_after": "6c0c1cbceedb674ac51daa9611b1868e92c3b4a3b799b38e2799faff57fe5e9d",
+      "replacements": [
+        {
+          "rule": "host-tmp",
+          "count": 1,
+          "replacement": "/runtime/tmp"
+        },
+        {
+          "rule": "ipv4",
+          "count": 1,
+          "replacement": "127.0.0.1"
+        },
+        {
+          "rule": "run-label",
+          "from": "torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520",
+          "to": "experiment",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "source": "outputs/2026-11-02/12-22-09/.hydra/overrides.yaml",
+      "destination": "workspace/results/recorded_run/configuration/overrides.yaml",
+      "sha256_before": "746286b980a3be523ed211fd1ca8b78c8fc3b98865f1fe81154b569df3899f9b",
+      "sha256_after": "74f8b249c58b839c54e8a3b08ecc3cb9bdccd2afec4319bd132781ccc5f9b599",
+      "replacements": [
+        {
+          "rule": "ipv4",
+          "count": 1,
+          "replacement": "127.0.0.1"
+        },
+        {
+          "rule": "run-label",
+          "from": "torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520",
+          "to": "experiment",
+          "count": 3
+        },
+        {
+          "rule": "run-label",
+          "from": "torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3",
+          "to": "experiment",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/gpu_keepalive.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/gpu_keepalive.log",
+      "sha256_before": "785197de2cae59e5dd4527e8bf0f54dcb8d2f6a628b25bf5aa6ba6c60080aeb5",
+      "sha256_after": "785197de2cae59e5dd4527e8bf0f54dcb8d2f6a628b25bf5aa6ba6c60080aeb5",
+      "replacements": [],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/gpu_keepalive.log.gz",
+      "packaged_sha256": "fb672276612a634efd1c160252a0d1d1437aab1e254560926c5a00602277aef7",
+      "packaged_bytes": 97,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/model_services/chart.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/chart.log",
+      "sha256_before": "c138c64eb14b60067f3fac854d92abbd99d62e18b0c71702a3e14bdc19ca69fc",
+      "sha256_after": "56bdb220a4eb1b9d7eeac820799717200e6c203ab0831a28c7783f10ae1b2ed9",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 26,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 28348,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/chart.log.gz",
+      "packaged_sha256": "24b2944d9f5df094277f6d18997f48318ca75d1ffa417adc8b25c07b883a81bd",
+      "packaged_bytes": 132500,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/model_services/deepeyes.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/deepeyes.log",
+      "sha256_before": "059984d05a723cc7fcb7b701a6d8194efddd2e12f08ceb76e60a93a5c3691898",
+      "sha256_after": "059984d05a723cc7fcb7b701a6d8194efddd2e12f08ceb76e60a93a5c3691898",
+      "replacements": [
+        {
+          "rule": "ipv4",
+          "count": 52447,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/deepeyes.log.gz",
+      "packaged_sha256": "2a195fbf06c7bbfea9292a1560d088e2b15bb8d5419d012ef981d571f03e3b30",
+      "packaged_bytes": 229328,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/model_services/glm.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/glm.log",
+      "sha256_before": "180e9ab5569517d189e7712dd1703e4b88bc66f85d74caafe5722d602259a57c",
+      "sha256_after": "41fe792460d5e93f14eb6ac4a18090771ae8d79c03d1cb9d6b9d54f099bcbdaf",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 2,
+          "replacement": "./"
+        },
+        {
+          "rule": "host-home",
+          "count": 18,
+          "replacement": "/runtime/path"
+        },
+        {
+          "rule": "ipv4",
+          "count": 38009,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/glm.log.gz",
+      "packaged_sha256": "c7e0bbe41bfc97a22e5a18ec2111398f7bcbbabbcfbfdb2cacbb58ed0ab6bb95",
+      "packaged_bytes": 214989,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/model_services/intern.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/intern.log",
+      "sha256_before": "0993b00596c9672190d9660d6229ad45a27752dbb56508376d1b6c726f9e84a4",
+      "sha256_after": "39b8fd9077682f3f91bf3ff10a01a16f29fa48cbbe1bd7a2d33322ced8413a0c",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 582,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 23163,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/intern.log.gz",
+      "packaged_sha256": "7b4b7c223546f2ed60188715ea4d3b20ee06c7eaace8a8b385fc04ca01fa8865",
+      "packaged_bytes": 173815,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/model_services/medgemma.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/medgemma.log",
+      "sha256_before": "c4a67fafe4dcd6859cdc996df45793542cd2fcdd45c85e1c606ba7883269c8c8",
+      "sha256_after": "c54877e3d668b59666a6ba8c6c3e01a27190e4e732db7ef7e1c5c3db845a5f57",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 69,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 20512,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/medgemma.log.gz",
+      "packaged_sha256": "d7108e76216387f51ae76aab966213ec10fb0e6718f6e1ef7363ff276a0ad36c",
+      "packaged_bytes": 120365,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/model_services/qwen_vl.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/qwen_vl.log",
+      "sha256_before": "7b232d6d6b81e5f11e5b399e601919b55ecae9fc373733f87f338e0d1b42b9da",
+      "sha256_after": "7b232d6d6b81e5f11e5b399e601919b55ecae9fc373733f87f338e0d1b42b9da",
+      "replacements": [
+        {
+          "rule": "ipv4",
+          "count": 30172,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/model_services/qwen_vl.log.gz",
+      "packaged_sha256": "ca114ad510a94948bbe6302a22f6929cb80e3e0624e5f32c3e2dfe671bc9b69e",
+      "packaged_bytes": 168202,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/tool-server-logs-_hymu8_k/tool_server_backend_0.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/tool-server-logs-_hymu8_k/tool_server_backend_0.log",
+      "sha256_before": "e132cf24c6898552077ac35db5f03bf7da305fe304cee34864716c93104e4d5b",
+      "sha256_after": "f27bb7f29747942a8fd0b242942bf9956ac4409c86e929320d54fc7cd9de69eb",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 5,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 4,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/tool-server-logs-_hymu8_k/tool_server_backend_0.log.gz",
+      "packaged_sha256": "b280816db76feaa8a1c49f1449c0c94649a96004ab835b8f9b6c7a5188824468",
+      "packaged_bytes": 23550,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/tool-server-logs-_hymu8_k/tool_server_backend_1.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/tool-server-logs-_hymu8_k/tool_server_backend_1.log",
+      "sha256_before": "72c7e32ba5f4ff209c06e5f4a5069f79acb78893639b923d0d9cb516673ec260",
+      "sha256_after": "8d963e5a56d63257fcb7bb4d2f9863b9ffc9d28676c63a4df884b0d12a7221a4",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 5,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 4,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/tool-server-logs-_hymu8_k/tool_server_backend_1.log.gz",
+      "packaged_sha256": "8f4545d934454060db55c9dbaa04c0e3aef372f5af95a2627886e13236a7c97e",
+      "packaged_bytes": 23553,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/tool-server-logs-_hymu8_k/tool_server_backend_2.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/tool-server-logs-_hymu8_k/tool_server_backend_2.log",
+      "sha256_before": "65199ae01b57b9a3900cff39153d4376865ed314235915663c6879e4ae746597",
+      "sha256_after": "4c0ac5a4b475f5fcd33b0fe26025d509fad632ed1f6f1e2c0b4cb1f677bd5025",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 5,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 4,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/tool-server-logs-_hymu8_k/tool_server_backend_2.log.gz",
+      "packaged_sha256": "53c7959c36d0224f9ecb627bf4957186f9139e01e5b93e039c1b740dea239a72",
+      "packaged_bytes": 23547,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/tool-server-logs-_hymu8_k/tool_server_backend_3.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/tool-server-logs-_hymu8_k/tool_server_backend_3.log",
+      "sha256_before": "b41ce04e184883cff46ab5099ff036dc0d45649fa38cc970e3fc4aff55096a53",
+      "sha256_after": "e196a7262ea2bc069f6515bb18852a9f43df171ea9ec95bb3c304995b70b9863",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 5,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 4,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/tool-server-logs-_hymu8_k/tool_server_backend_3.log.gz",
+      "packaged_sha256": "a88605dbaec7fd98e2fceea270550f7da600765f4fe316dc8d8c888c6cf4b42f",
+      "packaged_bytes": 23517,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/tool_server.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/tool_server.log",
+      "sha256_before": "b574862fc186079354912c5e82f01269396616265db23cba846a8bd452a2547c",
+      "sha256_after": "efa2316a8902dca53909ae687e8f998b5040dcfdb409d69a41366b5574af8646",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 5,
+          "replacement": "./"
+        },
+        {
+          "rule": "ipv4",
+          "count": 21,
+          "replacement": "127.0.0.1"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/tool_server.log.gz",
+      "packaged_sha256": "32b778e3feb8ad7669d8894908724c9610a63bb2fdc230a554b52dd807ba22df",
+      "packaged_bytes": 1508,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "logs/2026-11-04/training-094709-396188-2720577-s0mq3i4k/train_4_gpus.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/logs/train_4_gpus.log",
+      "sha256_before": "6fb3c216a954fd8d94d0f9334e0af3faf17000781320634b7745d4195ba4f153",
+      "sha256_after": "6e9a0bb9935fa38962f5fcb74c11ddc7334302e8a52dc8773ca60ba1c2d7a31d",
+      "replacements": [
+        {
+          "rule": "project-path",
+          "count": 32,
+          "replacement": "./"
+        },
+        {
+          "rule": "host-tmp",
+          "count": 4,
+          "replacement": "/runtime/tmp"
+        },
+        {
+          "rule": "ipv4",
+          "count": 41,
+          "replacement": "127.0.0.1"
+        },
+        {
+          "rule": "run-label",
+          "from": "torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3",
+          "to": "experiment",
+          "count": 228
+        },
+        {
+          "rule": "run-label",
+          "from": "offline-run-20261104_015529-gexufgda",
+          "to": "offline-run-recorded",
+          "count": 3
+        },
+        {
+          "rule": "hostname",
+          "count": 1,
+          "replacement": "container"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/logs/train_4_gpus.log.gz",
+      "packaged_sha256": "5ec0b00aa0066fdf95b15b4b48b3561434500075a301d54b9fd91bc79fe196c7",
+      "packaged_bytes": 486527,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "wandb/offline-run-20261104_015529-gexufgda/logs/debug.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/wandb/logs/debug.log",
+      "sha256_before": "e12015fa900f20a9f921909a75becd43482a75ccfaf7c6c7ab59b09130be2ed7",
+      "sha256_after": "0152f7ae4316c520d21720ee4f79353be18a530665cff314944dd112e0cb64ce",
+      "replacements": [
+        {
+          "rule": "host-tmp",
+          "count": 1,
+          "replacement": "/runtime/tmp"
+        },
+        {
+          "rule": "ipv4",
+          "count": 1,
+          "replacement": "127.0.0.1"
+        },
+        {
+          "rule": "run-label",
+          "from": "torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3",
+          "to": "experiment",
+          "count": 3
+        },
+        {
+          "rule": "run-label",
+          "from": "offline-run-20261104_015529-gexufgda",
+          "to": "offline-run-recorded",
+          "count": 2
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/wandb/logs/debug.log.gz",
+      "packaged_sha256": "f88f30f56192a9faf76c8f2d7bcca901e57d466177917c110de62b1d6048f465",
+      "packaged_bytes": 4165,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "wandb/offline-run-20261104_015529-gexufgda/logs/debug-internal.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/wandb/logs/debug-internal.log",
+      "sha256_before": "b3c1906c2c37ca84f8d6d1576ca6ffb3f391fcd01795f2e463bbb5cd86d3e8a7",
+      "sha256_after": "b3c1906c2c37ca84f8d6d1576ca6ffb3f391fcd01795f2e463bbb5cd86d3e8a7",
+      "replacements": [],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/wandb/logs/debug-internal.log.gz",
+      "packaged_sha256": "dd231fd3f07c547461630ff0b78694f891831d3c64404f8145e26f692ad933de",
+      "packaged_bytes": 447,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "wandb/offline-run-20261104_015529-gexufgda/logs/debug-core.log",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/wandb/logs/debug-core.log",
+      "sha256_before": "96d69c05b3854a0be378a81d5933e2023827f47e7a74bbd90add29f5031c2a5e",
+      "sha256_after": "b72a6e23573c091edf04802369a035745a56c3e2ffba4cea8b322acd6760f501",
+      "replacements": [
+        {
+          "rule": "host-tmp",
+          "count": 2,
+          "replacement": "/runtime/tmp"
+        }
+      ],
+      "packaged_path": "evaluations/solution/oracle/recorded_comparison/control_run/wandb/logs/debug-core.log.gz",
+      "packaged_sha256": "13919d093ddfc6578ab38b2f711587254f6b007e99b67f10ab874d446de2d78a",
+      "packaged_bytes": 444,
+      "delivery": "Lossless gzip; destination and sha256_after describe the restored plaintext log."
+    },
+    {
+      "source": "wandb/offline-run-20261104_015529-gexufgda/files/requirements.txt",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/wandb/files/requirements.txt",
+      "sha256_before": "79c98f32fed4508d68442134f390f888da85f80f31518f4f3c12b2bb83eab98f",
+      "sha256_after": "738d2dddf1be40e23405127cd87e10df2fb4bbc0aedf800c1947f23544aca91e",
+      "replacements": [
+        {
+          "rule": "ipv4",
+          "count": 15,
+          "replacement": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "source": "outputs/2026-11-04/01-52-52/.hydra/config.yaml",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/configuration/config.yaml",
+      "sha256_before": "da60c49149eea771a5cb40fde5a87ed417eba48236913df00ea7ca331bdd129a",
+      "sha256_after": "439326ff01a954021a1efb5f08d7f9ea2e7c2fab5558aaf84af76324e5ea7af8",
+      "replacements": [
+        {
+          "rule": "host-tmp",
+          "count": 1,
+          "replacement": "/runtime/tmp"
+        },
+        {
+          "rule": "ipv4",
+          "count": 1,
+          "replacement": "127.0.0.1"
+        },
+        {
+          "rule": "run-label",
+          "from": "torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3",
+          "to": "experiment",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "source": "outputs/2026-11-04/01-52-52/.hydra/overrides.yaml",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/configuration/overrides.yaml",
+      "sha256_before": "a0153a083f940a70a16d29dc178ea6822cead9f2e0628d9260c0b624591bc585",
+      "sha256_after": "74fdf0301b5a3ddd6867f7653103e46c5805b2a0d0352c8ec5b47b2eed89e36c",
+      "replacements": [
+        {
+          "rule": "ipv4",
+          "count": 1,
+          "replacement": "127.0.0.1"
+        },
+        {
+          "rule": "run-label",
+          "from": "torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3",
+          "to": "experiment",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "source": "scripts/launch_with_models.py",
+      "destination": "workspace/scripts/launch_with_models.py",
+      "sha256_before": "54a7299205de586ad2840816d707268823c68400408b418f2f50b6317be28694",
+      "sha256_after": "93d36de252dc523a8057aeec84e14ba9cae71a5a8a98e914b868d5297f1f56d0",
+      "replacements": [
+        {
+          "rule": "portable-runtime",
+          "reason": "Use the independent image-provided GLM interpreter rather than host conda.",
+          "from": "    if service.key == 'glm':\n        conda =",
+          "to": "    if service.key == 'glm' and os.environ.get('GLM_PYTHON'):\n        interpreter = [os.environ['GLM_PYTHON']]\n    elif service.key == 'glm':\n        conda ="
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520/1.jsonl",
+      "destination": "workspace/results/recorded_run/rollouts/1.jsonl",
+      "sha256_before": "e9ec0ea5a719d1726967736bd0eb8e948c899cea16e2297d07bf8fa08c506042",
+      "sha256_after": "888a68d8165d65cc6ec266945d5288911cbcc79c28e7b6820d4a277600aceeba",
+      "sha256_selected_before_sanitizing": "888a68d8165d65cc6ec266945d5288911cbcc79c28e7b6820d4a277600aceeba",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        6,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 43,
+          "selected_rows_1based": [
+            1,
+            6,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520/40.jsonl",
+      "destination": "workspace/results/recorded_run/rollouts/40.jsonl",
+      "sha256_before": "37bb21b5250887d2dd1e55d60c0c8c771c19d68622d68439a7207bec25665970",
+      "sha256_after": "6a9ceb7d7c4f98b610d4cfa6f482c835035a379e7f8a651e4b812973500c653f",
+      "sha256_selected_before_sanitizing": "6a9ceb7d7c4f98b610d4cfa6f482c835035a379e7f8a651e4b812973500c653f",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        20,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 82,
+          "selected_rows_1based": [
+            1,
+            20,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520/80.jsonl",
+      "destination": "workspace/results/recorded_run/rollouts/80.jsonl",
+      "sha256_before": "4636aab6e4dc5befdc4d143a53422edaec95e7a9ac2ce48ab3486cdee2f4db6f",
+      "sha256_after": "8ce663fa1dd2fed4c5f0462cd7ba7317deee54173aec7356823ee6aaf1982552",
+      "sha256_selected_before_sanitizing": "8ce663fa1dd2fed4c5f0462cd7ba7317deee54173aec7356823ee6aaf1982552",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        67,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 122,
+          "selected_rows_1based": [
+            1,
+            67,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520/120.jsonl",
+      "destination": "workspace/results/recorded_run/rollouts/120.jsonl",
+      "sha256_before": "6b1f57eb1e11fe2e8b6a4bb9cbb24a72ecf9433ed796c0c412eb6862a96c8eca",
+      "sha256_after": "1c2414fb47628bba7b92afcf863db775645578427e82c6276b3e5a121c2b72e5",
+      "sha256_selected_before_sanitizing": "1c2414fb47628bba7b92afcf863db775645578427e82c6276b3e5a121c2b72e5",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        8,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 162,
+          "selected_rows_1based": [
+            1,
+            8,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520/160.jsonl",
+      "destination": "workspace/results/recorded_run/rollouts/160.jsonl",
+      "sha256_before": "0a711188467820c4cd9a1d219b4c3af3b86918346ff2b04e7604773c365439ab",
+      "sha256_after": "6cba1bc9347d6087658e81df057857f1fd54a27850cd7bec6187117beec94f6c",
+      "sha256_selected_before_sanitizing": "6cba1bc9347d6087658e81df057857f1fd54a27850cd7bec6187117beec94f6c",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        99,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 202,
+          "selected_rows_1based": [
+            1,
+            99,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520/200.jsonl",
+      "destination": "workspace/results/recorded_run/rollouts/200.jsonl",
+      "sha256_before": "09c07fa6490eb57dabb30a0c85f8fa400ec33b993fab46f3905eb5163e03a79c",
+      "sha256_after": "c899b52efd22ab7166763f40b75300b4f0f13a20c34a463f2dc9ced8de6d8c6b",
+      "sha256_selected_before_sanitizing": "c899b52efd22ab7166763f40b75300b4f0f13a20c34a463f2dc9ced8de6d8c6b",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        44,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 242,
+          "selected_rows_1based": [
+            1,
+            44,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3/1.jsonl",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/rollouts/1.jsonl",
+      "sha256_before": "4487f527cad100762180e75ab7bc25bf058fefec390b273f70b8f6f066184a90",
+      "sha256_after": "a59c7b366b0a543dc7b799f18a6ab99e75b65d663b1876745db8d2fa19be4c12",
+      "sha256_selected_before_sanitizing": "a59c7b366b0a543dc7b799f18a6ab99e75b65d663b1876745db8d2fa19be4c12",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        6,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 43,
+          "selected_rows_1based": [
+            1,
+            6,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3/40.jsonl",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/rollouts/40.jsonl",
+      "sha256_before": "01cab51411472f95acd172d0575c40e1b77cfd4340fadf3f5a2d977439770b22",
+      "sha256_after": "70233eb84506d572177242f7e05924ab8b461446816b983f92454ffdb565c221",
+      "sha256_selected_before_sanitizing": "70233eb84506d572177242f7e05924ab8b461446816b983f92454ffdb565c221",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        20,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 82,
+          "selected_rows_1based": [
+            1,
+            20,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3/80.jsonl",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/rollouts/80.jsonl",
+      "sha256_before": "5c0b2e69cfddc4464724bee767c23cf12ca1882d793afa226d3b3c1ce0850cba",
+      "sha256_after": "867b32646cab8f1330ab6200d89d2296206b4ef189148e471c466075c562bbb0",
+      "sha256_selected_before_sanitizing": "867b32646cab8f1330ab6200d89d2296206b4ef189148e471c466075c562bbb0",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        67,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 122,
+          "selected_rows_1based": [
+            1,
+            67,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3/120.jsonl",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/rollouts/120.jsonl",
+      "sha256_before": "2f5ce87bbf8acb47b718aa61f2c72f2fbb0ffe62963733f36ca52cafb7164d1f",
+      "sha256_after": "42dd93f3a5c1de12b12f34262e5782c59fff9b181762bd781eb716b2ec8fc57d",
+      "sha256_selected_before_sanitizing": "42dd93f3a5c1de12b12f34262e5782c59fff9b181762bd781eb716b2ec8fc57d",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        8,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 162,
+          "selected_rows_1based": [
+            1,
+            8,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3/160.jsonl",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/rollouts/160.jsonl",
+      "sha256_before": "97f85459938cf9403d11bfc19ead0eddb6ccad4b4d253ca6299fcda88084ddec",
+      "sha256_after": "9939c7b69168191ba851bfa4126edf8fa68cf00b188fd664129078270d58b799",
+      "sha256_selected_before_sanitizing": "9939c7b69168191ba851bfa4126edf8fa68cf00b188fd664129078270d58b799",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        99,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 202,
+          "selected_rows_1based": [
+            1,
+            99,
+            128
+          ]
+        }
+      ]
+    },
+    {
+      "source": "verl_step_records/torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3/200.jsonl",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/rollouts/200.jsonl",
+      "sha256_before": "8b3b8c2e6126681d669ce729a1098abf3fdb8c8c4691571276cff308161cfa69",
+      "sha256_after": "2f67d2f2c03e769a0d8f420b68896e8cc7994e2edece03a7fc43f2d0152654ba",
+      "sha256_selected_before_sanitizing": "2f67d2f2c03e769a0d8f420b68896e8cc7994e2edece03a7fc43f2d0152654ba",
+      "source_rows": 128,
+      "selected_rows_1based": [
+        1,
+        44,
+        128
+      ],
+      "replacements": [
+        {
+          "rule": "contributor-requested-rollout-sampling",
+          "random_seed": 242,
+          "selected_rows_1based": [
+            1,
+            44,
+            128
+          ]
+        }
+      ]
+    }
+  ],
+  "upstream_word_exceptions": [
+    {
+      "path": "router_r1/llm_agent/route_service.py",
+      "lines": [
+        262
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "scripts/train_4_gpus.sh",
+      "lines": [
+        148
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/__init__.py",
+      "lines": [
+        80
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/model_merger/megatron_model_merger.py",
+      "lines": [
+        387
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/trainer/config/_generated_ppo_megatron_trainer.yaml",
+      "lines": [
+        484
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/trainer/config/_generated_ppo_trainer.yaml",
+      "lines": [
+        471
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/trainer/config/algorithm.py",
+      "lines": [
+        30,
+        36
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/trainer/config/ppo_megatron_trainer.yaml",
+      "lines": [
+        67
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/trainer/config/ppo_trainer.yaml",
+      "lines": [
+        92,
+        93,
+        332
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/trainer/ppo/core_algos.py",
+      "lines": [
+        176,
+        182,
+        204
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/trainer/ppo/ray_trainer.py",
+      "lines": [
+        521
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/utils/hdfs_io.py",
+      "lines": [
+        30
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/utils/dataset/dataset_utils.py",
+      "lines": [
+        33
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl/verl/workers/fsdp_workers.py",
+      "lines": [
+        701
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl_tool/trainer/config/algorithm.py",
+      "lines": [
+        30,
+        36
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "verl_tool/trainer/config/ppo_trainer.yaml",
+      "lines": [
+        95,
+        96,
+        335
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    },
+    {
+      "path": "results/recorded_run/configuration/config.yaml",
+      "lines": [
+        497
+      ],
+      "reason": "Upstream implementation/configuration wording, not run-arm labels."
+    }
+  ],
+  "known_limitations": [
+    "One recorded run per arm; no variance estimate; no step-0 training score.",
+    "Full Docker image build, all model downloads and GPU rerun require separate verification.",
+    "Upstream family origin is TIGER-AI-Lab/verl-tool (contains verl_tool/agent_loop/verltool_agent_loop.py); the pinned buggy/baseline commits are from the author's internal fork and are not publicly reachable (verified against the GitHub API on 2026-11-05)."
+  ],
+  "asset_delivery": {
+    "updated_date": "2026-11-05",
+    "user_request": "The dataset and tool results are now uploaded; download both from the pinned HF repository and remove the bundled tool-result copies.",
+    "models": "All 103 required files are fetched and SHA-256/size checked. Pinned upstream LFS hashes or Git blobs match recorded files.",
+    "excluded_model_host_metadata": "Qwen 8B configuration.json is ModelScope-only bookkeeping, unused by runtime; its original hash is retained in model_manifest.json.",
+    "dataset": "All 19605 original data files and three frozen tool-result JSONs match the uploaded HF commit by byte size and SHA-256. None remain bundled as inputs.",
+    "dataset_status": "ready: all 19608 expected remote files verified and pinned.",
+    "retained_frozen_inputs": [],
+    "recovery": "Previous packaged data/, model_files/ and tool_results/ are retained in the recoverable .maestro_hf_assets_backup.* directory beside the submission bundle. Original project files remain untouched.",
+    "historical_training_script_and_all_evidence": "Training remains at the Git-exact 200-step script. Complete logs and all 200 metric files per arm remain unchanged. The contributor subsequently requested 3-row samples at step 1 and every 40 steps; current rollout details are in rollout_sampling.",
+    "packaging_files": [
+      {
+        "path": "README.md",
+        "sha256_before": "2a7a333deacc69677e09844c4b5b83b5559b33f10604a56396bcf03cce0cf18f",
+        "sha256_after": "0fab0e10b72e102703d643b9e3725a56dffe17a579d11a19668965e20fdbef41"
+      },
+      {
+        "path": "tests/test_maestro_package.py",
+        "sha256_before": "9f859973468722ab1233ce6e9dfaa78bf814589ece9bbb22d0d47af4cf4fd325",
+        "sha256_after": "7a9f95814a6646413d8d2a7b45303c2f76d39df121e35335fd0c1cf8d1d81cff"
+      },
+      {
+        "path": "tasks/algorithm/maestro_grpo_reward_collapse/README.md",
+        "sha256_before": "04b86620752b523995c70000b71699ea57e50e05b40517cfdfbb53604bbb5242",
+        "sha256_after": "a58ad2b9b93eebb889b0b48663c189d0a73bcd6e18ecb4b056609f134f9ec882"
+      },
+      {
+        "path": "tasks/algorithm/maestro_grpo_reward_collapse/THIRD_PARTY_NOTICES.md",
+        "sha256_before": "023fdc2abc7e7f6098cf5aebf9ebdf25f2a4b1222c2e8260ca1c4ee466940ea4",
+        "sha256_after": "71d3b3a47eeb657507a225910ef9dbec63befb4cbc82526b5732d74ddf2e211a"
+      },
+      {
+        "path": "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/solution/oracle/task.yaml",
+        "sha256_before": "74e2dab8ea06d26525fc381da7308251fd97f2504b988097e2ea3cc33337717b",
+        "sha256_after": "8747afb20b65096bc65d8a728b27c7dcaa7f5a3fdf4325f1ab9b2b2b1005e20c"
+      },
+      {
+        "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/check_assets.py",
+        "sha256_before": "680409617158ff96c0294a5e95cdd0b5db4f47ec059faa1e22d9ae3fc1304790",
+        "sha256_after": "f93a47bca316f26fe693760b55bb2985087ce2e3d622ac3627d645ea1ee584fc"
+      },
+      {
+        "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/prepare_data.py",
+        "sha256_before": "c9d306d313b333697ac0ae279a9e1c005655fadd2ad5209f921d2383ca6471b0",
+        "sha256_after": "c84c482972efd26047046f7b100964258cfecf33c49c2b5cdad8b8c4ace487a1"
+      },
+      {
+        "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/pin_dataset.py",
+        "sha256_before": "a56d72070cb3ac85438321c5ccd013d001fc80c8e562ca450af10ed2e9e1d7ba",
+        "sha256_after": "760e47ad9f4f29ba6a6f08d7c6cdea5eb9777124dc1fdf5d46e9441ef501c06f"
+      },
+      {
+        "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/data_manifest.json",
+        "sha256_before": "67916e486406bea659f2095b4651af8ebb522665fe9e0893798d2c72f164c53d",
+        "sha256_after": "f5ebd18bf28690e57e5f8f3c1d2c2f58351e90910d41fc22dcf7abb1e6c87fb3"
+      },
+      {
+        "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/prepare.sh",
+        "sha256_before": "af1bbdd049367daddb5bb6254ffc3ce6cf9de063e526c0d1d4c038de955d1d9d",
+        "sha256_after": "fbd31d933e7dd3fec899fbc0cbb655d7835ccd0c789aca8f1bb86aa25681eda3"
+      }
+    ],
+    "dataset_revision": "d3a588de6b6d5894eaa80f05f831e6cde4f8852a",
+    "downloaded_frozen_inputs": [
+      "results/tool_results/caption.json",
+      "results/tool_results/detection.json",
+      "results/tool_results/ocr.json"
+    ],
+    "download_coverage": "route/** includes all 601 route/validation_images files. The three tool_results/*.json files are moved from the downloaded snapshot to results/tool_results/, preserving recorded_run/.",
+    "packaging_hashes_note": "Current packaging hashes include contributor-requested rollout thinning and lossless log compression. Original log hashes refer to restored plaintext; packaged_path identifies .gz delivery."
+  },
+  "asset_delivery_history": [
+    {
+      "updated_date": "2026-11-05",
+      "user_request": "All seven named models and locaszzz/maestro_data download from Hugging Face during prepare.",
+      "models": "All 103 required files are fetched and SHA-256/size checked. Pinned upstream LFS hashes or Git blobs match recorded files.",
+      "excluded_model_host_metadata": "Qwen 8B configuration.json is ModelScope-only bookkeeping, unused by runtime; its original hash is retained in model_manifest.json.",
+      "dataset": "Expected bytes for 19605 data files are unchanged. No dataset data files remain in the submission workspace.",
+      "dataset_status": "awaiting_data_upload: the inspected repository commit contains only .gitattributes; prepare fails before models or training. pin_dataset.py verifies remote bytes before updating the pin.",
+      "retained_frozen_inputs": [
+        "results/tool_results/ocr.json",
+        "results/tool_results/detection.json",
+        "results/tool_results/caption.json"
+      ],
+      "recovery": "Previous packaged data/ and model_files/ moved together to a recoverable .maestro_hf_assets_backup.* directory alongside this submission bundle. Original source project and data remain untouched.",
+      "historical_training_script_and_all_evidence": "Unmodified by this HF-delivery update; training still uses the Git-exact 200-step script.",
+      "packaging_files": [
+        {
+          "path": "README.md",
+          "sha256_before": "7ed5e0ff9c694921a522e75d00f56d3cac57b9914f5fd8ddf37cd65f4cb2ad13",
+          "sha256_after": "2a7a333deacc69677e09844c4b5b83b5559b33f10604a56396bcf03cce0cf18f"
+        },
+        {
+          "path": "tests/test_maestro_package.py",
+          "sha256_before": "77dd7be161ad4a989389ea0b4952824d6ee8194f2a4883cd193456774d7b020d",
+          "sha256_after": "9f859973468722ab1233ce6e9dfaa78bf814589ece9bbb22d0d47af4cf4fd325"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/README.md",
+          "sha256_before": "40ef6470a274d1051b678bfcd3ff5bd9d44f0aee0884c123bee9cb0c499b234d",
+          "sha256_after": "04b86620752b523995c70000b71699ea57e50e05b40517cfdfbb53604bbb5242"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/task.toml",
+          "sha256_before": "486abe56feb4774e3db809adf8c3640cd601f369c405c65743d19f079a3f820c",
+          "sha256_after": "47da791525f87994bb865c0066615d75d350f91d7767d66b4bdea0e283a67b26"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/THIRD_PARTY_NOTICES.md",
+          "sha256_before": "e37c76ebe3316738bacd8e6bb344d0372251c0f6f9dbf0c4b68a5d16c325978b",
+          "sha256_after": "023fdc2abc7e7f6098cf5aebf9ebdf25f2a4b1222c2e8260ca1c4ee466940ea4"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/prepare_models.py",
+          "sha256_before": "69003d3c2a2e46f21b2f260a8090c8afd51eaee5246129ff47f88d4f4860cf89",
+          "sha256_after": "5c83a94e85a3b80cdaf188e697b5de21ffbd4d680e6c92498e95ec9c8eaff73f"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/check_assets.py",
+          "sha256_before": "7f5965f106ca6a335d5b3aed9f0eed2292c966dd8c7224bf7db58e79869088ef",
+          "sha256_after": "680409617158ff96c0294a5e95cdd0b5db4f47ec059faa1e22d9ae3fc1304790"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/model_manifest.json",
+          "sha256_before": "bdc7b99c30bf246744b0cccb22c3948c448c1b503746df7d3c7e50d89eb968cb",
+          "sha256_after": "d0f82f43216e866afecad59dd9341e5ddebe47bef6e138647155954b46227c18"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/data_manifest.json",
+          "sha256_before": "f85c59615a28ab5cd5886ed5a7cf5313a4aeb01486c0943e132433c0b9c199ff",
+          "sha256_after": "67916e486406bea659f2095b4651af8ebb522665fe9e0893798d2c72f164c53d"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/prepare.sh",
+          "sha256_before": "a485b496064f1fe642e0bac6089bdab2844a665a8e6113af398d2b3341ee30b8",
+          "sha256_after": "af1bbdd049367daddb5bb6254ffc3ce6cf9de063e526c0d1d4c038de955d1d9d"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/prepare_data.py",
+          "sha256_before": null,
+          "sha256_after": "c9d306d313b333697ac0ae279a9e1c005655fadd2ad5209f921d2383ca6471b0"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/pin_dataset.py",
+          "sha256_before": null,
+          "sha256_after": "a56d72070cb3ac85438321c5ccd013d001fc80c8e562ca450af10ed2e9e1d7ba"
+        }
+      ]
+    },
+    {
+      "updated_date": "2026-11-05",
+      "user_request": "The dataset and tool results are now uploaded; download both from the pinned HF repository and remove the bundled tool-result copies.",
+      "models": "All 103 required files are fetched and SHA-256/size checked. Pinned upstream LFS hashes or Git blobs match recorded files.",
+      "excluded_model_host_metadata": "Qwen 8B configuration.json is ModelScope-only bookkeeping, unused by runtime; its original hash is retained in model_manifest.json.",
+      "dataset": "All 19605 original data files and three frozen tool-result JSONs match the uploaded HF commit by byte size and SHA-256. None remain bundled as inputs.",
+      "dataset_status": "ready: all 19608 expected remote files verified and pinned.",
+      "retained_frozen_inputs": [],
+      "recovery": "Previous packaged data/, model_files/ and tool_results/ are retained in the recoverable .maestro_hf_assets_backup.* directory beside the submission bundle. Original project files remain untouched.",
+      "historical_training_script_and_all_evidence": "Unmodified by this uploaded-asset update. Both arms retain their original logs, all 200 metric files and all three 128-row rollout samples; training remains at the Git-exact 200-step script.",
+      "packaging_files": [
+        {
+          "path": "README.md",
+          "sha256_before": "2a7a333deacc69677e09844c4b5b83b5559b33f10604a56396bcf03cce0cf18f",
+          "sha256_after": "4f71eeb743c6f90d4de2e108686ef920afcd51c4805f27ee067c0b8090896d48"
+        },
+        {
+          "path": "tests/test_maestro_package.py",
+          "sha256_before": "9f859973468722ab1233ce6e9dfaa78bf814589ece9bbb22d0d47af4cf4fd325",
+          "sha256_after": "0da8c041ab985458d41f36f4b4efc750519a6494108e508a7e470446b652a2c6"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/README.md",
+          "sha256_before": "04b86620752b523995c70000b71699ea57e50e05b40517cfdfbb53604bbb5242",
+          "sha256_after": "ddb0b52b37dafb13a47e35082741f072784eeb4fa41d71724b28e0e1098d2d1c"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/THIRD_PARTY_NOTICES.md",
+          "sha256_before": "023fdc2abc7e7f6098cf5aebf9ebdf25f2a4b1222c2e8260ca1c4ee466940ea4",
+          "sha256_after": "71d3b3a47eeb657507a225910ef9dbec63befb4cbc82526b5732d74ddf2e211a"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/solution/oracle/task.yaml",
+          "sha256_before": "74e2dab8ea06d26525fc381da7308251fd97f2504b988097e2ea3cc33337717b",
+          "sha256_after": "8747afb20b65096bc65d8a728b27c7dcaa7f5a3fdf4325f1ab9b2b2b1005e20c"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/check_assets.py",
+          "sha256_before": "680409617158ff96c0294a5e95cdd0b5db4f47ec059faa1e22d9ae3fc1304790",
+          "sha256_after": "f93a47bca316f26fe693760b55bb2985087ce2e3d622ac3627d645ea1ee584fc"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/prepare_data.py",
+          "sha256_before": "c9d306d313b333697ac0ae279a9e1c005655fadd2ad5209f921d2383ca6471b0",
+          "sha256_after": "c84c482972efd26047046f7b100964258cfecf33c49c2b5cdad8b8c4ace487a1"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/pin_dataset.py",
+          "sha256_before": "a56d72070cb3ac85438321c5ccd013d001fc80c8e562ca450af10ed2e9e1d7ba",
+          "sha256_after": "760e47ad9f4f29ba6a6f08d7c6cdea5eb9777124dc1fdf5d46e9441ef501c06f"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/data_manifest.json",
+          "sha256_before": "67916e486406bea659f2095b4651af8ebb522665fe9e0893798d2c72f164c53d",
+          "sha256_after": "f5ebd18bf28690e57e5f8f3c1d2c2f58351e90910d41fc22dcf7abb1e6c87fb3"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/prepare.sh",
+          "sha256_before": "af1bbdd049367daddb5bb6254ffc3ce6cf9de063e526c0d1d4c038de955d1d9d",
+          "sha256_after": "e86434a940985f18b9758c5c918108431af16880ad3cdd95d8893bebcc4fff41"
+        }
+      ],
+      "dataset_revision": "d3a588de6b6d5894eaa80f05f831e6cde4f8852a",
+      "downloaded_frozen_inputs": [
+        "results/tool_results/caption.json",
+        "results/tool_results/detection.json",
+        "results/tool_results/ocr.json"
+      ],
+      "download_coverage": "route/** includes all 601 route/validation_images files. The three tool_results/*.json files are moved from the downloaded snapshot to results/tool_results/, preserving recorded_run/."
+    },
+    {
+      "updated_date": "2026-11-05",
+      "user_request": "The dataset and tool results are now uploaded; download both from the pinned HF repository and remove the bundled tool-result copies.",
+      "models": "All 103 required files are fetched and SHA-256/size checked. Pinned upstream LFS hashes or Git blobs match recorded files.",
+      "excluded_model_host_metadata": "Qwen 8B configuration.json is ModelScope-only bookkeeping, unused by runtime; its original hash is retained in model_manifest.json.",
+      "dataset": "All 19605 original data files and three frozen tool-result JSONs match the uploaded HF commit by byte size and SHA-256. None remain bundled as inputs.",
+      "dataset_status": "ready: all 19608 expected remote files verified and pinned.",
+      "retained_frozen_inputs": [],
+      "recovery": "Previous packaged data/, model_files/ and tool_results/ are retained in the recoverable .maestro_hf_assets_backup.* directory beside the submission bundle. Original project files remain untouched.",
+      "historical_training_script_and_all_evidence": "Training remains at the Git-exact 200-step script. Complete logs and all 200 metric files per arm remain unchanged. The contributor subsequently requested 3-row samples at step 1 and every 40 steps; current rollout details are in rollout_sampling.",
+      "packaging_files": [
+        {
+          "path": "README.md",
+          "sha256_before": "2a7a333deacc69677e09844c4b5b83b5559b33f10604a56396bcf03cce0cf18f",
+          "sha256_after": "95661fc1118679e985f2be71e5b58c44eee9cfd17397db850171fb7b6d65623e"
+        },
+        {
+          "path": "tests/test_maestro_package.py",
+          "sha256_before": "9f859973468722ab1233ce6e9dfaa78bf814589ece9bbb22d0d47af4cf4fd325",
+          "sha256_after": "7414e1dca430ca7d6a50dc80a0f48661b2a99b35cef92b5b8421f45021749ca6"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/README.md",
+          "sha256_before": "04b86620752b523995c70000b71699ea57e50e05b40517cfdfbb53604bbb5242",
+          "sha256_after": "54de6f165f638c231b4916c727ff989e3f9b97d0044cf3995fc0cea91cdda3b5"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/THIRD_PARTY_NOTICES.md",
+          "sha256_before": "023fdc2abc7e7f6098cf5aebf9ebdf25f2a4b1222c2e8260ca1c4ee466940ea4",
+          "sha256_after": "71d3b3a47eeb657507a225910ef9dbec63befb4cbc82526b5732d74ddf2e211a"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/solution/oracle/task.yaml",
+          "sha256_before": "74e2dab8ea06d26525fc381da7308251fd97f2504b988097e2ea3cc33337717b",
+          "sha256_after": "8747afb20b65096bc65d8a728b27c7dcaa7f5a3fdf4325f1ab9b2b2b1005e20c"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/check_assets.py",
+          "sha256_before": "680409617158ff96c0294a5e95cdd0b5db4f47ec059faa1e22d9ae3fc1304790",
+          "sha256_after": "f93a47bca316f26fe693760b55bb2985087ce2e3d622ac3627d645ea1ee584fc"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/prepare_data.py",
+          "sha256_before": "c9d306d313b333697ac0ae279a9e1c005655fadd2ad5209f921d2383ca6471b0",
+          "sha256_after": "c84c482972efd26047046f7b100964258cfecf33c49c2b5cdad8b8c4ace487a1"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/pin_dataset.py",
+          "sha256_before": "a56d72070cb3ac85438321c5ccd013d001fc80c8e562ca450af10ed2e9e1d7ba",
+          "sha256_after": "760e47ad9f4f29ba6a6f08d7c6cdea5eb9777124dc1fdf5d46e9441ef501c06f"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/data_manifest.json",
+          "sha256_before": "67916e486406bea659f2095b4651af8ebb522665fe9e0893798d2c72f164c53d",
+          "sha256_after": "f5ebd18bf28690e57e5f8f3c1d2c2f58351e90910d41fc22dcf7abb1e6c87fb3"
+        },
+        {
+          "path": "tasks/algorithm/maestro_grpo_reward_collapse/environment/prepare.sh",
+          "sha256_before": "af1bbdd049367daddb5bb6254ffc3ce6cf9de063e526c0d1d4c038de955d1d9d",
+          "sha256_after": "e86434a940985f18b9758c5c918108431af16880ad3cdd95d8893bebcc4fff41"
+        }
+      ],
+      "dataset_revision": "d3a588de6b6d5894eaa80f05f831e6cde4f8852a",
+      "downloaded_frozen_inputs": [
+        "results/tool_results/caption.json",
+        "results/tool_results/detection.json",
+        "results/tool_results/ocr.json"
+      ],
+      "download_coverage": "route/** includes all 601 route/validation_images files. The three tool_results/*.json files are moved from the downloaded snapshot to results/tool_results/, preserving recorded_run/.",
+      "packaging_hashes_note": "Current hashes advanced after contributor-requested rollout sampling; prior asset-delivery records remain in asset_delivery_history."
+    }
+  ],
+  "retired_rollout_file_records": [
+    {
+      "source": "verl_step_records/torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520/1.jsonl",
+      "destination": "workspace/results/recorded_run/rollouts/1.jsonl",
+      "sha256_before": "e9ec0ea5a719d1726967736bd0eb8e948c899cea16e2297d07bf8fa08c506042",
+      "sha256_after": "e9ec0ea5a719d1726967736bd0eb8e948c899cea16e2297d07bf8fa08c506042",
+      "replacements": []
+    },
+    {
+      "source": "verl_step_records/torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520/100.jsonl",
+      "destination": "workspace/results/recorded_run/rollouts/100.jsonl",
+      "sha256_before": "97e82edbddf55b40983e64a212b65fbc1b52b61290a755d30e7ce414c27522c7",
+      "sha256_after": "97e82edbddf55b40983e64a212b65fbc1b52b61290a755d30e7ce414c27522c7",
+      "replacements": []
+    },
+    {
+      "source": "verl_step_records/torl-qwen3-vl-4b-thinking-grpo-fresh-20261102-201520/200.jsonl",
+      "destination": "workspace/results/recorded_run/rollouts/200.jsonl",
+      "sha256_before": "09c07fa6490eb57dabb30a0c85f8fa400ec33b993fab46f3905eb5163e03a79c",
+      "sha256_after": "09c07fa6490eb57dabb30a0c85f8fa400ec33b993fab46f3905eb5163e03a79c",
+      "replacements": []
+    },
+    {
+      "source": "verl_step_records/torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3/1.jsonl",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/rollouts/1.jsonl",
+      "sha256_before": "4487f527cad100762180e75ab7bc25bf058fefec390b273f70b8f6f066184a90",
+      "sha256_after": "4487f527cad100762180e75ab7bc25bf058fefec390b273f70b8f6f066184a90",
+      "replacements": []
+    },
+    {
+      "source": "verl_step_records/torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3/100.jsonl",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/rollouts/100.jsonl",
+      "sha256_before": "8db6937c43e4621348ac2f9c888f7e8f16436e8fa145a20d70e5cfa8ed34693d",
+      "sha256_after": "8db6937c43e4621348ac2f9c888f7e8f16436e8fa145a20d70e5cfa8ed34693d",
+      "replacements": []
+    },
+    {
+      "source": "verl_step_records/torl-fsdp-agent-models_qwen3-vl-4b-thinking-grpo-n8-b16-t1.0-lr1e-6acc-only-4gpu-with-zwz-skill-v3/200.jsonl",
+      "destination": "evaluations/solution/oracle/recorded_comparison/control_run/rollouts/200.jsonl",
+      "sha256_before": "8b3b8c2e6126681d669ce729a1098abf3fdb8c8c4691571276cff308161cfa69",
+      "sha256_after": "8b3b8c2e6126681d669ce729a1098abf3fdb8c8c4691571276cff308161cfa69",
+      "replacements": []
+    }
+  ],
+  "rollout_sampling": {
+    "updated_date": "2026-11-05",
+    "steps": [
+      1,
+      40,
+      80,
+      120,
+      160,
+      200
+    ],
+    "samples_per_step": 3,
+    "samples_per_arm": 18,
+    "samples_total": 36,
+    "seed_base": 42,
+    "selection": "First and last row, plus a uniform random interior row with seed 42 + step. Samples keep original row order.",
+    "contributor_override": "Contributor explicitly requested denser 40-step sampling instead of the skill default of three step dumps.",
+    "logs_metrics_configuration_and_wandb_unchanged_files": 438,
+    "full_original_batch_statistics": "evaluations/solution/oracle/rollout_full_batch_summary.json",
+    "backup": "Prior full packaged rollout samples are retained in a recoverable sibling .maestro_rollout_backup.* directory; original project runs are unchanged.",
+    "packaging_sha256": {
+      "README.md": "0fab0e10b72e102703d643b9e3725a56dffe17a579d11a19668965e20fdbef41",
+      "tests/test_maestro_package.py": "7a9f95814a6646413d8d2a7b45303c2f76d39df121e35335fd0c1cf8d1d81cff",
+      "tasks/algorithm/maestro_grpo_reward_collapse/README.md": "a58ad2b9b93eebb889b0b48663c189d0a73bcd6e18ecb4b056609f134f9ec882",
+      "tasks/algorithm/maestro_grpo_reward_collapse/workspace/README.md": "6414f7d61b7e7f493765a30cabe50d53bd31795265fc4fcb1fe806a4c7181621",
+      "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/issue/oracle.md": "1818282c92263b22bf5087c494899141bf237d625bd9a43d34fa6c31362c852c",
+      "tasks/algorithm/maestro_grpo_reward_collapse/workspace/results/recorded_run/experiment.json": "b95e0fa35c5e7fe08a162ef3cfcea2759f548821524fed78e34091738d1c022f",
+      "tasks/algorithm/maestro_grpo_reward_collapse/workspace/results/recorded_run/rollout_sampling.json": "eb6b4feb01d5572d2045290e251c12972c366a5f97aee070bacbd56cc17b14e4",
+      "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/solution/oracle/recorded_comparison/control_run/experiment.json": "0e6a34ce6c323857d7855637e0923f718b0e5b42f48dfe4a90614ce360a9e371",
+      "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/solution/oracle/recorded_comparison/control_run/rollout_sampling.json": "a2a2f4fcb713ef1153c68dc45cd464e36bf2ac684a27c2fdc027e266fde1cec3",
+      "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/solution/oracle/rollout_full_batch_summary.json": "09241746fde03958c0565078a2466d9033da0d8201479da8e5716126a5555bc1",
+      "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/solution/oracle/historical_evidence_manifest.json": "98e9a351411152fea9c0f0d2a8708b55bd18f3fdbd6e11f4a882138b154fb0bb"
+    },
+    "log_delivery_note": "Logs later changed to lossless .gz delivery; the previously checked 438 files retain identical restored contents."
+  },
+  "log_compression": {
+    "updated_date": "2026-11-05",
+    "contributor_request": "Compress historical logs and restore them during preprocessing.",
+    "format": "gzip, level 9, mtime 0",
+    "lossless": true,
+    "manifests": {
+      "recorded_run": "workspace/results/recorded_run/log_archive_manifest.json",
+      "control_run": "evaluations/solution/oracle/recorded_comparison/control_run/log_archive_manifest.json"
+    },
+    "uncompressed_bytes": 74892300,
+    "compressed_bytes": 3741487,
+    "files": 32,
+    "prepare": "restore_logs.py --workspace restores only the staged agent-visible recorded_run before any asset download.",
+    "hidden_control": "Compressed control files remain only in the oracle. Reviewers may restore an explicit copy with restore_logs.py --run-dir; prepare cannot access the hidden oracle.",
+    "recovery": "Previous plaintext package logs remain in a recoverable sibling .maestro_log_backup.* directory. Original source runs remain unchanged.",
+    "non_log_evidence_files_unchanged": 420,
+    "packaging_sha256": {
+      "README.md": "0fab0e10b72e102703d643b9e3725a56dffe17a579d11a19668965e20fdbef41",
+      "tests/test_maestro_package.py": "7a9f95814a6646413d8d2a7b45303c2f76d39df121e35335fd0c1cf8d1d81cff",
+      "tasks/algorithm/maestro_grpo_reward_collapse/README.md": "a58ad2b9b93eebb889b0b48663c189d0a73bcd6e18ecb4b056609f134f9ec882",
+      "tasks/algorithm/maestro_grpo_reward_collapse/workspace/README.md": "6414f7d61b7e7f493765a30cabe50d53bd31795265fc4fcb1fe806a4c7181621",
+      "tasks/algorithm/maestro_grpo_reward_collapse/environment/prepare.sh": "fbd31d933e7dd3fec899fbc0cbb655d7835ccd0c789aca8f1bb86aa25681eda3",
+      "tasks/algorithm/maestro_grpo_reward_collapse/environment/restore_logs.py": "9266b274a8d7ec6c934ca463c21bb37869a17e13184ef43e2d0eecda50448313",
+      "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/solution/oracle/README.md": "77c13f54d4471797b238e8185e79d1320ef96c9a27b7c10e71be6b39e5549e14",
+      "tasks/algorithm/maestro_grpo_reward_collapse/workspace/results/recorded_run/log_archive_manifest.json": "156bb852f9b76082c9b54edbc4fe302a486c3a12d8f957f19b6e46d25300f428",
+      "tasks/algorithm/maestro_grpo_reward_collapse/workspace/results/recorded_run/experiment.json": "b95e0fa35c5e7fe08a162ef3cfcea2759f548821524fed78e34091738d1c022f",
+      "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/solution/oracle/recorded_comparison/control_run/log_archive_manifest.json": "1dff7aca87d3f2ad704b7b9b85813088e6797acc50efc996d5d4b5df5d74f46b",
+      "tasks/algorithm/maestro_grpo_reward_collapse/evaluations/solution/oracle/recorded_comparison/control_run/experiment.json": "0e6a34ce6c323857d7855637e0923f718b0e5b42f48dfe4a90614ce360a9e371"
+    },
+    "verified": {
+      "all_32_log_archives_and_original_bytes": true,
+      "staged_restore_idempotent": true,
+      "corruption_and_unsafe_path_rejected": true,
+      "real_grader_after_restore": {
+        "defective_exit": 1,
+        "control_exit": 0
+      },
+      "normal_prepare_exposes_only_failed_run": true
+    }
+  }
+}

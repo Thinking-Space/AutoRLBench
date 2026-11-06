@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "task_id": "maestro_grpo_reward_collapse",
+  "metric_key": "critic/score/mean",
+  "final_step": 200,
+  "historical_final_baseline": "-1.0",
+  "required_final_score": "0.5",
+  "required_final_score_max": "1.0",
+  "score_mode": "final",
+  "min_step_coverage": 0.95,
+  "required_log_patterns": [
+    {
+      "pattern": "train_files':\\s*'data/route/train_with_zwz_modified_prompt\\.parquet'",
+      "description": "the training dataset must remain the staged parquet"
+    },
+    {
+      "pattern": "val_files':\\s*'data/route/test_subset_100_seed42\\.parquet'",
+      "description": "the held-out dataset must remain the staged parquet"
+    },
+    {
+      "pattern": "models/Qwen3-VL-4B-Thinking",
+      "description": "the policy and critic model must remain the staged Qwen3-VL-4B-Thinking"
+    },
+    {
+      "pattern": "'n':\\s*8(?!\\d)",
+      "description": "the GRPO group size must remain 8"
+    },
+    {
+      "pattern": ": GPU=\\d+, API=http://127\\.0\\.0\\.1:\\d+/v1, model=models/",
+      "description": "the six staged tool-service models must be launched"
+    },
+    {
+      "pattern": "action_stop_tokens_file=",
+      "description": "the historical launcher's action-stop-token wiring must run"
+    },
+    {
+      "pattern": "Run logs: ",
+      "description": "the launcher's log-routing banner must run"
+    }
+  ],
+  "corroboration_metrics": [
+    {
+      "key": "verl_tool/is_traj_finished/mean",
+      "min": "0.9"
+    },
+    {
+      "key": "response_length/clip_ratio",
+      "max": "0.05"
+    }
+  ],
+  "log_roots": ["experiment_logs"],
+  "pinned_sha256": {
+    "run.py": "cd2eb604c4e5116ef50c691758fd948acdc50ee4980912a9b2c6dde5422a1410",
+    "scripts/train_4_gpus.sh": "2673904cb99495a9840400e90744c6738ec9bfba4a53f0aa6c7e82b212215a97",
+    "scripts/launch_with_models.py": "76c02ef15cd9350e2aa6df06a9b7da87c3f0ef6cfda7f743c850d5418d91feac",
+    "scripts/log_environment.sh": "87077d7469ea942c9855a35fa0db40b1676bf188a7365caed9e6fd98dcc6b02d",
+    "scripts/project_environment.sh": "6cb849cf9442fe97d0c19955aad1ef7b76d03ee63d79f16baf91250a198612be",
+    "scripts/model_services.sh": "f077c8ad4e0ac4ac1989278d85295158a824ffe7d2756f10060e9c1b3c435e4f",
+    "scripts/wandb_offline.sh": "72ba7a6185b83b8ab54df93bae5084773fdd4f78be42bff4ba7655572f695179",
+    "tools/log_paths.py": "2f224556cdfe08a703014fe6cf5ced5f88238320daf473bd7eb53a44c93341e9",
+    "verl/verl/utils/logger/aggregate_logger.py": "64d8556b0d6acc667a5be2dd43908111c9e58aae58d779ee9b02f0f28e2b42f7"
+  }
+}

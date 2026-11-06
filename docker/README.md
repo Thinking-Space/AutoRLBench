@@ -328,6 +328,7 @@ a fix to a fetch script is a fix to the task that ships it.
 | --- | --- |
 | `areal-sglang0.5.10-torch2.9.1-flashattn2.8.3-cu129-py3.12` | `ghcr.io/areal-project/areal-runtime:v2.0.0-sglang` |
 | `justrl2-data-relocation` | `ghcr.io/merak0514/autorlbench-justrl2` |
+| `maestro-vllm011` | `docker.m.daocloud.io/nvidia/cuda:12.8.1-devel-ubuntu24.04` |
 | `miles-ngc2506-distributable` | build recipe, see [Exceptions](#exceptions) |
 | `miles-sglang0.5.23-torch2.14.1-flashattn2.7.4-cu130-py3.12` | `radixark/miles` |
 | `slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12` | `slimerl/slime:v0.3.2-cu129` |

@@ -103,6 +103,20 @@
  * placeholders. The Gemini-4-Argon rollout_top_p and DeepSeek-V4-Pro
  * adamw_eps runs died at the agent stage (answers uploaded and judged,
  * no session capture) and stay pending stream recovery.
+ * Ten issue records for maestro_grpo_reward_collapse were imported
+ * from the 6 Nov 2026 round. The evidence rubric was recalibrated
+ * mid-round: the oracle's two un-earnable author-side items (the
+ * full-batch 124/128 tag counts and the all-128 length-exhausted
+ * claim, which the three-row-per-step sampled rollouts cannot
+ * support) moved to Documentation reconciliation as author-side
+ * reference, leaving three earnable items. Five runs judged under
+ * the earlier rubric were re-judged locally with the same judge
+ * model (earlier scores kept in the trials as *-oraclev1.json); the
+ * other five were judged once, already under the final rubric.
+ * Values come from the evaluation ledger joined by run_id and
+ * cross-checked against each trial's verifier result (see
+ * import_maestro_reward_collapse_issue_traces.py); this round's
+ * wrapper reports agree with the ledger.
  * The 100 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -6207,6 +6221,146 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.3,
     "durationMs": 1742893,
     "steps": 29,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/maestro_grpo_reward_collapse",
+    "slug": "fable51-reward-collapse",
+    "file": "agent-trace/fable51-reward-collapse.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 4379824,
+    "steps": 71,
+    "costUsd": 30.8654
+  },
+  {
+    "task": "algorithm/maestro_grpo_reward_collapse",
+    "slug": "dsv4-reward-collapse",
+    "file": "agent-trace/dsv4-reward-collapse.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 3065168,
+    "steps": 31,
+    "costUsd": 11.2083
+  },
+  {
+    "task": "algorithm/maestro_grpo_reward_collapse",
+    "slug": "glm53-reward-collapse",
+    "file": "agent-trace/glm53-reward-collapse.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.933333,
+    "durationMs": 2687841,
+    "steps": 116,
+    "costUsd": 19.0313
+  },
+  {
+    "task": "algorithm/maestro_grpo_reward_collapse",
+    "slug": "gemini4-reward-collapse",
+    "file": "agent-trace/gemini4-reward-collapse.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.933333,
+    "durationMs": 2544384,
+    "steps": 47,
+    "costUsd": 19.8255
+  },
+  {
+    "task": "algorithm/maestro_grpo_reward_collapse",
+    "slug": "gpt6astra-reward-collapse",
+    "file": "agent-trace/gpt6astra-reward-collapse.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 2097185,
+    "steps": 29,
+    "costUsd": 5.4827
+  },
+  {
+    "task": "algorithm/maestro_grpo_reward_collapse",
+    "slug": "gpt61sol-reward-collapse",
+    "file": "agent-trace/gpt61sol-reward-collapse.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.933333,
+    "durationMs": 2478610,
+    "steps": 38,
+    "costUsd": 1.1481
+  },
+  {
+    "task": "algorithm/maestro_grpo_reward_collapse",
+    "slug": "grok47-reward-collapse",
+    "file": "agent-trace/grok47-reward-collapse.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.4,
+    "durationMs": 1336681,
+    "steps": 29,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/maestro_grpo_reward_collapse",
+    "slug": "kimi-reward-collapse",
+    "file": "agent-trace/kimi-reward-collapse.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.333333,
+    "durationMs": 2558621,
+    "steps": 41,
+    "costUsd": 9.2981
+  },
+  {
+    "task": "algorithm/maestro_grpo_reward_collapse",
+    "slug": "kimi31-reward-collapse",
+    "file": "agent-trace/kimi31-reward-collapse.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 4128666,
+    "steps": 112,
+    "costUsd": 11.34
+  },
+  {
+    "task": "algorithm/maestro_grpo_reward_collapse",
+    "slug": "qwen38-reward-collapse",
+    "file": "agent-trace/qwen38-reward-collapse.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 3083580,
+    "steps": 37,
     "costUsd": null
   }
 ];

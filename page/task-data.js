@@ -615,5 +615,26 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "An AdamW eps override of 1e-3 sits far above this model's per-parameter gradients, turning every update into momentum SGD 10-100x smaller than the learning rate implies.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. run_gsm8k_grpo.sh overrides the actor AdamW eps to 1e-3; per-parameter RMS gradients of this 0.5B model are about 1e-5 to 5e-5, so eps dominates the Adam denominator and the update becomes momentum SGD 10-100x smaller than lr 2e-6 implies: pg_clipfrac averages 8e-5 over steps 1-10 (control 2e-3), the training score first reaches 0.3 at step 35 (control step 5), and held-out strict accuracy ends at 0.486 against 0.566 with the default eps, while every per-step metric looks stable. No crash, RUN_EXIT 0."
+  },
+  {
+    "id": "algorithm/maestro_grpo_reward_collapse",
+    "title": "Search-token reconstruction drops the end token and collapses multimodal GRPO",
+    "family": "Algorithm",
+    "tags": [
+      "maestro",
+      "verl",
+      "grpo",
+      "multimodal",
+      "tool-use",
+      "token-truncation"
+    ],
+    "model": "Qwen/Qwen3-VL-4B-Thinking (+ six staged tool-service models)",
+    "dataset": "locaszzz/maestro_data: 9,200 train / 100 held-out",
+    "framework": "verl + verl_tool (Maestro) / GRPO",
+    "image": "maestro-vllm011",
+    "created": "2026-11-05",
+    "license": "MIT",
+    "brief": "The first-turn search-action reconstruction omits <|im_end|> before the final-token replacement eats the closing '>' of </search>, so recorded rollouts carry corrupted delimiters and training collapses.",
+    "issue": "Training Qwen3-VL-4B-Thinking with multimodal GRPO over the Maestro tool loop (six staged tool-service models, 200 steps). The first-turn <search>...</search> reconstruction appends no <|im_end|>, and the new_gen_tokens[:-1] + gen_ids[-1:] final-token replacement assumes the reconstructed last token is the EOS and instead removes the '>' that closes </search>: sampled step-1 rollouts carry unequal opening/closing search-tag counts with closing tags like </search<|im_end|>, degenerating to forms like </search<<|im_start|> by step 200. At step 200 critic/score/mean=-1.0, verl_tool/is_traj_finished/mean=0.0, and responses clip at the 4096-token cap (response_length/clip_ratio=0.5625, response_length/max=4096) with no completed final-answer trajectory among the sampled rows. Training reward still improves temporarily (step-120 mean 0.71), so never having learned is a wrong attribution. No crash."
   }
 ];

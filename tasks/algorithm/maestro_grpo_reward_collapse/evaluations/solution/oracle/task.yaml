@@ -1,0 +1,27 @@
+task_id: maestro_grpo_reward_collapse
+category: multimodal_tool_grpo
+framework: verl + verl_tool (Maestro)
+launch_script: run.py
+native_launch_script: scripts/train_4_gpus.sh
+model: Qwen/Qwen3-VL-4B-Thinking
+dataset: locaszzz/maestro_data
+algo: grpo
+expected_verdict: unhealthy
+evidence_kind: historical_run
+buggy_commit: 0207b9a9f95eee575eaf829ca95ce20d39e4672b
+baseline_commit: 797c70b77930d4f975b004a096745a77b0a5438a
+eval_metric_key: critic/score/mean
+last_eval_step: 200
+causes:
+  - path: verl_tool/agent_loop/verltool_agent_loop.py
+    kind: symbol
+    observed: first-turn search reconstruction lacks the terminal EOS consumed by the downstream slice
+    expected: append <|im_end|> before replacing the final token
+key_files:
+  - verl_tool/agent_loop/verltool_agent_loop.py
+external_assets_not_in_git:
+  - Seven pinned model checkpoints provisioned by environment/prepare.sh
+  - locaszzz/maestro_data, verified and pinned with 19605 original data files and three frozen tool-result JSONs
+known_limitations:
+  - Provisional training-regression criterion; held-out validation is intentionally unchanged.
+  - One recorded run per arm; no step-0 measurement.

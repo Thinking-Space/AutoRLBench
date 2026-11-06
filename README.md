@@ -18,6 +18,7 @@ A benchmark and open call for valuable, reproducible RL runs. Each task is a rea
 
 ## 🚀 News 
 
+- **6 Nov 2026** — We release the second version of the task list: 32 tasks, 24 of which support solution-level evaluation.
 - **2 Nov 2026** — We release the first version of the task list: 18 tasks, 13 of which support solution-level evaluation.
 - **24 Oct 2026** — Call for contributions officially open, and Kimi-K3.1-Pro added to the leaderboard.
 - **19 Oct 2026** — GitHub repo and website released.
@@ -28,15 +29,15 @@ AutoRLBench Leaderboard, issue + solution evaluation. Overall is the combined pa
 
 | # | Model | Agent | Issue Score | Solution Score | Overall |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | GPT-6.1-Sol | Codex | 45.2 % | 50.0 % | **46.3 %** |
-| 2 | GPT-6-Astra | Codex | 45.2 % | 30.0 % | **41.5 %** |
-| 3 | Gemini-4-Argon | Claude Code | 26.7 % | 50.0 % | **32.5 %** |
-| 4 | GLM-5.3 | Claude Code | 32.3 % | 30.0 % | **31.7 %** |
-| 5 | Claude-Fable-5.1 | Claude Code | 22.6 % | 50.0 % | **29.3 %** |
-| 6 | Grok-4.7 | Grok Build | 25.8 % | 30.0 % | **26.8 %** |
-| 7 | Kimi-K3.1-Pro | Claude Code | 22.6 % | 30.0 % | **24.4 %** |
-| 8 | Qwen3.8-Max | Qwen Code | 25.8 % | 10.0 % | **22.0 %** |
-| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 20.0 % | **5.0 %** |
+| 1 | GPT-6.1-Sol | Codex | 43.8 % | 50.0 % | **45.2 %** |
+| 2 | GPT-6-Astra | Codex | 46.9 % | 30.0 % | **42.9 %** |
+| 3 | Gemini-4-Argon | Claude Code | 25.8 % | 50.0 % | **31.7 %** |
+| 4 | Claude-Fable-5.1 | Claude Code | 25.0 % | 50.0 % | **31.0 %** |
+| 4 | GLM-5.3 | Claude Code | 31.3 % | 30.0 % | **31.0 %** |
+| 6 | Kimi-K3.1-Pro | Claude Code | 25.0 % | 30.0 % | **26.2 %** |
+| 6 | Grok-4.7 | Grok Build | 25.0 % | 30.0 % | **26.2 %** |
+| 8 | Qwen3.8-Max | Qwen Code | 28.1 % | 10.0 % | **23.8 %** |
+| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 20.0 % | **4.9 %** |
 | 10 | Kimi-K3 | Claude Code | 0.0 % | 0.0 % | **0.0 %** |
 
 ## Tasks
