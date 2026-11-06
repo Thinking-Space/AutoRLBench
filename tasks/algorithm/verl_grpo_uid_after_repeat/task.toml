@@ -19,15 +19,14 @@ algo = "GRPO"
 script = "examples/grpo_trainer/run_llama3_2_1b_instruct_dapo_math_fsdp.sh"
 
 [environment]
-image = "verl"
-
-[environment.env]
-HF_HUB_OFFLINE = "1"
-HF_DATASETS_OFFLINE = "1"
-WANDB_MODE = "disabled"
-PYTHONDONTWRITEBYTECODE = "1"
-CUDA_VISIBLE_DEVICES = "0,1"
-NVIDIA_VISIBLE_DEVICES = "0,1"
+# Same upstream image as the deleted docker/images/verl.Dockerfile
+# (verlai/verl:vllm017.latest@sha256:4c43bbf1…), pulled by digest.
+image = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+# Was [environment.env] CUDA_VISIBLE_DEVICES/NVIDIA_VISIBLE_DEVICES="0,1".
+# The offline env entries moved to the harness (_network_policy_env exports
+# them for the agent/rerun stages) or prepare.sh (PYTHONDONTWRITEBYTECODE);
+# WANDB_MODE is set by the harness too.
+gpus = 2
 
 [outcome]
 failure_type = "implementation_bug"

@@ -1,171 +1,48 @@
-# GRPO advantage broadcast along the sequence axis
+# algorithm diagnosis: TACO GRPO run
 
-## Case overview
+Training Qwen2.5-1.5B-Instruct with GRPO on TACO. The per-sample advantage vector is laid along the sequence axis and broadcast across the batch before the response mask, so the policy gradient is decoupled from each sample's reward and held-out accuracy never improves.
 
-- Task ID: `verl_grpo_advantage_broadcast`
-- Case family: `reward_design`
-- Schema version: `2`
-- Evaluation levels: `issue`, `solution`
-- Model: `Qwen2.5-1.5B-Instruct`
-- Training framework: `verl`
-- Primary source evaluation metric: `val-core/taco/acc/mean@1`
+| | |
+| --- | --- |
+| **Author** | Yaohui Li |
+| **Type** | algorithm |
+| **Model** | Qwen2.5-1.5B-Instruct |
+| **Dataset** | TACO EASY (8368 train / 184 test) |
+| **Framework** | verl (GRPO), `examples/grpo_trainer/run_qwen2_5_1.5b_instruct_taco_fsdp.sh` |
+| **Environment** | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` · 8 GPUs |
+| **Evaluations** | issue · solution |
+| **Recorded runs** | 1 defective run bundled (284 of 400 steps, ~8 h, job time limit); protocol shortened to 300 steps and thresholds recalibrated 2026-11-03 from a fresh same-revision A/B — repaired arm (devspace 1446084) vs two defective arms (devspace 1177503 full 400 steps; devspace 1236983, 241 steps, preempted) |
 
-This document is for maintainers and reviewers. It is not exposed to the
-agent during evaluation. Metric names preserve the source experiment;
-tasks using the same held-out protocol may intentionally share a name.
+## Difficulty
 
-## Canonical failure reason
+The defect is in `verl/trainer/ppo/core_algos.py::compute_grpo_outcome_advantage`. After the per-uid mean/std normalization, the length-`B` advantage vector is reshaped to `[1, B]`, padded or truncated to the response length, and expanded across the batch:
 
-`compute_grpo_outcome_advantage` returns shape `[batch, response_length]`, but
-the per-sample advantages are written along the sequence axis and expanded down
-every row before the response mask. Training does not crash; the policy
-gradient is decoupled from each sample's reward and held-out accuracy does not
-improve.
-
-An earlier version also injected a scorer defect (`taco.py::_to_bool_results`
-calling `.item(0)` on a possibly empty array). It was removed: it never fired in
-the recorded run and could only be found by code reading. The scorer now treats
-a size-0 comparison as a failed case.
-
-## Workspace and hidden evaluations
-
-
-| Path                    | Visibility and purpose                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------ |
-| `workspace/`            | Agent-visible snapshot: code, one recorded run (wandb + hydra outputs).                   |
-| `evaluations/issue/`    | Neutral diagnosis instruction, issue oracle, and task-local issue verifier.                |
-| `evaluations/solution/` | Repair-and-run instruction, hidden reference material, and metric-only verifier.           |
-
-
-The agent cannot read oracle or verifier paths. `issue` grading compares
-`$AUTORLBENCH_RESULTS/agent_answer.md` to hidden `oracle.md` with an LLM
-judge. `solution` grading reads only the new experiment logs.
-
-## Recorded run
-
-- `workspace/logs/wandb/offline-run-20260926_105216-l7my3znq/files/output.log`
-  (console with per-step metrics), `files/config.yaml`, and
-  `workspace/outputs/2026-09-26/10-48-56/.hydra/`.
-- 4 GPUs, train batch 16 x `n=8`, `max_response_length=4096`, KL and entropy
-  off. Configured for 400 steps; the log ends at step 284 after about 8 hours of
-  step time with no exception (job time limit).
-- `critic/rewards/mean` averages 0.122 (steps 1-284, none 0). Held-out
-  `val-core/taco/acc/mean@1`: 0.0761 / 0.0489 / 0.0598 / 0.0707 / 0.0435 /
-  0.0543 at steps 0 / 50 / 100 / 150 / 200 / 250.
-- Fingerprint: the token-weighted `critic/advantages/mean` stays near zero
-  (median |mean| 4.9e-4) versus 3.9e-3 to 9.3e-3 on the correct-code TACO runs in
-  `task_train_too_hard_new`, `task_function_call`, and `torch_functional`.
-- Sanitized: the original experiment name and the source machine's task path
-  named the defect. They were rewritten to `taco_qwen2_5_1.5b_grpo` /
-  `tasks/taco_grpo` in the text artifacts, and the binary `run-*.wandb` (which
-  carries CRC-checked records) was removed. The original 254 MB console log was
-  only an LFS pointer in this repo and was removed.
-- The run is attributed to the defective code from its experiment name, paths,
-  and the fingerprint above; the code at run time was not recorded.
-
-## Canonical expected outcome
-
-Verdict: **unhealthy**.
-
-Root cause target:
-
-- `verl/trainer/ppo/core_algos.py::compute_grpo_outcome_advantage`
-
-Required fix targets:
-
-- `verl/trainer/ppo/core_algos.py::compute_grpo_outcome_advantage`: `restore`; target state/value: `scores = scores.unsqueeze(-1) * response_mask`, so each row carries that sample's scalar GRPO advantage on its response tokens.
-
-## Evaluation design
-
-`issue` grades `$AUTORLBENCH_RESULTS/agent_answer.md` against hidden
-`oracle.md`. The judge scores verdict, root-cause, and evidence agreement
-(weights 0.2 / 0.6 / 0.2). Pass requires `verdict_score` == 1.0, and `root_cause_score` and `evidence_score` each > 0.8; the weighted total alone is not a pass condition.
-
-`solution` does not grade a structured diagnosis. The agent repairs the staged workspace and submits `report.md` without
-launching training. The harness runs the designated launch script for 300 steps
-and produces fresh experiment logs. Scoring is weighted:
-
-- validation: the mean finite `val-core/taco/acc/mean@1` over the pinned steps
-  `200, 250, 300` (all present) must land in `[0.095, 0.35]` to score `1`,
-  otherwise `0`. Calibration runs (300 steps, same launch): the repaired arm
-  means 0.1105, the defective arm 0.0815.
-- training reward: the mean `critic/rewards/mean` over training steps `1..300`
-  (all present) must land in `(0.155, 0.6]` to score `1`, otherwise `0`.
-  Calibration runs: repaired 0.1763, defective 0.1397.
-- final `score = 0.8 * validation + 0.2 * training reward`
-
-Pass requires both components (`score == 1.0`). The framework still records
-the weighted float when only one component passes. The mean over pinned steps
-replaces the earlier best-peak rule: on the 184-row validation set a single
-point carries SE ≈ 0.019, and a fresh defective run's peak hit 0.0978 — one
-correct answer from the old 0.10 peak bar — while its pinned mean stays
-0.0815; pinning the steps also closes the `TEST_FREQ` /
-`TOTAL_TRAINING_STEPS` short-run shortcut, since both are plain env overrides
-in the launch script. The ceilings (0.35 / 0.6) guard against a scorer
-rewritten to a constant reward, since both graded quantities come from
-agent-repairable code.
-
-Thresholds were recalibrated 2026-11-03 from a fresh same-revision A/B —
-repaired arm (devspace 1446084) vs two defective arms (devspace 1177503, full
-400 steps; devspace 1236983, 241 steps, preempted) — and the protocol was
-shortened from 400 to 300 steps (the recorded run had hit the job time limit
-at step 284). Margins only, no variance — one run per arm.
-
-## External dataset asset
-
-- Repository: `cyh2004/ptdbench-taco-verl-easy` (neutral name — does not encode the task)
-- Dataset license: `Apache-2.0`
-- Provenance: TACO EASY snapshot (8368 train / 184 test), same bytes as `task_function_call`.
-- Contents: `train.parquet` and `test.parquet` flat at the repo root (no `tar.gz`).
-
-| File            | Size              | SHA-256                                                            |
-| --------------- | ----------------- | ------------------------------------------------------------------ |
-| `test.parquet`  | 61,082,676 bytes  | `e364fa69d973f8e8644b2fa4d7dc6ec405d5b4adff64002c6ad52e7c787c6eaa` |
-| `train.parquet` | 606,016,648 bytes | `7f25abdfa9e0f5baa173d153a32973fbe2cc8736503a35408b8ebb8ae2bc5706` |
-
-`environment/prepare.sh` fetches the whole repo straight into
-`workspace/taco_verl`; the two parquet files are what training reads. No unpack
-or checksum step — the dataset is delivered already extracted.
-
-### How the flat dataset was published
-
-One-time, with an HF token, to the **neutral-named** repo above (so the repo /
-cache dir name never reveals the task to the agent). Recorded here so it can be
-reproduced if the repo is ever lost:
-
-```bash
-# extract the two parquets from the legacy tarball (or reuse an existing taco_verl)
-hf download LIF1014/ptdbench-reward-design-task-grpo-broadcast-dataset \
-    artifacts/workspace-assets.tar.gz --repo-type dataset --local-dir /tmp/taco-dl
-mkdir -p /tmp/taco-flat
-tar -xzf /tmp/taco-dl/artifacts/workspace-assets.tar.gz -C /tmp/taco-flat workspace/taco_verl
-
-# publish the two parquets at the repo root
-hf repo create cyh2004/ptdbench-taco-verl-easy --repo-type dataset
-hf upload cyh2004/ptdbench-taco-verl-easy /tmp/taco-flat/workspace/taco_verl . --repo-type dataset
+```python
+seq_len = response_mask.size(1)
+row = scores.reshape(1, -1)
+if row.size(1) < seq_len:
+    row = torch.nn.functional.pad(row, (0, seq_len - row.size(1)))
+else:
+    row = row[:, :seq_len]
+scores = row.expand(response_mask.size(0), -1) * response_mask
 ```
 
-The SHA-256 / size rows above are kept for reference only; `prepare.sh` no
-longer checks them.
+With train batch 16 × rollout `n=8`, `B=128` while `max_response_length=4096`: column `j` carries sample `j`'s advantage on every row, and positions past 128 get 0 before the mask. The returned shape is still `[B, S]`, so nothing raises; the defect is advantage values, not a gradient leak (the layout sits inside the existing `torch.no_grad()` block).
 
-## External model asset
+Nothing fails loudly: shapes match the policy loss, the run is stable (`actor/entropy` 0.39–0.81, mean response length 149–503 tokens, clip ratio ≈ 0), and training reward is present — `critic/rewards/mean` averages 0.122 over steps 1–284 with no zero step, so "no learning signal" is a wrong diagnosis. The single strongest piece of evidence, readable from the bundled log alone: the token-weighted `critic/advantages/mean` stays near zero on every step (median absolute value 4.9e-4) while rewards are nonzero — correctly aligned advantages track the length/reward correlation at 3.9e-3–9.3e-3 on the correct-code TACO runs (`task_train_too_hard_new`, `task_function_call`, `torch_functional`). Each row sums a prefix of the 128 group-normalized values, which sum to ≈ 0, instead of its own advantage times its length.
 
-- Repository: `Qwen/Qwen2.5-1.5B-Instruct` (official)
-- Pinned revision: `989aa7980e4cf806f80c7fef2b1adb7bc71aa306`
-- Byte-identical, on every allowed file, to the former task snapshot
-  `LIF1014/ptdbench-verl-implementation-torch-functional@36a4c22`; switched
-  because that repo name is visible to the agent through the shared download cache.
-- Model: `Qwen2.5-1.5B-Instruct` (`model.safetensors` SHA-256 `dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee`)
+| step | 0 | 50 | 100 | 150 | 200 | 250 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `val-core/taco/acc/mean@1` (defective) | 0.0761 | 0.0489 | 0.0598 | 0.0707 | 0.0435 | 0.0543 |
 
-## Environment requirement
+Over the same run, `critic/rewards/mean` averages 0.122 (steps 1–284, fifty-step means 0.093–0.133), while the token-weighted `critic/advantages/mean` never leaves ±4.9e-4 of zero.
 
-- Base image: `verlai/verl:vllm017.latest`
-- Use the Docker agent backend after external asset publication.
-- The local backend does not build the task image or hydrate external assets.
-- The designated experiment uses 8 GPUs, a 300-step budget, and a large shared-memory allocation.
-- Launch script: `examples/grpo_trainer/run_qwen2_5_1.5b_instruct_taco_fsdp.sh`
+## Reference solution
 
+- **issue**: a passing diagnosis names `compute_grpo_outcome_advantage` and the layout defect — the length-`B` advantages reshaped to `[1, B]`, padded to the response length, and expanded across rows, so column `j` carries sample `j`'s advantage for every row. Attributions that must fail: the run stopping at step 284 of 400 (truncated job, no exception), `use_kl_loss=False` / `entropy_coeff=0` (shared launch defaults for this TACO family; entropy and length do not collapse), scorer runtime errors in `[error] runtime: ...` lines (exceptions inside generated programs, caught and recorded as failures), learning rate, batch size, the dataset, and a `keepdim`/`unsqueeze(0)` form — that form would raise under `B=128`, `S=4096`.
+- **solution**: restore `scores = scores.unsqueeze(-1) * response_mask` after the per-uid normalization, so row `i` carries sample `i`'s scalar advantage on its response tokens. This is sufficient because it is the only change between the defective workspace and the healthy baseline file.
 
-The grader requires every pinned validation point and every training-reward
-step from 1 through the graded horizon; partial logs score 0. This completion
-gate does not change the existing metric thresholds.
+## Verification
+
+- **issue**: an LLM judge compares `agent_answer.md` with the hidden `oracle.md` on verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2. Passing is a conjunctive gate, not the weighted sum: `verdict_score == 1.0` and `root_cause_score > 0.8` and `evidence_score > 0.8`.
+- **solution**: the rerun (300 steps, `TEST_FREQ=50`) is scored on two components — validation `val-core/taco/acc/mean@1` **mean over the pinned steps 200, 250, 300** in **[0.095, 0.35]** (weight 0.8) and mean `critic/rewards/mean` over training steps **1..300** in **(0.155, 0.6]** (weight 0.2); all pinned steps and all 300 training steps must be present, and pass requires `score == 1.0` (both components). Calibration (same revision, same launch, one run per arm): repaired run means **0.1105 / 0.1763**; the full 400-step defective rerun means **0.0815 / 0.1397** over the same window, and a second defective rerun (241 steps, preempted) agrees. The mean over pinned steps replaces the earlier best-peak rule: on the 184-row validation set a single point carries SE ≈ 0.019, and the fresh defective run's peak hit 0.0978 (18/184) — one correct answer from the old 0.10 peak bar — while its pinned mean stays 0.0815; pinning the steps also closes the `TEST_FREQ` / `TOTAL_TRAINING_STEPS` short-run shortcut, since both are plain env overrides in the launch script. The ceilings (0.35 / 0.6) guard against a scorer rewritten to a constant reward, since both graded quantities come from agent-repairable code. Margins only, no variance — one run per arm.

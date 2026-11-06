@@ -6,13 +6,13 @@ every GRPO group a singleton and silently degrading training to baseline-free RE
 
 | | |
 | --- | --- |
-| **Author** | AutoRLBench |
+| **Author** | Yinghao Chen |
 | **Domain** | algorithm |
 | **Tags** | `verl` `grpo` `advantage` `uid` |
 | **Model** | Llama-3.2-1B-Instruct |
 | **Dataset** | DAPO-Math-17k |
 | **Framework** | verl 0.9.0.dev @ `6f2aa24abfc01cc72811b376aeb3936503885096`, GRPO |
-| **Environment** | `verl` (verlai/verl:vllm017.latest) · 2 × H800 for training |
+| **Environment** | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` (verlai/verl:vllm017.latest) · 2 × H800 for training |
 | **Evaluations** | issue |
 | **Recorded runs** | 1 defect run (60 steps, 2026-10-16) |
 
