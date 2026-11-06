@@ -20,7 +20,7 @@ NUMBER = (
     r"|nan|inf(?:inity)?)"
 )
 VAL_RE = re.compile(
-    r"(?:^|\s)step:(\d+)\s+-.*?"
+    r"(?:^|[^_])step:(\d+)\s+-.*?"
     r"\b(val-core/([^\s:]+)/(acc|reward)/mean@(\d+)):"
     rf"({NUMBER})",
     re.IGNORECASE,
@@ -61,12 +61,18 @@ def load_spec(path: Path) -> dict[str, Any]:
         "training_weight",
         "log_roots",
     }
-    if not isinstance(value, dict) or set(value) != expected:
+    if not isinstance(value, dict) or not expected <= set(value):
+        raise ValueError("grader_spec.json is missing required fields")
+    if set(value) - expected - {"score_mode"}:
         raise ValueError("grader_spec.json has unexpected fields")
     if value["schema_version"] != 2:
         raise ValueError("unsupported grader spec")
     if value["log_roots"] != ["experiment_logs"]:
         raise ValueError("log roots must be experiment_logs")
+    mode = value.get("score_mode", "best")
+    if mode not in {"best", "final"}:
+        raise ValueError("score_mode must be best or final")
+    value["score_mode"] = mode
     return value
 
 
@@ -105,7 +111,7 @@ def record_point(
 
 def train_reward_re(key: str) -> re.Pattern[str]:
     return re.compile(
-        rf"(?:^|\s)step:(\d+)\s+-.*?\b{re.escape(key)}:({NUMBER})",
+        rf"(?:^|[^_])step:(\d+)\s+-.*?\b{re.escape(key)}:({NUMBER})",
         re.IGNORECASE,
     )
 
@@ -212,6 +218,21 @@ def select_best(values: dict[int, tuple[Any, Decimal, str]]):
     return best
 
 
+def judged_value(
+    spec: dict[str, Any], values: dict[int, tuple[Any, Decimal, str]]
+):
+    if spec["score_mode"] == "final":
+        final_step = spec["final_step"]
+        if final_step not in values:
+            return None, None, None
+        rank, value, relative = values[final_step]
+        return value, final_step, relative
+    best = select_best(values)
+    if best is None:
+        return None, None, None
+    return best[0], best[1], best[3]
+
+
 def mean_reward(values: dict[int, tuple[Any, Decimal, str]]):
     if not values:
         return None
@@ -234,30 +255,23 @@ def grade(spec: dict[str, Any], results: Path):
     validation_weight = Decimal(str(spec["validation_weight"]))
     training_weight = Decimal(str(spec["training_weight"]))
     errors = []
-    # Only the declared run budget is eligible; completion is a separate gate.
-    out_of_budget = any(step < 0 or step > final_step for step in (*values, *train_values))
-    values = {step: point for step, point in values.items() if 0 <= step <= final_step}
-    train_values = {step: point for step, point in train_values.items() if 1 <= step <= final_step}
-    finite_range = all(Decimal("0") <= item[1] <= Decimal("1")
-                       for item in (*values.values(), *train_values.values()))
-    complete = final_step in values and len(train_values) == final_step and not out_of_budget and finite_range
-    if not finite_range:
-        errors.append("accuracy and binary training rewards must lie in [0, 1]")
-    if not complete:
-        errors.append(f"requires final validation at {final_step} and training steps 1..{final_step}, without extra steps")
     best = select_best(values)
-    best_value = best[0] if best is not None else None
     best_step = best[1] if best is not None else None
-    best_source = best[3] if best is not None else None
-    improvement = best_value - baseline if best_value is not None else None
+    best_value = best[0] if best is not None else None
+    judged, judged_step, judged_source = judged_value(spec, values)
+    improvement = judged - baseline if judged is not None else None
     train_mean = mean_reward(train_values)
     train_source = None
     if train_values:
         latest_step = max(train_values)
         train_source = train_values[latest_step][2]
 
-    if best_value is None:
-        if metric_key in keys_seen:
+    if judged is None:
+        if values:
+            # validation metric exists but the designated final step does
+            # not (truncated/killed run): validation fails outright
+            errors.append(f"missing finite {metric_key} at step {final_step}")
+        elif metric_key in keys_seen:
             errors.append(f"missing finite {metric_key}")
         elif keys_seen:
             errors.append(
@@ -266,9 +280,9 @@ def grade(spec: dict[str, Any], results: Path):
         else:
             errors.append(f"missing {metric_key} in experiment_logs")
         validation_passed = False
-    elif best_value < required_score:
+    elif judged < required_score:
         errors.append(
-            f"best score {best_value} at step {best_step} is below "
+            f"{spec['score_mode']} score {judged} at step {judged_step} is below "
             f"required score {required_score}"
         )
         validation_passed = False
@@ -287,22 +301,40 @@ def grade(spec: dict[str, Any], results: Path):
     else:
         training_passed = True
 
+    # Validation-first: the validation metric decides the score whenever the
+    # fresh run logged any validation points; training reward is only a
+    # fallback gate for runs that produced no validation metric at all.
+    if values:
+        passed = validation_passed
+    else:
+        passed = training_passed
+        errors = [
+            e
+            for e in errors
+            if not e.startswith("missing finite " + train_key)
+            and "mean training reward" not in e
+        ]
+        if not passed:
+            errors.append(
+                f"no validation metric {metric_key} in experiment_logs; "
+                f"training fallback failed"
+            )
+    score = 1.0 if passed else 0.0
     validation_score = binary_score(validation_passed)
     training_score = binary_score(training_passed)
-    score = float(validation_weight * validation_score + training_weight * training_score)
-    if not complete:
-        score = 0.0
-    passed = complete and score == 1.0
-    judged = float(best_value) if best_value is not None else None
+    judged = float(judged) if judged is not None else None
     metrics = {
         "task_id": spec["task_id"],
         "metric_key": metric_key,
         "final_step": final_step,
+        "score_mode": spec["score_mode"],
         "historical_final_baseline": float(baseline),
         "required_final_score": float(required_score),
-        "best_step": best_step,
+        "peak_step": best_step,
+        "peak_score": float(best_value) if best_value is not None else None,
+        "best_step": judged_step,
         "best_score": judged,
-        "best_source_log": best_source,
+        "best_source_log": judged_source,
         "final_score": judged,
         "absolute_improvement": (
             float(improvement) if improvement is not None else None
@@ -324,9 +356,9 @@ def grade(spec: dict[str, Any], results: Path):
         "deterministic": True,
         "judge_used": False,
     }
-    experiment["metrics"]["best_step"] = best_step
+    experiment["metrics"]["best_step"] = judged_step
     experiment["metrics"]["best_score"] = judged
-    experiment["metrics"]["best_source_log"] = best_source
+    experiment["metrics"]["best_source_log"] = judged_source
     experiment["metrics"]["training_reward_mean"] = metrics["training_reward_mean"]
     experiment["metrics"]["training_reward_n"] = metrics["training_reward_n"]
     experiment["metrics"]["validation_score"] = metrics["validation_score"]

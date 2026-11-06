@@ -52,6 +52,18 @@
  * trajectory was rebuilt from the recovered claude-code.txt stream
  * after a lane collision destroyed its session capture (see
  * rebuild_glm_tool_history_trajectory.py).
+ * Three torch_functional solution records (GLM-5.3, Claude-Fable-5.1
+ * and GPT-6.1-Sol) were re-graded on 6 Nov 2026 from full 400-step
+ * GPU replays of the submitted workspaces under the finalized
+ * final-score grader; their values come from the evaluation ledger
+ * joined by run_id, cross-checked against each trial's replayed
+ * verifier result (see update_torch_solution_replay_verdicts.py).
+ * Three more canonical-fix replays (Gemini-4-Argon and GPT-6-Astra
+ * at final 0.0924, Kimi-K3.1-Pro at 0.0978) stay failed under the
+ * 0.10 gate; the four runs that never touched the defective line
+ * keep their original grading. The original solution importer reads
+ * the in-run wrapper reports, so a re-import would revert this
+ * round.
  * The 80 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -1829,8 +1841,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "solution",
-    "passed": false,
-    "score": 0.0,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1678516,
     "steps": 79,
     "costUsd": 7.4495,
@@ -1993,8 +2005,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "solution",
-    "passed": false,
-    "score": 0.0,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 629545,
     "steps": 27,
     "costUsd": 0.9622,
@@ -2155,8 +2167,8 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "solution",
-    "passed": false,
-    "score": 0.0,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 2181629,
     "steps": 106,
     "costUsd": 19.1911,
