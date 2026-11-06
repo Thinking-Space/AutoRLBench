@@ -11,7 +11,8 @@ We suggest something like this:
 <your_task>/
 ├── buggy_workspace/   code that reproduces the defect, plus that run's artifacts
 ├── fixed_workspace/   the same tree with the fix, plus its run's artifacts   (optional)
-├── Dockerfile         one digest-pinned FROM line naming the environment both runs used
+├── Dockerfile         names the environment both runs used (a digest-pinned FROM line
+│                      is the cleanest form)
 └── README.md          the defect, the fix, and the measured outcome
 ```
 
@@ -24,18 +25,19 @@ calibrated on.
 stdout/stderr, the offline W&B directory (including `run-*.wandb`, or `wandb sync`
 cannot replay the run), every per-step metric file, and a couple of rollout dumps as
 samples.
-- **The Dockerfile is a pin, not a recipe.** Package the heavy training stack — torch,
-CUDA, compiled kernels, the framework — into a single image, and leave a single `FROM`
-line in the Dockerfile. Push the image to a public registry (ghcr.io, Docker Hub, …) and
-submit exactly one line:
+- **A Dockerfile that pins the environment** It's suggested that you package the heavy
+training stack — torch, CUDA, compiled kernels, the framework — into a single image,
+build it and push to a public registry (ghcr.io, Docker Hub, …), or reuse an existing
+environment in [docker/images/](docker/images/). The cleanest pin is a single
+digest-pinned line:
   ```dockerfile
   FROM ghcr.io/<you>/<your-image>@sha256:4c43bbf1...
   ```
 
-  The digest, not the tag, is what makes the environment deterministic. When one of the
-  existing environments in [docker/images/](docker/images/) matches your stack, reuse it. Things like these can reside in seperate scripts: model and dataset
-downloads, a couple of pure-Python wheels the image lacks, env vars the run needs, or
-specific post-processing of the dataset or model.
+  The digest is what makes the environment deterministic. Model and dataset
+  downloads and other small environment touches can reside in separate scripts: a couple
+  of pure-Python wheels the image lacks, env vars the run needs, or specific
+  post-processing of the dataset or model.
 - **The README** states the defect, the fix as a diff, the measured outcome of both arms,
 and every plausible-but-wrong diagnosis. If you ran each arm once, say so — a
 single-seed result supports margins, not variance.
