@@ -24,19 +24,19 @@ A benchmark and open call for valuable, reproducible RL runs. Each task is a rea
 
 ## Leaderboard
 
-AutoRLBench Leaderboard, issue + solution evaluation.
+AutoRLBench Leaderboard, issue + solution evaluation. Overall is the combined pass rate across all evaluated runs (issue + solution): passes over total runs, not an average of the two levels.
 
 | # | Model | Agent | Issue Score | Solution Score | Overall |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | GPT-6.1-Sol | Codex | 44.8 % | 50.0 % | **47.4 %** |
-| 2 | GPT-6-Astra | Codex | 48.3 % | 30.0 % | **39.1 %** |
-| 3 | Gemini-4-Argon | Claude Code | 27.6 % | 50.0 % | **38.8 %** |
-| 4 | Claude-Fable-5.1 | Claude Code | 24.1 % | 50.0 % | **37.0 %** |
-| 5 | GLM-5.3 | Claude Code | 34.5 % | 30.0 % | **32.3 %** |
-| 6 | Grok-4.7 | Grok Build | 27.6 % | 30.0 % | **28.8 %** |
-| 7 | Kimi-K3.1-Pro | Claude Code | 24.1 % | 30.0 % | **27.1 %** |
-| 8 | Qwen3.8-Max | Qwen Code | 27.6 % | 10.0 % | **18.8 %** |
-| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 20.0 % | **10.0 %** |
+| 1 | GPT-6.1-Sol | Codex | 44.8 % | 50.0 % | **46.2 %** |
+| 2 | GPT-6-Astra | Codex | 48.3 % | 30.0 % | **43.6 %** |
+| 3 | GLM-5.3 | Claude Code | 34.5 % | 30.0 % | **33.3 %** |
+| 3 | Gemini-4-Argon | Claude Code | 27.6 % | 50.0 % | **33.3 %** |
+| 5 | Claude-Fable-5.1 | Claude Code | 24.1 % | 50.0 % | **30.8 %** |
+| 6 | Grok-4.7 | Grok Build | 27.6 % | 30.0 % | **28.2 %** |
+| 7 | Kimi-K3.1-Pro | Claude Code | 24.1 % | 30.0 % | **25.6 %** |
+| 8 | Qwen3.8-Max | Qwen Code | 27.6 % | 10.0 % | **23.1 %** |
+| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 20.0 % | **5.1 %** |
 | 10 | Kimi-K3 | Claude Code | 0.0 % | 0.0 % | **0.0 %** |
 
 ## Tasks

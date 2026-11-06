@@ -36,19 +36,28 @@ const LEADERBOARD_MODELS = [
     { model: 'Grok-4.7', agent: 'Grok Build', logo: 'xai' }
 ];
 
-// The leaderboard and trace pages share the same pass/fail records. Preserve
-// the published convention of averaging the displayed one-decimal rates.
+// The leaderboard and trace pages share the same pass/fail records. The
+// overall score is the combined pass rate over all evaluated runs
+// (issue + solution): total passes over total runs, not an average of the
+// two per-level rates.
 function leaderboardResults() {
     const runs = window.AUTORLBENCH_RUNS || [];
     return LEADERBOARD_MODELS.map(model => {
-        const rate = level => {
+        const tally = level => {
             const selected = runs.filter(run => run.model === model.model && run.level === level
                 && typeof run.passed === 'boolean');
-            return selected.length
-                ? Number((100 * selected.filter(run => run.passed).length / selected.length).toFixed(1))
-                : null;
+            return { total: selected.length, passed: selected.filter(run => run.passed).length };
         };
-        return { ...model, issue: rate('issue'), solution: rate('solution') };
+        const issue = tally('issue');
+        const solution = tally('solution');
+        const rate = t => t.total ? Number((100 * t.passed / t.total).toFixed(1)) : null;
+        return {
+            ...model,
+            issue: rate(issue),
+            solution: rate(solution),
+            passed: issue.passed + solution.passed,
+            total: issue.total + solution.total
+        };
     }).filter(result => result.issue !== null && result.solution !== null);
 }
 
@@ -144,7 +153,7 @@ function renderLeaderboard() {
     const mount = document.querySelector('.leaderboard-list');
     if (!mount) return;
     const rows = leaderboardResults()
-        .map((result, index) => ({ ...result, overall: (result.issue + result.solution) / 2, index }))
+        .map((result, index) => ({ ...result, overall: 100 * result.passed / result.total, index }))
         .sort((a, b) => b.overall - a.overall || a.index - b.index);
     let displayedRank = 0;
     let prevScore = null;
