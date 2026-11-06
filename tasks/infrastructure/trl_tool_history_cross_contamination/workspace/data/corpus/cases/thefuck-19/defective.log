@@ -1,0 +1,59 @@
+.........FFF                                                             [100%]
+=================================== FAILURES ===================================
+__________ test_get_new_command[command0-git push --force-with-lease] __________
+
+command = Command(script=git push, stdout=, stderr=
+To /tmp/foo
+ ! [rejected]        master -> master (non-fast-forward)
+ error:...nt: 'git pull ...') before pushing again.
+ hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+)
+output = 'git push --force-with-lease'
+
+    @pytest.mark.parametrize('command, output', [
+        (Command(script='git push', stderr=git_err), 'git push --force-with-lease'),
+        (Command(script='git push nvbn', stderr=git_err), 'git push --force-with-lease nvbn'),
+        (Command(script='git push nvbn master', stderr=git_err), 'git push --force-with-lease nvbn master')])
+    def test_get_new_command(command, output):
+>       assert get_new_command(command) == output
+E       AssertionError
+
+tests/rules/test_git_push_force.py:52: AssertionError
+_______ test_get_new_command[command1-git push --force-with-lease nvbn] ________
+
+command = Command(script=git push nvbn, stdout=, stderr=
+To /tmp/foo
+ ! [rejected]        master -> master (non-fast-forward)
+ e...nt: 'git pull ...') before pushing again.
+ hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+)
+output = 'git push --force-with-lease nvbn'
+
+    @pytest.mark.parametrize('command, output', [
+        (Command(script='git push', stderr=git_err), 'git push --force-with-lease'),
+        (Command(script='git push nvbn', stderr=git_err), 'git push --force-with-lease nvbn'),
+        (Command(script='git push nvbn master', stderr=git_err), 'git push --force-with-lease nvbn master')])
+    def test_get_new_command(command, output):
+>       assert get_new_command(command) == output
+E       AssertionError
+
+tests/rules/test_git_push_force.py:52: AssertionError
+____ test_get_new_command[command2-git push --force-with-lease nvbn master] ____
+
+command = Command(script=git push nvbn master, stdout=, stderr=
+To /tmp/foo
+ ! [rejected]        master -> master (non-fast-forw...nt: 'git pull ...') before pushing again.
+ hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+)
+output = 'git push --force-with-lease nvbn master'
+
+    @pytest.mark.parametrize('command, output', [
+        (Command(script='git push', stderr=git_err), 'git push --force-with-lease'),
+        (Command(script='git push nvbn', stderr=git_err), 'git push --force-with-lease nvbn'),
+        (Command(script='git push nvbn master', stderr=git_err), 'git push --force-with-lease nvbn master')])
+    def test_get_new_command(command, output):
+>       assert get_new_command(command) == output
+E       AssertionError
+
+tests/rules/test_git_push_force.py:52: AssertionError
+3 failed, 9 passed in 0.07 seconds

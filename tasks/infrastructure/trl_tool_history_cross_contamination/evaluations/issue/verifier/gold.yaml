@@ -1,0 +1,19 @@
+category: infrastructure
+framework: trl
+task: trl_tool_history_cross_contamination
+verdict: unhealthy
+root_cause:
+- name: post_tool_continuation_uses_initial_multiplicity
+  where: workspace/vendor/trl/trl/trainer/grpo_trainer.py::GRPOTrainer._generate_single_turn (post-tool call site; num_generations fixed to self.num_generations inside the method) together with workspace/vendor/trl/trl/generation/vllm_generation.py::VLLMGeneration.generate (all_prompts[::num_generations] subsampling and n=num_generations request)
+  observed: after independent tool calls each trajectory has its own history, but the continuation dispatch still assumes repeated identical prompts — it keeps one history per group of four, requests four outputs for it, and re-expands the results, so continuation rows receive outputs generated from another rollout's history while their own histories are never sent to the server
+  expected: post-tool continuation generation requests one output per sample's full history (num_generations=1 for continuations), preserving the initial group size four; initial generation keeps self.num_generations
+evidence_metrics:
+- observed_run/request_traces.jsonl initial prompts match (0/160 mismatches) while 338/844 continuations do not, comparing expected_prompt_ids with server_prompt_ids expanded by client_n
+- of 219 observed continuation group instances 159 are affected; within the 158 naturally divergent group instances 337/615 rows mismatch
+- observed_run/tool_traces.jsonl records unique workspace identities and identical starting-source hashes for samples of one case, connecting each receiving sample to what it actually inspected or changed
+- observed_run/metrics.jsonl shows nonzero training repair rewards and a nonzero gradient on at least one update; development reward is 0.25 (4/16 trajectories, one of four bugs) at steps 0, 1, 2, and 3
+- observed_run/weight_sync.jsonl records completed weight updates; post-tool sampling log-probability discrepancies are symptoms of evaluating a continuation under the receiving sample's different context
+fix:
+  must:
+  - target: post_tool_continuation_uses_initial_multiplicity
+    direction: pass a per-call num_generations to _generate_single_turn and use 1 for post-tool continuations so every sample's full history is sent to the server (as in upstream TRL PR #7418)

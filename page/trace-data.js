@@ -42,6 +42,16 @@
  * evaluation ledger now carries only the re-run (same task revision,
  * same judge), so the site mirrors it (see
  * import_pissa_residual_v03_issue_traces.py).
+ * Ten trl_tool_history_cross_contamination issue records were
+ * re-judged on 6 Nov 2026 under the evidence-rubric recalibration
+ * (same runs, same judge model, four pass flips); their values come
+ * from the evaluation ledger joined by run_id, cross-checked against
+ * each trial's re-judged verifier result (see
+ * import_trl_tool_history_issue_traces.py), and the in-run wrapper
+ * reports are stale pre-recalibration snapshots. The GLM-5.3
+ * trajectory was rebuilt from the recovered claude-code.txt stream
+ * after a lane collision destroyed its session capture (see
+ * rebuild_glm_tool_history_trajectory.py).
  * The 80 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -5399,6 +5409,146 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "63f55105-9e83-40d0-be3d-78901f784819",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "85f10b6fffb33068462cec20dcfb891292a63fda4df7466e8b6e49a0a3440d0a"
+  },
+  {
+    "task": "infrastructure/trl_tool_history_cross_contamination",
+    "slug": "fable51-tool-history",
+    "file": "agent-trace/fable51-tool-history.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.266,
+    "durationMs": 1141359,
+    "steps": 29,
+    "costUsd": 7.7098
+  },
+  {
+    "task": "infrastructure/trl_tool_history_cross_contamination",
+    "slug": "dsv4-tool-history",
+    "file": "agent-trace/dsv4-tool-history.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.266667,
+    "durationMs": 3189820,
+    "steps": 37,
+    "costUsd": 13.8215
+  },
+  {
+    "task": "infrastructure/trl_tool_history_cross_contamination",
+    "slug": "gemini4-tool-history",
+    "file": "agent-trace/gemini4-tool-history.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 2459870,
+    "steps": 51,
+    "costUsd": 17.8845
+  },
+  {
+    "task": "infrastructure/trl_tool_history_cross_contamination",
+    "slug": "gpt6astra-tool-history",
+    "file": "agent-trace/gpt6astra-tool-history.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 711536,
+    "steps": 18,
+    "costUsd": 2.5626
+  },
+  {
+    "task": "infrastructure/trl_tool_history_cross_contamination",
+    "slug": "gpt61sol-tool-history",
+    "file": "agent-trace/gpt61sol-tool-history.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1294548,
+    "steps": 23,
+    "costUsd": 0.6388
+  },
+  {
+    "task": "infrastructure/trl_tool_history_cross_contamination",
+    "slug": "grok47-tool-history",
+    "file": "agent-trace/grok47-tool-history.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.266667,
+    "durationMs": 1066581,
+    "steps": 21,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/trl_tool_history_cross_contamination",
+    "slug": "kimi-tool-history",
+    "file": "agent-trace/kimi-tool-history.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.066667,
+    "durationMs": 750393,
+    "steps": 44,
+    "costUsd": 1.7877
+  },
+  {
+    "task": "infrastructure/trl_tool_history_cross_contamination",
+    "slug": "kimi31-tool-history",
+    "file": "agent-trace/kimi31-tool-history.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1378318,
+    "steps": 29,
+    "costUsd": 3.2735
+  },
+  {
+    "task": "infrastructure/trl_tool_history_cross_contamination",
+    "slug": "qwen38-tool-history",
+    "file": "agent-trace/qwen38-tool-history.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.266667,
+    "durationMs": 2000487,
+    "steps": 27,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/trl_tool_history_cross_contamination",
+    "slug": "glm53-tool-history",
+    "file": "agent-trace/glm53-tool-history.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.32,
+    "durationMs": 2452795,
+    "steps": 85,
+    "costUsd": 31.1668
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

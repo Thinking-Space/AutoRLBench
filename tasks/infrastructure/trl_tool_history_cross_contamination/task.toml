@@ -1,0 +1,24 @@
+title = "Python repair continuations use another rollout's history"
+license = "Apache-2.0"
+created_date = "2026-11-03"
+domain = "infrastructure"
+tags = ["trl", "tool-use", "issue-only"]
+[submitter]
+name = "PurvaChiniya"
+[model]
+name = "Qwen/Qwen3-4B"
+[dataset]
+name = "BugsInPy: 16 train, 4 development, 8 sealed bugs"
+[training]
+framework = "trl"
+algo = "GRPO"
+script = "run.sh"
+[environment]
+image = "tool-rl-vllm024"
+prepare = "environment/prepare.sh"
+[environment.env]
+CUDA_VISIBLE_DEVICES = "0,1"
+NVIDIA_VISIBLE_DEVICES = "0,1"
+[outcome]
+failure_type = "trl_tool_history_cross_contamination"
+failure_reason = "Post-tool generation reuses the initial multiplicity and subsamples distinct histories, associating actions with the wrong rollout."

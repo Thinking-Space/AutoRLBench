@@ -1,0 +1,74 @@
+schema_version = "1.4"
+
+artifacts = [{ source = "/workspace", exclude = ["*.safetensors", "*.bin", "*.pt", "*.pth", "*.ckpt", "*.distcp", "*.gguf", "__pycache__", "*.arrow", ".hf_datasets_cache", "wiki-18", "*.index", "*.faiss"] }]
+
+[task]
+name = "autorlbench/trl_tool_history_cross_contamination-issue"
+description = "Python repair continuations use another rollout's history"
+
+[metadata]
+autorlbench_task_id = "trl_tool_history_cross_contamination"
+autorlbench_evaluation_level = "issue"
+
+[agent]
+network_mode = "no-network"
+timeout_sec = 900
+
+[verifier]
+timeout_sec = 240
+environment_mode = "shared"
+network_mode = "public"
+
+[environment]
+workdir = "/workspace"
+build_timeout_sec = 1200
+cpus = 4
+memory_mb = 16384
+
+[environment.env]
+AUTORLBENCH_EVALUATION_LEVEL = "issue"
+AUTORLBENCH_WORKSPACE = "/workspace"
+AUTORLBENCH_RESULTS = "/logs/artifacts"
+AUTORLBENCH_VISIBLE_TASK = "/autorlbench"
+AUTORLBENCH_PREPARED = "/autorlbench/prepared"
+AUTORLBENCH_MODELS = "/autorlbench/models"
+AUTORLBENCH_DATASETS = "/autorlbench/datasets"
+AUTORLBENCH_ENVIRONMENT = "/autorlbench/environment"
+BASH_ENV = "/etc/profile.d/autorlbench-activate.sh"
+HF_HUB_OFFLINE = "1"
+TRANSFORMERS_OFFLINE = "1"
+HF_DATASETS_OFFLINE = "1"
+WANDB_MODE = "offline"
+WANDB_API_KEY = "autorlbench-offline"
+WANDB_SILENT = "true"
+AUTORLBENCH_TASK_ID = "task"
+AUTORLBENCH_TASK_ROOT = "/autorlbench"
+AUTORLBENCH_STAGE = "agent"
+
+[verifier.env]
+AUTORLBENCH_EVALUATION_LEVEL = "issue"
+AUTORLBENCH_WORKSPACE = "/workspace"
+AUTORLBENCH_RESULTS = "/logs/artifacts"
+AUTORLBENCH_VISIBLE_TASK = "/autorlbench"
+AUTORLBENCH_PREPARED = "/autorlbench/prepared"
+AUTORLBENCH_MODELS = "/autorlbench/models"
+AUTORLBENCH_DATASETS = "/autorlbench/datasets"
+AUTORLBENCH_ENVIRONMENT = "/autorlbench/environment"
+BASH_ENV = "/etc/profile.d/autorlbench-activate.sh"
+HF_HUB_OFFLINE = "1"
+TRANSFORMERS_OFFLINE = "1"
+HF_DATASETS_OFFLINE = "1"
+WANDB_MODE = "offline"
+WANDB_API_KEY = "autorlbench-offline"
+WANDB_SILENT = "true"
+AUTORLBENCH_TASK_ID = "trl_tool_history_cross_contamination"
+AUTORLBENCH_TASK_ROOT = "/tests"
+AUTORLBENCH_ORACLE = "/tests/oracle.md"
+AUTORLBENCH_VERIFIER = "/tests/verifier"
+AUTORLBENCH_STAGE = "verifier"
+AUTORLBENCH_JUDGE_PROVIDER = "openai-compatible"
+OPENAI_BASE_URL = "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+OPENAI_API_KEY = "${OPENAI_API_KEY:-}"
+
+AUTORLBENCH_JUDGE_MODEL = "gpt-5.2"
+AUTORLBENCH_JUDGE_TIMEOUT_S = "180"

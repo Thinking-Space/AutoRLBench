@@ -553,5 +553,23 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "Qwen3-4B learns read-only warehouse SQL with REINFORCE++, but masked tool observations reset the return accumulator and remove terminal reward from earlier actions.",
     "issue": "Training Qwen3-4B with REINFORCE++ on generated read-only warehouse SQL (512 train rows, seed 17, 3 optimizer updates). In the defective return estimator, an internal zero in response_mask — a tool observation, not an episode boundary — clears the running return: of 192 recorded training trajectories, the four successful tool trajectories contain 2,480 earlier action tokens, every one receiving raw return zero despite terminal reward one, with whitened advantages about −0.0920 or −0.1041 (zero raw return does not mean zero advantage or zero gradient). Exact-batch replay through the repaired function restores those returns to one; an independently sampled paired control carries reward one across 587 earlier action tokens. Both arms have zero development accuracy at steps 0–3, so the evidence establishes the credit-assignment defect, not a measured accuracy gain."
+  },
+  {
+    "id": "infrastructure/trl_tool_history_cross_contamination",
+    "title": "Python repair continuations use another rollout's history",
+    "family": "Infrastructure",
+    "tags": [
+      "trl",
+      "tool-use",
+      "issue-only"
+    ],
+    "model": "Qwen/Qwen3-4B",
+    "dataset": "BugsInPy: 16 train, 4 development, 8 sealed bugs; two projects",
+    "framework": "trl / GRPO",
+    "image": "tool-rl-vllm024",
+    "created": "2026-11-03",
+    "license": "Apache-2.0",
+    "brief": "Qwen3-4B learns real Python repairs with GRPO, but post-tool generation reuses the initial multiplicity and subsamples distinct histories, associating actions with the wrong rollout.",
+    "issue": "Training Qwen3-4B with GRPO on BugsInPy Python repairs (16 train, 4 development, 8 sealed bugs across two projects; seed 17, 3 optimizer updates). After independently executed tools, generation takes every fourth input history and draws four outputs from each retained history: the defective run has 338/844 continuation mismatches across training and development evaluation versus 0/832 after the upstream fix, with 0/160 initial-input mismatches in each arm and 337/615 versus 0/357 among rows in naturally divergent continuation groups. Shapes remain valid and the model still repairs bugs (development success 4/16 trajectories at steps 0-3 in both arms), so correspondence rather than reward establishes the failure: replaying captured natural histories through both production dispatch functions gives 1/4 versus 0/4 mismatches, with identical-history and initial-generation controls both 0/4."
   }
 ];

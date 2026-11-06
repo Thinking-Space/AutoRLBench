@@ -1,0 +1,33 @@
+.....FF.                                                                 [100%]
+=================================== FAILURES ===================================
+__ test_get_new_command[unzip foo\\ bar.zip-unzip foo\\ bar.zip -d 'foo bar'] __
+
+zip_error = None, script = 'unzip foo\\ bar.zip'
+fixed = "unzip foo\\ bar.zip -d 'foo bar'"
+
+    @pytest.mark.parametrize('script,fixed', [
+        ('unzip foo', 'unzip foo -d foo'),
+        (R"unzip foo\ bar.zip", R"unzip foo\ bar.zip -d 'foo bar'"),
+        (R"unzip 'foo bar.zip'", R"unzip 'foo bar.zip' -d 'foo bar'"),
+        ('unzip foo.zip', 'unzip foo.zip -d foo')])
+    def test_get_new_command(zip_error, script, fixed):
+>       assert get_new_command(Command(script=script)) == fixed
+E       AssertionError
+
+/workspace/data/corpus/cases/thefuck-20/base/tests/rules/test_dirty_unzip.py:50: AssertionError
+__ test_get_new_command[unzip 'foo bar.zip'-unzip 'foo bar.zip' -d 'foo bar'] __
+
+zip_error = None, script = "unzip 'foo bar.zip'"
+fixed = "unzip 'foo bar.zip' -d 'foo bar'"
+
+    @pytest.mark.parametrize('script,fixed', [
+        ('unzip foo', 'unzip foo -d foo'),
+        (R"unzip foo\ bar.zip", R"unzip foo\ bar.zip -d 'foo bar'"),
+        (R"unzip 'foo bar.zip'", R"unzip 'foo bar.zip' -d 'foo bar'"),
+        ('unzip foo.zip', 'unzip foo.zip -d foo')])
+    def test_get_new_command(zip_error, script, fixed):
+>       assert get_new_command(Command(script=script)) == fixed
+E       AssertionError
+
+/workspace/data/corpus/cases/thefuck-20/base/tests/rules/test_dirty_unzip.py:50: AssertionError
+2 failed, 6 passed in 0.09 seconds
