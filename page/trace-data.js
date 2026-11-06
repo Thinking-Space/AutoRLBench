@@ -64,7 +64,19 @@
  * keep their original grading. The original solution importer reads
  * the in-run wrapper reports, so a re-import would revert this
  * round.
- * The 80 solution records are reconciled against AutoRLBench validation-first
+ * The ten slime_search_r1_nomask solution records were re-published
+ * on 6 Nov 2026 from the fresh dual-defect round: the 4 Nov round
+ * had been recorded against the pre-re-record single-defect task
+ * revision and was withdrawn on 5 Nov. The agent trials ran 0-GPU,
+ * so the in-run wrapper reports are zeroed placeholders; the
+ * verdicts come from beijing 8xH800 BATCH replays recorded in each
+ * trial's verifier file and the evaluation ledger, joined by run_id
+ * (see import_nomask_dual_defect_solution_traces.py). Three pass.
+ * The Kimi-K3 trajectory comes from the infrastructure retry run
+ * that replaced its first attempt, which died at turn one on a
+ * gateway quota error; the three passing runs were audited clean of
+ * network access.
+ * The 90 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -5561,6 +5573,184 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2452795,
     "steps": 85,
     "costUsd": 31.1668
+  },
+  {
+    "task": "reward/slime_search_r1_nomask",
+    "slug": "kimi-search-r1-nomask-sol",
+    "file": "agent-trace/kimi-search-r1-nomask-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 598436,
+    "steps": 49,
+    "costUsd": 2.9144,
+    "sourceRunId": "20261105-023826-46a0abfb",
+    "sessionId": "0a76cb44-cfa2-4a51-80a1-daccb47ef8ec",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a93e6cc391e205ec4da7174896bbd01f17ee9ce24126e285505636ffa0d5f987"
+  },
+  {
+    "task": "reward/slime_search_r1_nomask",
+    "slug": "kimi31-search-r1-nomask-sol",
+    "file": "agent-trace/kimi31-search-r1-nomask-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 700983,
+    "steps": 25,
+    "costUsd": 2.8617,
+    "sourceRunId": "20261105-024103-d0f07e9d",
+    "sessionId": "82e59951-14d4-4c2b-8470-2affdf9961e0",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "e2d81d6e3cf98a4bee7d374867632bea7606d10b3702b75d126e0e5a2e9a26a5"
+  },
+  {
+    "task": "reward/slime_search_r1_nomask",
+    "slug": "dsv4-search-r1-nomask-sol",
+    "file": "agent-trace/dsv4-search-r1-nomask-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2156008,
+    "steps": 65,
+    "costUsd": 21.0018,
+    "sourceRunId": "20261105-025521-e695fd41",
+    "sessionId": "d01d3bcd-2d33-4711-9e81-b61f81aa9065",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "8afcc5d59a210b16d93e8146751d015871c5c49ed9be246d9edb953d4d6b08f6"
+  },
+  {
+    "task": "reward/slime_search_r1_nomask",
+    "slug": "fable51-search-r1-nomask-sol",
+    "file": "agent-trace/fable51-search-r1-nomask-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 445092,
+    "steps": 36,
+    "costUsd": 9.3748,
+    "sourceRunId": "20261105-033353-4ecce3b2",
+    "sessionId": "385a5f69-a70a-433f-ad16-813d219686c7",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "e27c7a6b4e7e0df3b5bc99816a92903bcc932794fb3630c71e3a43ae415a6d4a"
+  },
+  {
+    "task": "reward/slime_search_r1_nomask",
+    "slug": "gemini4-search-r1-nomask-sol",
+    "file": "agent-trace/gemini4-search-r1-nomask-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1754396,
+    "steps": 71,
+    "costUsd": 8.0226,
+    "sourceRunId": "20261105-034354-679f448d",
+    "sessionId": "9cb1d591-00f2-4914-a261-1d92027ceaa7",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "b658eb060d75cb30a99c3ee45c9369392e2f163d6608bda3e94ab4b81acc7c39"
+  },
+  {
+    "task": "reward/slime_search_r1_nomask",
+    "slug": "glm53-search-r1-nomask-sol",
+    "file": "agent-trace/glm53-search-r1-nomask-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 722262,
+    "steps": 53,
+    "costUsd": 8.5692,
+    "sourceRunId": "20261105-041539-e120f76a",
+    "sessionId": "126ed28c-f1ee-41e3-872b-bac7aff5c44a",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "f6a2b74ab0a83b1bfc81af668c441aa6b234abc58623df4d1a3ae5aa5282f84b"
+  },
+  {
+    "task": "reward/slime_search_r1_nomask",
+    "slug": "gpt6astra-search-r1-nomask-sol",
+    "file": "agent-trace/gpt6astra-search-r1-nomask-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 556362,
+    "steps": 23,
+    "costUsd": 3.2808,
+    "sourceRunId": "20261105-043013-74a5a7c7",
+    "sessionId": "01a1a841-ad4b-7281-8909-c5d594b230de",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "852515e8aed07a29f54700b59962b59ba2e39f389705efe0cc2ac904abc35263"
+  },
+  {
+    "task": "reward/slime_search_r1_nomask",
+    "slug": "gpt61sol-search-r1-nomask-sol",
+    "file": "agent-trace/gpt61sol-search-r1-nomask-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1773931,
+    "steps": 49,
+    "costUsd": 1.59,
+    "sourceRunId": "20261105-044200-3197bfd9",
+    "sessionId": "01a1a84c-75f7-73c3-8613-11c0ce074022",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "6812be9ea13b91aacc2d6b6535064f45ce0b9f6a1c8394ca2fa4f664cf3b0365"
+  },
+  {
+    "task": "reward/slime_search_r1_nomask",
+    "slug": "qwen38-search-r1-nomask-sol",
+    "file": "agent-trace/qwen38-search-r1-nomask-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1212242,
+    "steps": 51,
+    "sourceRunId": "20261105-051405-20edf55e",
+    "sessionId": "6e864262-57a9-481f-b78a-80bdb267d98f",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "00bc14b133bbffcc9b2bd72d9416713c3d358a0879ce3424e7a4742f9a5a3f81"
+  },
+  {
+    "task": "reward/slime_search_r1_nomask",
+    "slug": "grok47-search-r1-nomask-sol",
+    "file": "agent-trace/grok47-search-r1-nomask-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 216435,
+    "steps": 28,
+    "sourceRunId": "20261105-053647-86a2e3d7",
+    "sessionId": "2769e92a-c912-46bb-828d-569c6c0b829b",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "305107d1f72b625f16b49a636c9ec94d2f02b4b0fe01edd19aee245aaa9bf3e7"
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];
