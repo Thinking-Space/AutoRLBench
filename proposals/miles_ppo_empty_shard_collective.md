@@ -1,5 +1,11 @@
 # Proposal: Miles PPO empty-shard whitening collective mismatch
 
+**November 7, 2026 revision:** the [challenge export](miles_ppo_empty_shard_collective/justrl2/challenge/README.md)
+separates contestant material from this answer-revealing audit bundle and adds
+topology-dependent diagnosis and numerical checks. It addresses the difficulty
+review without replacing the original runtime evidence. Formal task integration,
+blind difficulty calibration and GPU validation of the export remain pending.
+
 An RL training process can time out in advantage normalization when context
 parallelism leaves one data-parallel worker with no local response tokens and
 that worker skips a collective required by its peers.

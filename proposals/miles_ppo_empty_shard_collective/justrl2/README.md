@@ -1,5 +1,11 @@
 # Public JustRL2 constructed regression case
 
+**November 7 review revision:** [challenge/](challenge/README.md) adds a
+reproducible defective-only contestant export, a reduced observation view and
+maintainer-only CP/DP numerical checks. Use that export for difficulty review;
+this directory deliberately retains complete, answer-revealing audit evidence.
+The new export has not been GPU-revalidated or difficulty-calibrated.
+
 **Status (October 30, 2026): the final public image passed a real 8×H100
 healthy/faulty training pair and native model/Adam checkpoint restoration.** A
 separate CPU task reran the acceptance checks against the preserved artifacts
