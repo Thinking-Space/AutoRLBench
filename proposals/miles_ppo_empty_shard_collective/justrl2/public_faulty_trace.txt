@@ -1,0 +1,48 @@
+Traceback (most recent call last):
+  File "/artifacts/healthy/prepared/pair/faulty/benchmark/run_training.py", line 98, in <module>
+    main()
+  File "/artifacts/healthy/prepared/pair/faulty/benchmark/run_training.py", line 88, in main
+    asyncio.run(train.train(args))
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/artifacts/healthy/prepared/pair/faulty/train.py", line 129, in train
+    await actor_model.train(rollout_id, rollout_data_ref)
+  File "/artifacts/healthy/prepared/pair/faulty/miles/ray/actor_group.py", line 116, in train
+    await self._broadcast("train", rollout_id, rollout_data_ref)
+  File "/artifacts/healthy/prepared/pair/faulty/miles/ray/actor_group.py", line 147, in _broadcast
+    return await asyncio.gather(*refs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 684, in _wrap_awaitable
+    return await awaitable
+           ^^^^^^^^^^^^^^^
+ray.exceptions.RayTaskError(DistBackendError): ray::MegatronTrainRayActor.train() (pid=<process>, ip=<node-address>, actor_id=<actor>, repr=<miles.backends.megatron_utils.actor.MegatronTrainRayActor object at <memory-address>>)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/artifacts/healthy/prepared/pair/faulty/miles/backends/megatron_utils/actor.py", line 351, in train
+    return self.train_actor(rollout_id, rollout_data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/artifacts/healthy/prepared/pair/faulty/miles/backends/megatron_utils/actor.py", line 461, in train_actor
+    compute_advantages_and_returns(self.args, rollout_data)
+  File "/artifacts/healthy/prepared/pair/faulty/miles/backends/training_utils/loss.py", line 910, in compute_advantages_and_returns
+    whitened_advs_flat = distributed_masked_whiten(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/artifacts/healthy/prepared/pair/faulty/miles/utils/distributed_utils.py", line 135, in distributed_masked_whiten
+    dist.all_reduce(stats_tensor, group=process_group)
+  File "/artifacts/healthy/prepared/pair/faulty/miles/utils/reloadable_process_group.py", line 55, in new_function
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/sglang/lib/python3.12/site-packages/torch/distributed/c10d_logger.py", line 83, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/sglang/lib/python3.12/site-packages/torch/distributed/distributed_c10d.py", line 3245, in all_reduce
+    work = group.allreduce([tensor], opts)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.distributed.DistBackendError: [1] is setting up NCCL communicator and retrieving ncclUniqueId from [0] via c10d key-value store by key '0', but store->get('0') got error: wait timeout after 60000ms, keys: /default_pg/0//6//cuda//0
