@@ -106,5 +106,7 @@ It must report zero errors.
 
 ## Open a pull request
 
-Open it against `main` with the generated task. Include the raw material only if it is
+Open it against `main` with the generated task. The packaging skill also emits a PR body
+derived from the finished task README — paste it into the PR description (you may adjust
+details, but keep the base format). Include the raw material only if it is
 small enough to be useful as evidence.

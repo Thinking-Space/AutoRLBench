@@ -21,6 +21,7 @@ Packages one faulty RL training run into `tasks/<domain>/<task_id>/`. `<domain>`
 | [reference.md](reference.md) | Template for every output file |
 | [examples.md](examples.md) | A filled-in user input |
 | [readme-template.md](readme-template.md) | Template and style guide for the task `README.md` |
+| [pr-body-template.md](pr-body-template.md) | Format of the PR body derived from the finished README |
 
 Authoritative sources in the repo: `autorlbench/tasks/validator.py` (validation rules), `docker/README.md` (environment images).
 For finished tasks, see `tasks/reward/slime_retool_length_reward_bonus/` (issue + solution) and
@@ -127,6 +128,9 @@ reason in one line of the task README (e.g. "issue-only: the post-fix margin is 
 7. **Offline self-check.** With a solution tier, replay the grader on the log samples once per side: the defective side must
    fail and the control side must pass.
 8. **Validate.** `python3 -m autorlbench validate tasks/<domain>/<task_id>` must report no errors.
+9. **Emit the PR body.** Compose it per [pr-body-template.md](pr-body-template.md) from the finished README — task path,
+   summary sentence, identity table, evidence numbers — and present it to the
+   user to paste into the PR. Do not write it into the task directory.
 
 ## Rules
 
@@ -213,4 +217,5 @@ is not byte-for-byte reproducible, do not pin it with a checksum.
 - [ ] A new environment, if any, is one digest-pinned `FROM` line under `docker/images/`, named per `docker/README.md`
 - [ ] Every fetched asset has a pinned 40-char revision or verified wheel sha256 + byte size, and a `--dest` the launch script reads
 - [ ] `python3 -m autorlbench validate <task_dir>` reports no errors
+- [ ] The PR body was emitted per [pr-body-template.md](pr-body-template.md) from the finished README
 - [ ] With a solution tier: README states how many runs per side calibrated the threshold, and which steps were not verified

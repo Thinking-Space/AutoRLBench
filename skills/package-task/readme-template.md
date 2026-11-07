@@ -11,7 +11,8 @@ Style:
   `Type` is the task's domain directory, capitalized (`Algorithm`, `Configuration`, `Reward`, `Data`, `Environment`,
   `Infrastructure`). `Domain` is the research area (`Math RL`, `Code RL`, `Search RL`, `Tool-use RL`, …). `Tags` are
   kebab-case failure-mode descriptors, not framework names. `Run time` is the duration of the **buggy run** experiment
-  (approximate forms like `~45 minutes` or `≤ 3 hours` are fine). `Resources` is a GPU count, e.g. `8 GPU`.
+  (approximate forms like `~45 minutes` or `≤ 3 hours` are fine). `Resources` is a GPU count, model, and
+  VRAM per card, e.g. `8 × A800 (80 GB)`.
 - **Only three sections**: Difficulty, Reference solution, Verification. The section *titles* are required; their content
   is free-form. The only structural requirement is that Reference solution and Verification each carry at least
   `- **issue**` and `- **solution**` bullets (an issue-only task omits `- **solution**`). Maintainer notes
@@ -32,7 +33,7 @@ Style:
 | **Tags** | `<tag>` `<tag>` |
 | **Framework** | <framework (algo), version pins> |
 | **Run time** | <duration of the buggy run experiment> |
-| **Resources** | <N GPU> |
+| **Resources** | <N × <GPU model> (<VRAM per card>), e.g. 8 × A800 (80 GB)> |
 
 ## Difficulty
 

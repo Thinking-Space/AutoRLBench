@@ -1,14 +1,24 @@
-<!-- If you are NOT submitting a new task or a proposal, ignore this template and describe your change as you see fit.
+<!-- New task: package it with skills/package-task/SKILL.md first, then paste the PR body it emits here —
+     you may adjust details, but keep the base format. Title: [New Task] <short description>.
+     Raw material seeking maintainer feedback: [Proposal] <description>, describe it freely (see CONTRIBUTING.md).
+     Anything else: ignore this template. -->
 
-Title format: 
-- [New Task] <your short description> for a packaged task under tasks/,
-- or [Proposal] <your short description> for raw material seeking maintainer feedback first. -->
+`tasks/<domain>/<task_id>/`
 
-| Field | Value |
+<!-- One sentence: training <model> with <algo> on <dataset>. <What goes wrong>. -->
+
+| | |
 | --- | --- |
-| Author | <!-- your name --> |
-| Affiliation | <!-- university / company / independent --> |
-| Buggy run duration | <!-- wall-clock time of the defective run, e.g. ~8h for 284 steps --> |
-| GPUs required | <!-- e.g. 8 x A800 --> |
+| **Author** | <!-- your name --> |
+| **Affiliation** | <!-- university / company / independent --> |
+| **Type** | <!-- Algorithm · Configuration · Reward · Data · Environment · Infrastructure --> |
+| **Domain** | <!-- research area, e.g. Math RL · Code RL --> |
+| **Tags** | <!-- `tag` `tag` --> |
+| **Framework** | <!-- framework (algo), version pins --> |
+| **Run time** | <!-- duration of the buggy run experiment --> |
+| **Resources** | <!-- e.g. 8 × A800 (80 GB) — GPU count, model, and VRAM per card --> |
 
-<!-- Describe your task freely: what breaks, why, how you found it, the fix if you have one, and the measured outcome of both runs. For a [Proposal], also mention what you'd like maintainers to decide before packaging. -->
+### Evidence
+
+<!-- 2–4 sentences with the strongest measured numbers: both arms' outcomes, and with a solution
+     tier the threshold, its margins to both arms, and how many runs per side calibrated it. -->
