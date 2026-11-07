@@ -39,4 +39,37 @@ function renderTeam() {
     });
 }
 
+function institutionNames() {
+    const base = typeof INSTITUTIONS === 'undefined' ? [] : INSTITUTIONS.slice();
+    const inserts = typeof INSTITUTION_INSERTS === 'undefined' ? [] : INSTITUTION_INSERTS;
+    for (const { after, name } of inserts) {
+        const at = base.indexOf(after);
+        if (at !== -1 && !base.includes(name)) base.splice(at + 1, 0, name);
+    }
+    return base;
+}
+
+function renderInstitutions() {
+    const grid = document.getElementById('institution-grid');
+    const names = institutionNames();
+
+    // Without names there is nothing to show: drop the whole section so
+    // the heading never sits above an empty card.
+    if (!names.length) {
+        grid?.closest('section')?.remove();
+        return;
+    }
+
+    if (grid) grid.innerHTML = names.map(name => {
+        const hasCell = typeof INSTITUTION_LOGOS !== 'undefined' && Object.prototype.hasOwnProperty.call(INSTITUTION_LOGOS, name);
+        // Each cell cuts its logo out of the single strip image
+        // (120x60 per cell, one row).
+        const logo = hasCell
+            ? `<span class="institution-logo" style="--cell:${INSTITUTION_LOGOS[name]}" aria-hidden="true"></span>`
+            : '';
+        return `<li>${logo}<span class="institution-name">${escapeHtml(name)}</span></li>`;
+    }).join('');
+}
+
 renderTeam();
+renderInstitutions();

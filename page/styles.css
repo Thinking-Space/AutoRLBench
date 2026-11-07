@@ -4207,6 +4207,61 @@ body.team-page .guide-main { max-width: 1160px; padding: 7.5rem 3rem 7rem; }
 .team-cta > span { color: var(--text-secondary); }
 .team-cta a { font-weight: 600; }
 
+/* Institutions — one full-width card (same width as the team grid above),
+   logos in a single row with each name directly under its logo. All logos
+   live in one image, images/institutions.png: a 1x9 strip of 120x60 cells
+   (at 2x) whose background is baked to --surface so it blends into the
+   card. Resets the global `section` rule so the card lines up with the
+   team grid instead of being re-capped and re-padded. */
+.institutions {
+    margin: 4.5rem 0 0;
+    padding: 0;
+    max-width: none;
+}
+.institution-card {
+    padding: 1.5rem 1.6rem 1.4rem;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: inset 0 1px 0 #ffffff, var(--shadow-xs);
+}
+.institution-grid {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 1.5rem 1rem;
+    list-style: none;
+}
+.institution-grid li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+/* Logos never exceed 100px of ink, so at 9 columns the fixed 120px box may
+   overhang into the grid gap without the logos themselves ever touching. */
+.institution-logo {
+    display: block;
+    width: 120px;
+    height: 60px;
+    flex: none;
+    background-image: url("images/institutions.png?v=4");
+    background-size: 1080px 60px;
+    background-repeat: no-repeat;
+    background-position: calc(var(--cell, 0) * -120px) 0;
+}
+.institution-name {
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: -0.005em;
+}
+
+@media (max-width: 1024px) {
+    /* 9 institutions wrap into an exact 3x3. */
+    .institution-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (max-width: 960px) {
     .team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -4217,6 +4272,10 @@ body.team-page .guide-main { max-width: 1160px; padding: 7.5rem 3rem 7rem; }
     body.team-page .guide-main { padding-right: 1rem; padding-left: 1rem; }
     .team-grid { grid-template-columns: 1fr; }
     .team-cta { flex-direction: column; align-items: flex-start; }
+    .institution-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* With 9 entries the last one would sit alone in a 2-col grid;
+       let it span the full row so it reads as a centered final entry. */
+    .institution-grid li:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 
 /* ==================================================================
