@@ -1,5 +1,11 @@
 # Revised contestant boundary and topology checks
 
+**November 8:** static-only re-review still solved this local-guard case without
+execution. The [runtime debugging variant](runtime_debug/README.md) replaces the
+guard with a separately constructed, stateful communicator-routing defect and
+adds bounded debugging commands. It is the current candidate for difficulty
+review. The original case and all original GPU evidence below remain unchanged.
+
 This revision addresses the November 6, 2026 review of PR #12. The earlier
 directory is an audit bundle: it contains the answer and must **never** be the
 contestant workspace. `export_challenge.py` now creates a separate, reproducible

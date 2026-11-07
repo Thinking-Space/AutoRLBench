@@ -1,0 +1,987 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-08",
+  "case_kind": "constructed_reduction_plan_cache_regression",
+  "runtime": {
+    "python": "3.12.13",
+    "torch": "2.8.0",
+    "backend": "Gloo",
+    "platform": "macOS arm64"
+  },
+  "tests": {
+    "tests": 155,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "existing_tests": 104,
+    "new_runtime_tests": 51,
+    "junit_sha256": "c3c6fa175a6cdbcdbc759aec0f9e94d65ad3d2ce30112d390c0ccb69d50ca856",
+    "final_review_regression": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "102125f6dfb44853f4eb88775d53e28ece5ef8a8338396427594f0855d12dc9c",
+      "scope": "Latest evidence-gate and verifier changes retested after the full155 run"
+    }
+  },
+  "validated_code_sha256": {
+    "collective_plan.py": "a496f9e7c732b61398ecce0c36aae9c558eeda085ee5d1659f8026c90c1bda5b",
+    "export_runtime.py": "711bf238bf288858e9e09e4efead0c6cf0c41ad4a4ff7904c649fb4391bfd46d",
+    "grade_debugging.py": "c660868cfe26cdddd0e97c75b5aecf960dee41e0abf2cd019d410bb07166d0a9",
+    "numerical_reference.py": "110e1858e50c2209178b76236c56eb2254db69976c905fd181c829f2509b63c5",
+    "plan_identity.py": "2807882ac643827d6ad3d94cbb522c7450248cdbb2aebd19b1c7d5e7431f95d1",
+    "replay_probe.py": "1e4d2631f7d8333540b14aae66cb3cb15bb681909a6ebd2d72c69b8c9a22f8ad",
+    "test_debugging_gate.py": "0fe972a4e90117b0ebbd1e6f4488267d1f4791c1960885fff617b2fb7a7e29fb",
+    "test_numerical_reference.py": "2839259a54f135261cddb5ba59de777b097ebe2fc7e8bd4f361b3f4ac09039a6",
+    "test_plan_identity.py": "a97f70ce28defac0c053d4bf5a98adac5355f723775caabf0d2a7be636537fc1",
+    "test_replay_probe.py": "f5998e2ff865d945bb9800ec3cf87d7b631ce2f5dd979bbaf74eb3f39af51fba",
+    "test_runtime_export.py": "eab93ab016c20a420a1e10a2ca778ead9a39e3d07f903417bbcdbc1635f4d826",
+    "test_runtime_verifier.py": "8af512cc10ca4afe2e1a331a5319eb30fb77f895747affc6ffb17f5b5300e0cd",
+    "verify_runtime.py": "30b3c5c7a592f2e6738955a655ab3006fb5d398d0079d502b494d327f799699d"
+  },
+  "workspace_archive_sha256": "a2b26f72f0533914dba2531dd81cf8beb58bf98af746540be8fd702377db1fa7",
+  "source_revision": "75814318f243af7e39af337c1173fc3927c9635b",
+  "native_scope": [
+    "CP response slicing",
+    "PPO GAE",
+    "DP whitening",
+    "constructed communicator-bound reduction plan"
+  ],
+  "tests_exclude": [
+    "full framework imports",
+    "model forward/backward",
+    "optimizer updates",
+    "GPU/NCCL",
+    "formal task judge"
+  ],
+  "gpu_training_validated": false,
+  "old_gpu_receipts_apply": false,
+  "difficulty_calibrated": false,
+  "old_guard_static_review": {
+    "static_only": true,
+    "root_cause_recovered": true,
+    "debugging_required_to_locate": false
+  },
+  "checks": {
+    "defective": {
+      "passed": false,
+      "identity": {
+        "passed": false,
+        "scope": "native CPU/Gloo group identity, same members and same payload",
+        "requested": [
+          0,
+          1,
+          0,
+          1
+        ],
+        "effective": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "source_sha256": {
+        "miles/backends/training_utils/cp_utils.py": "4927e74cb2481edae1822b337ca75918d8137a5cbe7ef1f1403c33dd8d260f5e",
+        "miles/utils/ppo_utils.py": "47b3532b5328c91378d58258909ffb33e595c6a696871ee9a04a2fa685b6ac61",
+        "miles/utils/distributed_utils.py": "e5eafc269f22b0f9910b648699962c82482aec8ac085ae907a72f5069559c8a3",
+        "miles/backends/training_utils/loss.py": "9449a81d8b5cab53b4b591455559c501da1152915e807b951b7eaf4dd91c9be0",
+        "miles/utils/collective_plan.py": "a496f9e7c732b61398ecce0c36aae9c558eeda085ee5d1659f8026c90c1bda5b"
+      },
+      "cases": {
+        "long": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 2,
+            "dp": 2,
+            "world_size": 4,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "steps": [
+              11
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "3d0131debb67804ed043d3e0d61a9e0b27fb9fd4292982f391f54fa1c5efcda5",
+          "final_verifier_reassessed": true
+        },
+        "cold_short": {
+          "completed": false,
+          "numerical_passed": false,
+          "misroutes": [
+            {
+              "rank": 0,
+              "step": 0,
+              "phase": "whiten",
+              "call": 2,
+              "shape": [
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                0,
+                2
+              ],
+              "actual_members": [
+                0,
+                1
+              ]
+            },
+            {
+              "rank": 3,
+              "step": 0,
+              "phase": "whiten",
+              "call": 2,
+              "shape": [
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                1,
+                3
+              ],
+              "actual_members": [
+                2,
+                3
+              ]
+            }
+          ],
+          "genuine_misroute_timeouts": [
+            {
+              "rank": 0,
+              "step": 0,
+              "phase": "whiten",
+              "call": 2,
+              "shape": [
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                0,
+                2
+              ],
+              "actual_members": [
+                0,
+                1
+              ]
+            },
+            {
+              "rank": 3,
+              "step": 0,
+              "phase": "whiten",
+              "call": 2,
+              "shape": [
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                1,
+                3
+              ],
+              "actual_members": [
+                2,
+                3
+              ]
+            }
+          ],
+          "config": {
+            "cp": 2,
+            "dp": 2,
+            "world_size": 4,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "steps": [
+              3
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "6df96540b2be26bb526908f2d9014d314fbc29268548e1ae5db736cbebabab49",
+          "final_verifier_reassessed": true
+        },
+        "warm_short": {
+          "completed": false,
+          "numerical_passed": false,
+          "misroutes": [
+            {
+              "rank": 0,
+              "step": 1,
+              "phase": "gae",
+              "call": 3,
+              "shape": [
+                1,
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                0,
+                1
+              ],
+              "actual_members": [
+                0,
+                2
+              ]
+            },
+            {
+              "rank": 3,
+              "step": 1,
+              "phase": "gae",
+              "call": 3,
+              "shape": [
+                1,
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                2,
+                3
+              ],
+              "actual_members": [
+                1,
+                3
+              ]
+            }
+          ],
+          "genuine_misroute_timeouts": [
+            {
+              "rank": 0,
+              "step": 1,
+              "phase": "gae",
+              "call": 3,
+              "shape": [
+                1,
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                0,
+                1
+              ],
+              "actual_members": [
+                0,
+                2
+              ]
+            },
+            {
+              "rank": 3,
+              "step": 1,
+              "phase": "gae",
+              "call": 3,
+              "shape": [
+                1,
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                2,
+                3
+              ],
+              "actual_members": [
+                1,
+                3
+              ]
+            }
+          ],
+          "config": {
+            "cp": 2,
+            "dp": 2,
+            "world_size": 4,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "steps": [
+              11,
+              3
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "368ff5fd78a186103f9c1ddb779dd1f69db8fcbd34fa5cb2756eaeb14c8491cf",
+          "final_verifier_reassessed": true
+        },
+        "reverse_order": {
+          "completed": false,
+          "numerical_passed": false,
+          "misroutes": [
+            {
+              "rank": 0,
+              "step": 0,
+              "phase": "whiten",
+              "call": 2,
+              "shape": [
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                0,
+                2
+              ],
+              "actual_members": [
+                0,
+                1
+              ]
+            },
+            {
+              "rank": 3,
+              "step": 0,
+              "phase": "whiten",
+              "call": 2,
+              "shape": [
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                1,
+                3
+              ],
+              "actual_members": [
+                2,
+                3
+              ]
+            }
+          ],
+          "genuine_misroute_timeouts": [
+            {
+              "rank": 0,
+              "step": 0,
+              "phase": "whiten",
+              "call": 2,
+              "shape": [
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                0,
+                2
+              ],
+              "actual_members": [
+                0,
+                1
+              ]
+            },
+            {
+              "rank": 3,
+              "step": 0,
+              "phase": "whiten",
+              "call": 2,
+              "shape": [
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                1,
+                3
+              ],
+              "actual_members": [
+                2,
+                3
+              ]
+            }
+          ],
+          "config": {
+            "cp": 2,
+            "dp": 2,
+            "world_size": 4,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "steps": [
+              3,
+              11
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "a93ddd01bcfe44214f52f7fa760a7890ed5ec19db3f359733e784254c966232a",
+          "final_verifier_reassessed": true
+        },
+        "cp1": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 1,
+            "dp": 2,
+            "world_size": 2,
+            "logical_to_global": [
+              0,
+              1
+            ],
+            "steps": [
+              11,
+              3
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "bd9ec11af535dbb6f587dc5f3106e07c481044d4fdaee75e25ed58580cf80ed9",
+          "final_verifier_reassessed": true
+        },
+        "cp4_long": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 4,
+            "dp": 2,
+            "world_size": 8,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "steps": [
+              11,
+              17
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "61449b0e6de5eeb211704d558edc829608bf308e3534e17ba7a5b26b2cc8f5e8",
+          "final_verifier_reassessed": true
+        },
+        "unequal_dp3": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 2,
+            "dp": 3,
+            "world_size": 6,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "steps": [
+              11,
+              3
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "8c2665ed9113d2db058542244105a8a836987b080834f32e3e51f8a6e0ce0ff9",
+          "final_verifier_reassessed": true
+        },
+        "permuted": {
+          "completed": false,
+          "numerical_passed": false,
+          "misroutes": [
+            {
+              "rank": 0,
+              "step": 1,
+              "phase": "gae",
+              "call": 3,
+              "shape": [
+                1,
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                0,
+                2
+              ],
+              "actual_members": [
+                0,
+                1
+              ]
+            },
+            {
+              "rank": 3,
+              "step": 1,
+              "phase": "gae",
+              "call": 3,
+              "shape": [
+                1,
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                1,
+                3
+              ],
+              "actual_members": [
+                2,
+                3
+              ]
+            }
+          ],
+          "genuine_misroute_timeouts": [
+            {
+              "rank": 0,
+              "step": 1,
+              "phase": "gae",
+              "call": 3,
+              "shape": [
+                1,
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                0,
+                2
+              ],
+              "actual_members": [
+                0,
+                1
+              ]
+            },
+            {
+              "rank": 3,
+              "step": 1,
+              "phase": "gae",
+              "call": 3,
+              "shape": [
+                1,
+                3
+              ],
+              "numel": 3,
+              "requested_members": [
+                1,
+                3
+              ],
+              "actual_members": [
+                2,
+                3
+              ]
+            }
+          ],
+          "config": {
+            "cp": 2,
+            "dp": 2,
+            "world_size": 4,
+            "logical_to_global": [
+              0,
+              2,
+              1,
+              3
+            ],
+            "steps": [
+              11,
+              3
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "5b03480775ddec8ee9aa959ed7e04a269eeeadb29ff919506432fb2e02c98993",
+          "final_verifier_reassessed": true
+        },
+        "sparse_unseen": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 4,
+            "dp": 2,
+            "world_size": 8,
+            "logical_to_global": [
+              0,
+              2,
+              4,
+              6,
+              1,
+              3,
+              5,
+              7
+            ],
+            "steps": [
+              7,
+              11,
+              17
+            ],
+            "mask_mode": "sparse",
+            "seed": 90210,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "ca85c210088758010b9eded662ce7d1028015395e413e5858f02fef0e07c28ef",
+          "final_verifier_reassessed": true
+        }
+      }
+    },
+    "repaired": {
+      "passed": true,
+      "identity": {
+        "passed": true,
+        "scope": "native CPU/Gloo group identity, same members and same payload",
+        "requested": [
+          0,
+          1,
+          0,
+          1
+        ],
+        "effective": [
+          0,
+          1,
+          0,
+          1
+        ]
+      },
+      "source_sha256": {
+        "miles/backends/training_utils/cp_utils.py": "4927e74cb2481edae1822b337ca75918d8137a5cbe7ef1f1403c33dd8d260f5e",
+        "miles/utils/ppo_utils.py": "47b3532b5328c91378d58258909ffb33e595c6a696871ee9a04a2fa685b6ac61",
+        "miles/utils/distributed_utils.py": "e5eafc269f22b0f9910b648699962c82482aec8ac085ae907a72f5069559c8a3",
+        "miles/backends/training_utils/loss.py": "9449a81d8b5cab53b4b591455559c501da1152915e807b951b7eaf4dd91c9be0",
+        "miles/utils/collective_plan.py": "b3373b8b7f57c19fd6d276219f2b0ca6697471f21bf89a75c9cdab6e68f94a94"
+      },
+      "cases": {
+        "long": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 2,
+            "dp": 2,
+            "world_size": 4,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "steps": [
+              11
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "2f8d6386bd468d978a603063b624bc5d0947234219f83fdbae683a9ed5df8eed",
+          "final_verifier_reassessed": true
+        },
+        "cold_short": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 2,
+            "dp": 2,
+            "world_size": 4,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "steps": [
+              3
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "3a98af85f3c51bc2dbe44bbdce4b3075217886bd71efffc9979edd901e8ae279",
+          "final_verifier_reassessed": true
+        },
+        "warm_short": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 2,
+            "dp": 2,
+            "world_size": 4,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "steps": [
+              11,
+              3
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "a7c6cedb3d6ee142d1932528fe5783dc6a3b413ee4c76246c53de8f072cbc208",
+          "final_verifier_reassessed": true
+        },
+        "reverse_order": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 2,
+            "dp": 2,
+            "world_size": 4,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "steps": [
+              3,
+              11
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "e4f3beeb28bc1be1aa776997b3a2cd115f09959940daf9fc980c9ab6ad4893b6",
+          "final_verifier_reassessed": true
+        },
+        "cp1": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 1,
+            "dp": 2,
+            "world_size": 2,
+            "logical_to_global": [
+              0,
+              1
+            ],
+            "steps": [
+              11,
+              3
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "80e540da23982a0a94219b0d964c1b9b5fce355f6ba4f748c8e4df0676092a0d",
+          "final_verifier_reassessed": true
+        },
+        "cp4_long": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 4,
+            "dp": 2,
+            "world_size": 8,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "steps": [
+              11,
+              17
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "4b6f0c38f2e97a9cca57cedc12f029e8a4b4ad320a3e4b162b4185145328b9d7",
+          "final_verifier_reassessed": true
+        },
+        "unequal_dp3": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 2,
+            "dp": 3,
+            "world_size": 6,
+            "logical_to_global": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "steps": [
+              11,
+              3
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "abf00ce7367ae5878dbe66d4ca0f27d611c70374b11e8e6a9915f6050860f61b",
+          "final_verifier_reassessed": true
+        },
+        "permuted": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 2,
+            "dp": 2,
+            "world_size": 4,
+            "logical_to_global": [
+              0,
+              2,
+              1,
+              3
+            ],
+            "steps": [
+              11,
+              3
+            ],
+            "mask_mode": "ones",
+            "seed": 1729,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "fcd1d51d12e20afd121301233ab58e0a683491478f7ab6b20276bf2e7d240e95",
+          "final_verifier_reassessed": true
+        },
+        "sparse_unseen": {
+          "completed": true,
+          "numerical_passed": true,
+          "misroutes": [],
+          "genuine_misroute_timeouts": [],
+          "config": {
+            "cp": 4,
+            "dp": 2,
+            "world_size": 8,
+            "logical_to_global": [
+              0,
+              2,
+              4,
+              6,
+              1,
+              3,
+              5,
+              7
+            ],
+            "steps": [
+              7,
+              11,
+              17
+            ],
+            "mask_mode": "sparse",
+            "seed": 90210,
+            "trace": true,
+            "collective_timeout": 2.0,
+            "outer_timeout": 45.0
+          },
+          "raw_summary_sha256": "5e9c140d54f531405ed986223240be69508dbe092ed92b7957409d886c8a3393",
+          "final_verifier_reassessed": true
+        }
+      }
+    }
+  },
+  "runtime_tested_archive_sha256": "b145decfae67cc023f5e932ab8334d883371f6990e82766a46c50ce6432b2557",
+  "release_changes_after_runtime_execution": [
+    "instruction.md: required experiments.json evidence index"
+  ],
+  "blind_review": {
+    "attempts": 1,
+    "archive_sha256": "6470ce58346afcba149505bbf818447b499f9c0607a12085f7c529963ddecf66",
+    "static_root_cause_identified": true,
+    "phase_change_predicted_before_execution": true,
+    "runtime_changed_initial_diagnosis": false,
+    "experiments": 13,
+    "repaired_experiments": 7,
+    "debug_evidence_gate": {
+      "passed": true,
+      "errors": [],
+      "scope": "artifact consistency; requires separate trusted replay and report review",
+      "failures": 3,
+      "passing_controls": 3,
+      "repaired_experiments": 7,
+      "first_failure_phases": [
+        "gae",
+        "whiten"
+      ]
+    },
+    "evidence_index_created_from_report_by_maintainer": true,
+    "report_sha256": "2c6c0f2a12894904378d117133eb4ae9c4bb2a021215e0fca8659b407c9c8c28",
+    "isolation": "instruction-scoped workspace-only access, not OS-enforced sandbox",
+    "conclusion": "Solvable with valid runtime evidence, but static discovery remains possible; strict debugging-only difficulty not established"
+  },
+  "independent_reviews": {
+    "findings_resolved": [
+      "incomplete group cache repairs",
+      "incomplete trigger description",
+      "safe late-binding support",
+      "actual collective trace coverage",
+      "import-captured aliases",
+      "inconsistent completed prefix on failed runs",
+      "derived world-size validation"
+    ],
+    "remaining_in_scope": 0
+  }
+}
