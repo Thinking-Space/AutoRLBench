@@ -15,10 +15,11 @@ your report directly. An unchanged submission is valid; a patch is not required.
 
 Do not launch training. The system runs continuation after submission. Cheap
 local inspection and non-training checks are allowed. Keep prepared assets,
-model settings, rewards and the intended samples unchanged. **Do not use the
-network.** Do not fetch code, documentation, packages, or any other material
-from outside the staged workspace — diagnose and repair using only what is
-staged locally.
+model settings, rewards and the intended samples unchanged.
+
+**Do not use the network.** Do not fetch code, documentation, packages, or any
+other material from outside the staged workspace — diagnose and repair using
+only what is staged locally.
 
 ## Submission
 
@@ -69,7 +70,11 @@ are `import json` and `from pathlib import Path`. You may use local assignments,
 boolean/equality tests and `return`. Supported path methods are `is_file`,
 `exists`, `read_text`, `joinpath` and `relative_to`; `json.loads`, dictionary
 `get/items/keys/values`, and string `startswith/endswith/replace` are available.
-You may raise `FileNotFoundError` or `ValueError` for an unavailable record.
+A record pins the content it needs by `sha256`, not a fixed location.
+Return the current location of that pinned content when it is available; when
+no matching content can be located, the record is unavailable and you must
+raise `FileNotFoundError` or `ValueError` rather than return any path. The
+verifier probes unavailability handling with synthetic records.
 
 Reads stay under the dataset root. Other imports, writes, networking, subprocesses,
 reflection, decorators and unbounded loops are unsupported. Source, metadata

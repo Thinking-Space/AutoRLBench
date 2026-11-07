@@ -7,3 +7,9 @@ repaired or not, still requires the same fresh continuation checks.
 
 Original GPU receipts are under task provenance/receipts/. They predate the
 bounded query interpreter and are not new security or agent evaluations.
+
+Availability is part of the scored contract: records pin content by `sha256`,
+and the verifier probes the submitted resolver with synthetic unavailable
+records (see `assess_resolver_contract` in `verifier/tests/grade_submission.py`).
+A repair that returns any path for content it cannot locate fails the
+availability contract even when the continuation replay itself is clean.

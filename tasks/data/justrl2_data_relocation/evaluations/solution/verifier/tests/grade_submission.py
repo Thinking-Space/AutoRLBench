@@ -6,6 +6,8 @@ import importlib.util
 import json
 import os
 import stat
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -48,6 +50,53 @@ def assess_report(results, workspace, resources):
     return assessment
 
 
+def assess_resolver_contract(prepared, workspace):
+    """Probe the submitted resolver with unavailable records.
+
+    Uses the same bounded interpreter, and the same invocation shape, that the
+    continuation itself used: a record whose pinned content cannot be located
+    must raise, never return a path.
+    """
+    assessment = {'contract_valid': False, 'probes': [], 'errors': []}
+
+    def run_probe(name, record):
+        call = subprocess.run([sys.executable, '-I', '-S', str(worker), str(loader)],
+                              input=json.dumps({'root': root, 'record': record}), text=True,
+                              capture_output=True, timeout=30,
+                              env={'PATH': os.defpath, 'LANG': 'C.UTF-8'}, cwd='/')
+        if call.returncode:
+            raise ValueError('probe ' + name + ': interpreter exited ' + str(call.returncode)
+                             + ' ' + call.stderr[-200:].strip())
+        verdict = json.loads(call.stdout)
+        if not isinstance(verdict, dict) or 'ok' not in verdict:
+            raise ValueError('probe ' + name + ': unreadable interpreter verdict')
+        if verdict['ok'] is True:
+            raise ValueError('probe ' + name + ': returned a path for an unavailable record')
+        assessment['probes'].append({'probe': name, 'result': 'raised', 'kind': verdict.get('kind')})
+
+    try:
+        scene = prepared / 'incident'
+        worker = (prepared / 'incident_engine' / 'resolve_worker.py').resolve()
+        loader = (workspace / 'loader.py').resolve()
+        rows = json.loads((scene / 'dataset' / 'manifest.json').read_text(encoding='utf-8'))['rows']
+        hard = None
+        for row in rows:
+            if row.get('difficulty') == 'hard':
+                hard = row
+                break
+        if hard is None:
+            raise ValueError('Scene manifest has no hard training rows')
+        root = str(scene / 'dataset')
+        run_probe('unknown', {**hard, 'id': 'zz-' + hard['id'], 'sha256': '0' * 64,
+                              'path': 'live/hard/zz-' + hard['id'] + '.json'})
+        run_probe('content', {**hard, 'sha256': '1' * 64})
+    except (OSError, ValueError, TypeError, KeyError, IndexError, subprocess.SubprocessError) as error:
+        assessment['errors'].append('Resolver contract: ' + str(error))
+        return assessment
+    assessment['contract_valid'] = True
+    return assessment
+
+
 def write_result(path, value):
     # Replace agent-created output links rather than following them.
     with tempfile.NamedTemporaryFile(mode='w',dir=path.parent,delete=False) as stream:
@@ -66,6 +115,7 @@ def main():
     workspace=Path(os.environ.get('AUTORLBENCH_WORKSPACE',str(Path.cwd())))
     resources=Path(__file__).resolve().parent.parent/'resources'
     assessment=assess_report(results,workspace,resources)
+    contract=assess_resolver_contract(prepared,workspace)
     try:
         path=resources/'incident_audit/verify_resume.py'
         spec=importlib.util.spec_from_file_location('_hidden_incident_resume',path)
@@ -78,8 +128,10 @@ def main():
         proof=engine.verify_resume(scene,results/'experiment_logs/run-home',fresh=True)
     except (OSError, ValueError, KeyError, TypeError, ImportError) as error:
         proof={'schema_version':3,'score':False,'errors':[str(error)]}
-    passed=proof.get('score') is True and assessment['report_valid'] and assessment['verdict_correct']
-    result={'passed':passed,'score':int(passed),'metrics':proof,'assessment':assessment}
+    passed=(proof.get('score') is True and assessment['report_valid']
+            and assessment['verdict_correct'] and contract['contract_valid'])
+    result={'passed':passed,'score':int(passed),'metrics':proof,
+            'assessment':assessment,'resolver_contract':contract}
     results.mkdir(parents=True,exist_ok=True)
     write_result(results/'result.json',result)
     write_result(results/'metrics.json',result)

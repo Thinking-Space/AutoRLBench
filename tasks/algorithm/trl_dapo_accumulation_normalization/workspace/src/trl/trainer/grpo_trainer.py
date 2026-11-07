@@ -3013,16 +3013,11 @@ class GRPOTrainer(_BaseTrainer):
         if self.beta != 0.0:
             self._metrics[mode]["kl"].append(self.accelerator.gather(mean_kl).mean().item())
         self._metrics[mode]["clip_ratio"].append(self.accelerator.gather(clip_ratio).mean().item())
-        # DAPO/CISPO/VESPO normalize by num_items_in_batch / num_processes (applied internally by
-        # the Liger loss), then need a `current_gradient_accumulation_steps / steps_per_generation`
-        # rescale to land on the per-window token-mean — matching the non-Liger path
-        # (see `_compute_loss`).
         if self.loss_type in ["cispo", "dapo", "vespo"]:
-            normalizer = (
-                self.current_gradient_accumulation_steps / self.args.steps_per_generation if mode == "train" else 1.0
-            )
-        else:
-            normalizer = self.current_gradient_accumulation_steps if mode == "train" else 1.0  # no accum in eval
+            # The Liger loss already applies the num_items_in_batch / num_processes normalization
+            # internally, so the loss needs no further scaling here.
+            return loss
+        normalizer = self.current_gradient_accumulation_steps if mode == "train" else 1.0  # no accum in eval
         return loss / normalizer
 
     @profiling_decorator

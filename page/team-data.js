@@ -22,5 +22,7 @@ const TEAM = [
     { name: 'Ruijia Zhang', handle: 'Richard-ZZZ', affiliation: 'Johns Hopkins University'},
     { name: 'Haoyang Su', handle: 'Hoyant-Su', affiliation: 'Fudan University'},
     { name: 'Pengyi Li', handle: 'lipengyi0829', affiliation: 'FusionBrain Lab'},
-    { name: 'PurvaChiniya', handle: 'PurvaChiniya', affiliation: 'Independent Researcher'}
+    { name: 'Purva Chiniya', handle: 'PurvaChiniya', affiliation: 'Independent Researcher'},
+    { name: 'Dengzhe Hou', handle: 'dengzhe-hou', affiliation: 'Tohoku University'},
+    { name: 'Ziqi Zhou', handle: 'ziqi-zhou02', affiliation: 'Duke University'}
 ];
