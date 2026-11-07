@@ -89,7 +89,7 @@
  * healthy eval/aime floor; Kimi-K3.1-Pro and GLM-5.3 submitted no
  * report.md and left the workspace byte-identical, taking the
  * report-gate zero with no replay.
- * Eighteen issue records across verl_grpo_rollout_top_p_off_policy and
+ * Twenty issue records across verl_grpo_rollout_top_p_off_policy and
  * verl_grpo_adamw_eps_too_large were imported from the 6 Nov 2026
  * configuration-pair round. The rollout_top_p evidence rubric was
  * recalibrated mid-round (oracle renumbered to a six-item core
@@ -101,8 +101,10 @@
  * import_verl_grpo_config_issue_traces.py), and the in-run wrapper
  * reports are stale pre-recalibration snapshots or judge-timeout
  * placeholders. The Gemini-4-Argon rollout_top_p and DeepSeek-V4-Pro
- * adamw_eps runs died at the agent stage (answers uploaded and judged,
- * no session capture) and stay pending stream recovery.
+ * adamw_eps runs died at the agent stage (answers uploaded and
+ * judged); their trial agent directories, session logs included, were
+ * recovered from the remote run containers on 8 Nov 2026 and the two
+ * trajectories rebuilt from those session logs and imported then.
  * Ten issue records for maestro_grpo_reward_collapse were imported
  * from the 6 Nov 2026 round. The evidence rubric was recalibrated
  * mid-round: the oracle's two un-earnable author-side items (the
@@ -7296,6 +7298,34 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "1f371303-c84a-421c-9eab-5c8e2b9432cf",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "50e570b4d11ccb1adc1e0f33e1d4edfa1fab5777069b94dfdaed79ea8a951d2c"
+  },
+  {
+    "task": "configuration/verl_grpo_adamw_eps_too_large",
+    "slug": "dsv4-adamw-eps",
+    "file": "agent-trace/dsv4-adamw-eps.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 3351434,
+    "steps": 82,
+    "costUsd": 25.3869
+  },
+  {
+    "task": "configuration/verl_grpo_rollout_top_p_off_policy",
+    "slug": "gemini4-rollout-top-p",
+    "file": "agent-trace/gemini4-rollout-top-p.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.4,
+    "durationMs": 461541,
+    "steps": 56,
+    "costUsd": null
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

@@ -32,13 +32,13 @@ AutoRLBench Leaderboard，issue + solution 双档成绩。总分为全部已评�
 | ---: | --- | --- | ---: | ---: | ---: |
 | 1 | GPT-6.1-Sol | Codex | 43.8 % | 46.7 % | **44.7 %** |
 | 2 | GPT-6-Astra | Codex | 46.9 % | 33.3 % | **42.6 %** |
-| 3 | Gemini-4-Argon | Claude Code | 25.8 % | 60.0 % | **37.0 %** |
-| 4 | Claude-Fable-5.1 | Claude Code | 25.0 % | 60.0 % | **36.2 %** |
+| 3 | Claude-Fable-5.1 | Claude Code | 25.0 % | 60.0 % | **36.2 %** |
+| 3 | Gemini-4-Argon | Claude Code | 25.0 % | 60.0 % | **36.2 %** |
 | 5 | GLM-5.3 | Claude Code | 31.3 % | 40.0 % | **34.0 %** |
 | 6 | Kimi-K3.1-Pro | Claude Code | 25.0 % | 40.0 % | **29.8 %** |
 | 6 | Qwen3.8-Max | Qwen Code | 28.1 % | 33.3 % | **29.8 %** |
 | 8 | Grok-4.7 | Grok Build | 25.0 % | 26.7 % | **25.5 %** |
-| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 20.0 % | **6.5 %** |
+| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 20.0 % | **6.4 %** |
 | 10 | Kimi-K3 | Claude Code | 0.0 % | 13.3 % | **4.3 %** |
 
 
