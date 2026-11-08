@@ -159,7 +159,9 @@ def prepare_model(args):
         record_path = prepared / 'models.json'
         records = json.loads(record_path.read_text()) if record_path.exists() else []
         records = [record for record in records if record['repo'] != model['repo']]
-        records.append({key: model[key] for key in ['repo', 'revision', 'dest', 'bytes', 'sha256']})
+        record = {key: model[key] for key in ['repo', 'revision', 'dest', 'bytes', 'sha256']}
+        record['file_sha256'] = {name: sha256(args.dest / name) for name in model['files']}
+        records.append(record)
         record_path.write_text(json.dumps(records, indent=2))
 
 

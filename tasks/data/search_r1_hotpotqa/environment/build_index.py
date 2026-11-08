@@ -29,6 +29,7 @@ def main():
     cache_root.mkdir(parents=True, exist_ok=True)
     encoder = None
     previous_texts = previous_vectors = None
+    records = []
     for name in dict.fromkeys([config['training_catalog'], config['validation_catalog']]):
         corpus = folder / (name + '.jsonl')
         docs = [json.loads(line) for line in corpus.read_text().splitlines()]
@@ -84,6 +85,11 @@ def main():
                 shutil.copyfile(cached, temporary)
             temporary.replace(target)
         print('[prepare] index ready', name, len(docs), flush=True)
+        records.append({'catalog': name, 'cache_key': key, 'sha256': digest(cached),
+                        'bytes': cached.stat().st_size, 'rows': len(docs), 'dim': 768})
+    prepared = Path(os.environ.get('AUTORLBENCH_PREPARED') or workspace / '.prepared')
+    prepared.mkdir(parents=True, exist_ok=True)
+    (prepared / 'indexes.json').write_text(json.dumps(records, indent=2) + '\n')
 
 if __name__ == '__main__':
     main()

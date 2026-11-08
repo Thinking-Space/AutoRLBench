@@ -8,10 +8,10 @@ Training Qwen2.5-1.5B-Instruct with Search-R1 GRPO on HotpotQA learns to exploit
 | **Affiliation** | THUNLP, Tsinghua University |
 | **Type** | Data |
 | **Domain** | Search RL |
-| **Tags** | `retrieval-corpus` `label-provenance` `issue-only` |
+| **Tags** | `retrieval-corpus` `label-provenance` `cpu-solution` |
 | **Framework** | Search-R1 GRPO, vendored verl, Torch 2.4.0, vLLM 0.6.3 |
 | **Run time** | ~52 minutes for the recorded 32-step run |
-| **Resources** | 0 GPU for diagnosis; 1 H800 for the recorded training run |
+| **Resources** | 0 GPU for issue and solution; 1 H800 for the recorded training run |
 
 ## Difficulty
 
@@ -61,6 +61,11 @@ experiment; both measured arms used nonzero e5 query embeddings.
   zero embeddings, disabled observation masking or a tampered reward function do
   not identify this mechanism. Removing label-derived passages and rebuilding
   the index is the reference remediation direction.
+- **solution**: repair the bounded `catalog.py::build` producer or select the
+  original source catalog through `config.training_catalog`. The verifier
+  materializes the selected path after submission, preserving source passages
+  and reconstructing the index mapping before exercising production retrieval.
+  Both alternatives are preserved under hidden `evaluations/solution/oracle/`.
 
 ## Verification
 
@@ -71,9 +76,43 @@ experiment; both measured arms used nonzero e5 query embeddings.
   rejects submission symlinks before resolution and atomically replaces output
   paths without following pre-existing output links. No live judge invocation
   or agent difficulty trial was performed, as requested.
+- **solution**: a deterministic CPU verifier requires all five checks: submission
+  and runtime integrity, immutable inputs, effective-catalog provenance, a fresh
+  index mapping, and production HTTP retrieval. The shell entrypoint is copied
+  verbatim from the task family. There is no training run spec and no LLM judge.
+  The system requires `report.md`, evaluates the supported producer on real and
+  additional inputs in a bounded subprocess when it is selected, then starts
+  the actual pinned `serve.py` and e5 encoder. Returned passages and scores must
+  agree with source-only FAISS top-k, with score tolerance `1e-4` and ties allowed.
+
+Solution measures data-pipeline repair and working retrieval. It does not grade
+held-out EM improvements or require retraining. The historical three-question
+held-out margin is insufficient to calibrate that different outcome. The agent
+may edit only the producer body and training-catalog selection; changing the
+scorer, runtime, other configuration, inputs or prepared indexes does not pass.
+Source document order may change. An unused producer is not required to change.
+`prepare.sh` records model-file and index byte identities in the read-only
+prepared artifacts, so even a writable workspace hard link cannot silently
+change the reference index used by the verifier.
+
+The solution verifier passed a 21-case qualification in the registered remote
+Torch 2.4.0 / vLLM 0.6.3 runtime: four positive cases and seventeen negative cases
+all matched their expected verdicts. Positive cases include both reference
+repairs, source reordering and safe replacement of an output symlink. The
+original, altered scoring/runtime/inputs/indexes, missing or modified actor assets,
+empty or duplicated sources,
+label-dependent output, unsupported I/O, missing or linked reports, shortened
+configuration and fabricated results were rejected. Positive cases took about
+12–15 seconds each after preparation; the whole matrix took about 110 seconds.
+Exact results are in hidden `evaluations/solution/verifier/resources/qualification.json`.
 
 Preparation uses the family-style `prepare.sh` / `fetch_hf.py --repo --dest`
 interface, with revision pins and checksum verification retained. The local
 index builder and manifests remain separate. Consolidated CLI I/O checks are
-recorded in hidden `verifier/resources/environment_entrypoint_qualification.json`;
-they do not constitute a new GPU or Docker-build qualification.
+recorded in hidden `verifier/resources/environment_entrypoint_qualification.json`.
+Complete prepare with the public downloader also passed remotely in about 21
+seconds with a fresh anonymous download of all four data files and revalidated
+existing model/index caches. Model-file identity recording was subsequently
+exercised during the final solution qualification. A new GPU training run and
+fresh public-image Docker build were not performed. The historical single-update
+H800 qualification remains a separate earlier packaging check.
