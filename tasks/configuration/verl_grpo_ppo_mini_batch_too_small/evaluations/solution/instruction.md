@@ -51,6 +51,11 @@ with this environment:
 LOG_DIR=$AUTORLBENCH_RESULTS/experiment_logs
 WANDB_MODE=offline
 WANDB_DIR=$AUTORLBENCH_RESULTS/experiment_logs
+WANDB_SILENT=true
+WANDB_API_KEY=autorlbench-offline
+HF_HUB_OFFLINE=1
+TRANSFORMERS_OFFLINE=1
+HF_DATASETS_OFFLINE=1
 ```
 
 The effective run uses:

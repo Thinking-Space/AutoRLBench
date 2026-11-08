@@ -111,7 +111,9 @@ Wrong diagnoses a reviewer should expect and reject:
 - **issue**: an LLM judge compares `agent_answer.md` with the hidden oracle on
   verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2. A run passes only if the verdict score is 1.0 and the root-cause and evidence scores are both above 0.8. The weighted score is reported but does not decide the pass.
 - **solution**: the agent submits `report.md` and does not train. The harness reruns the experiment
-  per `run_spec.json` (`run_gsm8k_grpo.sh`, 100 steps, 4 h budget) and grades only that run. The grader
+  per `run_spec.json` (`run_gsm8k_grpo.sh`, 100 steps, 4 h budget, offline-pinned env: WANDB offline
+  mode and `HF_HUB_OFFLINE`/`TRANSFORMERS_OFFLINE`/`HF_DATASETS_OFFLINE` set so the rerun stays inside
+  the prepared image) and grades only that run. The grader
   does not read the logged metric (see the note above) and instead re-scores the run's own
   `experiment_logs/val_generations/100.jsonl` with a fixed pure-Python rule (the number in the last
   `\boxed{}` numerically equal to `gts`, ≥ 1,300 rows). The accuracy must be ≥ 0.53. Under that rule the

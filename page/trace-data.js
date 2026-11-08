@@ -183,7 +183,33 @@
  * from the recovered native Codex session log through harbor's own
  * conversion after the harness's agent-stage download failed. All
  * ten runs were audited clean of network access.
- * The 160 solution records are reconciled against AutoRLBench validation-first
+ * Ten verl_grpo_ppo_mini_batch_too_small solution records were
+ * imported from the 8 Nov 2026 round, the task's first solution round:
+ * the harness re-runs the 100-step GSM8K GRPO recipe on the repaired
+ * workspace, and the grader deterministically re-scores the step-100
+ * held-out generation dump (the number inside the last \boxed{} must
+ * equal the gold answer, >= 1,300 rows) against the 0.53 gate; the
+ * defective run's baseline under that rule is 0.3609. Values come
+ * from the evaluation ledger joined by run_id and cross-checked
+ * against each trial's verifier result (see
+ * import_mini_batch_solution_traces.py). Six trials were graded
+ * in-run; the four wave-1 trials (Claude-Fable-5.1, DeepSeek-V4-Pro,
+ * Qwen3.8-Max, Grok-4.7) lost their in-run rerun stage to a host-side
+ * DataLoader worker kill, and were graded after the experiment was
+ * replayed on a 64 Gi pod -- the replay worker staged the verdict
+ * into the trial verifier file, the wrapper reports keep the
+ * pre-rescue zeros, and each run's recovery entry carries the rescue
+ * record. Four repairs clear the gate (GLM-5.3 0.582 boxed accuracy,
+ * Qwen3.8-Max 0.570, Kimi-K3.1-Pro 0.549, Gemini-4-Argon 0.541 --
+ * raising the mini-batch to 128, the reference 32, or 64 with the
+ * learning rate halved; Qwen3.8-Max additionally rewrote the reward
+ * parser as stdlib-only, finding math_verify absent from the eval
+ * image); six fail: five agents rewrote only the reward parser and
+ * land between 0.011 and 0.487 (Claude-Fable-5.1 closest at 0.487),
+ * and Grok-4.7 reweighted the actor loss instead of the mini-batch
+ * and sits at the 0.373 baseline. No trial archived a report.md in
+ * its workspace snapshot.
+ * The 170 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -7524,6 +7550,184 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "e230b43f-b59d-48a2-8d4b-5aee11359043",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "aff52943bcf4f842e15dd58ca3fcf82cc772842cc0fb07db31d5d439efe0fce5"
+  },
+  {
+    "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "slug": "kimi-mini-batch-sol",
+    "file": "agent-trace/kimi-mini-batch-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2493695,
+    "steps": 27,
+    "costUsd": 3.6792,
+    "sourceRunId": "20261107-153027-60ecc235",
+    "sessionId": "eb61320f-9d96-4fb6-bf54-ec257e86623e",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "7cf10483b8718d57e6d7c3034641a697eb345aa5e2ed177870981f18fa0adb94"
+  },
+  {
+    "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "slug": "kimi31-mini-batch-sol",
+    "file": "agent-trace/kimi31-mini-batch-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1994601,
+    "steps": 37,
+    "costUsd": 4.3817,
+    "sourceRunId": "20261107-163306-c9ed94b3",
+    "sessionId": "3cb430ac-650e-485a-97a7-5529d6144f18",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "6f7c1edb5b71160f8c455946c26aa88ff5d36639a042cb5fd1d2aa827a024c80"
+  },
+  {
+    "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "slug": "dsv4-mini-batch-sol",
+    "file": "agent-trace/dsv4-mini-batch-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2748141,
+    "steps": 109,
+    "costUsd": 29.7141,
+    "sourceRunId": "20261107-123153-45608c8a",
+    "sessionId": "b64131f5-758e-4264-9190-ec03fcc49cda",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "343aea6436d054b3543353a027d7fce4cd429f5b9de19dff68fbefe621115a33"
+  },
+  {
+    "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "slug": "fable51-mini-batch-sol",
+    "file": "agent-trace/fable51-mini-batch-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 688234,
+    "steps": 21,
+    "costUsd": 24.524,
+    "sourceRunId": "20261107-125214-5f2875e7",
+    "sessionId": "b06ff1a2-0fcd-4bb7-9383-4bf216a9d9a7",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "fe506b1409e6c459ffdff3d88501da68b0dab16bdb56aa2e75e627c9a9b2cdbe"
+  },
+  {
+    "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "slug": "gemini4-mini-batch-sol",
+    "file": "agent-trace/gemini4-mini-batch-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 4971158,
+    "steps": 61,
+    "costUsd": 23.3716,
+    "sourceRunId": "20261107-215353-def617fd",
+    "sessionId": "7cee1a49-0774-4d04-9698-5e3e98377cd6",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "92f2d18c742c2115cf4fd4e85b8b0c42dc6f37886e3719b9ba93b389515ac6f6"
+  },
+  {
+    "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "slug": "glm53-mini-batch-sol",
+    "file": "agent-trace/glm53-mini-batch-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 2118009,
+    "steps": 113,
+    "costUsd": 26.3342,
+    "sourceRunId": "20261108-011046-18844d5d",
+    "sessionId": "edcede9e-2415-4b10-a554-625b910a6d66",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "fa4d03c0ec3a7c19753019b67f68948d7ed6fb6bb9da76ead7ba91eb0d84e7b6"
+  },
+  {
+    "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "slug": "gpt6astra-mini-batch-sol",
+    "file": "agent-trace/gpt6astra-mini-batch-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2403980,
+    "steps": 57,
+    "costUsd": 9.0617,
+    "sourceRunId": "20261107-215351-1260c96f",
+    "sessionId": "01a1b649-caef-7060-b595-25d87d2f4d9d",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a16026b6690db362fb8fab98aa7a64f442e7bcdc3dcceda195661a82f922fda8"
+  },
+  {
+    "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "slug": "gpt61sol-mini-batch-sol",
+    "file": "agent-trace/gpt61sol-mini-batch-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 11765228,
+    "steps": 327,
+    "costUsd": 10.2578,
+    "sourceRunId": "20261108-011530-a7951368",
+    "sessionId": "01a1b702-6b8a-7d12-9b01-9150f0043f94",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "562d726847615d4443d2d3c40d9b8a306662a5fc26a2f02d66d9fa62f7f667e0"
+  },
+  {
+    "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "slug": "qwen38-mini-batch-sol",
+    "file": "agent-trace/qwen38-mini-batch-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1962225,
+    "steps": 70,
+    "sourceRunId": "20261107-124348-2bec24cc",
+    "sessionId": "21c341e0-ec63-49d6-b921-8a80215ceb72",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "febef6eb135e0538750c8bde751daf81e1cc921fba58b3a0a85293bffc87fd8c"
+  },
+  {
+    "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
+    "slug": "grok47-mini-batch-sol",
+    "file": "agent-trace/grok47-mini-batch-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 558815,
+    "steps": 65,
+    "sourceRunId": "20261107-130617-1107a763",
+    "sessionId": "15e7b3ee-ea7a-4ee1-8abc-88e0c9b31a04",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "fb026335468de7d541aa05d89b3703813c5b1ccf06dc9cc092dcba9fd58a7116"
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];
