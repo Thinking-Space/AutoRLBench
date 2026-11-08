@@ -12,6 +12,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import export_challenge as exporter
+from source_cleanup import is_observation
 
 HERE = Path(__file__).resolve().parent.parent
 
@@ -95,14 +96,26 @@ def test_export_real_pinned_source(tmp_path):
     out = tmp_path / 'export'
     receipt = exporter.export(Path(source), out)
     workspace, maintainer = out / 'workspace', out / 'maintainer'
-    assert len(list(workspace.glob('miles/**/*.py'))) > 200
+    assert len(list(workspace.glob('miles/**/*.py'))) > 150
     assert (workspace / 'train.py').is_file()
-    assert (workspace / 'benchmark/train.sh').is_file()
-    assert 'BENCH_RESTORE_ROOT' not in (workspace / 'benchmark/train.sh').read_text()
-    assert 'benchmark.restore_evidence' not in (workspace / 'benchmark/run_training.py').read_text()
+    assert not (workspace / 'benchmark/train.sh').exists()
+    assert (maintainer / 'gpu_launch/train.sh').is_file()
+    assert 'BENCH_RESTORE_ROOT' not in (maintainer / 'gpu_launch/train.sh').read_text()
+    assert 'benchmark.restore_evidence' not in (maintainer / 'gpu_launch/run_training.py').read_text()
     assert (maintainer / 'repair.patch').is_file()
     assert (maintainer / 'manifest.json').is_file()
     assert (maintainer / 'topology_verifier.py').is_file()
+    assert (maintainer / 'mesh.json').is_file()
+    assert (maintainer / 'progress.json').is_file()
+    assert (maintainer / 'failure.txt').is_file()
+    assert not (workspace / 'observed').exists()
+    assert (workspace / 'inputs/replay.json').is_file()
+    assert (workspace / 'debug/run_replay.py').is_file()
+    assert '--trace' not in (workspace / 'debug/run_replay.py').read_text()
+    assert not (workspace / 'miles/utils/debug_utils/run_megatron').exists()
+    assert 'MILES_LOGPROB_BACKWARD_DEBUG_DIR' not in (workspace / 'miles/utils/ppo_utils.py').read_text()
+    assert 'torch.save' not in (workspace / 'miles/utils/train_dump_utils.py').read_text()
+    assert 'register_non_intrusive_dumper' not in (workspace / 'miles/utils/dumper_utils.py').read_text()
     assert receipt['gpu_revalidated'] is False
     assert receipt['source_revision'] == '75814318f243af7e39af337c1173fc3927c9635b'
     for p in workspace.rglob('*'):
@@ -112,6 +125,8 @@ def test_export_real_pinned_source(tmp_path):
             assert '.git' not in p.parts
             assert 'whitening_enter' not in p.read_text()
             assert 'whitening_call' not in p.read_text()
+            if p.suffix == '.py' and p.relative_to(workspace).parts[0] in ('miles', 'miles_plugins'):
+                assert not any(is_observation(node) for node in ast.walk(ast.parse(p.read_text()))), p
     target = workspace / 'miles/backends/training_utils/loss.py'
     assert 'if all_masks.numel() > 0:' in target.read_text()
     assert 'Collective-communication invariant: distributed_masked_whiten' not in target.read_text()

@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+from source_cleanup import clean_source, remove_diagnostic_tools
 
 HERE = Path(__file__).resolve().parent
 EVIDENCE = HERE.parent
@@ -222,17 +223,42 @@ def export(source, output):
         end = runner.index('        (output / "effective_config.json")', begin)
         (helper / 'run_training.py').write_text((runner[:begin] + runner[end:]).replace(
             '"BENCH_RESTORE_ROOT", "BENCH_RESTORE_ITERATION", ', ''))
+        # Preserve the historical full-GPU launcher only for reviewers. Its
+        # built-in NCCL dumps and runtime metadata are not contestant helpers.
+        gpu_launch = private / 'gpu_launch'
+        gpu_launch.mkdir()
+        for name in ('run_training.py', 'train.sh', 'replay_loader.py', 'sglang_compat.py'):
+            (helper / name).rename(gpu_launch / name)
         observations = workspace / 'observed'
         observations.mkdir()
         for name, data in evidence.items():
+            if name != 'replay.json':
+                continue
             if isinstance(data, str):
                 (observations / name).write_text(data)
             else:
                 write_json(observations / name, data)
         shutil.copyfile(HERE / 'instruction.md', workspace / 'instruction.md')
-        shutil.copyfile(HERE / 'observations.md', observations / 'README.md')
+        # Only the actual inputs are contestant-visible. Recorded topology,
+        # per-rank progress and failure stacks stay in the reviewer boundary.
+        observations.rename(workspace / 'inputs')
+        for name, data in evidence.items():
+            if name == 'replay.json':
+                continue
+            if isinstance(data, str):
+                (private / name).write_text(data)
+            else:
+                write_json(private / name, data)
+        debug = workspace / 'debug'
+        debug.mkdir()
+        shutil.copyfile(HERE / 'run_replay.py', debug / 'run_replay.py')
+        for folder in ('miles', 'miles_plugins'):
+            for path in (workspace / folder).rglob('*.py'):
+                path.write_text(clean_source(path.read_text()))
+        remove_diagnostic_tools(workspace)
         for path in workspace.rglob('*.py'):
             ast.parse(path.read_text(), filename=str(path.relative_to(workspace)))
+        defective, control = clean_source(defective), clean_source(control)
         repair = ''.join(difflib.unified_diff(defective.splitlines(True), control.splitlines(True),
                                             fromfile='a/' + TARGET, tofile='b/' + TARGET))
         (private / 'repair.patch').write_text(repair)
@@ -247,15 +273,15 @@ def export(source, output):
                                              for name in files if name in staged and sha(files[name]) != staged[name]},
                     'frozen_evidence': {name: sha((EVIDENCE / name).read_bytes()) for name in
                                         ('fixture.json', 'public_runtime_events.json', 'public_faulty_trace.txt')},
-                    'projection': {'source_arm': 'faulty', 'checkpoint_0': 'whitening_enter',
-                                   'checkpoint_1': 'advantages_ready',
-                                   'dropped': ['other events', 'local tensors/counts', 'timestamps', 'PID', 'Python stack frames'],
-                                   'unchanged': ['role-local ranks', 'CP/DP groups', 'replay token IDs, lengths, rewards and masks',
-                                                 'checkpoint reachability', 'terminal backend exception']},
+                    'projection': {'source_arm': 'faulty',
+                                   'reviewer_only': ['CP/DP membership ledger', 'all rank progress', 'backend exception', 'full original artifacts'],
+                                   'contestant_inputs': ['replay token IDs, lengths, rewards and masks'],
+                                   'provided_runtime_diagnostics': False},
                     'code_transformations': ['allow-list native framework modules and model args',
                                              'remove answer-revealing repair comment', 'replace all adv-diag logger calls with pass',
                                              'inject the recorded local numel guard', 'retain common process-group compatibility helper',
-                                             'export the first-update launcher without optional restore instrumentation'],
+                                             'keep historical GPU launcher and its diagnostic setup reviewer-only'],
+                    'observation_policy': 'No supplied log/print calls or non-license comments in framework copies; no prebuilt trace; add source instrumentation to collect evidence.',
                     'gpu_revalidated': False, 'difficulty_calibrated': False,
                     'boundary': 'mount ONLY workspace/; keep repository and maintainer/ inaccessible; network disabled'}
         write_json(private / 'manifest.json', manifest)

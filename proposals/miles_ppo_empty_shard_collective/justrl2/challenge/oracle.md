@@ -38,8 +38,8 @@ correctly with concrete groups and local counts (equivalent derivations count).
 Perfect verdict and evidence cannot compensate for incomplete root-cause credit.
 A bare function name, grep result or correct one-line patch cannot pass the
 diagnosis tier. Evidence credit requires distinguishing observations from
-inference: the projected progress ledger does not itself prove entry into a
-particular collective. This is an explicit rubric, not a calibrated LLM judge.
+inference: there is no supplied progress ledger; runtime claims must come from
+the solver’s own added observations. This is an explicit rubric, not a calibrated LLM judge.
 
 ## Plausible alternatives
 
@@ -70,3 +70,12 @@ in the proposal for reviewer audit. Never expose this file, the exporter,
 installed repaired framework copy to the contestant. Disable network access.
 Public publication inherently permits prior familiarity; measure it during
 blind difficulty calibration instead of claiming contamination is impossible.
+
+## Instrumentation requirement
+
+Require the instrumentation-only source diff, a reproduced failure with raw
+solver-added observations, a relevant control and repaired rerun. Initial
+workspace includes no group ledger, error stack or tracing helper. Do not
+accept historical evidence as newly collected diagnostics. Review instrumentation
+for computational changes before interpreting it. No exact log format is
+mandated; the independent numerical verifier remains the correctness authority.

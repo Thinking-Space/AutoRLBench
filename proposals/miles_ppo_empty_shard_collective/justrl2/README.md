@@ -1,9 +1,10 @@
 # Public JustRL2 constructed regression case
 
-**November 8 alternative:** [runtime debugging](challenge/runtime_debug/README.md)
-adds a separately constructed cache-routing defect and fresh CPU/Gloo evidence.
-It does not contain the historical empty-shard guard. The GPU validations in
-this document apply only to the original case, not the new runtime variant.
+**November 8 split and observation cleanup:** this PR contains the original
+empty-shard case only. [challenge/](challenge/README.md) exports coarse replay
+status and no prebuilt tracing or tensor dumps; solvers must add observations.
+Historical evidence below stays reviewer-only. The unrelated cache case is
+submitted independently and is not a build or validation dependency.
 
 **November 7 review revision:** [challenge/](challenge/README.md) adds a
 reproducible defective-only contestant export, a reduced observation view and

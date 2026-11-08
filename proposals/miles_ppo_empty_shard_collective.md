@@ -1,9 +1,9 @@
 # Proposal: Miles PPO empty-shard whitening collective mismatch
 
-**November 8, 2026:** a [separate runtime-debugging variant](miles_ppo_empty_shard_collective/justrl2/challenge/runtime_debug/README.md)
-is available after static-only review still found the original guard too easy.
-It introduces a stateful reduction-plan defect with new CPU/Gloo experiments;
-the historical GPU claims below do not apply to that new construction.
+**November 8, 2026 split:** this PR again contains only the original empty-shard
+case. Its contestant export now omits supplied progress/mesh/error records and
+diagnostic helpers; the solver adds source instrumentation before collecting
+evidence. The communicator-cache case is a separate independent PR.
 
 **November 7, 2026 revision:** the [challenge export](miles_ppo_empty_shard_collective/justrl2/challenge/README.md)
 separates contestant material from this answer-revealing audit bundle and adds
