@@ -5,13 +5,14 @@ Training Qwen2.5-1.5B-Instruct with GRPO and a merged LoRA adapter on GSM8K. The
 | | |
 | --- | --- |
 | **Author** | Jianing Yin |
-| **Affiliation** | University of Pennsylvania |
-| **Type** | Infrastructure |
-| **Domain** | Math RL |
-| **Tags** | `lora-merge` `weight-sync` `stale-rollout-policy` |
-| **Framework** | verl (GRPO) @ `6f2aa24`, pre-#7014 `transformer_impl.py` |
-| **Run time** | ~50 minutes |
-| **Resources** | 1 GPU |
+| **Domain** | infrastructure |
+| **Tags** | `verl` `grpo` `lora` `fsdp2` `weight-sync` |
+| **Model** | Qwen/Qwen2.5-1.5B-Instruct |
+| **Dataset** | openai/gsm8k main, 7473 train / 1319 test |
+| **Framework** | verl @ `6f2aa24` with the pre-#7014 `transformer_impl.py`, GRPO, `run_grpo_lora.sh` |
+| **Environment** | `verl` · 1 GPU |
+| **Evaluations** | issue · solution |
+| **Recorded runs** | 2 defective + 2 repaired runs, 60 steps each (seed 1 on 1 GPU, ~50 min; seed 2 on 2 GPUs, ~30 min) |
 
 ## Difficulty
 
@@ -38,10 +39,15 @@ Two extra probe runs (`evaluations/issue/reference/weight-sync-probe.md`) record
   the verdict score is 1.0 and the root-cause and evidence scores are both strictly greater than 0.8;
   the 0.2 / 0.6 / 0.2 weighted score is reported but does not decide the pass.
 - **solution**: the agent submits `report.md` and does not train; the harness reruns the
-  experiment per `run_spec.json` and grades only that run. `val-core/openai/gsm8k/acc/mean@1`
-  at step 60 must be ≥ 0.4, and the verifier's own re-grade of the step-60 validation
-  generations must agree with it within 0.002. The run's own configuration dump must
-  still show LoRA rank 32, alpha 64, `lora.merge=True` and FSDP2 (`required_log_patterns`).
-  Margins: 0.316 above the defective arm's
-  step 60 (0.309 above its highest point, 0.091), 0.377 below the repaired arm's step 60,
+  experiment per `run_spec.json` and grades only that run. The verifier re-scores
+  `val_generations/60.jsonl` with its own fixed strict rule (last `#### <number>` equals the
+  gold answer) and the resulting accuracy must be ≥ 0.4. The step-60
+  `val-core/openai/gsm8k/acc/mean@1` logged in the fresh `train.log` must agree with the
+  dump's own per-sample accuracy within 0.002 (`metric_agreement_tolerance`), which ties the
+  scored dump to the run that logged it. The run's own configuration dump must
+  still show LoRA rank 32, alpha 64, `lora.merge=True` and FSDP2 (`required_log_patterns`),
+  and the fresh `train.log` must carry one `step:N` console line per training step 1-60.
+  The launcher `run_grpo_lora.sh` is byte-pinned (`runner_pinned`) together with the GSM8K
+  data, so the repair belongs in the staged verl source. Margins: 0.316 above the defective
+  arm's step 60 (0.309 above its highest point, 0.091), 0.377 below the repaired arm's step 60,
   and 0.319 above the repaired arm's step 0. Calibrated on 2 runs per side.

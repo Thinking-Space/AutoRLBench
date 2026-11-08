@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""Extract the target veRL metric from fresh logs and assign a binary score.
+"""Re-score the fresh run's held-out generation dump with a fixed strict GSM8K rule and assign a binary score.
 
-Beyond the metric bar itself, two spec-driven checks pin the run's integrity:
+Adapted from tasks/configuration/autorlbench_verl_grpo_rollout_top_p_off_policy (same runner family,
+same validation-dump format). The grader ignores logged metric values and scores the responses the run
+dumped at `final_step` (`trainer.validation_data_dir` = `experiment_logs/val_generations`): a response
+is correct iff the last `#### <number>` it contains equals the gold answer numerically.
 
-- `required_log_patterns`: each regex must appear somewhere in the fresh run's text
-  logs. This anchors the run's trigger configuration (whichever keys the spec
-  lists), so a repair that merely avoids the defective code path fails even when
-  its metric clears the bar.
-- `validation_dump` + `answer_key`: the final-step validation generations are
-  re-graded with the verifier's own copy of the reward scorer (gsm8k_reference.py,
-  not the workspace's) against the verifier's protected answer key (one entry per
-  test problem). Every problem of the key must appear in the dump exactly once,
-  answers come from the key rather than the dump's own `gts`, and the logged metric
-  must agree with that re-grade. A workspace whose reward, scorer, dump writer or
-  logged numbers were edited cannot pass on its own data.
+The rerun is anchored so the scored dump can only come from the shipped experiment: live grading (the
+stage sets AUTORLBENCH_WORKSPACE / AUTORLBENCH_VERIFIER) byte-compares the workspace `run_grpo_lora.sh`
+against the verifier's pristine copy (the defect is in the staged verl source, so the launcher is part
+of the pinned harness) and checks the files in `pinned_sha256` (a value may list several accepted
+digests). Every grading additionally requires run-reality evidence in `train.log` (the runner's console
+tee): one `step:N` line per training step 1..final_step, the step-final validation logged, and the
+run-reality LoRA/FSDP2 configuration lines (`required_log_patterns`) -- never the metric values, except
+one consistency check: the logged step-final accuracy must agree with the mean of the run's own
+per-sample `acc` field in the scored dump within `metric_agreement_tolerance`, which ties the dump to
+the run that logged it. A replay of packaged evidence by hand runs without the stage environment and
+skips the workspace checks.
 """
 
 from __future__ import annotations
@@ -23,20 +26,12 @@ import hashlib
 import json
 import os
 import re
-import secrets
 import sys
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
-
-ANSI_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|[@-_])")
-NUMBER = (
-    r"[+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?"
-    r"|nan|inf(?:inity)?)"
-)
-TEXT_SUFFIXES = {".json", ".jsonl", ".log", ".out", ".txt", ""}
-MAX_FILE_BYTES = 128 * 1024 * 1024
+MAX_FILE_BYTES = 512 * 1024 * 1024
 REQUIRED_SPEC_KEYS = {
     "schema_version",
     "task_id",
@@ -45,81 +40,90 @@ REQUIRED_SPEC_KEYS = {
     "historical_final_baseline",
     "required_final_score",
     "log_roots",
-}
-OPTIONAL_SPEC_KEYS = {
-    "required_final_score_max",
-    "score_mode",
+    "dump_subdir",
+    "min_rows",
+    "pinned_sha256",
+    "runner_script",
+    "metric_agreement_tolerance",
     "required_log_patterns",
-    "validation_dump",
-    "validation_recheck_tolerance",
-    "answer_key",
 }
+FINAL_RE = re.compile(r"####\s*\$?\s*(-?[\d,]*\.?\d+)")
+LAST_RE = re.compile(r"-?\d+(?:\.\d+)?")
+VAL_KEY = "val-core/openai/gsm8k/acc/mean@1"
+STEP_RE = re.compile(r"step:(\d+) - global_seqlen")
+VAL_METRIC_RE = re.compile(VAL_KEY.replace(".", r"\.") + r":\s*([0-9.eE+-]+)")
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    if path.is_symlink():
-        raise OSError(f"refusing to replace symlink: {path}")
-    temporary = path.with_name(f"{path.name}.tmp-{secrets.token_hex(4)}")
-    try:
-        temporary.write_text(
-            json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
-        os.replace(temporary, path)
-    finally:
-        try:
-            temporary.unlink()
-        except FileNotFoundError:
-            pass
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
 
 
 def load_spec(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise ValueError("grader_spec.json must be an object")
-    keys = set(value)
-    if not REQUIRED_SPEC_KEYS <= keys:
-        raise ValueError("grader_spec.json is missing required fields")
-    if keys - REQUIRED_SPEC_KEYS - OPTIONAL_SPEC_KEYS:
-        raise ValueError("grader_spec.json has unexpected fields")
-    if value["schema_version"] != 2:
-        raise ValueError("unsupported grader spec")
-    if value["log_roots"] != ["experiment_logs"]:
-        raise ValueError("log roots must be experiment_logs")
-    mode = value.get("score_mode", "best")
-    if mode not in {"best", "final"}:
-        raise ValueError("score_mode must be best or final")
-    value["score_mode"] = mode
-    patterns = value.get("required_log_patterns", [])
-    if not isinstance(patterns, list) or not all(
-        isinstance(entry, dict)
-        and set(entry) == {"pattern", "description"}
-        and isinstance(entry["pattern"], str)
-        and isinstance(entry["description"], str)
-        for entry in patterns
-    ):
-        raise ValueError("required_log_patterns must be objects with pattern and description")
-    for entry in patterns:
-        try:
-            re.compile(entry["pattern"])
-        except re.error as exc:
-            raise ValueError(f"invalid required log pattern: {exc}")
+    missing = REQUIRED_SPEC_KEYS - set(value)
+    if missing:
+        raise ValueError(f"grader_spec.json missing keys: {sorted(missing)}")
+    if int(value["schema_version"]) != 3:
+        raise ValueError("grader_spec.json schema_version must be 3")
+    value["final_step"] = int(value["final_step"])
+    value["min_rows"] = int(value["min_rows"])
+    if not isinstance(value["required_log_patterns"], dict) or not value["required_log_patterns"]:
+        raise ValueError("grader_spec.json required_log_patterns must be a non-empty object")
     return value
 
 
-def log_files(results: Path, roots: list[str]) -> list[Path]:
+def to_number(token: str) -> Decimal | None:
+    token = token.replace(",", "").replace("$", "").strip().rstrip(".")
+    try:
+        value = Decimal(token)
+    except InvalidOperation:
+        return None
+    return value if value.is_finite() else None
+
+
+def gold_number(gt: Any) -> Decimal | None:
+    if gt is None:
+        return None
+    if isinstance(gt, dict):
+        gt = gt.get("ground_truth", gt)
+    text = str(gt)
+    direct = to_number(text)
+    if direct is not None:
+        return direct
+    found = LAST_RE.findall(text.replace(",", ""))
+    return to_number(found[-1]) if found else None
+
+
+def strict_correct(response: str, gt: Any) -> bool:
+    """Last `#### <number>` in the response equals the gold answer (numeric comparison, 1e-6 relative)."""
+    gold = gold_number(gt)
+    if gold is None or not isinstance(response, str):
+        return False
+    finals = FINAL_RE.findall(response)
+    if not finals:
+        return False
+    value = to_number(finals[-1])
+    if value is None:
+        return False
+    tol = Decimal("1e-6") * max(Decimal(1), abs(gold))
+    return abs(value - gold) <= tol
+
+
+def find_dumps(results: Path, roots: list[str], subdir: str, final_step: int) -> list[Path]:
+    """`<root>/**/<subdir>/<final_step>.jsonl`, regular files only (no symlinks anywhere below the root), newest first."""
     found = []
     for root_name in roots:
         root = results / root_name
         if root.is_symlink() or not root.is_dir():
             continue
-        for path in root.rglob("*"):
-            if path.is_symlink() or not path.is_file():
+        for path in root.rglob(f"{final_step}.jsonl"):
+            if path.is_symlink() or not path.is_file() or path.parent.name != subdir:
                 continue
-            if path.suffix.lower() == ".wandb":
-                continue
-            if path.suffix.lower() not in TEXT_SUFFIXES:
+            rel = path.relative_to(root)
+            if any((root / Path(*rel.parts[: i + 1])).is_symlink() for i in range(len(rel.parts) - 1)):
                 continue
             try:
                 if path.stat().st_size > MAX_FILE_BYTES:
@@ -127,287 +131,221 @@ def log_files(results: Path, roots: list[str]) -> list[Path]:
             except OSError:
                 continue
             found.append(path)
-    return sorted(found, key=lambda path: (path.stat().st_mtime_ns, str(path)))
+    return sorted(found, key=lambda p: (p.stat().st_mtime_ns, str(p)), reverse=True)
 
 
-def metric_patterns(metric_key: str) -> tuple[re.Pattern[str], re.Pattern[str]]:
-    key = re.escape(metric_key)
-    number = NUMBER
-    step_line = re.compile(
-        rf"(?:^|\s)step:(\d+)[ \t]+-[^\r\n]*?\b{key}:({number})(?![\w./])",
-        re.IGNORECASE,
-    )
-    eval_dict = re.compile(
-        rf"""eval\s+(\d+):\s*\{{[^{{}}]*['"]{key}['"]\s*:\s*({number})""",
-        re.IGNORECASE | re.DOTALL,
-    )
-    return step_line, eval_dict
-
-
-def parse_number(token: str) -> Decimal | None:
-    try:
-        value = Decimal(token)
-    except InvalidOperation:
-        return None
-    if not value.is_finite():
-        return None
-    return value
-
-
-def extract(spec: dict[str, Any], results: Path):
-    expected_key = spec["metric_key"]
-    step_line, eval_dict = metric_patterns(expected_key)
-    values: dict[int, tuple[Any, Decimal, str]] = {}
-    keys_seen: set[str] = {expected_key}
-    source_logs = []
-    required_patterns = [
-        (entry, re.compile(entry["pattern"]))
-        for entry in spec.get("required_log_patterns", [])
-    ]
-    matched_patterns: list[str | None] = [None] * len(required_patterns)
-    for path in log_files(results, spec["log_roots"]):
-        try:
-            data = path.read_bytes()
-            if b"\x00" in data[:4096]:
+def score_dump(path: Path) -> tuple[int, int, int, int, list[str]]:
+    """(rows, strict-correct, chars, rows the run itself marked correct, problems)."""
+    rows = correct = chars = own_correct = 0
+    problems: list[str] = []
+    with path.open("r", encoding="utf-8", errors="replace") as handle:
+        for lineno, line in enumerate(handle, 1):
+            line = line.strip()
+            if not line:
                 continue
-            text = ANSI_RE.sub("", data.decode("utf-8", errors="replace"))
-            mtime = path.stat().st_mtime_ns
-        except OSError:
-            continue
-        relative = path.relative_to(results).as_posix()
-        for index, (_, required) in enumerate(required_patterns):
-            if matched_patterns[index] is None and required.search(text):
-                matched_patterns[index] = relative
-        matched = False
-        for pattern in (step_line, eval_dict):
-            for order, match in enumerate(pattern.finditer(text)):
-                matched = True
-                step = int(match.group(1))
-                token = match.group(2)
-                value = parse_number(token)
-                if value is None:
-                    continue
-                rank = (mtime, relative, order)
-                previous = values.get(step)
-                if (
-                    previous is None
-                    or value > previous[1]
-                    or (value == previous[1] and rank > previous[0])
-                ):
-                    values[step] = (rank, value, relative)
-        if matched:
-            source_logs.append(relative)
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                problems.append(f"line {lineno}: not JSON")
+                continue
+            if not isinstance(row, dict) or "output" not in row or "gts" not in row:
+                problems.append(f"line {lineno}: missing output/gts")
+                continue
+            rows += 1
+            correct += strict_correct(row["output"], row["gts"])
+            chars += len(row["output"]) if isinstance(row["output"], str) else 0
+            if row.get("acc"):
+                own_correct += 1
+    return rows, correct, chars, own_correct, problems
 
-    points = []
-    scores = []
-    for step in sorted(values):
-        score = float(values[step][1])
-        points.append(
-            {
-                "step": step,
-                "eval_score": score,
-                "eval_key": expected_key,
-                "truncate_ratio": None,
-                "raw": {expected_key: score},
-                "source_log": values[step][2],
-            }
-        )
-        scores.append({"step": step, "score": score})
-    experiment = {
-        "task_id": spec["task_id"],
-        "logs": {"source_logs": sorted(set(source_logs))},
-        "config_integrity": {
-            "required_patterns": [
-                {
-                    "pattern": entry["pattern"],
-                    "description": entry["description"],
-                    "matched_log": matched,
-                }
-                for (entry, _), matched in zip(required_patterns, matched_patterns)
-            ]
-        },
-        "metrics": {
-            "metric_key": expected_key,
-            "metric_status": "available" if points else "missing",
-            "eval_points": points,
-            "eval_scores": scores,
-        },
+
+def find_train_log(results: Path, roots: list[str]) -> Path | None:
+    """The runner's console tee: `<root>/train.log`, regular files only, newest first."""
+    found = []
+    for root_name in roots:
+        root = results / root_name
+        if root.is_symlink() or not root.is_dir():
+            continue
+        direct = root / "train.log"
+        if direct.is_file() and not direct.is_symlink():
+            found.append(direct)
+            continue
+        for path in root.rglob("train.log"):
+            if path.is_symlink() or not path.is_file() or "wandb" in path.relative_to(root).parts:
+                continue
+            found.append(path)
+    return sorted(found, key=lambda p: (p.stat().st_mtime_ns, str(p)), reverse=True)[0] if found else None
+
+
+def training_reality(results: Path, spec: dict[str, Any]) -> tuple[bool, dict[str, Any], str | None]:
+    """The scored dump is written by the step-`final_step` evaluation, so a run that actually executed
+    the shipped runner leaves its console log (`| tee $LOG_DIR/train.log`) with one `step:N` line per
+    training step 1..final_step and the final validation logged on the `step:final_step` line. Only
+    that shape is checked plus the shipped configuration lines; the metric values are never scored,
+    except the step-final accuracy that the agreement check ties to the scored dump."""
+    final_step = spec["final_step"]
+    path = find_train_log(results, spec["log_roots"])
+    details: dict[str, Any] = {
+        "train_log": str(path.relative_to(results)) if path else None,
+        "step_lines": 0,
+        "steps_continuous": False,
+        "final_eval_logged": False,
+        "logged_final": None,
     }
-    return experiment, values, keys_seen
+    if path is None:
+        return False, details, (
+            f"missing train.log under {spec['log_roots']} (the shipped runner tees its console to "
+            "$LOG_DIR/train.log; a run that did not execute it has no step-"
+            f"{final_step} evaluation to dump)"
+        )
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return False, details, f"cannot read {path.relative_to(results)}: {exc}"
+    steps = sorted({int(m.group(1)) for m in STEP_RE.finditer(text)})
+    details["step_lines"] = len(steps)
+    details["steps_continuous"] = steps == list(range(1, final_step + 1))
+    logged_final = None
+    for line in text.splitlines():
+        if f"step:{final_step} - " in line:
+            m = VAL_METRIC_RE.search(line)
+            if m:
+                try:
+                    logged_final = float(m.group(1))
+                except ValueError:
+                    logged_final = None
+            break
+    details["logged_final"] = logged_final
+    details["final_eval_logged"] = logged_final is not None
+    if not details["steps_continuous"]:
+        short = f" reaching only step {steps[-1]}" if steps and steps[-1] < final_step else ""
+        return False, details, (
+            f"{path.relative_to(results)} does not show a complete run: expected one console line per "
+            f"training step 1..{final_step}, got {len(steps)} step lines" + short
+        )
+    if not details["final_eval_logged"]:
+        return False, details, (
+            f"{path.relative_to(results)} has no {VAL_KEY} on the step-{final_step} line: the "
+            "evaluation that writes the scored dump never ran"
+        )
+    missing_patterns = {
+        name: bool(re.search(pattern, text))
+        for name, pattern in spec["required_log_patterns"].items()
+    }
+    details["required_log_patterns"] = missing_patterns
+    if not all(missing_patterns.values()):
+        return False, details, (
+            f"{path.relative_to(results)} does not show the configuration as shipped "
+            f"(missing: {sorted(k for k, ok in missing_patterns.items() if not ok)})"
+        )
+    return True, details, None
 
 
-def select_best(values: dict[int, tuple[Any, Decimal, str]]):
-    best = None
-    for step, (rank, value, relative) in values.items():
-        candidate = (value, step, rank, relative)
-        if best is None or candidate > best:
-            best = candidate
-    return best
-
-
-def judged_value(spec: dict[str, Any], values: dict[int, tuple[Any, Decimal, str]]):
-    if spec["score_mode"] == "final":
-        final_step = spec["final_step"]
-        if final_step not in values:
-            return None, None, None
-        rank, value, relative = values[final_step]
-        return value, final_step, relative
-    best = select_best(values)
-    if best is None:
-        return None, None, None
-    return best[0], best[1], best[3]
-
-
-def user_message(decoded_input: str) -> str | None:
-    """The user turn of a verl validation dump's decoded prompt ("system ... user <message> assistant")."""
-    start = decoded_input.find("\nuser\n")
-    end = decoded_input.rfind("\nassistant")
-    if start < 0 or end <= start:
-        return None
-    return decoded_input[start + len("\nuser\n"):end]
-
-
-def question_key(text: str) -> str:
-    return hashlib.sha256(" ".join(text.split()).encode("utf-8")).hexdigest()
-
-
-def load_answer_key(spec: dict[str, Any]) -> dict[str, str]:
-    path = Path(__file__).resolve().parent.parent / "resources" / spec["answer_key"]
-    problems = json.loads(path.read_text(encoding="utf-8"))["problems"]
-    answers = {p["question_sha256"]: str(p["answer"]) for p in problems}
-    if len(answers) != len(problems):
-        raise ValueError("answer key has duplicate questions")
-    return answers
-
-
-def recheck_validation(spec: dict[str, Any], results: Path):
-    """Re-grade the final-step validation dump against the protected answer key.
-
-    Each dump row is matched to a key entry by its question; unknown, missing or repeated problems fail. The score
-    uses the key's answers, never the dump's own `gts`.
-    """
-    relative = spec.get("validation_dump")
-    if relative is None:
-        return None, 0, []
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import gsm8k_reference  # noqa: E402
-    answers = load_answer_key(spec)
-    root = results / spec["log_roots"][0]
-    path = root / relative.format(step=spec["final_step"])
-    label = path.relative_to(results).as_posix()
-    if path.is_symlink() or not path.is_file():
-        return None, 0, [f"missing validation dump {label}"]
-    seen: dict[str, int] = {}
-    unknown = 0
-    correct = Decimal(0)
-    # Split on \n only: dumps keep characters such as U+2028 unescaped, and str.splitlines() would break a row there.
-    for line in path.read_text(encoding="utf-8").split("\n"):
-        if not line.strip():
-            continue
-        row = json.loads(line)
-        message = user_message(str(row.get("input", "")))
-        key = question_key(message) if message is not None else None
-        if key not in answers:
-            unknown += 1
-            continue
-        seen[key] = seen.get(key, 0) + 1
-        if seen[key] == 1:
-            correct += Decimal(
-                str(gsm8k_reference.compute_score(str(row.get("output", "")), answers[key]))
-            )
-    errors = []
-    if unknown:
-        errors.append(f"validation dump {label} has {unknown} rows matching no protected test problem")
-    missing = len(answers) - len(seen)
-    if missing:
-        errors.append(f"validation dump {label} is missing {missing} of the {len(answers)} test problems")
-    repeated = sum(n - 1 for n in seen.values())
-    if repeated:
-        errors.append(f"validation dump {label} repeats {repeated} test problems")
-    if errors:
-        return None, len(seen), errors
-    return correct / Decimal(len(answers)), len(seen), []
+def stage_integrity(spec: dict[str, Any]) -> tuple[bool | None, dict[str, Any]]:
+    """The rerun stage executes the agent's workspace copy of the runner on the agent's data,
+    so live grading compares them against the verifier's pins: the runner byte-for-byte
+    against the pristine copy in resources/, the GSM8K parquets by sha256. A replay of
+    packaged evidence by hand runs without the stage environment and skips the check."""
+    workspace = os.environ.get("AUTORLBENCH_WORKSPACE", "")
+    verifier = os.environ.get("AUTORLBENCH_VERIFIER", "")
+    if not workspace or not verifier:
+        return None, {}
+    details: dict[str, Any] = {}
+    # This task's defect lives in the staged verl source, so the launcher is pinned: disabling the
+    # LoRA merge path or FSDP2 from the runner is an escape hatch the rerun does not allow.
+    if spec.get("runner_pinned", True):
+        runner = spec["runner_script"]
+        try:
+            details[runner] = (Path(workspace) / runner).read_bytes() == (
+                Path(verifier) / "resources" / runner
+            ).read_bytes()
+        except OSError:
+            details[runner] = False
+    for rel, expected in spec.get("pinned_sha256", {}).items():
+        try:
+            digest = hashlib.sha256((Path(workspace) / rel).read_bytes()).hexdigest()
+        except OSError:
+            digest = ""
+        accepted = expected if isinstance(expected, list) else [expected]
+        details[rel] = digest in accepted
+    return all(details.values()), details
 
 
 def grade(spec: dict[str, Any], results: Path):
-    experiment, values, keys_seen = extract(spec, results)
-    metric_key = spec["metric_key"]
     final_step = spec["final_step"]
     baseline = Decimal(str(spec["historical_final_baseline"]))
-    required_score = Decimal(str(spec["required_final_score"]))
+    required = Decimal(str(spec["required_final_score"]))
+    tolerance = Decimal(str(spec["metric_agreement_tolerance"]))
     required_max = spec.get("required_final_score_max")
-    required_max_value = (
-        Decimal(str(required_max)) if required_max is not None else None
-    )
-    errors = []
-    if any(not Decimal("0") <= point[1] <= Decimal("1") for point in values.values()):
-        errors.append("all observed accuracy values must lie in [0, 1]")
-    if final_step not in values:
-        errors.append(f"missing final validation at declared step {final_step}")
-    if any(step < 0 or step > final_step for step in values):
-        errors.append(f"validation outside the declared 0..{final_step} budget")
-    values = {step: point for step, point in values.items() if 0 <= step <= final_step}
-    for entry in experiment["config_integrity"]["required_patterns"]:
-        if entry["matched_log"] is None:
-            errors.append(
-                f"run logs do not show required configuration: {entry['description']}"
-            )
-    judged, judged_step, judged_source = judged_value(spec, values)
-    improvement = judged - baseline if judged is not None else None
-    if judged is None:
-        if spec["score_mode"] == "final":
-            errors.append(f"missing finite {metric_key} at step {final_step}")
-        elif keys_seen:
-            errors.append(f"missing finite {metric_key} in experiment_logs")
+    required_max = Decimal(str(required_max)) if required_max is not None else None
+    errors: list[str] = []
+    dumps = find_dumps(results, spec["log_roots"], spec["dump_subdir"], final_step)
+    judged = None
+    source = None
+    rows = correct = chars = own_correct = 0
+    own_acc = None
+    problems: list[str] = []
+    if not dumps:
+        errors.append(
+            f"missing {spec['dump_subdir']}/{final_step}.jsonl under {spec['log_roots']} "
+            "(the run must reach its final evaluation with trainer.validation_data_dir as shipped)"
+        )
+    else:
+        source = dumps[0]
+        rows, correct, chars, own_correct, problems = score_dump(source)
+        own_acc = Decimal(own_correct) / Decimal(rows) if rows else None
+        if rows < spec["min_rows"]:
+            errors.append(f"{source.relative_to(results)} has {rows} scored rows, fewer than the {spec['min_rows']} required (full GSM8K test split)")
         else:
-            errors.append(f"missing {metric_key} in experiment_logs")
-    elif judged < required_score:
-        errors.append(
-            f"score {judged} at step {judged_step} is below "
-            f"required score {required_score}"
-        )
-    elif required_max_value is not None and judged > required_max_value:
-        errors.append(
-            f"score {judged} at step {judged_step} is above "
-            f"required maximum {required_max_value}"
-        )
-    recheck, recheck_rows, recheck_errors = recheck_validation(spec, results)
-    errors.extend(recheck_errors)
-    if recheck is not None:
-        tolerance = Decimal(str(spec.get("validation_recheck_tolerance", "0.002")))
-        if judged is not None and abs(recheck - judged) > tolerance:
+            judged = Decimal(correct) / Decimal(rows)
+            if judged < required:
+                errors.append(f"strict held-out accuracy {judged:.4f} at step {final_step} is below required {required}")
+            elif required_max is not None and judged > required_max:
+                errors.append(f"strict held-out accuracy {judged:.4f} at step {final_step} is above the maximum {required_max}")
+    reality_ok, reality_details, reality_error = training_reality(results, spec)
+    if reality_error:
+        errors.append(reality_error)
+    logged_final = reality_details.get("logged_final")
+    if reality_ok and judged is not None:
+        if logged_final is None or own_acc is None or abs(Decimal(str(logged_final)) - own_acc) > tolerance:
             errors.append(
-                f"logged {metric_key}={judged} disagrees with the verifier's re-grade "
-                f"{recheck:.6f} of the step-{final_step} validation dump"
+                f"the step-{final_step} dump disagrees with the logged validation accuracy "
+                f"(logged {logged_final}, the dump's own per-sample accuracy {own_acc}): they must "
+                f"agree within {tolerance}"
             )
-        elif recheck < required_score:
-            errors.append(
-                f"re-graded step-{final_step} validation accuracy {recheck:.6f} is below "
-                f"required score {required_score}"
-            )
+    integrity_ok, integrity_details = stage_integrity(spec)
+    if integrity_ok is False:
+        errors.append(
+            "the rerun must use the workspace as shipped apart from the repair: failed workspace checks "
+            f"{sorted(k for k, ok in integrity_details.items() if not ok)} (files in pinned_sha256 by sha256, and "
+            f"{spec['runner_script']} byte-compared against the verifier's copy unless the spec sets runner_pinned false)"
+        )
     passed = not errors
     score = 1.0 if passed else 0.0
-    judged_float = float(judged) if judged is not None else None
+    judged_f = float(judged) if judged is not None else None
     metrics = {
         "task_id": spec["task_id"],
-        "metric_key": metric_key,
+        "metric_key": spec["metric_key"],
         "final_step": final_step,
-        "score_mode": spec["score_mode"],
+        "score_mode": "final",
         "historical_final_baseline": float(baseline),
-        "required_final_score": float(required_score),
-        "required_final_score_max": (
-            float(required_max_value) if required_max_value is not None else None
-        ),
-        "best_step": judged_step,
-        "best_score": judged_float,
-        "best_source_log": judged_source,
-        "final_score": judged_float,
-        "absolute_improvement": (
-            float(improvement) if improvement is not None else None
-        ),
-        "source_logs": experiment["logs"]["source_logs"],
-        "validation_recheck_score": float(recheck) if recheck is not None else None,
-        "validation_recheck_rows": recheck_rows,
+        "required_final_score": float(required),
+        "required_final_score_max": float(required_max) if required_max is not None else None,
+        "best_step": final_step if judged is not None else None,
+        "best_score": judged_f,
+        "best_source_log": str(source.relative_to(results)) if source else None,
+        "final_score": judged_f,
+        "absolute_improvement": float(judged - baseline) if judged is not None else None,
+        "scored_rows": rows,
+        "correct_rows": correct,
+        "logged_final": logged_final,
+        "dump_own_acc": float(own_acc) if own_acc is not None else None,
+        "metric_agreement_tolerance": float(tolerance),
+        "dump_problems": problems[:20],
+        "training_reality": reality_details,
+        "stage_integrity": integrity_ok if integrity_ok is not None else "not checked (no stage environment)",
+        "stage_integrity_files": integrity_details,
+        "source_logs": [str(p.relative_to(results)) for p in dumps],
         "errors": errors,
         "passed": passed,
         "score": score,
@@ -415,25 +353,29 @@ def grade(spec: dict[str, Any], results: Path):
         "deterministic": True,
         "judge_used": False,
     }
-    experiment["metrics"]["best_step"] = judged_step
-    experiment["metrics"]["best_score"] = judged_float
-    experiment["metrics"]["best_source_log"] = judged_source
+    experiment = {
+        "task_id": spec["task_id"],
+        "logs": {"source_logs": metrics["source_logs"]},
+        "metrics": {
+            "metric_key": spec["metric_key"],
+            "metric_status": "available" if judged is not None else "missing",
+            "best_step": metrics["best_step"],
+            "best_score": judged_f,
+            "best_source_log": metrics["best_source_log"],
+            "scored_rows": rows,
+            "correct_rows": correct,
+        },
+    }
     return experiment, metrics, {"passed": passed, "score": score, "metrics": metrics}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--results",
-        type=Path,
-        default=Path(os.environ.get("AUTORLBENCH_RESULTS", "/results")),
-    )
+    parser.add_argument("--results", type=Path, default=Path(os.environ.get("AUTORLBENCH_RESULTS", "/results")))
     args = parser.parse_args()
     results = args.results.expanduser().resolve()
     try:
-        spec = load_spec(
-            Path(__file__).resolve().parent.parent / "resources" / "grader_spec.json"
-        )
+        spec = load_spec(Path(__file__).resolve().parent.parent / "resources" / "grader_spec.json")
         experiment, metrics, result = grade(spec, results)
         write_json(results / "experiment_metrics.json", experiment)
         write_json(results / "metrics.json", metrics)
@@ -442,14 +384,7 @@ def main() -> int:
             print("; ".join(metrics["errors"]), file=sys.stderr)
         return 0 if result["passed"] else 1
     except (OSError, ValueError, json.JSONDecodeError) as exc:
-        metrics = {
-            "score": 0.0,
-            "case_score": 0.0,
-            "passed": False,
-            "errors": [f"verifier error: {exc}"],
-            "deterministic": True,
-            "judge_used": False,
-        }
+        metrics = {"score": 0.0, "case_score": 0.0, "passed": False, "errors": [f"verifier error: {exc}"], "deterministic": True, "judge_used": False}
         result = {"passed": False, "score": 0.0, "metrics": metrics}
         try:
             write_json(results / "metrics.json", metrics)
@@ -461,4 +396,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

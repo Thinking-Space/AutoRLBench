@@ -1,63 +1,75 @@
-# Canonical solution oracle
+# Oracle — merged LoRA never reaches the rollout engine
 
-## Root cause
+## Defect
 
-- `verl/workers/engine/fsdp/transformer_impl.py::FSDPEngine.get_per_tensor_param`, merged-LoRA branch
-  - kind: `symbol`
-  - observed: `state_dict()` is captured inside `merged_lora_context`, but the
-    DTensors (which alias the live parameters under FSDP2) are only gathered
-    with `full_tensor()` by the lazy generator after the context has restored
-    the base weights, so vLLM receives base weights at every sync.
-  - expected: materialize every merged tensor before the context exits.
+`verl/verl/workers/engine/fsdp/transformer_impl.py`, `get_per_tensor_param`, the
+`lora.merge` branch (line ~852): with FSDP2 + LoRA merged sync, the code takes
+`self.module.state_dict()` inside `merged_lora_context` and hands the dict to the
+lazy per-tensor generator further down (`param.to(device).full_tensor()` only when
+iterated). FSDP2's `state_dict()` returns **lazy DTensor references**, not
+materialized tensors: they only turn into real weight copies when `full_tensor()`
+runs, which happens *after* the generator is consumed — i.e. after
+`merged_lora_context.__exit__` has already restored the un-merged base weights from
+backup. The rollout engine (vLLM) therefore receives the **base weights at every
+weight sync**, and the merged LoRA delta never reaches generation.
 
-## Observable impact
+Observable signature in the frozen evidence (`workspace/outputs/`):
 
-- Primary source evaluation metric: `val-core/openai/gsm8k/acc/mean@1`.
-- The rollout policy never receives the trained LoRA delta; validation stays at
-  the base level (0.0842 / 0.0811 at step 60 in the two defective runs) while
-  the actor keeps updating (`actor/kl_loss` 7.8 / 7.3, `rollout_corr/kl` 81.5 /
-  74.8 at step 60).
+- `train.log`: `training/rollout_probs_diff_max: 1.0`,
+  `rollout_actor_probs_pearson_corr ≈ 0.16-0.20` (rollout policy ≠ training policy),
+  `rollout_corr/kl` growing to ~80 while `actor/ppo_kl` stays ~0 — the actor is
+  being trained against rollouts from a different (base) policy.
+- Held-out accuracy pinned at the base model's ~0.084 across all 60 steps
+  (`val-core/openai/gsm8k/acc/mean@1`), while `critic/score/mean` on training
+  batches drifts upward — the training updates are real but never served.
+- Probe evidence (task creation): the defective sync delivers bit-identical base
+  weights; a correct sync delivers `bf16(W_base + dW)` on 98.98% of elements.
 
-## Trigger conditions
+## Fix (fix.diff)
 
-- `model.lora_rank > 0`, `model.lora.merge=True`, `actor.strategy=fsdp2`; every
-  sync after the adapter has moved off its zero initialisation.
+Materialize every merged tensor **while the context is still open** and force a
+real copy: replace the lazy dict of DTensor references with
+`{name: param.to(get_device_id(), non_blocking=True).full_tensor().to(torch.bfloat16,
+non_blocking=True).detach().clone() if isinstance(param, DTensor) else
+param.detach().clone() for ...}` inside the `with merged_lora_context(...)`
+block. The downstream generator then sees plain tensors and passes them
+through unchanged.
 
-## Required remediation
+Eager materialization alone is **not** sufficient. A probe run (2026-11-07,
+1 GPU, lora_B perturbed with std=0.02 so merged ≠ base is unmistakable) showed
+the engine-side dict reading merged values inside the context (q_proj abs-sum
+78547.27) while the rollout worker received the **bit-exact base weight**
+(78189.4375) at every sync cycle: on a single-rank mesh the chain
+`param.to(device).full_tensor().to(torch.bfloat16)` returns a *view* of the
+live module storage (`.to()` casts are no-ops on an on-device bf16 param), and
+`merged_lora_context.__exit__` restores the base weights **in place**
+(`param.data.copy_(backup)`), so the bucketed weight sender — which consumes
+the tensors only after `get_per_tensor_param` has returned — reads base
+values. `.detach().clone()` inside the context makes every delivered tensor a
+real copy taken while the merged weights are still live. Upstream verl PR
+#7014 guards the same aliasing class by holding the context open across the
+sender's consumption (generator) and cloning plain tensors; the
+clone-inside-the-context form here is the eager equivalent.
 
-- `verl/workers/engine/fsdp/transformer_impl.py`: keep `merged_lora_context`
-  open until the consumer has materialized every tensor. `reference.patch` is
-  the upstream fix (verl PR #7014, `d45a68d5` -> `6e3c39d6`): the merge branch
-  returns a generator, `_merged_lora_per_tensor_param`, that yields
-  `full_tensor()` copies (and clones of plain tensors) from inside the context.
-  Materializing all tensors into a list inside the context is equivalent at
-  this model size. Turning off `lora.merge`, LoRA, or FSDP2 avoids the code
-  path rather than repairing it; the rerun pins all three, and the grader
-  requires the pinned values in the run's own configuration dump.
+A second probe (same day) held both the raw chain result and the cloned copy
+across the context exit: the raw tensor flipped to bit-exact base
+(78189.4375) while the clone retained the merged value (78540.58), and the
+rollout worker then received exactly the clone's merged abs-sum at every sync
+cycle — the mechanism and the fix are both confirmed directly.
 
-## Machine grading and calibration
+Disabling `lora.merge`, LoRA, or FSDP2 avoids the path instead of fixing it; the
+rerun pins all three (`run_grpo_lora.sh` is byte-compared, and the fresh run's
+config-dump lines `'strategy': 'fsdp2'`, `'merge': True`, `'lora_rank': 32`,
+`'lora_alpha': 64` are required by the grader).
 
-Machine grading reads only new `experiment_logs` files and requires
-`val-core/openai/gsm8k/acc/mean@1 >= 0.4` at step 60 (`score_mode=final`),
-with an accuracy cap of 1.0. The fresh log must also show the recorded trigger
-configuration (LoRA rank 32, alpha 64, `lora.merge=True`, FSDP2) through
-`required_log_patterns`. The step-60 validation dump is re-graded with the
-verifier's own copy of verl's GSM8K scorer against a protected answer key: all
-1319 test problems must appear exactly once, answers come from the key, and the
-re-grade must agree with the logged value within 0.002.
+## Expected numbers
 
-Two defective and two repaired runs calibrate this initial threshold (seed 1
-on 1 GPU, seed 2 on 2 GPUs). Step 60: defective 0.08415 / 0.08112, repaired
-0.7771 / 0.7794. Maximum over every defective validation point: 0.09098.
-Minimum over repaired points from step 5: 0.7263. Repaired step 0: 0.08112 /
-0.07961, so a fix without training does not pass. Margins at step 60 are 0.316
-above the defective arm and 0.377 below the repaired arm. These are observed
-margins over two seeds per side, not variance bounds or a claim of
-cross-environment stability.
+Defective (workspace as shipped): step-60 strict held-out accuracy ~0.084
+(regrade of the frozen dump: 0.0887). Repaired: ~0.78. Gate: 0.4.
 
-`control/` holds the repaired seed-1 run's sanitized console history and
-W&B history (the W&B export lacks the final step-60 point, a flush-timing
-artifact; `control/train.log` carries the complete series); `control-seed2/`
-the seed-2 run's console history.
-`historical_evidence_manifest.json` lists the defective seed-1 validation
-series that the workspace freezes.
+## Files
+
+- `fix.diff` — the repair, applies with `patch -p1` from the workspace root.
+- `code_target/run_grpo_lora.sh` — pristine launcher (byte-pin target).
+- `recorded_comparison/RESULTS.md` — calibration results (filled after the
+  2-arm calibration: defective + repaired).

@@ -1,34 +1,28 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "task_id": "verl_lora_merge_base_weight_sync",
-  "metric_key": "val-core/openai/gsm8k/acc/mean@1",
+  "metric_key": "heldout/gsm8k_strict_acc@60 (grader re-score of val_generations/60.jsonl)",
   "final_step": 60,
-  "historical_final_baseline": "0.08415",
+  "dump_subdir": "val_generations",
+  "min_rows": 1300,
+  "historical_final_baseline": "0.0842",
   "required_final_score": "0.4",
-  "required_final_score_max": "1.0",
-  "score_mode": "final",
-  "validation_dump": "val_generations/{step}.jsonl",
-  "validation_recheck_tolerance": "0.002",
-  "answer_key": "gsm8k_test_answer_key.json",
-  "required_log_patterns": [
-    {
-      "pattern": "'lora_rank':\\s*32(?!\\d)",
-      "description": "LoRA rank must remain 32"
-    },
-    {
-      "pattern": "'lora_alpha':\\s*64(?!\\d)",
-      "description": "LoRA alpha must remain 64"
-    },
-    {
-      "pattern": "'merge':\\s*True(?!\\w)",
-      "description": "the LoRA adapter must remain merged into the rollout weights"
-    },
-    {
-      "pattern": "'strategy':\\s*'fsdp2'(?!\\w)",
-      "description": "the actor strategy must remain FSDP2"
-    }
-  ],
+  "runner_pinned": true,
+  "runner_script": "run_grpo_lora.sh",
+  "metric_agreement_tolerance": "0.002",
+  "required_log_patterns": {
+    "actor_strategy_fsdp2": "'strategy': 'fsdp2'",
+    "lora_merge_true": "'merge': True",
+    "lora_rank_32": "'lora_rank': 32",
+    "lora_alpha_64": "'lora_alpha': 64"
+  },
   "log_roots": [
     "experiment_logs"
-  ]
+  ],
+  "pinned_sha256": {
+    "data/gsm8k/train.parquet": "8fb13a0cd8621e5fcacdee3ffe28b3a369975478ea7ab514781f3f190cba2488",
+    "data/gsm8k/test.parquet": "0dcd50ed32caa9d8f434d4e3ef8031bc3e49b0f823655a53be5c002e727f17dd",
+    "data/raw/gsm8k/main/train-00000-of-00001.parquet": "ea82612ea9582142387730c793eb67d3b12849002bc0b7fa6f8efafa7351419d",
+    "data/raw/gsm8k/main/test-00000-of-00001.parquet": "ee7b8da9e381df27b9e3f7758a159ab2bdaa4dbaa910546cbbc47e0cb44e4f59"
+  }
 }

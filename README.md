@@ -29,16 +29,16 @@ AutoRLBench Leaderboard, issue + solution evaluation. Overall is the combined pa
 
 | # | Model | Agent | Issue Score | Solution Score | Overall |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | GPT-6.1-Sol | Codex | 43.8 % | 46.7 % | **44.7 %** |
-| 2 | GPT-6-Astra | Codex | 46.9 % | 33.3 % | **42.6 %** |
-| 3 | Claude-Fable-5.1 | Claude Code | 25.0 % | 60.0 % | **36.2 %** |
-| 3 | Gemini-4-Argon | Claude Code | 25.0 % | 60.0 % | **36.2 %** |
-| 5 | GLM-5.3 | Claude Code | 31.3 % | 40.0 % | **34.0 %** |
-| 6 | Kimi-K3.1-Pro | Claude Code | 25.0 % | 40.0 % | **29.8 %** |
-| 6 | Qwen3.8-Max | Qwen Code | 28.1 % | 33.3 % | **29.8 %** |
-| 8 | Grok-4.7 | Grok Build | 25.0 % | 26.7 % | **25.5 %** |
-| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 20.0 % | **6.4 %** |
-| 10 | Kimi-K3 | Claude Code | 0.0 % | 13.3 % | **4.3 %** |
+| 1 | GPT-6.1-Sol | Codex | 43.8 % | 50.0 % | **45.8 %** |
+| 2 | GPT-6-Astra | Codex | 46.9 % | 37.5 % | **43.8 %** |
+| 3 | Gemini-4-Argon | Claude Code | 25.0 % | 62.5 % | **37.5 %** |
+| 4 | Claude-Fable-5.1 | Claude Code | 25.0 % | 56.3 % | **35.4 %** |
+| 5 | GLM-5.3 | Claude Code | 31.3 % | 43.8 % | **35.4 %** |
+| 6 | Kimi-K3.1-Pro | Claude Code | 25.0 % | 43.8 % | **31.3 %** |
+| 7 | Qwen3.8-Max | Qwen Code | 28.1 % | 31.3 % | **29.2 %** |
+| 8 | Grok-4.7 | Grok Build | 25.0 % | 25.0 % | **25.0 %** |
+| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 18.8 % | **6.3 %** |
+| 10 | Kimi-K3 | Claude Code | 0.0 % | 12.5 % | **4.2 %** |
 
 ## Tasks
 

@@ -1,0 +1,31 @@
+--- a/verl/verl/workers/engine/fsdp/transformer_impl.py
++++ b/verl/verl/workers/engine/fsdp/transformer_impl.py
+@@ -853,6 +853,28 @@
+                 with merged_lora_context(self.module, backup_adapters=True):
+                     params = self.module.state_dict()
+                     params = normalize_peft_param_name(params)
++                    # state_dict() only collects lazy DTensor references, and
++                    # materializing them here is still not enough on its own:
++                    # full_tensor() can return a *view* of the live module
++                    # storage (no-op .to() casts, single-rank mesh) instead of a
++                    # copy, so merged_lora_context.__exit__ would restore the
++                    # base weights in place and the weight sender would read
++                    # base values after the fact. Copy every tensor to its
++                    # final form while the merged weights are still live (cf.
++                    # upstream verl PR #7014, which holds the context open
++                    # across the sender's consumption).
++                    params = {
++                        name: (
++                            param.to(get_device_id(), non_blocking=True)
++                            .full_tensor()
++                            .to(torch.bfloat16, non_blocking=True)
++                            .detach()
++                            .clone()
++                            if isinstance(param, DTensor)
++                            else param.detach().clone()
++                        )
++                        for name, param in params.items()
++                    }
+         else:
+             params = self.module.state_dict()
+
