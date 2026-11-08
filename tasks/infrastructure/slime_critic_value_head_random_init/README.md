@@ -190,7 +190,7 @@ environment/et_prompts.tar.gz      the prebuilt prompt payload (1489 admitted ta
 workspace/                         the defective side the agent receives; triggers the symptom
 workspace/logs/                    frozen logs + value-loss summaries of the recorded defective run
 evaluations/issue/                 diagnose the snapshot  (shared protocol: instruction, oracle, verifier)
-evaluations/solution/              apply the fix          (instruction, oracle, verifier)
+evaluations/solution/              diagnose, repair if unhealthy (instruction, oracle, verifier)
 evaluations/solution/verifier/resources/run_spec.json    the harness rerun: `bash run.sh`,
                                    OUT_DIR/CKPT_ROOT under $AUTORLBENCH_RESULTS
 evaluations/solution/verifier/tests/check_value_head.py   the verifier's offline zero-init check
@@ -552,8 +552,8 @@ long before. Nothing about either run was conditioned on `et_test`.
   symptom is readable in the frozen `workspace/logs/`, the root cause is
   visible in `slime/slime/backends/megatron_utils/model_provider.py` — and
   does not launch training.
-- **solution**: a deterministic metric verifier — the agent applies the fix
-  and reruns. `verifier/tests/check_value_head.py` (the verifier's own offline
+- **solution**: a deterministic metric verifier — the agent diagnoses and,
+  if the run is unhealthy, repairs it before the rerun. `verifier/tests/check_value_head.py` (the verifier's own offline
   check) passes, and Stage B reports `first_value_loss < 1.0` and
   `warmup_value_loss_mean < 1.0` over ≥1 critic step, with ≥1 rollout actually
   generated: Stage B's first critic step must land inside the reward scale. It

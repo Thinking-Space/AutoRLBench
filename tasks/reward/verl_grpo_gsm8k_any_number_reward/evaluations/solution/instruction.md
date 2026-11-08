@@ -1,4 +1,4 @@
-# Improve the staged experiment
+# Diagnose and repair the staged experiment
 
 Review the staged post-training experiment and determine whether it is healthy
 or unhealthy. Treat the workspace as a snapshot you may repair: inspect its
@@ -27,10 +27,11 @@ repair using only what is staged locally.
 When you are done, submit a report at `/workspace/report.md`. It must
 summarize:
 
-1. **Root cause**: the defect you found, and the evidence in the workspace
+1. **Verdict**: healthy or unhealthy, with the evidence that decides it.
+2. **Root cause**: the defect you found, and the evidence in the workspace
    (logs, metrics, code) that connects it to the observed behavior.
-2. **Changes**: every file you changed and what you changed in it.
-3. **Expected effect**: which metric the fix should move and in which
+3. **Changes**: every file you changed and what you changed in it.
+4. **Expected effect**: which metric the fix should move and in which
    direction.
 
 A missing or empty `/workspace/report.md` scores 0.
@@ -51,6 +52,11 @@ with this environment:
 LOG_DIR=$AUTORLBENCH_RESULTS/experiment_logs
 WANDB_MODE=offline
 WANDB_DIR=$AUTORLBENCH_RESULTS/experiment_logs
+WANDB_SILENT=true
+WANDB_API_KEY=autorlbench-offline
+HF_HUB_OFFLINE=1
+TRANSFORMERS_OFFLINE=1
+HF_DATASETS_OFFLINE=1
 ```
 
 The effective run uses:
@@ -58,7 +64,6 @@ The effective run uses:
 - model `/workspace/models/Qwen2.5-0.5B-Instruct`
 - train data `/workspace/data/gsm8k/train.parquet`
 - validation data `/workspace/data/gsm8k/test.parquet`, with the prompt as shipped
-  (it asks for the final answer after `####`)
 - the budget already in the script: `trainer.total_training_steps=100`, `trainer.test_freq=10`,
   `data.train_batch_size=128`, `actor_rollout_ref.rollout.n=8`,
   `actor_rollout_ref.rollout.val_kwargs.do_sample=False`, `data.max_response_length=512`
@@ -66,8 +71,7 @@ The effective run uses:
   held-out generations the run dumps at step 100, not a logged number
 
 The grader re-scores `experiment_logs/val_generations/100.jsonl` itself, with a fixed rule that
-is not part of the workspace: a response is correct only if the last `#### <number>` it contains
-equals the gold answer numerically. Changing the logged metric, the reward manager, the
+is not part of the workspace. Changing the logged metric, the reward manager, the
 validation set, the prompt, or the dump path does not change that rule. A run whose step-100 dump
 is missing scores 0.
 

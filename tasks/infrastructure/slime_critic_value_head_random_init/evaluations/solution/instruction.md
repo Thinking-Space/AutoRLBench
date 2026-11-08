@@ -1,19 +1,20 @@
-# Task: fix the inflated critic warmup loss
+# RL training run diagnosis and repair
 
-`/workspace` is a Multi-Turn PPO training workspace for `slime` v0.3.2
-(Qwen3-1.7B on Endless Terminals). It has a defect in how the critic is built.
+Review the staged post-training experiment in `/workspace` and determine
+whether it is healthy or unhealthy. Treat the workspace as a historical
+snapshot: inspect its source, effective configuration, launch scripts, data
+processing, reward logic, logs, tracked metrics, and frozen evaluation
+evidence. Do not assume that an unusual setting or implementation is causal
+without connecting it to observed behavior.
 
-The reward is binary — 1.0 if an episode's pytest verifier passes, else 0.0 —
-and GAE runs with `--gamma 1.0 --lambd 1.0`, so the critic's regression target
-for every response token is the episode return in `{0, 1}`. A critic that has
-not yet seen a single reward should therefore report a value loss bounded by
-the reward scale: at most 1.0.
+Use held-out evaluation evidence together with rollout, truncation, runtime,
+optimization, and training signals. Training reward alone does not establish
+held-out health. A truncated log is not by itself proof of a defect.
 
-It does not. `./run.sh` trains a checkpoint (Stage A), reloads it, and runs
-critic-only warmup steps (Stage B); Stage B's first `train/critic-value_loss`
-comes out around **5-6**, and the whole warmup window is spent working it back
-down. The frozen logs of the recorded run are in `logs/` if you want the
-symptom first-hand.
+If you conclude that the run is unhealthy, repair the cause in the
+workspace's own code. The dataset, held-out set, model, training-step
+budget, evaluation interval, reward function, and rollout configuration
+are fixed — repair the implementation, not the task.
 
 ## Your job
 
@@ -22,28 +23,16 @@ or background, and do not use `nohup`, `&`, `tmux`, `screen`, or any detach
 mechanism.** The system runs the experiment itself after you finish (see
 below); a run you start is wasted and scores nothing.
 
-Make a freshly constructed critic predict exactly 0 everywhere, so that its
-first reported value loss is `mean(R²) = pass_rate ≤ 1`.
-
-The critic's value head is installed by `LinearForLastLayer` in
-`slime/backends/megatron_utils/model_provider.py`. The full slime source tree is
-bundled in the workspace: edit
-`slime/slime/backends/megatron_utils/model_provider.py` directly. `run.sh` runs
-this bundled slime (it is put ahead of the image's install on `PYTHONPATH`), so
-your edit there is what takes effect.
-
-Keep the change minimal and keep it correct for the actor: the same module
-builds both roles, and the actor's `[vocab_size, hidden_size]` LM head must
-keep loading from the checkpoint exactly as it does now.
-
 When you are done, submit a report at `/workspace/report.md`. It must
 summarize:
 
-1. **Root cause** — why a freshly constructed critic reports a value loss of
-   5-6 instead of ≤ 1.
-2. **Changes** — every file you changed and what you changed in it.
-3. **Expected effect** — the metric the fix should move and its expected
-   value.
+1. **Verdict** — healthy or unhealthy, with the evidence that decides it.
+2. **Root cause** — the concrete cause of any problem, with the causal
+   chain from it to the observed behavior, distinguishing root causes from
+   symptoms.
+3. **Changes** — every file you changed and what you changed in it.
+4. **Expected effect** — the metric your change should move and its
+   expected value.
 
 A missing or empty `/workspace/report.md` scores 0.
 
@@ -51,14 +40,11 @@ A missing or empty `/workspace/report.md` scores 0.
 
 After you submit the report, the system deletes everything under
 `$AUTORLBENCH_RESULTS/experiment_logs`, then runs the experiment end-to-end in
-your repaired workspace (a full run needs 2 GPUs and takes roughly 15 minutes;
-the Endless Terminals prompt set ships prebuilt with the workspace, so there
-is no first-run build pass) and a task-specific verifier grades the fresh
-results: the value-loss metric over the critic's warmup window, plus
-structural checks that critic optimizer steps, generated rollouts and
-non-zero response lengths are all present, so the metric cannot be improved
-by suppressing it, shortening the warmup, or changing the reward scale, the
-advantage estimator or `--value-clip`.
+your (possibly repaired) workspace (a full run needs 2 GPUs and takes
+roughly 15 minutes; the Endless Terminals prompt set ships prebuilt with the
+workspace, so there is no first-run build pass) and a task-specific verifier
+grades the fresh results, including structural checks that the run actually
+trained, generated rollouts, and produced non-empty responses.
 
 The verifier reads **only this fresh run's** files under
 `$AUTORLBENCH_RESULTS/experiment_logs`; logs written anywhere else are ignored.
