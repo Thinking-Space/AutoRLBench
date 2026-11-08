@@ -1,144 +1,33 @@
 #!/usr/bin/env python3
-"""Fetch model weights and datasets from inside the prepare stage.
+"""Fetch the task's pinned public assets, cache-first, into --dest.
 
-Lives in each task's `environment/` next to `prepare.sh`, which runs it directly
-(`python3 "$AUTORLBENCH_ENVIRONMENT/fetch_hf.py" …`). It runs inside the
-evaluation image the task declared (docker/images/<name>.Dockerfile) and is
-deliberately standalone -- no harness import -- because that image contains the
-task's stack, not the harness.
-
-What it does, kept intentionally small:
-
-* **Cache first, by directory.** A repo is downloaded once into a per-repo dir
-  under `$AUTORLBENCH_MODELS` (models) or `$AUTORLBENCH_DATASETS` (datasets). If that
-  dir already exists it is reused as-is -- so a second task wanting the same repo
-  does not re-download, and a rebuilt image does not either. The dir is named
-  after the repo id (owner/name -> owner__name) so a warm cache is easy to read.
-  A repo whose name would give away the task's answer passes `--cache-as` to land
-  under a neutral alias instead: the shared cache is mounted read-only into the
-  agent sandbox on some backends, and that name must not show up there.
-* **Whole repo.** The full repo is fetched (no file allow-list); the task's own
-  code reads whatever subset it needs.
-* **Hardlink into place.** The cached tree is hardlinked to `--dest` (a copy
-  across filesystems), so `--dest` is real bytes the agent/verifier can read.
-
-There is no checksum verification here -- it will come back once the rest of the
-benchmark settles.
-
-xet (HF's content-addressed transfer backend) is disabled before huggingface_hub
-is imported: cluster nodes reach HF only through the whitelist egress proxy /
-mirror, and the xet CDN (cas-*.xethub.hf.co) is not on that path, so a
-xet-enabled download stalls or fails even when the mirror is reachable.
-
-Usage, as prepare.sh writes it:
-
-    python3 "$AUTORLBENCH_ENVIRONMENT/fetch_hf.py" \\
-        --repo Qwen/Qwen2.5-0.5B-Instruct \\
-        --dest "$AUTORLBENCH_WORKSPACE/Qwen2.5-0.5B-Instruct"
-
-    python3 "$AUTORLBENCH_ENVIRONMENT/fetch_hf.py" \\
-        --type dataset --repo some/dataset-repo \\
-        --dest "$AUTORLBENCH_WORKSPACE/data"
+The CLI follows the task-family fetch_hf.py interface: --repo, --type and
+--dest. This configuration also requires --revision and verifies the pinned
+file lists, sizes and SHA-256 values. Transfers use HTTPS without Xet; model
+weights support resuming an interrupted transfer. Cache keys include revision.
 """
-
-from __future__ import annotations
-
 import argparse
+import fcntl
+import hashlib
+import json
 import os
-import shutil
-import sys
 from pathlib import Path
-from typing import Optional, Sequence
-
-# The two cache roots are the repo root's models/ and datasets/ dirs on the
-# host. Defaults must match the harness's MODELS_DIR / DATASETS_DIR.
-MODELS_ROOT = Path(os.environ.get("AUTORLBENCH_MODELS", "/autorlbench/models"))
-DATASETS_ROOT = Path(os.environ.get("AUTORLBENCH_DATASETS", "/autorlbench/datasets"))
-
-# Disable xet (HF's content-addressed transfer backend) before huggingface_hub
-# is ever imported. Cluster nodes reach HF only through the whitelist egress
-# proxy / mirror; the xet CDN (cas-*.xethub.hf.co) is not on that path, so a
-# xet-enabled snapshot_download stalls or fails even when the mirror itself is
-# reachable. huggingface_hub freezes this flag into a module constant at import
-# time (same reason HF_HOME can't be set post-import, see fetch_hf below), so it
-# MUST be set here -- at module load, before the lazy import inside fetch_hf.
-# setdefault so an explicit HF_HUB_DISABLE_XET=0 in the environment still wins.
-#
-# NOTE: this flag alone is NOT reliable -- in huggingface_hub 0.34.x the download
-# path keys off `find_spec("hf_xet")` rather than this flag (huggingface_hub#3266),
-# so a xet-backed repo still hits the blocked CDN despite the export.
-os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+import shutil
+import subprocess
+import tempfile
+import time
 
 
-# The authoritative guard: make `hf_xet` unimportable in THIS process, so
-# huggingface_hub's `find_spec("hf_xet")` gate sees xet as unavailable and falls
-# back to plain HTTPS from the mirror. Parking a None sentinel in sys.modules
-# does exactly that -- CPython's importlib.util.find_spec returns None when
-# `sys.modules[name] is None` (and a bare `import hf_xet` then raises
-# ImportError). It does not matter that hf_xet is still installed on the image
-# (on some images it ships via conda/system packaging and can't be uninstalled):
-# the sentinel makes it unavailable to the import machinery regardless, so the
-# download can't route through the blocked cas-*.xethub.hf.co CDN (the SSLError
-# seen in prepare). Must run before the lazy huggingface_hub import inside
-# fetch_hf. Gated on the same flag so an explicit HF_HUB_DISABLE_XET=0 opt-in
-# still gets real xet.
-def _xet_disabled() -> bool:
-    return os.environ.get("HF_HUB_DISABLE_XET", "1").strip().lower() not in (
-        "0",
-        "false",
-        "no",
-        "off",
-        "",
-    )
-
-
-if _xet_disabled():
-    sys.modules.setdefault("hf_xet", None)
-
-
-def _force_disable_xet() -> None:
-    """Overwrite every `is_xet_available` binding in huggingface_hub to False.
-
-    Call AFTER huggingface_hub is imported. This is the version-independent
-    backstop to the module-load sentinel: whatever mechanism this huggingface_hub
-    uses to detect xet (find_spec, `importlib.metadata.version`, a cached module
-    constant), the download path ultimately gates on `is_xet_available()`.
-    Submodules bind that name by value at import time (e.g. file_download does
-    `from .utils import is_xet_available`), so patching one module is not enough
-    -- we walk every imported huggingface_hub.* module and replace the attribute
-    wherever it exists.
-    """
-    if not _xet_disabled():
-        return
-    for name, module in list(sys.modules.items()):
-        if module is None or not name.startswith("huggingface_hub"):
-            continue
-        if hasattr(module, "is_xet_available"):
-            try:
-                module.is_xet_available = lambda *a, **k: False
-            except (AttributeError, TypeError):
-                pass
-
-
-def root_for(repo_type: str) -> Path:
-    """Pick the cache root for an asset kind.
-
-    Two roots rather than one with subdirs, because on the host these are two
-    side-by-side, visible directories: forgetting to mount one shows up
-    immediately as "nothing was downloaded" rather than quietly writing into
-    the container's writable layer.
-    """
-    return DATASETS_ROOT if repo_type == "dataset" else MODELS_ROOT
-
-
-class FetchError(RuntimeError):
-    """The asset is missing or could not be downloaded."""
-
-
-# --------------------------------------------------------------------------
-# materializing cache -> destination
-# --------------------------------------------------------------------------
-
+MODELS = [
+    {'repo': 'Qwen/Qwen2.5-1.5B-Instruct', 'revision': '989aa7980e4cf806f80c7fef2b1adb7bc71aa306',
+     'dest': 'actor', 'bytes': 3087467144,
+     'sha256': 'dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee',
+     'files': ['config.json', 'generation_config.json', 'merges.txt', 'model.safetensors', 'tokenizer.json', 'tokenizer_config.json', 'vocab.json']},
+    {'repo': 'intfloat/e5-base-v2', 'revision': 'f52bf8ec8c7124536f0efb74aca902b2995e5bcd',
+     'dest': 'encoder', 'bytes': 437955512,
+     'sha256': 'd0d559c47d5f71b1d280b13b62a2657f3e3bc70c0786f9ab91a36545e6a8f693',
+     'files': ['config.json', 'model.safetensors', 'special_tokens_map.json', 'tokenizer.json', 'tokenizer_config.json', 'vocab.txt']},
+]
 
 def materialize(source: Path, dest: Path) -> None:
     """Put the cached tree at `dest`, without paying for a second copy if we can.
@@ -174,105 +63,208 @@ def materialize(source: Path, dest: Path) -> None:
             shutil.rmtree(dest)
         shutil.copytree(source, dest, symlinks=False)
 
+def sha256(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(8 * 1024**2), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
 
-# --------------------------------------------------------------------------
-# huggingface
-# --------------------------------------------------------------------------
+def validate_model(folder, model):
+    for name in model['files']:
+        path = folder / name
+        if not path.is_file() or path.stat().st_size == 0:
+            raise RuntimeError('Missing model file: ' + str(path))
+        if name.endswith('.json'):
+            json.loads(path.read_text())
+    weight = folder / 'model.safetensors'
+    if weight.stat().st_size != model['bytes'] or sha256(weight) != model['sha256']:
+        raise RuntimeError('Model weight size or SHA-256 mismatch: ' + str(weight))
+
+def download_model(folder, model):
+    endpoint = os.environ.get('HF_ENDPOINT', 'https://hf-mirror.com').rstrip('/')
+    token = os.environ.get('HF_TOKEN') or os.environ.get('HUGGING_FACE_HUB_TOKEN')
+    for name in model['files']:
+        url = f'{endpoint}/{model["repo"]}/resolve/{model["revision"]}/{name}?download=true'
+        path = folder / name
+        if path.is_file() and path.stat().st_size:
+            if name == 'model.safetensors':
+                if path.stat().st_size == model['bytes'] and sha256(path) == model['sha256']:
+                    print('[prepare] verified partial-cache file', name, flush=True)
+                    continue
+            elif not name.endswith('.json') or json.loads(path.read_text()):
+                print('[prepare] reusing partial-cache file', name, flush=True)
+                continue
+        for attempt in range(1, 5):
+            command = ['curl', '--fail', '--silent', '--show-error', '--location',
+                '--connect-timeout', '20', '--max-time', '1800' if name == 'model.safetensors' else '180',
+                '--output', str(path), url]
+            if name == 'model.safetensors' and path.exists() and path.stat().st_size:
+                command[1:1] = ['--continue-at', '-']
+            options = ''
+            if token:
+                # Keep credentials out of command-line arguments and error messages.
+                options = 'header = ' + json.dumps('Authorization: Bearer ' + token) + '\n'
+                command[1:1] = ['--config', '-']
+            print('[prepare] downloading', model['repo'], name, 'attempt', attempt,
+                  'existing_bytes', path.stat().st_size if path.exists() else 0, flush=True)
+            result = subprocess.run(command, input=options, text=True)
+            if result.returncode == 0:
+                break
+            if result.returncode == 33 and path.exists():
+                path.unlink()  # This server refused Range; retry without a partial file.
+            print('[prepare] retry', name, 'curl_exit', result.returncode, flush=True)
+            time.sleep(min(attempt * 2, 8))
+        else:
+            raise RuntimeError(f'Download failed for {model["repo"]}/{name}; partial bytes retained for resumption')
+        print('[prepare] downloaded', name, path.stat().st_size, flush=True)
+    validate_model(folder, model)
+
+def prepare_model(args):
+    candidates = [model for model in MODELS if model['repo'] == args.repo]
+    if len(candidates) != 1 or candidates[0]['revision'] != args.revision:
+        raise ValueError('Model repo and revision must match the pinned configuration')
+    model = candidates[0]
+    workspace = Path(os.environ['AUTORLBENCH_WORKSPACE'])
+    cache_root = Path(os.environ.get('AUTORLBENCH_MODELS') or workspace / '.model-cache')
+    cache_root.mkdir(parents=True, exist_ok=True)
+    key = model['repo'].replace('/', '__') + '--' + model['revision']
+    cache = cache_root / key
+    with (cache_root / (key + '.lock')).open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if cache.is_dir():
+            validate_model(cache, model)
+            print('[prepare] verified cache', model['repo'], flush=True)
+        else:
+            staging = cache_root / (key + '.partial')
+            pending = staging / '.request.json'
+            if staging.exists():
+                if not pending.is_file() or json.loads(pending.read_text()) != model:
+                    raise RuntimeError('Existing partial cache has a different request: ' + str(staging))
+            else:
+                staging.mkdir()
+                pending.write_text(json.dumps(model, indent=2))
+            download_model(staging, model)
+            (staging / '.complete.json').write_text(json.dumps(model, indent=2))
+            pending.unlink()
+            staging.rename(cache)
+        if args.dest.exists():
+            validate_model(args.dest, model)
+        else:
+            materialize(cache, args.dest)
+    prepared = Path(os.environ.get('AUTORLBENCH_PREPARED') or workspace / '.prepared')
+    prepared.mkdir(parents=True, exist_ok=True)
+    with (prepared / 'models.lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        record_path = prepared / 'models.json'
+        records = json.loads(record_path.read_text()) if record_path.exists() else []
+        records = [record for record in records if record['repo'] != model['repo']]
+        records.append({key: model[key] for key in ['repo', 'revision', 'dest', 'bytes', 'sha256']})
+        record_path.write_text(json.dumps(records, indent=2))
 
 
-def repo_cache_dir(repo: str, repo_type: str, cache_as: str | None = None) -> Path:
-    """Where this repo's download lives, keyed by the repo id (or a neutral alias).
+def validate_data(path, spec):
+    if (path.is_symlink() or not path.is_file()
+            or path.stat().st_size != spec['bytes']
+            or sha256(path) != spec['sha256']):
+        raise RuntimeError('Data size or SHA-256 mismatch: ' + str(path))
 
-    The dir is named after the repo id (owner/name -> owner__name) so a warm cache
-    is readable. The same repo always maps to the same dir -- that is the cache
-    key. Pass ``cache_as`` for a repo whose name would reveal the task's answer:
-    the cache is mounted read-only into the agent sandbox on some backends, so
-    that repo caches under the neutral alias while still being reused across runs.
-    """
-    slug = (cache_as or repo).replace("/", "__")
-    return root_for(repo_type) / slug
+def download_data(path, spec, source):
+    endpoints = list(dict.fromkeys(filter(None, [
+        os.environ.get('HF_ENDPOINT', '').rstrip('/'),
+        'https://huggingface.co', 'https://hf-mirror.com',
+    ])))
+    for endpoint in endpoints:
+        url = (endpoint + '/datasets/' + source['repo_id'] + '/resolve/'
+               + source['revision'] + '/' + spec['remote_path'] + '?download=true')
+        for attempt in range(1, 3):
+            print('[prepare] downloading', source['repo_id'], spec['remote_path'],
+                  'endpoint', endpoint, 'attempt', attempt, flush=True)
+            # -q ignores local curl configuration; public downloads use no token.
+            result = subprocess.run([
+                'curl', '-q', '--fail', '--silent', '--show-error', '--location',
+                '--connect-timeout', '15', '--max-time', '180',
+                '--output', str(path), url,
+            ], capture_output=True, text=True)
+            if result.returncode == 0:
+                validate_data(path, spec)
+                return endpoint
+            print('[prepare] download retry, curl_exit', result.returncode, flush=True)
+            time.sleep(attempt)
+    raise RuntimeError('Public download failed: ' + source['repo_id'] + '/' + spec['remote_path'])
 
+def prepare_data(args):
+    manifest = json.loads(args.manifest.read_text())
+    source = manifest['source']
+    if args.repo != source['repo_id'] or args.revision != source['revision']:
+        raise ValueError('Dataset repo and revision must match the data manifest')
+    revision = source['revision']
+    if len(revision) != 40 or any(c not in '0123456789abcdef' for c in revision):
+        raise ValueError('Data revision must be a complete commit hash')
+    workspace = Path(os.environ['AUTORLBENCH_WORKSPACE'])
+    cache_root = Path(os.environ.get('AUTORLBENCH_DATASETS') or workspace / '.dataset-cache')
+    cache_root.mkdir(parents=True, exist_ok=True)
+    key = source['repo_id'].replace('/', '__') + '--' + revision
+    cache = cache_root / key
+    downloads = []
+    with (cache_root / (key + '.lock')).open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if cache.is_dir():
+            for name, spec in manifest['files'].items():
+                validate_data(cache / name, spec)
+            print('[prepare] verified data cache', source['repo_id'], flush=True)
+        else:
+            with tempfile.TemporaryDirectory(prefix=key + '.partial-', dir=cache_root) as temporary:
+                staging = Path(temporary) / 'snapshot'
+                staging.mkdir()
+                for name, spec in manifest['files'].items():
+                    path = staging / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    endpoint = download_data(path, spec, source)
+                    downloads.append({'file': spec['remote_path'], 'endpoint': endpoint})
+                (staging / '.complete.json').write_text(json.dumps(source, indent=2) + '\n')
+                staging.rename(cache)
+        for name, spec in manifest['files'].items():
+            destination = args.dest / Path(name).name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if destination.exists() or destination.is_symlink():
+                validate_data(destination, spec)
+                continue
+            descriptor, temporary = tempfile.mkstemp(prefix='.' + destination.name + '-', dir=destination.parent)
+            os.close(descriptor)
+            pending = Path(temporary)
+            try:
+                shutil.copyfile(cache / name, pending)
+                pending.chmod(0o644)
+                validate_data(pending, spec)
+                os.replace(pending, destination)
+            finally:
+                pending.unlink(missing_ok=True)
+            validate_data(destination, spec)
+    prepared = Path(os.environ.get('AUTORLBENCH_PREPARED') or workspace / '.prepared')
+    prepared.mkdir(parents=True, exist_ok=True)
+    (prepared / 'data.json').write_text(json.dumps({
+        'source': source, 'files': manifest['files'], 'downloads': downloads,
+        'anonymous_download': True, 'verified': True,
+    }, indent=2) + '\n')
+    print('[prepare] public data verified', source['repo_id'], revision, flush=True)
 
-def fetch_hf(args: argparse.Namespace) -> Path:
-    cache = repo_cache_dir(args.repo, args.type, getattr(args, "cache_as", None))
-
-    if cache.is_dir():
-        print(f"[fetch] cache hit {args.repo} -> {cache}")
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument('--repo', required=True)
+    parser.add_argument('--type', choices=['model', 'dataset'], default='model')
+    parser.add_argument('--revision', required=True)
+    parser.add_argument('--dest', required=True, type=Path)
+    parser.add_argument('--manifest', type=Path,
+                        default=Path(__file__).with_name('data_manifest.json'))
+    args = parser.parse_args(argv)
+    if len(args.revision) != 40 or any(c not in '0123456789abcdef' for c in args.revision):
+        parser.error('--revision must be a complete commit hash')
+    if args.type == 'dataset':
+        prepare_data(args)
     else:
-        print(f"[fetch] downloading {args.repo} -> {cache}")
-        try:
-            from huggingface_hub import snapshot_download
-        except ImportError as exc:
-            raise FetchError(
-                f"huggingface_hub is required to fetch {args.repo!r}, and the active "
-                f"environment does not have it. Add it to the environment's "
-                f"docker/images/*.Dockerfile, or pre-populate {cache}."
-            ) from exc
-        # Final, mechanism-independent xet kill-switch, applied after
-        # huggingface_hub (and its file_download submodule) are imported; see the
-        # module-load guards above for why both layers are needed.
-        _force_disable_xet()
-        # Download into a sibling .partial dir and rename it into place only on
-        # success: a dir that exists is then always a COMPLETE download, so the
-        # `cache.is_dir()` hit above can trust it without per-file checks. An
-        # interrupted download leaves only the .partial dir, which the next run
-        # clears and retries.
-        staging = cache.with_name(cache.name + ".partial")
-        shutil.rmtree(staging, ignore_errors=True)
-        staging.parent.mkdir(parents=True, exist_ok=True)
-        snapshot_download(
-            repo_id=args.repo,
-            repo_type=args.type,
-            local_dir=str(staging),
-            max_workers=args.workers,
-        )
-        cache.parent.mkdir(parents=True, exist_ok=True)
-        os.replace(staging, cache)
-
-    materialize(cache, args.dest)
-    return args.dest
+        prepare_model(args)
 
 
-# --------------------------------------------------------------------------
-# cli
-# --------------------------------------------------------------------------
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="task_fetch_hf", description=__doc__.splitlines()[0])
-    parser.add_argument("--repo", required=True)
-    parser.add_argument(
-        "--type",
-        choices=("model", "dataset"),
-        default="model",
-        help="which cache root holds it; selects $AUTORLBENCH_MODELS vs $AUTORLBENCH_DATASETS",
-    )
-    parser.add_argument("--dest", required=True, type=Path, help="where the task expects it")
-    parser.add_argument(
-        "--cache-as",
-        metavar="OWNER/NAME",
-        default=None,
-        help=(
-            "cache under this neutral name instead of --repo, for a repo whose "
-            "name would reveal the task's answer to the agent. Downloads are "
-            "unaffected -- only the cache dir name changes, so bytes still get "
-            "reused across runs."
-        ),
-    )
-    parser.add_argument("--workers", type=int, default=8)
-    return parser
-
-
-def main(argv: Optional[Sequence[str]] = None) -> int:
-    args = build_parser().parse_args(argv)
-    try:
-        dest = fetch_hf(args)
-    except FetchError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
-    print(f"[fetch] ready {dest}")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__ == '__main__':
+    main()

@@ -72,35 +72,8 @@ experiment; both measured arms used nonzero e5 query embeddings.
   paths without following pre-existing output links. No live judge invocation
   or agent difficulty trial was performed, as requested.
 
-Issue-only: the clean held-out margin is single-seed and only three questions,
-and a common outcome for all defensible repairs has not been calibrated. There
-is no solution tier, numeric repair threshold, or automatic training rerun.
-The recorded pair has 32 updates and 4096 training rollouts per arm; all native
-reward recomputations match. Public evidence retains all 32 scalar records and
-384 sampled training trajectories. `environment/prepare.sh` downloads the four data files from the public
-[`LIF1014/qwen25-hotpotqa-1024`](https://huggingface.co/datasets/LIF1014/qwen25-hotpotqa-1024)
-snapshot at commit `d40bbbe3772947a360b6315f72392ab2e398e38a`, checks every byte size
-and SHA-256, downloads both pinned official models into workspace-relative
-destinations and rebuilds CPU-compatible indexes. Data files are not embedded
-in the task archive. Public downloads require no Hugging Face token. Package-stage runtime checks are documented
-in hidden `verifier/resources/package_validation.json`. Anonymous model
-downloads through the HF mirror, final weight hashes, CPU index rebuilding,
-catalog byte reconstruction and warm-cache preparation were tested in the
-registered remote runtime image. A new Docker build was unavailable because
-the allocated environment exposes neither Docker/BuildKit nor a daemon socket;
-GHCR also returned a TLS error there. No public-digest pull/build success is
-claimed, and an HF key is not required for the successfully tested model route.
-
-The packaged workspace also completed one native GRPO update and its full
-128-question validation on a remote H800, exit 0, with nonzero gradient norm.
-This is a packaging-path qualification, not an additional 32-step calibration.
-
-The public-data transport was subsequently tested from empty local data caches,
-without credentials, with all four sizes and SHA-256 values matching the recorded
-experiment. Warm-cache reuse, invalid-file rejection and mirror-to-official
-fallback also passed. The mirror initially returned HTTP 404 for the catalogs;
-a subsequent empty-cache test downloaded all four files from the mirror and
-verified their hashes. A new remote CPU preparation check could not be submitted
-because the Cybertron API connection was reset. The earlier GPU and model/index
-qualification predates this transport-only change. See hidden
-`verifier/resources/data_transport_qualification.json` for the precise scope.
+Preparation uses the family-style `prepare.sh` / `fetch_hf.py --repo --dest`
+interface, with revision pins and checksum verification retained. The local
+index builder and manifests remain separate. Consolidated CLI I/O checks are
+recorded in hidden `verifier/resources/environment_entrypoint_qualification.json`;
+they do not constitute a new GPU or Docker-build qualification.
