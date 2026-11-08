@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "training_steps": 32,
+  "train_rows": 1024,
+  "validation_rows": 128,
+  "train_batch_size": 32,
+  "responses_per_question": 4,
+  "learning_rate": 1e-06,
+  "seed": 42,
+  "actor_revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+  "encoder_revision": "f52bf8ec8c7124536f0efb74aca902b2995e5bcd",
+  "runtime": {
+    "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+    "packages": {
+      "torch": "2.4.0",
+      "vllm": "0.6.3",
+      "transformers": "4.46.3",
+      "ray": "2.40.0",
+      "flash-attn": "2.6.3",
+      "faiss-cpu": "1.14.2",
+      "datasets": "3.1.0",
+      "pyarrow": "17.0.0",
+      "tensordict": "0.5.0"
+    }
+  },
+  "recorded_command": [
+    "bash",
+    "/workspace/Search-R1/train_grpo.sh",
+    "data.train_batch_size=32",
+    "data.val_batch_size=16",
+    "data.max_start_length=512",
+    "data.max_prompt_length=3072",
+    "data.max_response_length=256",
+    "data.max_obs_length=768",
+    "actor_rollout_ref.rollout.n_agent=4",
+    "actor_rollout_ref.rollout.max_num_seqs=32",
+    "actor_rollout_ref.actor.ppo_mini_batch_size=128",
+    "actor_rollout_ref.actor.optim.lr=1e-6",
+    "actor_rollout_ref.actor.entropy_coeff=0.001",
+    "+actor_rollout_ref.actor.checkpoint_dtype=bfloat16",
+    "+actor_rollout_ref.rollout.engine_seed=42",
+    "+trainer.seed=42",
+    "+trainer.answer_only_reward=true",
+    "+trainer.ray_num_cpus=8",
+    "+trainer.ray_object_store_memory=2147483648",
+    "trainer.total_training_steps=32",
+    "trainer.total_epochs=1",
+    "trainer.test_freq=16",
+    "trainer.val_before_train=true",
+    "trainer.save_freq=-1",
+    "trainer.logger=[console]",
+    "trainer.default_local_dir=/workspace/checkpoints/recorded",
+    "+trainer.rollout_log_dir=/workspace/runs/recorded/rollouts",
+    "retriever.url=http://127.0.0.1:8000/catalog_001/train/retrieve",
+    "trainer.val_only=false"
+  ],
+  "start_time": 1793974617.7533672,
+  "primary_validation_steps": [
+    0,
+    16,
+    32
+  ],
+  "retained_training_rollout_steps": [
+    1,
+    16,
+    32
+  ],
+  "original_training_rollouts": 4096,
+  "retained_training_rollouts": 384,
+  "note": "Historical trajectory snapshot. Paths and identifiers normalized; retained scalar and response values are unchanged."
+}

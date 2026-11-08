@@ -1,0 +1,32 @@
+title = "Search-R1 HotpotQA training snapshot"
+license = "Apache-2.0"
+created_date = "2026-11-07"
+domain = "data"
+tags = ["search-r1", "grpo", "hotpotqa", "issue-only"]
+
+[submitter]
+name = "lyh4170"
+
+[model]
+name = "Qwen2.5-1.5B-Instruct"
+
+[dataset]
+name = "HotpotQA distractor (1024 train / 128 held-out)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run.py"
+
+[environment]
+image = "vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10"
+gpus = 0
+
+[environment.env]
+VLLM_ATTENTION_BACKEND = "XFORMERS"
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "retrieval_corpus_provenance"
+failure_reason = "The training retrieval catalog includes documents constructed from the training questions and gold targets, making search-and-copy a high-reward shortcut. The recorded policy reaches 0.953125 training EM reward, while the fixed-question corpus ablation falls from 0.953125 to 0.40625 and wrong-answer following reaches 0.671875. Clean held-out EM is 0.359375 against 0.3828125 for the matched clean-corpus control; that small single-seed held-out gap is not the decisive diagnostic."
