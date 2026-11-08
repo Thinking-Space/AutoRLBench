@@ -1,0 +1,27 @@
+title = "Qwen2.5 GSM8K GRPO run"
+license = "Apache-2.0"
+created_date = "2026-11-07"
+domain = "data"
+tags = ["verl", "grpo", "gsm8k", "data-contract"]
+
+[submitter]
+name = "benchmark_evaluation"
+
+[model]
+name = "Qwen2.5-1.5B-Instruct"
+
+[dataset]
+name = "GSM8K"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_gsm8k_grpo.sh"
+
+[environment]
+image = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 0
+
+[outcome]
+failure_type = "prompt_answer_leakage"
+failure_reason = "The production GSM8K preprocessor appends each selected row's own ground-truth answer to about 20% of training prompts. The unchanged native scorer correctly rewards final answers, while GRPO reinforces use of the policy-visible reference answer."
