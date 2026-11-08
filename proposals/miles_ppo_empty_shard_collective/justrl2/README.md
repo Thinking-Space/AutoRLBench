@@ -2,7 +2,7 @@
 
 **November 8 split and observation cleanup:** this PR contains the original
 empty-shard case only. [challenge/](challenge/README.md) exports coarse replay
-status and no prebuilt tracing or tensor dumps; solvers must add observations.
+status and no prebuilt tracing or tensor dumps; investigation methods are unrestricted.
 Historical evidence below stays reviewer-only. The unrelated cache case is
 submitted independently and is not a build or validation dependency.
 

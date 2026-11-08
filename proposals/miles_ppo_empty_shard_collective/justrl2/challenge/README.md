@@ -1,4 +1,4 @@
-# Original empty-shard case: solver-added instrumentation
+# Original empty-shard case: minimal initial evidence
 
 This PR contains the original local-empty-shard collective defect only. The
 separate communicator-cache case is submitted independently and is not required
@@ -36,11 +36,11 @@ repository, parent folders, source git history and `maintainer/`, and disable
 network access. The original source pin already repairs the defect, which the
 case deliberately reintroduces.
 
-The instruction requires the solver to first instrument the source, retain
-that diff, run failure/control experiments and explain observations, then
-repair and verify. No prescribed log schema or preselected logging locations
-are supplied. Reports must connect collected evidence to the actual defect;
-merely naming a function or submitting a patch is insufficient.
+The instruction states the failure, execution requirements and deliverables:
+a repair and a supported explanation. It does not prescribe investigation
+steps, tools, logging, assertions, an instrumentation diff or an evidence schema.
+Reviewers assess causal accuracy, repair correctness and support for claims;
+they must not require a particular diagnostic method.
 
 ## Reviewer checks
 
@@ -72,8 +72,8 @@ framework imports or model/optimizer execution.
 Removing supplied diagnostics increases the investigation required to obtain
 runtime evidence, but an expert may still infer the local-guard bug statically.
 No claim of impossible static deduction or calibrated benchmark difficulty is
-made; fresh experiments and a solver-authored instrumentation diff are required
-by this candidate's debugging protocol.
+made. Investigation choices belong to the solver; validation is assessed by
+its relevance and correctness, not by the diagnostic method used.
 
 The export also disables diagnostic-only backward hooks and output helpers,
 removes bundled debug scripts, and retains inert import-compatible dumper APIs.
@@ -83,3 +83,7 @@ full GPU framework import behavior after this cleanup is not revalidated.
 
 Current validation: **112 pytest cases and 10 subtests passed**, with no
 failures or skips. See `instrumentation_validation.json` for source/archive hashes.
+
+The subsequent method-neutral instruction revision passed 16 export tests.
+Only `instruction.md` changed in the contestant workspace; runtime code and
+initial evidence are byte-for-byte unchanged. See `instruction_validation.json`.

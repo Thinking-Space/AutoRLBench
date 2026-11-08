@@ -2,8 +2,7 @@
 
 **November 8, 2026 split:** this PR again contains only the original empty-shard
 case. Its contestant export now omits supplied progress/mesh/error records and
-diagnostic helpers; the solver adds source instrumentation before collecting
-evidence. The communicator-cache case is a separate independent PR.
+diagnostic helpers; the solver chooses its own investigation method. The communicator-cache case is a separate independent PR.
 
 **November 7, 2026 revision:** the [challenge export](miles_ppo_empty_shard_collective/justrl2/challenge/README.md)
 separates contestant material from this answer-revealing audit bundle and adds

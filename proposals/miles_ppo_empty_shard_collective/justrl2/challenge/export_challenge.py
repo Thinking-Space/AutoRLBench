@@ -281,7 +281,7 @@ def export(source, output):
                                              'remove answer-revealing repair comment', 'replace all adv-diag logger calls with pass',
                                              'inject the recorded local numel guard', 'retain common process-group compatibility helper',
                                              'keep historical GPU launcher and its diagnostic setup reviewer-only'],
-                    'observation_policy': 'No supplied log/print calls or non-license comments in framework copies; no prebuilt trace; add source instrumentation to collect evidence.',
+                    'observation_policy': 'No supplied log/print calls or non-license comments in framework copies; no prebuilt trace; investigation method is unrestricted.',
                     'gpu_revalidated': False, 'difficulty_calibrated': False,
                     'boundary': 'mount ONLY workspace/; keep repository and maintainer/ inaccessible; network disabled'}
         write_json(private / 'manifest.json', manifest)
