@@ -2,7 +2,8 @@
 
 ## Required inputs
 
-If any item is missing, stop.
+If any item is missing, stop. Packaging runs from the root of an AutoRLBench checkout — fork and clone the
+repository first, keep the raw material outside `tasks/`, and run the agent from the repo root.
 
 ### Task location
 

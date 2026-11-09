@@ -87,11 +87,21 @@ artifacts thinned and sanitized.
 
 ## Package it
 
-Point an agent at the raw material with the
+First, fork and clone this repository, and run the packaging from the repo root — the
+skill writes the task into `tasks/`, copies its evaluation scaffolding from an existing
+task, and validates with the harness shipped here, so it needs a local checkout. Keep
+the raw material outside `tasks/`; anywhere else is fine.
+
+```bash
+git clone https://github.com/<you>/AutoRLBench.git
+cd AutoRLBench
+```
+
+Then point an agent at the raw material with the
 [package-task](skills/package-task/SKILL.md) skill shipped in this repo:
 
 ```text
-Package <your_task> as an AutoRLBench task using https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task.
+Package <path-to-your_task> as an AutoRLBench task using the package-task skill at skills/package-task in this repository.
 ```
 
 It produces `tasks/<domain>/<task_id>/` in the [task layout](README.md#task-layout), and
@@ -106,7 +116,20 @@ It must report zero errors.
 
 ## Open a pull request
 
-Open it against `main` with the generated task. The packaging skill also emits a PR body
+The generated task is already inside your clone, so branch, commit, and push it to your
+fork, then open the PR against `main`. The packaging skill also emits a PR body
 derived from the finished task README — paste it into the PR description (you may adjust
 details, but keep the base format). Include the raw material only if it is
 small enough to be useful as evidence.
+
+Before opening the PR, you can use the repo's `rerun` command to check that the buggy run
+actually runs in the packaged task — it runs the task's `prepare.sh`, then launches the
+experiment:
+
+```bash
+python3 -m autorlbench rerun tasks/<domain>/<task_id>
+```
+
+The experiment does not have to run to completion: once training has produced a step, the
+environment is verified and you can stop the run. If you ran the check, say so in one
+sentence after the pasted PR body.

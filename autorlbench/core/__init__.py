@@ -1,7 +1,6 @@
 """Stable data models for AutoRLBench."""
 
 from .types import (
-    AgentSpec,
     TaskPackage,
     TaskPaths,
     CommandResult,
@@ -21,7 +20,6 @@ from .harbor_types import (
 )
 
 __all__ = [
-    "AgentSpec",
     "TaskPackage",
     "TaskPaths",
     "CommandResult",

@@ -32,17 +32,21 @@ from ..core.types import (
     PREPARED_DIR,
     AUTORLBENCH_ENVIRONMENT_DIR,
     CommandResult,
-    EnvironmentImage,
     EvaluationConfig,
     EvaluationPaths,
     EvaluationResult,
     TaskPackage,
 )
-from ..tasks import SchemaError, load_task_package
-from ..runtimes.base import AUTORLBENCH_ACTIVATE_BODY
+from ..tasks import SchemaError
+from ..runtimes.base import AUTORLBENCH_ACTIVATE_BODY, OFFLINE_ENV
 from ..runtimes.providers.docker import DEFAULT_SHM_SIZE
-from .evaluator import TaskEvaluator
-from .harbor_run_log import HarborRunLog
+from .evaluator import (
+    TaskEvaluator,
+    load_valid_package,
+    required_environment_image,
+    select_evaluation,
+)
+from .run_log import HarborRunLog
 from .run_spec import (
     REPORT_FILENAME,
     RunSpec,
@@ -392,23 +396,10 @@ exit "$verifier_status"
 
     @staticmethod
     def _docker_image(package: TaskPackage) -> str:
-        if package.environment.image is None:
-            raise HarborAdapterError(
-                f"task {package.task_id!r} declares no environment.image; Harbor needs "
-                "a prebuilt image"
-            )
-        return EnvironmentImage(package.environment.image).tag
-
-    # Offline switches: same as SandboxRuntime._network_policy_env gives agent / verifier.
-    # Only prepare has network, and it finishes before `harbor run`.
-    _OFFLINE_ENV = {
-        "HF_HUB_OFFLINE": "1",
-        "TRANSFORMERS_OFFLINE": "1",
-        "HF_DATASETS_OFFLINE": "1",
-        "WANDB_MODE": "offline",
-        "WANDB_API_KEY": "autorlbench-offline",
-        "WANDB_SILENT": "true",
-    }
+        try:
+            return required_environment_image(package).tag
+        except SchemaError as exc:
+            raise HarborAdapterError(str(exc)) from exc
 
     # /workspace is collected only for archiving and workspace_after_hash; grading in the shared container reads
     # the real /workspace. Weights and training checkpoints are often tens to hundreds of GB, and a download with
@@ -464,7 +455,7 @@ exit "$verifier_status"
                 AUTORLBENCH_ENVIRONMENT_DIR if _environment_mount(unit) is not None else ""
             ),
             "BASH_ENV": ACTIVATE_HOOK,
-            **self._OFFLINE_ENV,
+            **OFFLINE_ENV,
         }
         # AUTORLBENCH_TASK_ID is deliberately NOT in shared_env: many task ids spell out the
         # diagnosis (e.g. "context_parallel_oom"), and shared_env reaches the agent container.
@@ -1056,10 +1047,6 @@ class HarborResultMapper:
             metrics=metrics,
             report_dir=trial_dir,
             # Agent/model/backend and similar info follow Harbor's native command and job config.
-            agent_spec=None,
-            agent_setup=None,
-            agent=None,
-            verifier=None,
             workspace_before_hash=unit.workspace_before_hash,
             workspace_after_hash=workspace_after_hash,
             metadata=package.metadata,
@@ -1232,12 +1219,10 @@ class HarborPreparer:
         run_log: Optional[HarborRunLog] = None,
     ) -> HarborTaskUnit:
         package = unit.package
-        image = package.environment.environment_image
-        if image is None:
-            raise HarborAdapterError(
-                f"task {package.task_id!r} declares no environment.image; Harbor needs "
-                "a prebuilt image"
-            )
+        try:
+            image = required_environment_image(package)
+        except SchemaError as exc:
+            raise HarborAdapterError(str(exc)) from exc
         evaluator = self.evaluator
         eval_config = EvaluationConfig(
             work_dir=work_dir,
@@ -1310,17 +1295,8 @@ class HarborShell:
         extra_docker_args: Sequence[str] = (),
     ) -> None:
         """prepare and exec into docker run -it. Does not return, since os.execvp replaces the process."""
-        package = load_task_package(Path(task_root))
-        if not package.report.ok:
-            raise SchemaError(f"task package failed validation: {package.paths.root}")
-        try:
-            evaluation = package.paths.evaluations[config.evaluation_level]
-        except KeyError:
-            available = ", ".join(package.paths.evaluations) or "none"
-            raise SchemaError(
-                f"evaluation level {config.evaluation_level!r} is unavailable; "
-                f"available levels: {available}"
-            )
+        package = load_valid_package(task_root)
+        evaluation = select_evaluation(package, config.evaluation_level)
         unit = HarborTaskUnit(
             package=package,
             evaluation=evaluation,
@@ -1425,7 +1401,7 @@ class HarborShell:
                 AUTORLBENCH_ENVIRONMENT_DIR if _environment_mount(unit) is not None else ""
             ),
             "BASH_ENV": ACTIVATE_HOOK,
-            **self._OFFLINE_ENV,
+            **OFFLINE_ENV,
             # Override with task-declared env (CUDA_VISIBLE_DEVICES, etc.).
             **package.environment.env,
         }
@@ -1436,9 +1412,6 @@ class HarborShell:
         argv.append(image)
         argv.append(shell_cmd)
         return argv
-
-    # Same set of offline flags as harbor-evaluate.
-    _OFFLINE_ENV = HarborTaskMaterializer._OFFLINE_ENV
 
 
 class HarborEvaluator:
@@ -1455,12 +1428,6 @@ class HarborEvaluator:
         self.materializer = materializer or HarborTaskMaterializer()
         self.runner = runner or HarborRunner()
         self.result_mapper = result_mapper or HarborResultMapper()
-
-    def load(self, task_root: str | Path, strict: bool = True) -> TaskPackage:
-        return load_task_package(Path(task_root), strict=strict)
-
-    def validate(self, task_root: str | Path, strict: bool = True) -> Dict[str, Any]:
-        return self.load(task_root, strict=strict).report.to_dict()
 
     def evaluate(
         self,
@@ -1574,25 +1541,13 @@ class HarborEvaluator:
         evaluation_level: str,
         strict: bool,
     ) -> HarborTaskUnit:
-        package = self.load(task_root, strict=strict)
-        if not package.report.ok:
-            raise SchemaError(f"task package failed validation: {package.paths.root}")
-        evaluation = self._select_evaluation(package, evaluation_level)
+        package = load_valid_package(task_root, strict=strict)
+        evaluation = select_evaluation(package, evaluation_level)
         return HarborTaskUnit(
             package=package,
             evaluation=evaluation,
             workspace_before_hash=tree_digest(package.paths.workspace),
         )
-
-    @staticmethod
-    def _select_evaluation(package: TaskPackage, level: str) -> EvaluationPaths:
-        try:
-            return package.paths.evaluations[level]
-        except KeyError as exc:
-            available = ", ".join(package.evaluation_levels) or "none"
-            raise SchemaError(
-                f"evaluation level {level!r} is unavailable; available levels: {available}"
-            ) from exc
 
     @staticmethod
     def _make_run_dir(

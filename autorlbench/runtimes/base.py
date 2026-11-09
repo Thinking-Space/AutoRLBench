@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import subprocess
+import sys
+import threading
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -112,9 +115,62 @@ class CommandSpec:
         raise ValueError("command spec needs argv or shell")
 
 
+def stream_process_to_log(
+    process: subprocess.Popen,
+    *,
+    timeout_s: Optional[int],
+    log_path: Path,
+    to_stderr: bool = False,
+) -> tuple[str, str, bool]:
+    """Capture a process while streaming both of its streams into one persistent log file.
+
+    The run-log paths point this at a log file that must outlive the run staging (see
+    evaluation.run_log), so there is a single combined file rather than
+    <name>.stdout/.stderr.log pairs inside results/. Both drain threads share the open
+    file and flush per line, which makes tail -f follow the stage as it runs. stdout and
+    stderr stay separately captured for the CommandResult, same as with no live logging
+    at all. Shared by the docker and local providers, so the log layout does not depend
+    on the backend. to_stderr additionally mirrors every line onto this process's stderr
+    -- the same switch CommandSpec.live_log_to_stderr drives for the results-dir branch,
+    so a live_log_path and terminal echo are not mutually exclusive.
+    """
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    captured: Dict[str, list[str]] = {"stdout": [], "stderr": []}
+    log_file = open(log_path, "w", encoding="utf-8")
+
+    def drain(stream, key: str) -> None:
+        for line in iter(stream.readline, ""):
+            captured[key].append(line)
+            log_file.write(line)
+            log_file.flush()
+            if to_stderr:
+                sys.stderr.write(line)
+                sys.stderr.flush()
+        stream.close()
+
+    threads = [
+        threading.Thread(target=drain, args=(process.stdout, "stdout"), daemon=True),
+        threading.Thread(target=drain, args=(process.stderr, "stderr"), daemon=True),
+    ]
+    for thread in threads:
+        thread.start()
+
+    timed_out = False
+    try:
+        process.wait(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        process.kill()
+        process.wait()
+    for thread in threads:
+        thread.join()
+    log_file.close()
+    return "".join(captured["stdout"]), "".join(captured["stderr"]), timed_out
+
+
 @dataclass(frozen=True)
 class EnvironmentArtifact:
-    """A prepared environment, reusable across the agent and verifier stages."""
+    """A prepared environment, reusable across the stages of a run."""
 
     backend: str
     reference: Optional[str] = None
@@ -131,11 +187,13 @@ class SandboxInstance:
 
 @dataclass(frozen=True)
 class SandboxRequest:
-    """Host resources needed for one prepare / agent / rerun / verifier run.
+    """Host resources needed for one prepare / rerun run.
 
-    A rerun stage sits between the agent and the verifier: under the solution protocol the agent
-    only repairs code and never runs the experiment, so the harness re-runs it on the workspace
-    the agent left behind, and grading only ever sees that fresh run's logs.
+    A rerun stage runs the experiment itself: under the solution protocol the agent only repairs
+    code and never runs the experiment, so the harness re-runs it on the workspace the agent left
+    behind, and grading only ever sees that fresh run's logs. In this harness's own stages only
+    prepare and rerun exist; Harbor's agent / verifier stages are plain strings inside its own
+    containers.
     """
 
     stage: str
@@ -145,18 +203,14 @@ class SandboxRequest:
     host_workspace: Path
     host_results: Path
     evaluation_level: str = "solution"
-    host_oracle: Optional[Path] = None
-    host_verifier: Optional[Path] = None
-    # The task's environment/ directory: prepare.sh lives in it. Mounted read-only in all
-    # stages that see it -- see sees_environment_dir() for which stages those are. Read-only
-    # because no stage has a reason to modify the task definition in the repo.
+    # The task's environment/ directory: prepare.sh lives in it. Mounted read-only, because no
+    # stage has a reason to modify the task definition in the repo.
     host_environment: Optional[Path] = None
-    # prepare-stage outputs land here (models, datasets, env files for the later stages).
-    # Writable in prepare, read-only for agent / verifier: grading must not depend on anything the agent can change.
+    # prepare-stage outputs land here (models, datasets, env files for the rerun).
+    # Writable in prepare, read-only for the rerun.
     host_prepared: Optional[Path] = None
-    # Download caches reused across runs and tasks, split into two roots by asset kind. Which stages
-    # actually get them mounted is decided by sees_download_cache(), not by whoever set the field:
-    # the mount table and the environment variables must not drift apart.
+    # Download caches reused across runs and tasks, split into two roots by asset kind.
+    # Mounted (writable) in prepare only.
     host_models: Optional[Path] = None
     host_datasets: Optional[Path] = None
     workdir: str = "workspace"
@@ -172,67 +226,33 @@ class SandboxRequest:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "task_env", dict(self.task_env))
-        if self.stage not in {"prepare", "agent", "rerun", "verifier"}:
-            raise ValueError(
-                "sandbox stage must be 'prepare', 'agent', 'rerun' or 'verifier'"
-            )
-        if self.workdir not in {"workspace", "task_root", "prepared"}:
-            raise ValueError(
-                "sandbox workdir must be 'workspace', 'task_root' or 'prepared'"
-            )
+        if self.stage not in {"prepare", "rerun"}:
+            raise ValueError("sandbox stage must be 'prepare' or 'rerun'")
+        if self.workdir != "workspace":
+            raise ValueError("sandbox workdir must be 'workspace'")
         if self.stage == "prepare" and self.host_prepared is None:
             # A prepare stage with nowhere to write is wasted: the script succeeds and leaves nothing, which only
-            # surfaces when the agent stage cannot find the model, and then it is reported as the task's fault.
+            # surfaces when the rerun cannot find the model, and then it is reported as the task's fault.
             raise ValueError("the prepare stage needs host_prepared")
 
 
-def sees_environment_dir(request: SandboxRequest) -> bool:
-    """Whether this stage should see the task's environment/ directory.
-
-    prepare runs the prepare.sh inside it; the verifier occasionally reads resources from it.
-    **The agent does not get it**: prepare.sh describes how the task was assembled -- which HF
-    repo to download, which archive to unpack, which sha256 to verify -- and any one of those
-    names can point straight at the defect being diagnosed.
-
-    The rerun is launched by the harness, not an extension of the agent: it runs the task's
-    declared run_spec, and reading environment/ carries no extra risk there, but it also has no
-    need -- conservatively it sees the directory like the verifier does (grading scripts and
-    run_spec resources sit in the evaluation directory, not environment/).
-
-    The three stages used to share one mount table, and the agent got the mount too; "do not
-    write the answer into prepare.sh" was a convention in the prepare.sh file header, upheld by
-    task authors' discipline. A convention cannot cover "the repo name itself is the answer", so
-    it became a mechanism instead.
-    """
-    return request.stage != "agent"
-
-
-def sees_download_cache(request: SandboxRequest) -> bool:
-    """Whether this stage should see $AUTORLBENCH_{MODELS,DATASETS}.
-
-    prepare writes to them (that is where downloads land); the verifier reads them (grading often
-    needs a checkpoint or to align dataset samples). **The agent does not get them**: an HF cache's
-    directory names are its repo names (datasets--<owner>--<repo>), and a repo name is sometimes
-    named after the defect it carries -- the answer written straight into a directory listing.
-    The rerun likewise does not get the mount: its command comes from the task declaration and
-    needs nothing from the cache, and skipping it removes one more path on which repo names could
-    reach the rerun logs that stay in results (the agent cannot touch results, but one unneeded
-    mount is still one unneeded mount).
-
-    The agent does not need it either: the weights/datasets prepare delivered have been hard-
-    linked into the workspace by materialize(), real bytes, readable with or without the cache.
-
-    The mount table and the environment variables both consult this one predicate so they cannot
-    drift -- drift would show up as AUTORLBENCH_MODELS pointing at an unmounted path, reported
-    as "the directory is empty" instead of "you cannot see it".
-    """
-    return request.stage in {"prepare", "verifier"}
+# Offline switches for every stage except prepare. Harbor's agent / verifier containers get the
+# same set from the materialized task config (see harbor_evaluator), so the two paths cannot drift.
+OFFLINE_ENV = {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "HF_DATASETS_OFFLINE": "1",
+    "WANDB_MODE": "offline",
+    # Some frameworks still exit with an error under WANDB_MODE=offline when no key is set.
+    "WANDB_API_KEY": "autorlbench-offline",
+    "WANDB_SILENT": "true",
+}
 
 
 class SandboxRuntime(ABC):
     """Unified interface for execution platforms.
 
-    Agents and the evaluator depend only on this interface, not directly on Docker or local processes.
+    The evaluator depends only on this interface, not directly on Docker or local processes.
     Backends such as Harbor or cloud sandboxes can implement the same methods.
     """
 
@@ -292,55 +312,38 @@ class SandboxRuntime(ABC):
         visible_task = self.path(request, "visible_task")
         workspace = self.path(request, "workspace")
         results = self.path(request, "results")
-        if request.stage == "verifier":
-            task_root = self.path(request, "task_root")
-            visible = ""
-            oracle = self.path(request, "oracle")
-            verifier = self.path(request, "verifier")
-        else:
-            # prepare, agent and rerun all see only visible_task: prepare runs a script the task
-            # supplies, and neither the agent nor the rerun has a reason to read the oracle or the
-            # grading scripts -- the rerun runs the command the task declared, nothing more.
-            task_root = visible_task
-            visible = visible_task
-            oracle = ""
-            verifier = ""
         env = {
-            # The agent and rerun stages get a neutral placeholder: task ids often spell out the
-            # diagnosis (e.g. "context_parallel_oom"), no better than the oracle as something the
-            # agent should read; the rerun is harness-initiated and gets no extra information.
-            # The other stages keep the real id -- no task-side script consumes it today, but it
-            # is part of the interface prepare.sh may rely on.
+            # The rerun gets a neutral placeholder: task ids often spell out the diagnosis
+            # (e.g. "context_parallel_oom"), and the rerun logs stay in results. Prepare keeps
+            # the real id -- no task-side script consumes it today, but it is part of the
+            # interface prepare.sh may rely on.
             "AUTORLBENCH_TASK_ID": (
-                "task" if request.stage in {"agent", "rerun"} else request.task_id
+                "task" if request.stage == "rerun" else request.task_id
             ),
             "AUTORLBENCH_EVALUATION_LEVEL": request.evaluation_level,
-            "AUTORLBENCH_TASK_ROOT": task_root,
-            "AUTORLBENCH_VISIBLE_TASK": visible,
+            "AUTORLBENCH_TASK_ROOT": visible_task,
+            "AUTORLBENCH_VISIBLE_TASK": visible_task,
             "AUTORLBENCH_WORKSPACE": workspace,
-            "AUTORLBENCH_ORACLE": oracle,
-            "AUTORLBENCH_VERIFIER": verifier,
             "AUTORLBENCH_RESULTS": results,
             "AUTORLBENCH_STAGE": request.stage,
             "AUTORLBENCH_ENVIRONMENT": (
                 self.path(request, "environment")
-                if request.host_environment and sees_environment_dir(request)
+                if request.host_environment
                 else ""
             ),
             "AUTORLBENCH_PREPARED": (
                 self.path(request, "prepared") if request.host_prepared else ""
             ),
-            # Both download cache roots. An empty string means "not visible this time", consistent
-            # with how prepared is handled -- the agent and rerun stages always get empty, see
-            # sees_download_cache().
+            # Both download cache roots, mounted in prepare only; an empty string means
+            # "not visible this time", consistent with how prepared is handled.
             "AUTORLBENCH_MODELS": (
                 self.path(request, "models")
-                if request.host_models and sees_download_cache(request)
+                if request.host_models and request.stage == "prepare"
                 else ""
             ),
             "AUTORLBENCH_DATASETS": (
                 self.path(request, "datasets")
-                if request.host_datasets and sees_download_cache(request)
+                if request.host_datasets and request.stage == "prepare"
                 else ""
             ),
         }
@@ -354,26 +357,17 @@ class SandboxRuntime(ABC):
         These used to be baked into the image ENV, which no longer works: prepare is the only stage that **should**
         have network, and image-level ENV treats every stage alike, so prepare would cut off its own network.
 
-        Agent, rerun and verifier are the opposite: any silent network download could run the evaluation on weights
-        nobody verified, without anyone noticing. So they are locked down here, and any data a task needs must be
-        what the prepare stage delivered. The rerun is on the same side: the experiment must re-run on the assets
-        prepare delivered, and its output is the grading input -- even less room for a network fetch.
+        The rerun is the opposite: any silent network download could run the experiment on weights
+        nobody verified, without anyone noticing. So it is locked down here, and any data the
+        experiment needs must be what the prepare stage delivered.
         """
         if request.stage == "prepare":
             # Prepare should not send anything to W&B either; it is only downloading.
             return {"WANDB_MODE": "offline", "WANDB_SILENT": "true"}
-        return {
-            "HF_HUB_OFFLINE": "1",
-            "TRANSFORMERS_OFFLINE": "1",
-            "HF_DATASETS_OFFLINE": "1",
-            "WANDB_MODE": "offline",
-            # Some frameworks still exit with an error under WANDB_MODE=offline when no key is set.
-            "WANDB_API_KEY": "autorlbench-offline",
-            "WANDB_SILENT": "true",
-        }
+        return dict(OFFLINE_ENV)
 
     def _merged_spec(self, request: SandboxRequest, spec: CommandSpec) -> CommandSpec:
-        """Merge standard and caller variables so agents need not handle paths themselves."""
+        """Merge standard and caller variables so callers need not handle paths themselves."""
         env = self.standard_env(request)
         # Task-declared env (metadata.environment.env) goes after standard variables and before the caller's:
         # it is more specific than framework defaults, but must not override what the caller set for this run.

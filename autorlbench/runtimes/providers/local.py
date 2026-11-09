@@ -8,7 +8,14 @@ from pathlib import Path
 from typing import Optional
 
 from ...core.types import CommandResult, EnvironmentImage
-from ..base import CommandSpec, EnvironmentArtifact, SandboxInstance, SandboxRequest, SandboxRuntime
+from ..base import (
+    CommandSpec,
+    EnvironmentArtifact,
+    SandboxInstance,
+    SandboxRequest,
+    SandboxRuntime,
+    stream_process_to_log,
+)
 from ..factory import register_runtime
 
 
@@ -29,15 +36,11 @@ class LocalRuntime(SandboxRuntime):
         return EnvironmentArtifact(backend=self.name)
 
     def path(self, request: SandboxRequest, name: str) -> str:
-        oracle = request.host_oracle or request.host_task_root / "oracle"
-        verifier = request.host_verifier or request.host_task_root / "verifier"
         paths = {
             "task_root": request.host_task_root,
             "visible_task": request.host_visible_task,
             "workspace": request.host_workspace,
             "results": request.host_results,
-            "oracle": oracle,
-            "verifier": verifier,
             # Local mode has no mounts, so logical paths are host paths. The three optional directories exist only
             # when the caller actually provided them; a missing one must raise unknown path, not return None.
             "environment": request.host_environment,
@@ -72,12 +75,22 @@ class LocalRuntime(SandboxRuntime):
             stderr=subprocess.PIPE,
             text=True,
         )
-        try:
-            stdout, stderr = process.communicate(timeout=spec.timeout_s)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            process.kill()
-            stdout, stderr = process.communicate()
+        if spec.live_log_path is not None:
+            # Same one-combined-file streaming as the docker provider, so a rerun's
+            # persistent stage logs do not depend on the backend.
+            stdout, stderr, timed_out = stream_process_to_log(
+                process,
+                timeout_s=spec.timeout_s,
+                log_path=spec.live_log_path,
+                to_stderr=spec.live_log_to_stderr,
+            )
+        else:
+            try:
+                stdout, stderr = process.communicate(timeout=spec.timeout_s)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                process.kill()
+                stdout, stderr = process.communicate()
         return CommandResult(
             argv=argv,
             returncode=process.returncode if process.returncode is not None else 124,

@@ -205,7 +205,7 @@ class EnvironmentEnvRuntimeTests(unittest.TestCase):
 
         root = Path("/host/run")
         defaults = dict(
-            stage="agent",
+            stage="rerun",
             task_id="t",
             host_task_root=root / "task",
             host_visible_task=root / "visible",
@@ -223,7 +223,7 @@ class EnvironmentEnvRuntimeTests(unittest.TestCase):
         merged = DockerRuntime()._merged_spec(request, CommandSpec(shell="true"))
 
         self.assertEqual(merged.env["CUDA_VISIBLE_DEVICES"], "0,1")
-        self.assertEqual(merged.env["AUTORLBENCH_STAGE"], "agent")
+        self.assertEqual(merged.env["AUTORLBENCH_STAGE"], "rerun")
 
     def test_caller_env_still_wins_over_the_task_declaration(self):
         from autorlbench.runtimes.base import CommandSpec

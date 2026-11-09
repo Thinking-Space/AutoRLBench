@@ -1,6 +1,6 @@
 # User input example
 
-Provide everything in this structure in one go when packaging. If any item is missing, stop. Replace numbers, commits, and hashes with the real values from that training run.
+Provide everything in this structure in one go when packaging. If any item is missing, stop. Replace numbers, commits, and hashes with the real values from that training run. Packaging runs from the root of an AutoRLBench checkout — fork and clone the repository first, and keep the raw material outside `tasks/`.
 
 When packaging, read the code and launch-script diff between the buggy commit and the baseline commit, write the root cause as one sentence, and include the metric symptoms given here.
 

@@ -39,7 +39,7 @@ from autorlbench.evaluation.harbor_evaluator import (
     HarborShell,
     HarborTaskMaterializer,
 )
-from autorlbench.evaluation.harbor_run_log import HarborRunLog
+from autorlbench.evaluation.run_log import HarborRunLog
 from autorlbench.tasks import load_task_package
 
 
@@ -1423,8 +1423,7 @@ def _trial(task_id: str, report_dir: Path):
 
     return EvaluationResult(
         task_id=task_id, evaluation_level="solution", passed=True, score=1.0,
-        metrics={}, report_dir=report_dir, agent_spec=None, agent_setup=None,
-        agent=None, verifier=None, workspace_before_hash="b",
+        metrics={}, report_dir=report_dir, workspace_before_hash="b",
         workspace_after_hash="a", metadata={},
     )
 

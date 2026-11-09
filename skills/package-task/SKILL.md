@@ -110,6 +110,11 @@ reason in one line of the task README (e.g. "issue-only: the post-fix margin is 
 
 ## Workflow
 
+**Run from the root of an AutoRLBench checkout.** The workflow writes into `tasks/`, copies its scaffolding
+from `tasks/reward/slime_retool_length_reward_bonus/`, and validates with the harness shipped in the repo. If
+`tasks/` and `autorlbench/` are not present in the working directory, stop and ask the user to clone the
+repository first (fork it if they plan to open a PR) — do not generate the task anywhere else.
+
 1. **Identify the root cause.** Take the diff for the source form and filter out unrelated parts. If nothing substantive remains after filtering, stop.
 2. **Decide the tiers.** Apply [Does the task get a solution tier?](#does-the-task-get-a-solution-tier). The issue tier is
    always written; the solution tier only when the decision rule says so.
@@ -206,6 +211,7 @@ is not byte-for-byte reproducible, do not pin it with a checksum.
 
 ## Pre-completion checklist
 
+- [ ] The task was generated inside an AutoRLBench checkout, at `tasks/<domain>/<task_id>/` under the repo root
 - [ ] Skeleton complete; no `agent_trace.json`, `environment/Dockerfile`, `validation/`
 - [ ] The tier decision is recorded: issue-only tasks say why in the README, one line
 - [ ] The four issue files (and solution `test.sh`, when present) all match their source under `cmp`

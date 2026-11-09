@@ -4,7 +4,6 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import shlex
 import subprocess
 import sys
@@ -13,7 +12,7 @@ from pathlib import Path
 from .core.harbor_types import HarborEvaluationConfig
 from .core.types import (
     TASK_FILE,
-    AgentSpec,
+    DEFAULT_OUTPUT_DIR,
     EnvironmentImage,
     EvaluationConfig,
     known_images,
@@ -22,21 +21,6 @@ from .evaluation.evaluator import TaskEvaluator
 from .evaluation.harbor_evaluator import HarborEvaluator, HarborShell
 from .runtimes.providers.docker import DockerRuntime
 from .tasks import SchemaError
-
-
-_ENV_KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-
-
-def _parse_env_assignments(assignments: list[str]) -> dict[str, str]:
-    env: dict[str, str] = {}
-    for assignment in assignments:
-        key, separator, value = assignment.partition("=")
-        if not separator:
-            raise SystemExit(f"environment assignment must be KEY=VALUE: {assignment}")
-        if not _ENV_KEY_RE.fullmatch(key):
-            raise SystemExit(f"invalid environment variable name: {key}")
-        env[key] = value
-    return env
 
 
 def _is_task_root(path: Path) -> bool:
@@ -88,47 +72,22 @@ def build_parser() -> argparse.ArgumentParser:
     v.add_argument("--lenient", action="store_true", help="skip non-critical directory warnings")
 
     e = sub.add_parser(
-        "evaluate",
-        help="run prepare + verifier for a task package (agent runs go through harbor-evaluate)",
+        "rerun",
+        help=(
+            "run a task's prepare.sh then its run_spec.json experiment -- no agent, "
+            "no verifier, no report gate; for a task submitter to confirm the buggy "
+            "run reproduces in their environment"
+        ),
         allow_abbrev=False,
     )
     e.add_argument("task_root")
-    e.add_argument(
-        "--evaluation-level",
-        choices=["issue", "solution"],
-        default="solution",
-        help="task evaluation to run",
-    )
     e.add_argument(
         "--log-level",
         choices=["quiet", "debug"],
         default="quiet",
         help="terminal logging level; run artifacts are always written",
     )
-    e.add_argument("--model", default=None, help="model name (also the default judge model)")
-    e.add_argument("--judge-model", default=None, help="model name used by API-backed verifiers")
-    e.add_argument("--base-url", default=None, help="API base URL for the judge model")
-    e.add_argument("--api-key", default=None, help="API key for the judge model")
-    e.add_argument(
-        "--api-key-env",
-        default=None,
-        help="read the API key from this environment variable (keeps it out of argv)",
-    )
-    e.add_argument(
-        "--verifier-env",
-        action="append",
-        default=[],
-        metavar="KEY=VALUE",
-        help="environment variable for the verifier stage; repeatable",
-    )
-    e.add_argument("--verifier-cmd", default=None, help="override verifier entrypoint")
     e.add_argument("--backend", choices=["docker", "local"], default="docker")
-    e.add_argument("--verifier-network", choices=["none", "bridge", "host"], default="bridge")
-    e.add_argument(
-        "--debian-mirror",
-        default=None,
-        help="Debian mirror base URL applied to package installs",
-    )
     e.add_argument(
         "--huggingface-mirror",
         default=None,
@@ -140,7 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "host directory shared by every run as the model download cache; "
             "mounted writable into the prepare stage and read-only into the "
-            "agent and verifier stages, so a model fetched by one task is not "
+            "rerun stage, so a model fetched by one task is not "
             "fetched again by the next (default: <repo>/models) "
             "[env: AUTORLBENCH_MODELS_DIR]"
         ),
@@ -154,9 +113,17 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     e.add_argument("--timeout-s", type=int, default=None)
-    e.add_argument("--keep-artifacts", action="store_true")
-    e.add_argument("--work-dir", default=None, help="parent directory for AutoRLBench run artifacts")
-    e.add_argument("--json", action="store_true", help="print JSON only")
+    e.add_argument(
+        "--output-root",
+        "--work-dir",
+        dest="output_root",
+        default=os.environ.get("AUTORLBENCH_RERUN_OUTPUT_DIR"),
+        help=(
+            "parent directory for persistent per-run logs and command records, laid out as "
+            "<output-root>/<task_id>/<timestamp>/ (default: <repo>/outputs/rerun) "
+            "[env: AUTORLBENCH_RERUN_OUTPUT_DIR]"
+        ),
+    )
 
     b = sub.add_parser(
         "build-images",
@@ -386,54 +353,32 @@ def main(argv=None) -> int:
             print(image.tag)
         return 0
 
-    if args.command == "evaluate":
+    if args.command == "rerun":
         evaluator = TaskEvaluator(backend=args.backend)
-        if args.api_key is not None and args.api_key_env is not None:
-            raise SystemExit("--api-key and --api-key-env are mutually exclusive")
-        api_key = args.api_key
-        if args.api_key_env:
-            api_key = os.environ.get(args.api_key_env)
-            if not api_key:
-                raise SystemExit(
-                    f"API key environment variable is unset or empty: {args.api_key_env}"
-                )
-        verifier_env = _parse_env_assignments(args.verifier_env)
-        # Model settings are only forwarded to API-backed verifiers as the judge configuration.
-        judge_spec = None
-        if args.model or args.judge_model or args.base_url or api_key:
-            judge_spec = AgentSpec(
-                kind="judge",
-                model=args.model,
-                judge_model=args.judge_model,
-                base_url=args.base_url,
-                api_key=api_key,
-            )
-        result = evaluator.evaluate(
+        result = evaluator.rerun(
             args.task_root,
             EvaluationConfig(
-                agent=judge_spec,
-                verifier_cmd=args.verifier_cmd,
                 backend=args.backend,
-                verifier_network=args.verifier_network,
                 timeout_s=args.timeout_s,
-                keep_artifacts=args.keep_artifacts,
-                work_dir=None if args.work_dir is None else Path(args.work_dir),
-                evaluation_level=args.evaluation_level,
+                # Logs are always kept -- the command exists to produce them for review,
+                # and --output-root only says where. keep_artifacts additionally salvages
+                # the workspace copy into the run log directory after the run.
+                keep_artifacts=True,
+                work_dir=(
+                    DEFAULT_OUTPUT_DIR / "rerun"
+                    if args.output_root is None
+                    else Path(args.output_root)
+                ),
                 log_level=args.log_level,
-                debian_mirror=args.debian_mirror,
                 huggingface_mirror=args.huggingface_mirror,
-                verifier_env=verifier_env,
                 models_dir=None if args.models_dir is None else Path(args.models_dir),
                 datasets_dir=(
                     None if args.datasets_dir is None else Path(args.datasets_dir)
                 ),
+                invocation_argv=tuple(sys.argv),
             ),
         )
-        payload = result.to_dict()
-        if args.json:
-            print(json.dumps(payload, indent=2, ensure_ascii=False))
-        else:
-            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
         return 0 if result.passed else 1
 
     if args.command == "harbor-evaluate":

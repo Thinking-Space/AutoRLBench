@@ -148,10 +148,9 @@ tasks/<domain>/<task_id>/
 # Validate a task
 python3 -m autorlbench validate tasks/reward/slime_retool_length_reward_bonus
 
-# Prepare and run the verifier on a task in Docker (no agent)
-python3 -m autorlbench evaluate tasks/reward/slime_retool_length_reward_bonus \
-  --evaluation-level issue --backend docker \
-  --judge-model <judge-model> --json
+# Rerun a task's experiment on its original workspace (prepare + run_spec.json,
+# no agent, no verifier) — for task submitters to confirm their environment works
+python3 -m autorlbench rerun tasks/reward/slime_retool_length_reward_bonus
 
 # Run an agent through Harbor (pip install harbor)
 python3 -m autorlbench harbor-evaluate tasks/reward --agent codex --model <model>
@@ -159,11 +158,13 @@ python3 -m autorlbench harbor-evaluate tasks/reward --agent codex --model <model
 
 `harbor-evaluate` records each run under `outputs/harbor-evaluate/<task_id>/<agent>-<model>/<timestamp>/`: the command as an executable `command.sh`, the effective Harbor command, a live `prepare.log` and `harbor.log` (both `tail -f`-able while the run is going), and the final `report.json`. Only stage-start lines go to the terminal; everything else lands in those log files.
 
-Run `python3 -m autorlbench --help` for every option. The issue verifier calls an OpenAI-compatible judge through `OPENAI_BASE_URL` and `OPENAI_API_KEY`. `evaluate` runs no agent, so at `--evaluation-level solution` it stops at the report gate and scores 0 unless the staged workspace already carries a `report.md`.
+`rerun` is the submitter-side environment check: it runs the task's `prepare.sh` and then the experiment its `run_spec.json` declares, on the workspace exactly as the task author left it — no agent, no verifier, no report gate. Each run records itself under `outputs/rerun/<task_id>/<timestamp>/` in the same layout as `harbor-evaluate`: the command as an executable `command.sh`, live `tail -f`-able `prepare.log` and `rerun.log`, the final `report.json`, the experiment's logs under `results/`, and the workspace copy. `passed` in the report means both stages ran to completion, while the experiment's own exit code is recorded but not judged, since a buggy run is expected to fail.
+
+Run `python3 -m autorlbench --help` for every option. The issue verifier calls an OpenAI-compatible judge through `OPENAI_BASE_URL` and `OPENAI_API_KEY`.
 
 ## Contributing
 
-We welcome both problematic runs and healthy reference runs. Bring the issue materials, or add the repaired run when it exists; an agent does the packaging. Contribute **two valid tasks** and you become a co-author on the benchmark paper. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution guide](https://thinking-space.github.io/AutoRLBench/contribute.html).
+We welcome both problematic runs and healthy reference runs. Bring the issue materials, or add the repaired run when it exists; an agent does the packaging — inside a clone of this repository, using the [package-task](skills/package-task/SKILL.md) skill. Contribute **two valid tasks** and you become a co-author on the benchmark paper. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution guide](https://thinking-space.github.io/AutoRLBench/contribute.html).
 
 ## License
 

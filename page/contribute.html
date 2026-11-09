@@ -494,26 +494,29 @@ metrics. Otherwise the run is scored 0.</pre>
                         <span>02</span>
                         <div>
                             <h3>Package with agent</h3>
-                            <p>Paste this prompt. The agent follows <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task" target="_blank" rel="noopener noreferrer">package-task</a>, produces <code>tasks/&lt;domain&gt;/&lt;task_id&gt;/</code>, decides whether the task is issue-only or gets a solution tier, and validates with zero errors.</p>
+                            <p>Packaging runs inside a clone of this repository: the <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task" target="_blank" rel="noopener noreferrer">package-task</a> skill writes into <code>tasks/</code>, copies its scaffolding from an existing task, and validates with the harness shipped in the repo — and the generated task lands one <code>git push</code> away from a PR. Fork, then clone your fork and run the agent from the repo root:</p>
                         </div>
                         <button type="button" id="copy-agent-prompt">Copy</button>
                     </div>
-                    <pre id="agent-prompt">Package &lt;your_task&gt; as an AutoRLBench task using https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task.</pre>
+                    <pre class="submit-git">git clone https://github.com/&lt;you&gt;/AutoRLBench.git
+cd AutoRLBench</pre>
+                    <p class="guide-muted">Keep the raw material outside <code>tasks/</code>, then paste this prompt:</p>
+                    <pre id="agent-prompt">Package &lt;path-to-your_task&gt; as an AutoRLBench task using the package-task skill at skills/package-task in this repository.</pre>
+                    <p class="guide-muted">The agent decides whether the task is issue-only or gets a solution tier, and validates with zero errors.</p>
                 </article>
                 <article class="submit-way" id="pr">
                     <div class="submit-way-head">
                         <span>03</span>
                         <div>
                             <h3>Pull request</h3>
-                            <p>Open a PR against <code>main</code> on <a href="https://github.com/Thinking-Space/AutoRLBench" target="_blank" rel="noopener noreferrer">Thinking-Space/AutoRLBench</a> with the generated task. Include the raw material only if it is small enough to be useful as evidence.</p>
+                            <p>The generated task is already inside your clone. Branch, commit, and push to your fork, then open the PR against <code>main</code> on <a href="https://github.com/Thinking-Space/AutoRLBench" target="_blank" rel="noopener noreferrer">Thinking-Space/AutoRLBench</a>. Include the raw material only if it is small enough to be useful as evidence.</p>
                         </div>
                     </div>
-                    <pre class="submit-git">git clone https://github.com/Thinking-Space/AutoRLBench.git
-cd AutoRLBench
-git checkout -b contrib/your-task-name
+                    <pre class="submit-git">git checkout -b contrib/your-task-name
 git add tasks/your-task-name
 git commit -m "Add your-task-name"
 git push -u origin contrib/your-task-name</pre>
+                    <p class="guide-muted">Before opening the PR, you can check that the buggy run actually runs in the packaged task: <code>python3 -m autorlbench rerun tasks/&lt;domain&gt;/&lt;task_id&gt;</code> — the experiment does not have to run to completion, one training step is enough and you can stop the run. If you ran the check, say so in one sentence after the pasted PR body.</p>
                 </article>
             </div>
         </section>

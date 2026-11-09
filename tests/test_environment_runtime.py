@@ -1,8 +1,8 @@
-"""Runtime wiring of environment images: what each of the three stages mounts and which env vars it gets.
+"""Runtime wiring of environment images: what each stage mounts and which env vars it gets.
 
-This file guards access control, not features. The differences between the three mount tables (who can write,
-who sees the cache, who sees the oracle) are the entire implementation of "the agent cannot grade itself and
-the verifier cannot read tampered data", so each one deserves a test that would fail.
+This file guards access control, not features. The differences between the two mount tables (who
+can write, who sees the cache) are the entire implementation of "the experiment runs on the
+assets prepare delivered", so each one deserves a test that would fail.
 """
 
 from __future__ import annotations
@@ -25,9 +25,10 @@ from autorlbench.runtimes.providers.docker import DockerRuntime
 
 
 ROOT = Path("/host/run")
+STAGES = ("prepare", "rerun")
 
 
-def make_request(stage: str = "agent", **kwargs) -> SandboxRequest:
+def make_request(stage: str = "rerun", **kwargs) -> SandboxRequest:
     """A request with "everything mounted"; individual tests remove a directory as needed."""
     defaults = dict(
         stage=stage,
@@ -59,42 +60,33 @@ class MountTableTests(unittest.TestCase):
         # with a read-only workspace the first command of prepare.sh would fail.
         self.assertFalse(self._mounts(make_request("prepare"))["/workspace"].read_only)
 
-    def test_agent_can_write_the_workspace(self) -> None:
-        self.assertFalse(self._mounts(make_request("agent"))["/workspace"].read_only)
-
-    def test_verifier_gets_a_read_only_workspace(self) -> None:
-        # Grading must not alter the scene.
-        self.assertTrue(self._mounts(make_request("verifier"))["/workspace"].read_only)
+    def test_rerun_can_write_the_workspace(self) -> None:
+        # Training writes checkpoints and ray writes scratch directories.
+        self.assertFalse(self._mounts(make_request("rerun"))["/workspace"].read_only)
 
     # --- /task: no spoilers ---------------------------------------------------
 
-    def test_prepare_and_agent_only_see_the_visible_task(self) -> None:
-        # Prepare runs a script shipped with the task and has no reason to read the oracle or grading scripts.
-        for stage in ("prepare", "agent"):
+    def test_both_stages_only_see_the_visible_task(self) -> None:
+        # Prepare runs a script shipped with the task and has no reason to read the oracle or
+        # grading scripts; the rerun runs the command the task declared, nothing more.
+        for stage in STAGES:
             mount = self._mounts(make_request(stage))["/task"]
             self.assertEqual(mount.host_path, ROOT / "visible", stage)
             self.assertTrue(mount.read_only, stage)
 
-    def test_verifier_sees_the_whole_evaluation_root(self) -> None:
-        mount = self._mounts(make_request("verifier"))["/task"]
-        self.assertEqual(mount.host_path, ROOT / "task")
-        self.assertTrue(mount.read_only)
-
-    # --- prepared: prepare writes, the later two stages read only -------------
+    # --- prepared: prepare writes, the rerun reads only -----------------------
 
     def test_prepare_owns_the_prepared_directory(self) -> None:
         self.assertFalse(self._mounts(make_request("prepare"))[PREPARED_DIR].read_only)
 
-    def test_agent_and_verifier_get_prepared_read_only(self) -> None:
-        # The verifier reads the models/datasets prepare delivered, but must not read a copy the agent modified,
-        # or the grading basis would be editable by the examinee.
-        for stage in ("agent", "verifier"):
-            self.assertTrue(self._mounts(make_request(stage))[PREPARED_DIR].read_only, stage)
+    def test_rerun_gets_prepared_read_only(self) -> None:
+        # That is what makes "the experiment ran on the assets prepare delivered" hold.
+        self.assertTrue(self._mounts(make_request("rerun"))[PREPARED_DIR].read_only)
 
     def test_prepared_is_absent_when_the_run_has_none(self) -> None:
-        self.assertNotIn(PREPARED_DIR, self._mounts(make_request("agent", host_prepared=None)))
+        self.assertNotIn(PREPARED_DIR, self._mounts(make_request("rerun", host_prepared=None)))
 
-    # --- models / datasets: writable by prepare, read-only later --------------
+    # --- models / datasets: writable by prepare, invisible to the rerun -------
 
     def test_prepare_can_write_the_download_cache(self) -> None:
         # Downloads happen in prepare; if it cannot write, there is effectively no cache.
@@ -103,53 +95,40 @@ class MountTableTests(unittest.TestCase):
             self.assertIn(container_path, mounts)
             self.assertFalse(mounts[container_path].read_only, container_path)
 
-    def test_later_stages_see_the_download_cache_read_only(self) -> None:
-        # The verifier reads them read-only for grading; the agent does not see them at all --
-        # an HF cache's directory names are its repo names, and a repo name can spell out the
-        # answer. See sees_download_cache().
-        self.assertNotIn(MODELS_DIR, self._mounts(make_request("agent")))
-        self.assertNotIn(DATASETS_DIR, self._mounts(make_request("agent")))
-        mounts = self._mounts(make_request("verifier"))
+    def test_rerun_does_not_see_the_download_cache(self) -> None:
+        # The rerun's command comes from the task declaration and needs nothing from the
+        # cache; skipping the mount also keeps HF repo names out of the rerun logs.
         for container_path in (MODELS_DIR, DATASETS_DIR):
-            self.assertIn(container_path, mounts, container_path)
-            self.assertTrue(mounts[container_path].read_only, container_path)
+            self.assertNotIn(container_path, self._mounts(make_request("rerun")))
 
     def test_stages_without_a_download_cache_still_run(self) -> None:
         # No shared cache only means "this download will not be reused next time", not an error.
-        for stage in ("prepare", "agent", "verifier"):
+        for stage in STAGES:
             mounts = self._mounts(make_request(stage, host_models=None, host_datasets=None))
             self.assertNotIn(MODELS_DIR, mounts, stage)
             self.assertNotIn(DATASETS_DIR, mounts, stage)
 
     # --- environment: read-only wherever it is mounted -------------------------
 
-    def test_environment_is_read_only_wherever_mounted(self) -> None:
-        for stage in ("prepare", "rerun", "verifier"):
+    def test_environment_is_read_only_in_both_stages(self) -> None:
+        for stage in STAGES:
             mount = self._mounts(make_request(stage))[AUTORLBENCH_ENVIRONMENT_DIR]
             self.assertEqual(mount.host_path, ROOT / "environment", stage)
             self.assertTrue(mount.read_only, stage)
 
-    def test_the_agent_never_sees_the_environment_dir(self) -> None:
-        # prepare.sh describes how the task was assembled -- which HF repo, which sha256 --
-        # and any of those names can point straight at the defect being diagnosed.
-        # See sees_environment_dir().
-        self.assertNotIn(
-            AUTORLBENCH_ENVIRONMENT_DIR, self._mounts(make_request("agent"))
-        )
-
     def test_task_without_environment_dir_mounts_nothing(self) -> None:
         # environment/ is optional; if absent, do not mount it rather than mounting a missing directory.
-        request = make_request("agent", host_environment=None)
+        request = make_request("rerun", host_environment=None)
         self.assertNotIn(AUTORLBENCH_ENVIRONMENT_DIR, self._mounts(request))
 
-    # --- results ------------------------------------------------------------
+    # --- results ---------------------------------------------------------------
 
     def test_prepare_has_no_results_mount(self) -> None:
         # Prepare produces nothing for grading; the harness writes its logs on the host side.
         self.assertNotIn("/results", self._mounts(make_request("prepare")))
 
     def test_no_mount_is_declared_twice(self) -> None:
-        for stage in ("prepare", "agent", "verifier"):
+        for stage in STAGES:
             mounts = DockerRuntime()._mounts(make_request(stage))
             targets = [mount.container_path for mount in mounts]
             self.assertEqual(len(targets), len(set(targets)), f"{stage}: {targets}")
@@ -166,7 +145,7 @@ class GpuWiringTests(unittest.TestCase):
     """
 
     def _args(self, **kwargs) -> list:
-        return DockerRuntime._gpu_args(make_request("agent", **kwargs))
+        return DockerRuntime._gpu_args(make_request("rerun", **kwargs))
 
     def test_a_declared_count_becomes_the_gpus_flag(self) -> None:
         # `--gpus` accepts a bare number as a count (`docker run --gpus 8`).
@@ -179,7 +158,6 @@ class GpuWiringTests(unittest.TestCase):
         self.assertIn("--shm-size=16g", args)
 
     def test_a_cpu_only_task_is_untouched(self) -> None:
-        # Byte-for-byte identical to before the wiring: CPU-only tasks and the grading stage have no reason to use more memory.
         self.assertEqual(self._args(), [])
 
     def test_declaring_zero_gpus_is_the_same_as_declaring_none(self) -> None:
@@ -201,18 +179,15 @@ class GpuWiringTests(unittest.TestCase):
         # fails at `docker start` when it tries to bind the device nodes.
         self.assertEqual(DockerRuntime._gpu_args(make_request("prepare", gpus=8)), [])
 
-    def test_the_training_stages_take_the_cards_the_task_declares(self) -> None:
-        # The rerun runs real training; the agent gets them too, but the protocol forbids it
-        # from launching training -- there the GPU is headroom for cheap offline checks.
-        for stage in ("agent", "rerun", "verifier"):
-            request = make_request(stage, gpus=8)
-            self.assertIn("--gpus", DockerRuntime._gpu_args(request), stage)
+    def test_the_rerun_takes_the_cards_the_task_declares(self) -> None:
+        # The rerun runs real training.
+        self.assertIn("--gpus", DockerRuntime._gpu_args(make_request("rerun", gpus=8)))
 
 
 class StageRequestTests(unittest.TestCase):
     def test_prepare_without_a_landing_zone_is_rejected(self) -> None:
-        # A prepare with nowhere to write would "succeed" and leave nothing, surfacing only when the agent cannot find the model,
-        # and then it is reported as the task's fault.
+        # A prepare with nowhere to write would "succeed" and leave nothing, surfacing only
+        # when the rerun cannot find the model, and then it is reported as the task's fault.
         with self.assertRaises(ValueError) as ctx:
             SandboxRequest(
                 stage="prepare",
@@ -230,29 +205,22 @@ class StageRequestTests(unittest.TestCase):
 
 
 class StandardEnvTests(unittest.TestCase):
-    def _env(self, stage: str = "agent", **kwargs) -> dict:
+    def _env(self, stage: str = "rerun", **kwargs) -> dict:
         return DockerRuntime().standard_env(make_request(stage, **kwargs))
 
     def test_every_stage_is_told_which_stage_it_is(self) -> None:
         # The activate hook uses AUTORLBENCH_STAGE to decide per-stage differences.
-        for stage in ("prepare", "agent", "verifier"):
+        for stage in STAGES:
             env = self._env(stage)
             self.assertEqual(env["AUTORLBENCH_STAGE"], stage, stage)
-            self.assertNotIn("AUTORLBENCH_CONDA_ENV", env, stage)
 
-    def test_prepare_and_agent_never_learn_where_the_oracle_is(self) -> None:
-        for stage in ("prepare", "agent"):
+    def test_neither_stage_learns_where_the_oracle_is(self) -> None:
+        # The oracle and grading scripts are not mounted and have no variables here.
+        for stage in STAGES:
             env = self._env(stage)
-            self.assertEqual(env["AUTORLBENCH_ORACLE"], "", stage)
-            self.assertEqual(env["AUTORLBENCH_VERIFIER"], "", stage)
+            self.assertNotIn("AUTORLBENCH_ORACLE", env, stage)
+            self.assertNotIn("AUTORLBENCH_VERIFIER", env, stage)
             self.assertEqual(env["AUTORLBENCH_TASK_ROOT"], "/task", stage)
-
-    def test_verifier_gets_the_grading_paths(self) -> None:
-        env = self._env("verifier")
-        self.assertEqual(env["AUTORLBENCH_ORACLE"], "/task/oracle")
-        self.assertEqual(env["AUTORLBENCH_VERIFIER"], "/task/verifier")
-        # visible_task means nothing to the verifier: it sees the whole /task.
-        self.assertEqual(env["AUTORLBENCH_VISIBLE_TASK"], "")
 
     def test_paths_match_what_is_actually_mounted(self) -> None:
         env = self._env("prepare")
@@ -261,46 +229,31 @@ class StandardEnvTests(unittest.TestCase):
         self.assertEqual(env["AUTORLBENCH_MODELS"], MODELS_DIR)
         self.assertEqual(env["AUTORLBENCH_DATASETS"], DATASETS_DIR)
 
-    def test_the_download_cache_reaches_prepare_and_verifier_only(self) -> None:
-        # Prepare writes the caches, the verifier reads them; the agent and rerun see nothing,
-        # matching sees_download_cache() and the mount table.
-        for stage in ("prepare", "verifier"):
-            env = self._env(stage)
-            self.assertEqual(env["AUTORLBENCH_MODELS"], MODELS_DIR, stage)
-            self.assertEqual(env["AUTORLBENCH_DATASETS"], DATASETS_DIR, stage)
-        for stage in ("agent", "rerun"):
-            env = self._env(stage)
-            self.assertEqual(env["AUTORLBENCH_MODELS"], "", stage)
-            self.assertEqual(env["AUTORLBENCH_DATASETS"], "", stage)
+    def test_the_download_cache_reaches_prepare_only(self) -> None:
+        # Prepare writes the caches; the rerun sees nothing, matching the mount table.
+        env = self._env("prepare")
+        self.assertEqual(env["AUTORLBENCH_MODELS"], MODELS_DIR)
+        self.assertEqual(env["AUTORLBENCH_DATASETS"], DATASETS_DIR)
+        env = self._env("rerun")
+        self.assertEqual(env["AUTORLBENCH_MODELS"], "")
+        self.assertEqual(env["AUTORLBENCH_DATASETS"], "")
 
     def test_unmounted_directories_are_the_empty_string(self) -> None:
         # "You cannot see it", not "the path is there but the directory is empty"; the latter would make prepare.sh
         # download the model somewhere that vanishes after the run.
-        env = self._env("verifier", host_models=None, host_datasets=None)
+        env = self._env("prepare", host_models=None, host_datasets=None)
         self.assertEqual(env["AUTORLBENCH_MODELS"], "")
         self.assertEqual(env["AUTORLBENCH_DATASETS"], "")
-        # The prepare stage always has a prepared dir (the request validation demands
-        # one); the rerun is where a missing one is legal.
         env = self._env("rerun", host_environment=None, host_prepared=None)
         self.assertEqual(env["AUTORLBENCH_ENVIRONMENT"], "")
         self.assertEqual(env["AUTORLBENCH_PREPARED"], "")
-
-    def test_the_agent_does_not_see_the_environment_dir(self) -> None:
-        # The variable follows the mount table, not whoever set the field, so the two
-        # cannot drift: an agent-stage AUTORLBENCH_ENVIRONMENT is always the empty string.
-        # The rerun, harness-initiated and running only the task's declared command,
-        # keeps the mount like the verifier does.
-        self.assertEqual(self._env("agent")["AUTORLBENCH_ENVIRONMENT"], "")
-        self.assertEqual(
-            self._env("rerun")["AUTORLBENCH_ENVIRONMENT"], AUTORLBENCH_ENVIRONMENT_DIR
-        )
 
 
 class NetworkPolicyEnvTests(unittest.TestCase):
     """Offline switches are set per stage, not baked into the image ENV."""
 
     def test_prepare_is_allowed_to_reach_the_network(self) -> None:
-        # Image-level ENV treats all three stages alike, so prepare would cut off its own network.
+        # Image-level ENV treats both stages alike, so prepare would cut off its own network.
         env = DockerRuntime().standard_env(make_request("prepare"))
         for key in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
             self.assertNotIn(key, env)
@@ -310,31 +263,30 @@ class NetworkPolicyEnvTests(unittest.TestCase):
         env = DockerRuntime().standard_env(make_request("prepare"))
         self.assertEqual(env["WANDB_MODE"], "offline")
 
-    def test_agent_and_verifier_are_pinned_offline(self) -> None:
-        # A silent network download could run the evaluation on weights nobody verified, without anyone noticing.
-        for stage in ("agent", "verifier"):
-            env = DockerRuntime().standard_env(make_request(stage))
-            self.assertEqual(env["HF_HUB_OFFLINE"], "1", stage)
-            self.assertEqual(env["TRANSFORMERS_OFFLINE"], "1", stage)
-            self.assertEqual(env["HF_DATASETS_OFFLINE"], "1", stage)
-            self.assertEqual(env["WANDB_MODE"], "offline", stage)
-            # Some frameworks still exit immediately in offline mode when no key is set.
-            self.assertTrue(env["WANDB_API_KEY"])
+    def test_rerun_is_pinned_offline(self) -> None:
+        # A silent network download could run the experiment on weights nobody verified,
+        # without anyone noticing.
+        env = DockerRuntime().standard_env(make_request("rerun"))
+        self.assertEqual(env["HF_HUB_OFFLINE"], "1")
+        self.assertEqual(env["TRANSFORMERS_OFFLINE"], "1")
+        self.assertEqual(env["HF_DATASETS_OFFLINE"], "1")
+        self.assertEqual(env["WANDB_MODE"], "offline")
+        # Some frameworks still exit immediately in offline mode when no key is set.
+        self.assertTrue(env["WANDB_API_KEY"])
 
-    def test_agent_stage_does_not_see_the_task_id(self) -> None:
+    def test_the_rerun_does_not_see_the_task_id(self) -> None:
         # Task ids often spell out the diagnosis (e.g. "context_parallel_oom"); printenv in
         # the sandbox must not hand over the answer. The rerun is harness-initiated and gets
-        # the same neutral placeholder; the other stages keep the real id -- no task-side
-        # script consumes it, but it is part of prepare.sh's interface.
-        for stage in ("agent", "rerun"):
-            self.assertEqual(
-                DockerRuntime().standard_env(make_request(stage))["AUTORLBENCH_TASK_ID"],
-                "task",
-                stage,
-            )
-        for stage in ("prepare", "verifier"):
-            env = DockerRuntime().standard_env(make_request(stage))
-            self.assertEqual(env["AUTORLBENCH_TASK_ID"], "task_001", stage)
+        # the neutral placeholder; prepare keeps the real id -- no task-side script consumes
+        # it, but it is part of prepare.sh's interface.
+        self.assertEqual(
+            DockerRuntime().standard_env(make_request("rerun"))["AUTORLBENCH_TASK_ID"],
+            "task",
+        )
+        self.assertEqual(
+            DockerRuntime().standard_env(make_request("prepare"))["AUTORLBENCH_TASK_ID"],
+            "task_001",
+        )
 
 
 class PrepareScriptTests(unittest.TestCase):

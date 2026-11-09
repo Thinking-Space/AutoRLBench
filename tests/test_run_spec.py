@@ -263,11 +263,15 @@ class RerunStageTests(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(runtime.events, [])
 
-    def test_issue_level_never_reruns(self) -> None:
+    def test_rerun_runs_regardless_of_level(self) -> None:
+        # run_spec.json is level-neutral, so the rerun stage no longer gates on the
+        # evaluation level: the same experiment backs both levels.
         write_spec(self.root / "task", VALID)
         runtime, result = self._call(level="issue")
-        self.assertIsNone(result)
-        self.assertEqual(runtime.events, [])
+        self.assertIsNotNone(result)
+        self.assertEqual(
+            runtime.events, ["create:rerun", "exec:rerun", "close:rerun"]
+        )
 
     def test_spec_drives_a_rerun_stage(self) -> None:
         write_spec(self.root / "task", VALID)
@@ -278,9 +282,6 @@ class RerunStageTests(unittest.TestCase):
         )
         self.assertEqual(runtime.request.stage, "rerun")
         self.assertEqual(runtime.request.workdir, "workspace")
-        # The rerun must not be able to read the oracle or the grading scripts.
-        self.assertIsNone(runtime.request.host_oracle)
-        self.assertIsNone(runtime.request.host_verifier)
         self.assertEqual(runtime.spec.shell, VALID["command"])
         self.assertEqual(runtime.spec.timeout_s, VALID["timeout_s"])
         # $AUTORLBENCH_RESULTS became this backend's real path; a plain value passed through.
@@ -299,21 +300,30 @@ class RerunStageTests(unittest.TestCase):
         self.assertTrue(kept.exists())
 
 
-class ReportGateTests(unittest.TestCase):
-    """No report.md, no rerun and no grading -- the solution level's submission gate."""
+class RerunCommandTests(unittest.TestCase):
+    """TaskEvaluator.rerun end to end: prepare, then the experiment -- no agent, no verifier."""
 
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
 
-    def _evaluate(self, level: str, report: str | None):
+    def _rerun(
+        self,
+        level: str = "solution",
+        report: str | None = None,
+        spec=VALID,
+        keep_artifacts: bool = True,
+        invocation_argv: tuple[str, ...] = (),
+    ):
         from autorlbench.core.types import EvaluationConfig
         from autorlbench.evaluation.evaluator import TaskEvaluator
         from tests.test_harbor_evaluator import create_task
         from tests.test_sandbox_lifecycle import RecordingRuntime
 
         task_root = create_task(self.root)
+        if spec is not None:
+            write_spec(task_root, spec)
         if report is not None:
             (task_root / "workspace" / REPORT_FILENAME).write_text(
                 report, encoding="utf-8"
@@ -322,7 +332,7 @@ class ReportGateTests(unittest.TestCase):
         runtime = RecordingRuntime()
         evaluator = TaskEvaluator("local")
         evaluator.runtime = runtime
-        result = evaluator.evaluate(
+        result = evaluator.rerun(
             task_root,
             EvaluationConfig(
                 backend="local",
@@ -330,46 +340,78 @@ class ReportGateTests(unittest.TestCase):
                 work_dir=work_dir,
                 models_dir=self.root / "models",
                 datasets_dir=self.root / "datasets",
-                keep_artifacts=True,
+                keep_artifacts=keep_artifacts,
+                invocation_argv=invocation_argv,
             ),
         )
-        run_log = next(work_dir.glob("*/results/run.log")).read_text(encoding="utf-8")
-        results_dir = next(work_dir.glob("*/results"))
-        return runtime, result, run_log, results_dir
+        # The run log lives at <work_dir>/<task_id>/<timestamp>/, the layout rerun now
+        # shares with harbor-evaluate.
+        run_dir = next((work_dir / "harbor_fixture").glob("*"))
+        run_log = (run_dir / "run.log").read_text(encoding="utf-8")
+        return runtime, result, run_log, run_dir
 
-    def test_missing_report_skips_rerun_and_verifier(self) -> None:
-        runtime, result, run_log, _ = self._evaluate("solution", report=None)
-        self.assertNotIn("exec:verifier", runtime.events)
-        self.assertIn(f"[SKIP] rerun reason=no_{REPORT_FILENAME}", run_log)
-        self.assertIn(f"[SKIP] verifier reason=no_{REPORT_FILENAME}", run_log)
-        self.assertFalse(result.passed)
-        self.assertEqual(result.score, 0.0)
+    def test_reruns_the_workspace_exactly_as_shipped(self) -> None:
+        # No report gate: the command exists to reproduce the buggy run, so a
+        # workspace without report.md still gets its experiment rerun.
+        runtime, result, run_log, _ = self._rerun(report=None)
         self.assertEqual(
-            result.metrics["failure"],
-            f"agent did not submit {REPORT_FILENAME} in the workspace",
+            runtime.events,
+            [
+                "create:prepare",
+                "exec:prepare",
+                "close:prepare",
+                "create:rerun",
+                "exec:rerun",
+                "close:rerun",
+            ],
         )
+        self.assertNotIn("[SKIP] rerun", run_log)
+        self.assertTrue(result.passed)
+        self.assertEqual(result.metrics["exit_code"], 0)
+        self.assertIsNone(result.score)
 
-    def test_empty_report_does_not_pass_the_gate(self) -> None:
-        runtime, result, _, _ = self._evaluate("solution", report="")
+    def test_a_report_in_the_workspace_changes_nothing(self) -> None:
+        runtime, result, _, run_dir = self._rerun(report="# Root cause\n")
         self.assertNotIn("exec:verifier", runtime.events)
-        self.assertEqual(result.score, 0.0)
+        # Nothing is graded, so the report is not archived either.
+        self.assertFalse((run_dir / REPORT_FILENAME).exists())
+        self.assertTrue(result.passed)
 
-    def test_submitted_report_runs_the_verifier_and_is_archived(self) -> None:
-        runtime, result, _, results_dir = self._evaluate(
-            "solution", report="# Root cause\nthe thing\n"
-        )
-        self.assertIn("exec:verifier", runtime.events)
-        self.assertNotIn("failure", result.metrics)
-        self.assertEqual(
-            (results_dir / REPORT_FILENAME).read_text(encoding="utf-8"),
-            "# Root cause\nthe thing\n",
-        )
+    def test_no_verifier_at_any_level(self) -> None:
+        runtime, result, run_log, _ = self._rerun(level="issue")
+        self.assertNotIn("exec:verifier", runtime.events)
+        self.assertNotIn("verifier", run_log)
+        self.assertTrue(result.passed)
 
-    def test_issue_level_has_no_report_gate(self) -> None:
-        runtime, result, run_log, _ = self._evaluate("issue", report=None)
-        self.assertIn("exec:verifier", runtime.events)
-        self.assertNotIn("[SKIP] verifier", run_log)
-        self.assertNotIn("failure", result.metrics)
+    def test_task_without_run_spec_is_rejected(self) -> None:
+        from autorlbench.tasks import SchemaError
+
+        with self.assertRaises(SchemaError):
+            self._rerun(spec=None)
+
+    def test_run_log_is_laid_out_and_staging_is_deleted(self) -> None:
+        # The persistent run log sits at <work_dir>/<task_id>/<timestamp>/ and holds the
+        # same record set as harbor-evaluate's; the digest-named staging is deleted
+        # after its results and workspace are salvaged into it.
+        runtime, result, _, run_dir = self._rerun(
+            invocation_argv=("python3", "-m", "autorlbench", "rerun", "tasks/x")
+        )
+        self.assertTrue((run_dir / "run.log").is_file())
+        self.assertTrue((run_dir / "report.json").is_file())
+        self.assertTrue((run_dir / "results").is_dir())
+        self.assertTrue((run_dir / "workspace" / "train.sh").is_file())
+        command = (run_dir / "command.sh").read_text(encoding="utf-8")
+        self.assertIn("python3 -m autorlbench rerun tasks/x\n", command)
+        self.assertEqual(result.report_dir, run_dir)
+        self.assertEqual(list(self.root.glob("work/autorlbench-run-*")), [])
+
+    def test_workspace_is_dropped_without_keep_artifacts(self) -> None:
+        # The experiment's logs always survive; the tens-of-GB workspace copy is
+        # only salvaged when the caller asks for it.
+        runtime, result, _, run_dir = self._rerun(keep_artifacts=False)
+        self.assertFalse((run_dir / "workspace").exists())
+        self.assertTrue((run_dir / "results").is_dir())
+        self.assertEqual(list(self.root.glob("work/autorlbench-run-*")), [])
 
 
 class ShippedRunSpecTests(unittest.TestCase):

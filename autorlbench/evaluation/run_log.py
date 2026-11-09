@@ -6,24 +6,24 @@ import shlex
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Sequence
 
 from ..utils.filesystem import ensure_dir, write_text
 
 
-class HarborRunLog:
-    """Persistent log directory for one harbor-evaluate run of one task.
+class RunLog:
+    """Persistent log directory for one run of one task, host-side only.
 
-    Run staging (workspace copies, prepared outputs, materialized Harbor tasks) is deleted after
-    the run, and Harbor keeps its own job directory under --jobs-dir. What had nowhere to live
-    was everything in between: the prepare stage's output and the exact commands the run was
-    launched with. This class owns the directory that fills the gap,
+    Run staging (workspace copies, prepared outputs, materialized Harbor tasks) is deleted
+    after the run. What had nowhere to live was everything in between: the stages' output
+    and the exact commands the run was launched with. This class owns the directory that
+    fills the gap,
 
-        <output_root>/<task_id>/<agent>-<model>/<YYYYmmdd-HHMMSS>/
+        <output_root>/<task_id>/[<label>/]<YYYYmmdd-HHMMSS>/
 
-    On the host only, never a bind-mount source, so the task id in the path is invisible to the
-    containers (the reason staging directories carry digests instead, see
-    HarborEvaluator._make_run_dir).
+    On the host only, never a bind-mount source, so the task id in the path is invisible
+    to the containers (the reason staging directories carry digests instead, see
+    TaskEvaluator._run_directory_prefix).
     """
 
     def __init__(self, root: Path) -> None:
@@ -33,16 +33,17 @@ class HarborRunLog:
     def create(
         cls,
         task_id: str,
-        agent: str,
-        model: str,
         output_root: Path,
-    ) -> "HarborRunLog":
-        # agent and model arrive already cleaned (harbor_run_label); the task id does not, so the
+        label: str = "",
+    ) -> "RunLog":
+        # Labels arrive already cleaned (harbor_run_label); the task id does not, so the
         # same rule applies here.
         safe_id = re.sub(r"[^A-Za-z0-9_.-]+", "-", task_id).strip("-.") or "task"
         timestamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
-        root = ensure_dir(Path(output_root) / safe_id / f"{agent}-{model}" / timestamp)
-        return cls(root)
+        root = Path(output_root) / safe_id
+        if label:
+            root = root / label
+        return cls(ensure_dir(root / timestamp))
 
     # --- files the stages stream into while they run -------------------------
 
@@ -50,9 +51,9 @@ class HarborRunLog:
     def prepare_log_path(self) -> Path:
         return self.root / "prepare.log"
 
-    @property
-    def harbor_log_path(self) -> Path:
-        return self.root / "harbor.log"
+    def stage_log_path(self, stage: str) -> Path:
+        """Persistent live log for one stage, e.g. the rerun's rerun.log."""
+        return self.root / f"{stage}.log"
 
     # --- orchestration log ----------------------------------------------------
 
@@ -91,19 +92,55 @@ class HarborRunLog:
         lines.append(command_line)
         return "\n".join(lines) + "\n"
 
-    def write_command(self, argv: Sequence[str], cwd: Path) -> None:
-        """Record the autorlbench command line verbatim, so the run can be repeated as typed."""
+    def write_command(
+        self,
+        argv: Sequence[str],
+        cwd: Path,
+        title: str = "autorlbench invocation",
+    ) -> None:
+        """Record the command line verbatim, so the run can be repeated as typed."""
         if not argv:
             return
         path = write_text(
             self.root / "command.sh",
             self._command_script(
-                title="autorlbench harbor-evaluate invocation",
+                title=title,
                 command_line=shlex.join(list(argv)),
                 cwd=cwd,
             ),
         )
         path.chmod(0o755)
+
+    # --- run outputs ------------------------------------------------------------
+
+    def capture_report(self, report: Dict[str, Any]) -> None:
+        write_text(self.root / "report.json", json.dumps(report, indent=2, ensure_ascii=False))
+
+
+class HarborRunLog(RunLog):
+    """A RunLog under <task_id>/<agent>-<model>/<timestamp>/, plus Harbor's own records.
+
+    The harbor-evaluate flow additionally keeps the harbor CLI's console mirror
+    (harbor.log) and points a stable name at Harbor's job directory, where the
+    trial-level agent and verifier logs live.
+    """
+
+    @classmethod
+    def create(
+        cls,
+        task_id: str,
+        agent: str,
+        model: str,
+        output_root: Path,
+    ) -> "HarborRunLog":
+        return super().create(task_id, output_root, label=f"{agent}-{model}")
+
+    @property
+    def harbor_log_path(self) -> Path:
+        return self.root / "harbor.log"
+
+    def write_command(self, argv: Sequence[str], cwd: Path) -> None:
+        super().write_command(argv, cwd, title="autorlbench harbor-evaluate invocation")
 
     def write_harbor_command(self, argv: Sequence[str], cwd: Path) -> None:
         """Record the effective harbor run command (already redacted by HarborRunner)."""
@@ -124,11 +161,6 @@ class HarborRunLog:
         )
         path.chmod(0o755)
 
-    # --- run outputs ------------------------------------------------------------
-
-    def capture_report(self, report: Dict[str, Any]) -> None:
-        write_text(self.root / "report.json", json.dumps(report, indent=2, ensure_ascii=False))
-
     def link_job_dir(self, job_dir: Path) -> None:
         """Point a stable name at Harbor's job directory, where the trial-level agent and
         verifier logs live. Harbor never cleans its --jobs-dir, so the link stays valid."""
@@ -138,4 +170,4 @@ class HarborRunLog:
         link.symlink_to(Path(job_dir).resolve())
 
 
-__all__ = ["HarborRunLog"]
+__all__ = ["HarborRunLog", "RunLog"]

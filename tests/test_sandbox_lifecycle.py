@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import tempfile
 import unittest
 import subprocess
+from contextlib import redirect_stderr
 from unittest.mock import patch
 from pathlib import Path
 
@@ -13,9 +15,7 @@ from autorlbench.core.types import (
     MODELS_DIR,
     PREPARED_DIR,
     AUTORLBENCH_ENVIRONMENT_DIR,
-    AgentSpec,
     CommandResult,
-    EnvironmentPlan,
     EvaluationConfig,
 )
 from autorlbench.evaluation.evaluator import TaskEvaluator
@@ -25,6 +25,7 @@ from autorlbench.runtimes import (
     SandboxRequest,
     SandboxRuntime,
 )
+from autorlbench.runtimes.base import stream_process_to_log
 from autorlbench.runtimes.providers.docker import DockerRuntime
 
 
@@ -51,8 +52,6 @@ class RecordingRuntime(SandboxRuntime):
             "visible_task": "/task",
             "workspace": "/workspace",
             "results": "/results",
-            "oracle": "/task/oracle",
-            "verifier": "/task/verifier",
             "environment": AUTORLBENCH_ENVIRONMENT_DIR,
             "prepared": PREPARED_DIR,
             "models": MODELS_DIR,
@@ -86,144 +85,53 @@ class SandboxLifecycleTests(unittest.TestCase):
         self.assertEqual(process_env["OPENAI_API_KEY"], "secret")
         self.assertNotIn("secret", " ".join(argv))
 
-    def test_network_defaults_allow_agent_and_verifier_access(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            request = SandboxRequest(
-                stage="verifier",
-                task_id="task",
-                host_task_root=root,
-                host_visible_task=root,
-                host_workspace=root,
-                host_results=root,
-            )
-        args = build_parser().parse_args(["evaluate", "task"])
-        self.assertEqual(request.network, "bridge")
-        self.assertEqual(EvaluationConfig().verifier_network, "bridge")
+    def test_rerun_cli_defaults(self):
+        args = build_parser().parse_args(["rerun", "task"])
         self.assertFalse(hasattr(args, "agent_backend"))
-        self.assertEqual(args.verifier_network, "bridge")
-        judge_args = build_parser().parse_args(
-            ["evaluate", "task", "--model", "agent-model", "--judge-model", "judge-model"]
-        )
-        self.assertEqual(judge_args.model, "agent-model")
-        self.assertEqual(judge_args.judge_model, "judge-model")
+        self.assertEqual(args.backend, "docker")
+        self.assertEqual(args.log_level, "quiet")
+        self.assertIsNone(args.huggingface_mirror)
+        self.assertIsNone(args.timeout_s)
 
-    def test_evaluate_cli_accepts_stage_env_and_mirrors(self):
+    def test_rerun_cli_rejects_verifier_and_judge_flags(self):
+        # Verifier and judge configuration moved to harbor-evaluate; the rerun
+        # command runs no verifier, so those flags must not parse.
+        for flag in (
+            "--judge-model",
+            "--model",
+            "--verifier-env",
+            "--verifier-cmd",
+            "--evaluation-level",
+        ):
+            with self.assertRaises(SystemExit):
+                build_parser().parse_args(["rerun", "task", flag, "value"])
+
+    def test_rerun_cli_accepts_mirrors_and_caches(self):
         args = build_parser().parse_args(
             [
-                "evaluate",
+                "rerun",
                 "task",
-                "--verifier-env",
-                "HTTPS_PROXY=http://proxy:7890",
-                "--debian-mirror",
-                "https://mirrors.tuna.tsinghua.edu.cn/",
                 "--huggingface-mirror",
                 "https://hf-mirror.com/",
+                "--models-dir",
+                "/cache/models",
+                "--datasets-dir",
+                "/cache/datasets",
             ]
         )
 
-        self.assertEqual(args.verifier_env, ["HTTPS_PROXY=http://proxy:7890"])
-        self.assertEqual(args.debian_mirror, "https://mirrors.tuna.tsinghua.edu.cn/")
         self.assertEqual(args.huggingface_mirror, "https://hf-mirror.com/")
+        self.assertEqual(args.models_dir, "/cache/models")
+        self.assertEqual(args.datasets_dir, "/cache/datasets")
 
-    def test_docker_verifier_receives_judge_configuration(self):
-        env = TaskEvaluator("docker")._verifier_judge_env(
-            AgentSpec(
-                kind="codex",
-                model="agent-model",
-                judge_model="judge-model",
-                base_url="https://api.example.test/v1",
-                api_key="secret-key",
-            )
-        )
-        argv, process_env = DockerRuntime._docker_env(env)
-        self.assertEqual(env["AUTORLBENCH_JUDGE_MODEL"], "judge-model")
-        self.assertEqual(env["OPENAI_BASE_URL"], "https://api.example.test/v1")
-        self.assertIn("-e", argv)
-        self.assertNotIn("secret-key", " ".join(argv))
-        self.assertEqual(process_env["OPENAI_API_KEY"], "secret-key")
-
-    def test_verifier_env_is_merged_before_judge_configuration(self):
-        class VerifierRuntime(RecordingRuntime):
-            def create_sandbox(self, request, *, artifact):
-                self.request = request
-                return super().create_sandbox(request, artifact=artifact)
+    def test_failed_stage_summary_carries_the_error_tail(self):
+        from autorlbench.evaluation.run_log import RunLog
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            for name in (
-                "task",
-                "visible",
-                "workspace",
-                "results",
-                "oracle",
-                "verifier",
-                "environment",
-                "prepared",
-            ):
-                (root / name).mkdir()
-            runtime = VerifierRuntime()
-            evaluator = TaskEvaluator("local")
-            evaluator.runtime = runtime
-            evaluator._run_verifier(
-                type(
-                    "Package",
-                    (),
-                    {
-                        "task_id": "task",
-                        "environment": EnvironmentPlan(),
-                        "paths": type("Paths", (), {"environment": root / "environment"})(),
-                    },
-                )(),
-                type(
-                    "Evaluation",
-                    (),
-                    {
-                        "root": root / "task",
-                        "level": "solution",
-                        "oracle": root / "oracle",
-                        "verifier": root / "verifier",
-                    },
-                )(),
-                type(
-                    "Run",
-                    (),
-                    {
-                        "visible_task": root / "visible",
-                        "workspace": root / "workspace",
-                        "results": root / "results",
-                        "prepared": root / "prepared",
-                        "models": root / "models",
-                        "datasets": root / "datasets",
-                        # The staged environment/ copy _prepare_run links into the run directory.
-                        "environment": root / "environment",
-                    },
-                )(),
-                EvaluationConfig(
-                    backend="local",
-                    verifier_env={"HTTPS_PROXY": "http://proxy:7890"},
-                ),
-                EnvironmentArtifact("recording"),
-                AgentSpec(
-                    kind="codex",
-                    model="gpt-5.5",
-                    base_url="https://api.example.test/v1",
-                ),
-            )
-
-        self.assertEqual(runtime.request.env["HTTPS_PROXY"], "http://proxy:7890")
-        self.assertEqual(runtime.request.env["AUTORLBENCH_JUDGE_MODEL"], "gpt-5.5")
-        self.assertEqual(
-            runtime.request.env["OPENAI_BASE_URL"],
-            "https://api.example.test/v1",
-        )
-
-    def test_failed_stage_summary_points_to_debug_logs(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            results = Path(temp_dir)
-            TaskEvaluator("local")._append_command_summary(
-                results,
-                "agent_setup",
+            run_log = RunLog.create("task", Path(temp_dir))
+            TaskEvaluator("local")._log_stage_summary(
+                run_log,
+                "prepare",
                 CommandResult(
                     ["false"],
                     2,
@@ -234,18 +142,15 @@ class SandboxLifecycleTests(unittest.TestCase):
                     "/workspace",
                 ),
             )
-            run_log = (results / "run.log").read_text(encoding="utf-8")
+            contents = (run_log.root / "run.log").read_text(encoding="utf-8")
 
-        self.assertIn("[FAIL] agent_setup exit=2", run_log)
-        self.assertIn("error_tail: installation failed", run_log)
-        self.assertIn(
-            "logs: agent_setup.stdout.log, agent_setup.stderr.log",
-            run_log,
-        )
+        self.assertIn("[FAIL] prepare exit=2", contents)
+        self.assertIn("error_tail: installation failed", contents)
 
     def test_docker_proxy_is_opt_in_for_all_stages(self):
+        # _proxy_env applies to every stage alike; one stage proves the mechanism.
         request = SandboxRequest(
-            stage="agent",
+            stage="rerun",
             task_id="task",
             host_task_root=Path("/task"),
             host_visible_task=Path("/visible"),
@@ -257,30 +162,10 @@ class SandboxLifecycleTests(unittest.TestCase):
             {"AUTORLBENCH_DOCKER_PROXY": "http://host.docker.internal:7890"},
             clear=False,
         ):
-            env = DockerRuntime._proxy_env(request, {"AUTORLBENCH_STAGE": "agent"})
+            env = DockerRuntime._proxy_env(request, {"AUTORLBENCH_STAGE": "rerun"})
         self.assertEqual(env["HTTP_PROXY"], "http://host.docker.internal:7890")
         self.assertEqual(env["HTTPS_PROXY"], "http://host.docker.internal:7890")
         self.assertEqual(env["ALL_PROXY"], "http://host.docker.internal:7890")
-
-        verifier_request = SandboxRequest(
-            stage="verifier",
-            task_id="task",
-            host_task_root=Path("/task"),
-            host_visible_task=Path("/visible"),
-            host_workspace=Path("/workspace"),
-            host_results=Path("/results"),
-        )
-        with patch.dict(
-            "os.environ",
-            {"AUTORLBENCH_DOCKER_PROXY": "http://host.docker.internal:7890"},
-            clear=False,
-        ):
-            verifier_env = DockerRuntime._proxy_env(
-                verifier_request, {"AUTORLBENCH_STAGE": "verifier"}
-            )
-        self.assertEqual(
-            verifier_env["HTTPS_PROXY"], "http://host.docker.internal:7890"
-        )
 
     def test_docker_stream_process_writes_live_stage_logs(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -297,17 +182,17 @@ class SandboxLifecycleTests(unittest.TestCase):
                 process,
                 timeout_s=5,
                 results_dir=Path(temp_dir),
-                log_name="agent_setup",
+                log_name="prepare",
             )
             self.assertFalse(timed_out)
             self.assertEqual(stdout, "setup-out\n")
             self.assertIn("setup-error\n", stderr)
             self.assertEqual(
-                (Path(temp_dir) / "agent_setup.stdout.log").read_text(),
+                (Path(temp_dir) / "prepare.stdout.log").read_text(),
                 stdout,
             )
             self.assertEqual(
-                (Path(temp_dir) / "agent_setup.stderr.log").read_text(),
+                (Path(temp_dir) / "prepare.stderr.log").read_text(),
                 stderr,
             )
 
@@ -333,6 +218,32 @@ class SandboxLifecycleTests(unittest.TestCase):
             combined = log_path.read_text()
             self.assertIn("setup-out\n", combined)
             self.assertIn("setup-error\n", combined)
+
+    def test_stream_log_file_mirrors_to_the_terminal_when_asked(self):
+        # The rerun command's --log-level debug runs with live_log_to_stderr; the
+        # live_log_path branch must honor it too, not only write the persistent file.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_path = Path(temp_dir) / "rerun.log"
+            process = subprocess.Popen(
+                ["sh", "-c", "echo train-step; echo train-error >&2"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            with redirect_stderr(io.StringIO()) as terminal:
+                stdout, stderr, timed_out = stream_process_to_log(
+                    process,
+                    timeout_s=5,
+                    log_path=log_path,
+                    to_stderr=True,
+                )
+            self.assertFalse(timed_out)
+            self.assertIn("train-step", terminal.getvalue())
+            self.assertIn("train-error", terminal.getvalue())
+            # The persistent file still gets both streams.
+            combined = log_path.read_text()
+            self.assertIn("train-step\n", combined)
+            self.assertIn("train-error\n", combined)
 
     def test_run_directory_prefix_is_readable_and_safe(self):
         prefix = TaskEvaluator._run_directory_prefix(

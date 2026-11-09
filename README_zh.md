@@ -150,20 +150,21 @@ tasks/<domain>/<task_id>/
 # 校验一个任务
 python3 -m autorlbench validate tasks/reward/slime_retool_length_reward_bonus
 
-# 在 Docker 里运行 prepare 与 verifier（不含 agent）
-python3 -m autorlbench evaluate tasks/reward/slime_retool_length_reward_bonus \
-  --evaluation-level issue --backend docker \
-  --judge-model <judge-model> --json
+# 在原始 workspace 上重跑任务的实验（prepare + run_spec.json，
+# 不含 agent、不含 verifier）—— 供任务提交者确认环境有效
+python3 -m autorlbench rerun tasks/reward/slime_retool_length_reward_bonus
 
 # 通过 Harbor 运行 agent（pip install harbor）
 python3 -m autorlbench harbor-evaluate tasks/reward --agent codex --model <model>
 ```
 
-全部参数见 `python3 -m autorlbench --help`。issue 档的 verifier 通过 `OPENAI_BASE_URL` 与 `OPENAI_API_KEY` 调用 OpenAI 兼容的 judge。`evaluate` 不跑 agent，所以 `--evaluation-level solution` 会停在 report 门槛记 0 分，除非 workspace 里本来就带了 `report.md`。
+`rerun` 是面向任务提交者的环境检查：跑任务的 `prepare.sh`，再按 `run_spec.json` 声明的实验在任务作者留下的 workspace 上原样重跑——不跑 agent、不跑 verifier、没有 report 门槛。每次运行记录在 `outputs/rerun/<task_id>/<时间戳>/` 下，布局与 `harbor-evaluate` 一致：可执行的 `command.sh`、可 `tail -f` 的实时 `prepare.log` 与 `rerun.log`、最终的 `report.json`、实验日志 `results/`，以及 workspace 拷贝。report 里的 `passed` 表示两个阶段都完整跑完，实验自身的退出码只记录不判定，因为 buggy run 本来就预期失败。
+
+全部参数见 `python3 -m autorlbench --help`。issue 档的 verifier 通过 `OPENAI_BASE_URL` 与 `OPENAI_API_KEY` 调用 OpenAI 兼容的 judge。
 
 ## 贡献
 
-有问题的 run 和健康的对照 run 都欢迎。带上 issue 所需材料即可，已有修复版本时再补上 solution 运行；打包由 agent 完成。贡献**两个有效任务**即可成为 benchmark 论文的共同作者。详见 [CONTRIBUTING.md](CONTRIBUTING.md) 与[贡献指南](https://thinking-space.github.io/AutoRLBench/contribute.html)。
+有问题的 run 和健康的对照 run 都欢迎。带上 issue 所需材料即可，已有修复版本时再补上 solution 运行；打包由 agent 在本仓库的 clone 中、用 [package-task](skills/package-task/SKILL.md) skill 完成。贡献**两个有效任务**即可成为 benchmark 论文的共同作者。详见 [CONTRIBUTING.md](CONTRIBUTING.md) 与[贡献指南](https://thinking-space.github.io/AutoRLBench/contribute.html)。
 
 ## 许可
 

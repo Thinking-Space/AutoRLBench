@@ -87,21 +87,13 @@ def test_output_symlink_cannot_overwrite_another_file(tmp_path):
     assert not (run.results / 'result.json').is_symlink()
 
 
-def test_failed_verifier_cannot_reuse_a_preplanted_success(tmp_path):
-    from autorlbench.evaluation.evaluator import TaskEvaluator
-    (tmp_path / 'result.json').write_text('{"passed":true,"score":1}')
-    evaluator = object.__new__(TaskEvaluator)
-    result = evaluator._extract_metrics(tmp_path, SimpleNamespace(returncode=1), require_success=True)
-    assert result['passed'] is False and result['score'] == 0
-
-
 def test_unsafe_shared_backends_are_rejected_before_execution(tmp_path):
     from autorlbench.evaluation.evaluator import TaskEvaluator
     from autorlbench.tasks.loader import SchemaError, load_task_package
     from autorlbench.evaluation.harbor_evaluator import HarborTaskMaterializer, HarborAdapterError
     package = load_task_package(FAULTY)
     with pytest.raises(SchemaError, match='separate Docker'):
-        TaskEvaluator('local').evaluate(FAULTY)
+        TaskEvaluator('local').rerun(FAULTY)
     unit = SimpleNamespace(package=package, evaluation=package.paths.evaluations['solution'])
     materializer = object.__new__(HarborTaskMaterializer)
     with pytest.raises(HarborAdapterError, match='separate Docker'):
@@ -113,11 +105,3 @@ def test_decoded_json_collections_obey_item_limit(tmp_path):
     (dataset / 'many.json').write_text(json.dumps([0] * 513))
     result = query(tmp_path, 'import json\nfrom pathlib import Path\ndef resolve(root, record):\n    values = json.loads((Path(root) / "many.json").read_text())\n    return str(len(values))\n')
     assert result['ok'] is False and 'collection limit' in result['message']
-
-
-def test_other_tasks_keep_legitimate_partial_credit(tmp_path):
-    from autorlbench.evaluation.evaluator import TaskEvaluator
-    (tmp_path / 'result.json').write_text('{"passed":false,"score":0.6}')
-    evaluator = object.__new__(TaskEvaluator)
-    result = evaluator._extract_metrics(tmp_path, SimpleNamespace(returncode=1))
-    assert result['passed'] is False and result['score'] == 0.6

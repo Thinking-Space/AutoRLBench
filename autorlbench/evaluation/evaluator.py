@@ -4,7 +4,6 @@ import hashlib
 import json
 import shlex
 import shutil
-import sys
 import tempfile
 from datetime import datetime
 from dataclasses import dataclass, replace
@@ -13,9 +12,10 @@ from typing import Any, Dict, Optional
 
 from ..core.types import (
     AUTORLBENCH_ENVIRONMENT_DIR,
-    AgentSpec,
+    DEFAULT_OUTPUT_DIR,
     TaskPackage,
     CommandResult,
+    EnvironmentImage,
     EvaluationConfig,
     EvaluationPaths,
     EvaluationResult,
@@ -28,7 +28,8 @@ from ..runtimes import (
     create_runtime,
 )
 from ..utils.filesystem import copy_tree, ensure_dir, link_tree, tree_digest, write_text
-from .run_spec import REPORT_FILENAME, load_run_spec
+from .run_log import RunLog
+from .run_spec import load_run_spec
 
 
 @dataclass(frozen=True)
@@ -39,9 +40,9 @@ class PreparedRun:
     visible_task: Path
     workspace: Path
     results: Path
-    # Where prepare-stage outputs land. Writable in prepare; agent / verifier mount the same directory read-only.
+    # Where prepare-stage outputs land. Writable in prepare, read-only for the rerun.
     prepared: Path
-    # Download caches shared across runs and tasks. Writable in prepare, read-only for agent / verifier.
+    # Download caches shared across runs and tasks. Writable in prepare only.
     models: Path
     datasets: Path
     # Hard-linked copy of the task's environment/, staged in place of the repo path: the repo path
@@ -50,8 +51,37 @@ class PreparedRun:
     environment: Optional[Path] = None
 
 
+def load_valid_package(task_root: str | Path, strict: bool = True) -> TaskPackage:
+    """Load a task package and refuse one whose validation report has errors."""
+    package = load_task_package(Path(task_root), strict=strict)
+    if not package.report.ok:
+        raise SchemaError(f"task package failed validation: {package.paths.root}")
+    return package
+
+
+def select_evaluation(package: TaskPackage, level: str) -> EvaluationPaths:
+    """Pick the evaluation directory for a level, listing the available ones when it is missing."""
+    try:
+        return package.paths.evaluations[level]
+    except KeyError as exc:
+        available = ", ".join(package.evaluation_levels) or "none"
+        raise SchemaError(
+            f"evaluation level {level!r} is unavailable; available levels: {available}"
+        ) from exc
+
+
+def required_environment_image(package: TaskPackage) -> EnvironmentImage:
+    """The task's environment image; an image-backed backend has no fallback without it."""
+    if package.environment.image is None:
+        raise SchemaError(
+            f"task {package.task_id!r} declares no environment.image; "
+            "an image-backed backend has nothing to run"
+        )
+    return EnvironmentImage(package.environment.image)
+
+
 class TaskEvaluator:
-    """Orchestrates the execution order of task, agent, runtime, and verifier."""
+    """Orchestrates a task's prepare and rerun stages on its runtime."""
 
     def __init__(self, backend: str = "docker"):
         self.backend = backend
@@ -65,176 +95,147 @@ class TaskEvaluator:
     def validate(self, task_root: str | Path, strict: bool = True) -> Dict[str, Any]:
         return self.load(task_root, strict=strict).report.to_dict()
 
-    def evaluate(
+    def rerun(
         self,
         task_root: str | Path,
         config: EvaluationConfig | None = None,
         strict: bool = True,
     ) -> EvaluationResult:
-        """Run one prepare + rerun + verifier evaluation.
+        """Run one prepare + rerun pass on the task's original workspace.
 
-        At the solution level the order is agent -> rerun -> verifier: the agent repairs code and
-        submits report.md but **does not train**; the rerun is the harness re-running the experiment
-        on the workspace the agent left behind, per the task's run_spec.json; and the verifier still
-        only ever reads this pass's fresh logs under $AUTORLBENCH_RESULTS. The issue level has no
-        rerun. This entry point itself runs no agent -- it is the verifier-side path -- so at the
-        solution level it only gets past the report gate on a workspace that already carries one.
+        The submitter-facing environment check: no agent, no verifier, and no report
+        gate -- the point is to reproduce the buggy run the task ships, so the
+        workspace is used exactly as the task author left it. `passed` is
+        stage-level: prepare succeeded and the run_spec.json experiment executed
+        without timing out (a harness-level interruption raises instead). The
+        rerun's own exit code is recorded, not judged -- a buggy run is expected
+        to fail, so its exit code says nothing about the environment.
+
+        Logs are laid out like harbor-evaluate's: a persistent run log directory at
+        <work_dir>/<task_id>/<timestamp>/ (run.log, prepare.log, rerun.log, command.sh,
+        report.json), with the staging (workspace copy, prepared, environment) in a
+        digest-named sibling that is deleted after the run. The experiment's logs
+        (results/) always move into the run log directory first, and so does the
+        workspace when keep_artifacts is set.
         """
         config = config or EvaluationConfig(backend=self.backend)
         self.log_level = config.log_level
         if self.log_level not in {"quiet", "debug"}:
             raise ValueError("log_level must be 'quiet' or 'debug'")
         if config.backend != self.backend:
-            return TaskEvaluator(config.backend).evaluate(task_root, config=config, strict=strict)
+            return TaskEvaluator(config.backend).rerun(task_root, config=config, strict=strict)
 
-        package = self.load(task_root, strict=strict)
-        if not package.report.ok:
-            raise SchemaError("task package failed validation")
+        package = load_valid_package(task_root, strict=strict)
         isolated_stages = package.metadata.get("security", {}).get("requires_isolated_stages", False)
         if isolated_stages and self.backend != "docker":
             raise SchemaError("This task requires separate Docker stages; local execution is unsupported")
-        evaluation = self._select_evaluation(package, config.evaluation_level)
+        # Fail before any staging or download: a task with no run_spec.json declares no
+        # experiment for the harness to rerun, so there is nothing for this pass to check.
+        if load_run_spec(package.paths.root, package.task_id) is None:
+            raise SchemaError(
+                f"task {package.task_id!r}: no run_spec.json, so there is no experiment "
+                "to rerun and nothing for this command to check"
+            )
+        # run_spec.json is level-neutral, but _prepare_run stages an instruction.md, so a
+        # level still has to be picked; the default is fine.
+        evaluation = select_evaluation(package, config.evaluation_level)
 
-        agent_spec = config.agent
+        output_root = (
+            config.work_dir if config.work_dir is not None else DEFAULT_OUTPUT_DIR / "rerun"
+        )
+        run_log = RunLog.create(package.task_id, output_root)
+        run_log.write_command(
+            config.invocation_argv,
+            Path.cwd().resolve(),
+            title="autorlbench rerun invocation",
+        )
+        # Staging goes under the same parent as the run log, so the salvage at the end is a
+        # rename, not a cross-device copy of a possibly tens-of-GB workspace.
+        config = replace(config, work_dir=Path(output_root))
         run = self._prepare_run(package, evaluation, config)
-        self._append_run_log(
-            run.results,
-            f"AutoRLBench task={package.task_id} backend={self.runtime.name} "
-            f"evaluation_level={evaluation.level}",
+        run_log.log(
+            f"task={package.task_id} backend={self.runtime.name} "
+            f"evaluation_level={evaluation.level}"
         )
         try:
             artifact = None
             if self.runtime.needs_environment_image:
-                self._append_run_log(
-                    run.results,
-                    f"[START] environment_prepare backend={self.runtime.name}",
-                )
-                image = package.environment.environment_image
-                if image is None:
-                    raise SchemaError(
-                        f"{package.paths.task_toml}: metadata.environment.image "
-                        f"is required by the {self.runtime.name} backend"
-                    )
+                run_log.log(f"[START] environment_prepare backend={self.runtime.name}")
+                image = required_environment_image(package)
                 # Images are shared by environment name: reuse if present, otherwise pull the
                 # digest-pinned reference from docker/images/<image>.Dockerfile.
                 artifact = self.runtime.ensure_environment(image)
-                self._append_run_log(
-                    run.results,
+                run_log.log(
                     f"[OK] environment_prepare backend={self.runtime.name} "
-                    f"artifact={artifact.reference or '-'}",
+                    f"artifact={artifact.reference or '-'}"
                 )
 
             workspace_before_hash = tree_digest(package.paths.workspace)
+            run_log.log("[START] prepare")
             prepare_result = self._run_prepare(
-                package, evaluation, run, config, artifact
+                package,
+                evaluation,
+                run,
+                config,
+                artifact,
+                live_log_path=run_log.prepare_log_path,
             )
+            if prepare_result is not None:
+                self._log_stage_summary(run_log, "prepare", prepare_result)
             if prepare_result is not None and prepare_result.returncode != 0:
-                # If we kept going after prepare failed, the verifier would grade a workspace with no model,
-                # and the final failure would be blamed on the task: a misleading lead that wastes hours.
-                self._append_run_log(
-                    run.results, "[SKIP] verifier reason=prepare_failed"
-                )
+                # If we kept going after prepare failed, the rerun would die on a workspace with
+                # no model, and the final failure would be blamed on the task's environment: a
+                # misleading lead that wastes hours.
+                run_log.log("[SKIP] rerun reason=prepare_failed")
                 raise RuntimeError(
                     f"task {package.task_id!r}: prepare failed with exit "
-                    f"{prepare_result.returncode}; see prepare.stderr.log"
+                    f"{prepare_result.returncode}; see prepare.log in {run_log.root}"
                 )
 
-            # The solution level's submission gate: a repair is only finished once /workspace/report.md
-            # exists. Without it the protocol was not completed, so neither the rerun nor the verifier
-            # runs -- above all for tasks whose verifier drives the work itself, where skipping this
-            # check would let a workspace that submitted nothing still collect a score.
-            report_file = run.workspace / REPORT_FILENAME
-            if isolated_stages:
-                # Never dereference agent-created report links inside a hidden verifier mount.
-                if report_file.is_symlink():
-                    raise SchemaError('The submission report must be a regular file')
-                for output in ('report.md', 'result.json', 'metrics.json'):
-                    path = run.results / output
-                    if path.is_symlink() or path.is_file():
-                        path.unlink()
-                    elif path.exists():
-                        shutil.rmtree(path)
-            has_report = report_file.is_file() and report_file.stat().st_size > 0
-            rerun_result = None
-            verifier_result = None
-            if evaluation.level == "solution" and not has_report:
-                self._append_run_log(
-                    run.results, f"[SKIP] rerun reason=no_{REPORT_FILENAME}"
-                )
-                self._append_run_log(
-                    run.results, f"[SKIP] verifier reason=no_{REPORT_FILENAME}"
-                )
-            else:
-                if has_report:
-                    # Archive the report into results: the workspace is cleaned up after the run, and
-                    # reviewing "what did the agent actually change" needs something to point at.
-                    shutil.copy2(report_file, run.results / REPORT_FILENAME)
-                rerun_result = self._run_rerun(
-                    package, evaluation, run, config, artifact=artifact
-                )
-                verifier_result = self._run_verifier(
-                    package,
-                    evaluation,
-                    run,
-                    config,
-                    artifact=artifact,
-                    agent_spec=agent_spec,
-                )
-            workspace_after_hash = tree_digest(run.workspace)
-            metrics = self._extract_metrics(
-                run.results, verifier_result,
-                require_success=isolated_stages and evaluation.level == "solution",
+            run_log.log("[START] rerun")
+            rerun_result = self._run_rerun(
+                package,
+                evaluation,
+                run,
+                config,
+                artifact=artifact,
+                live_log_path=run_log.stage_log_path("rerun"),
             )
-            rerun_ok = rerun_result is None or rerun_result.returncode == 0
-            if evaluation.level == "solution" and not has_report:
-                metrics["passed"] = False
-                metrics["failure"] = (
-                    f"agent did not submit {REPORT_FILENAME} in the workspace"
+            if rerun_result is None:
+                # Unreachable: the fail-fast check above rejected spec-less tasks.
+                raise SchemaError(
+                    f"task {package.task_id!r}: no run_spec.json, so there is no experiment to rerun"
                 )
+            self._log_stage_summary(run_log, "rerun", rerun_result)
+            workspace_after_hash = tree_digest(run.workspace)
+            metrics = {
+                "exit_code": rerun_result.returncode,
+                "timed_out": rerun_result.timed_out,
+                "duration_s": rerun_result.duration_s,
+            }
             result = EvaluationResult(
                 task_id=package.task_id,
                 evaluation_level=evaluation.level,
-                passed=rerun_ok and bool(metrics.get("passed", False)),
-                score=self._extract_score(metrics) if rerun_ok else 0.0,
+                passed=not rerun_result.timed_out,
+                score=None,
                 metrics=metrics,
-                report_dir=run.results,
-                agent_spec=agent_spec,
-                agent_setup=None,
-                agent=None,
+                report_dir=run_log.root,
                 rerun=rerun_result,
-                verifier=verifier_result,
                 workspace_before_hash=workspace_before_hash,
                 workspace_after_hash=workspace_after_hash,
                 metadata=package.metadata,
             )
-            self._write_report(run.results / "report.json", result)
-            self._append_run_log(
-                run.results,
-                f"[RESULT] passed={str(result.passed).lower()} score={result.score}",
+            self._write_report(run_log.root / "report.json", result)
+            run_log.log(
+                f"[RESULT] passed={str(result.passed).lower()} "
+                f"exit_code={rerun_result.returncode}"
             )
             return result
         except Exception as exc:
-            self._append_run_log(
-                run.results,
-                f"[ERROR] orchestration {type(exc).__name__}: {exc}",
-            )
+            run_log.error(f"orchestration {type(exc).__name__}: {exc}")
             raise
         finally:
-            if not config.keep_artifacts:
-                shutil.rmtree(run.root, ignore_errors=True)
-
-    @staticmethod
-    def _select_evaluation(
-        package: TaskPackage,
-        level: str,
-    ) -> EvaluationPaths:
-        try:
-            return package.paths.evaluations[level]
-        except KeyError as exc:
-            available = ", ".join(package.evaluation_levels) or "none"
-            raise SchemaError(
-                f"evaluation level {level!r} is unavailable; available levels: {available}"
-            ) from exc
+            self._salvage_run(run, run_log, keep_workspace=config.keep_artifacts)
 
     def _prepare_run(
         self,
@@ -242,7 +243,7 @@ class TaskEvaluator:
         evaluation: EvaluationPaths,
         config: EvaluationConfig,
     ) -> PreparedRun:
-        """Create the run directory, exposing only the instruction and a workspace copy to the agent."""
+        """Create the run directory: an instruction copy and a workspace copy for the rerun."""
         parent = config.work_dir
         if parent is not None:
             parent = parent.resolve()
@@ -331,7 +332,7 @@ class TaskEvaluator:
     ) -> Optional[CommandResult]:
         """Run the task's prepare.sh: download models and datasets, write prepared/env.
 
-        This is the **only** one of the three stages with network. It runs before the agent instead of being baked
+        This is the **only** stage with network. It runs as a stage instead of being baked
         into the image because downloads are per task; baking them in would mean a tens-of-GB image layer per task,
         which is exactly what this redesign removes.
 
@@ -368,9 +369,6 @@ class TaskEvaluator:
             if self.runtime.needs_environment_image:
                 raise ValueError("prepare runtime needs a built environment artifact")
             artifact = EnvironmentArtifact(backend=self.runtime.name)
-        self._append_run_log(
-            run.results, f"[START] prepare script={script}"
-        )
         sandbox = self.runtime.create_sandbox(request, artifact=artifact)
         try:
             # The fetch/dataset tools prepare.sh calls (fetch_hf.py and friends) travel with the
@@ -389,8 +387,6 @@ class TaskEvaluator:
             )
         finally:
             self.runtime.close_sandbox(sandbox)
-        self._write_stage_logs(run.results, "prepare", result)
-        self._append_command_summary(run.results, "prepare", result)
         return result
 
     @staticmethod
@@ -412,17 +408,17 @@ class TaskEvaluator:
         run: PreparedRun,
         config: EvaluationConfig,
         artifact: Optional[EnvironmentArtifact],
+        live_log_path: Optional[Path] = None,
     ) -> Optional[CommandResult]:
-        """Re-run the experiment on the workspace the agent left behind, per run_spec.json.
+        """Re-run the experiment on the workspace, per run_spec.json.
 
         Returns None when the task has no run_spec.json (a verifier that drives the work itself, or
-        a pure protocol repair): those tasks go straight
-        from the submitted report to the verifier, and the agent-side constraints are carried by
-        instruction.md alone. A run_spec.json that exists but is invalid is a task-definition bug,
-        and load_run_spec raises RunSpecError on the spot -- not halfway into a training run.
+        a pure protocol repair). A run_spec.json that exists but is invalid is a task-definition
+        bug, and load_run_spec raises RunSpecError on the spot -- not halfway into a training run.
+
+        live_log_path, when given, streams the experiment's stdout and stderr combined into that
+        one file as it runs -- the rerun command points it at the run's persistent rerun.log.
         """
-        if evaluation.level != "solution":
-            return None
         spec = load_run_spec(package.paths.root, package.task_id)
         if spec is None:
             return None
@@ -466,7 +462,6 @@ class TaskEvaluator:
             if self.runtime.needs_environment_image:
                 raise ValueError("rerun runtime needs a built environment artifact")
             artifact = EnvironmentArtifact(backend=self.runtime.name)
-        self._append_run_log(run.results, "[START] rerun")
         sandbox = self.runtime.create_sandbox(request, artifact=artifact)
         try:
             result = self.runtime.exec(
@@ -475,174 +470,61 @@ class TaskEvaluator:
                     shell=spec.command,
                     timeout_s=timeout_s,
                     # Training runs for hours: stream to disk like prepare does, so when it dies
-                    # rerun.stdout.log shows which step it died on.
+                    # rerun.log shows which step it died on.
                     live_log_name="rerun",
                     live_log_to_stderr=config.log_level == "debug",
+                    live_log_path=live_log_path,
                 ),
             )
         finally:
             self.runtime.close_sandbox(sandbox)
-        self._write_stage_logs(run.results, "rerun", result)
-        self._append_command_summary(run.results, "rerun", result)
         return result
 
-    def _run_verifier(
-        self,
-        package: TaskPackage,
-        evaluation: EvaluationPaths,
-        run: PreparedRun,
-        config: EvaluationConfig,
-        artifact: Optional[EnvironmentArtifact],
-        agent_spec: Optional[AgentSpec],
-    ) -> Any:
-        verifier_env = dict(config.verifier_env)
-        verifier_env.update(self._verifier_judge_env(agent_spec))
-        request = SandboxRequest(
-            stage="verifier",
-            task_id=package.task_id,
-            host_task_root=evaluation.root,
-            host_visible_task=run.visible_task,
-            host_workspace=run.workspace,
-            host_results=run.results,
-            evaluation_level=evaluation.level,
-            host_oracle=evaluation.oracle,
-            host_verifier=evaluation.verifier,
-            env=verifier_env,
-            network=config.verifier_network,
-            timeout_s=config.timeout_s,
-            workdir="task_root",
-            host_environment=run.environment,
-            # The verifier also needs to see what prepare delivered: grading scripts often read a checkpoint
-            # or match samples against a dataset. Mounted read-only, so what it reads is always what prepare wrote.
-            host_prepared=run.prepared,
-            # Download caches are mounted read-only: useful when grading checks against the original model or dataset,
-            # and read-only ensures it is not checking a copy the agent can change.
-            host_models=run.models,
-            host_datasets=run.datasets,
-            # Task-declared env goes to every stage: the verifier often loads the checkpoint on the same
-            # machine shape the agent saw, so it gets the task's GPU count too.
-            task_env=dict(package.environment.env),
-            gpus=package.environment.gpus,
-        )
-        command = CommandSpec(
-            shell=config.verifier_cmd or 'bash "$AUTORLBENCH_VERIFIER/test.sh"',
-            timeout_s=config.timeout_s,
-        )
-        if artifact is None:
-            if self.runtime.needs_environment_image:
-                raise ValueError("verifier runtime needs a built environment artifact")
-            artifact = EnvironmentArtifact(backend=self.runtime.name)
-        sandbox = self.runtime.create_sandbox(request, artifact=artifact)
-        try:
-            self._append_run_log(run.results, "[START] verifier")
-            result = self.runtime.exec(sandbox, command)
-            self._write_stage_logs(run.results, "verifier", result)
-            self._append_command_summary(run.results, "verifier", result)
-            return result
-        finally:
-            self.runtime.close_sandbox(sandbox)
-
-    def _append_run_log(self, results_dir: Path, line: str) -> None:
-        with open(results_dir / "run.log", "a", encoding="utf-8") as file:
-            file.write(line.rstrip() + "\n")
-        if self.log_level == "debug":
-            print(line.rstrip(), file=sys.stderr, flush=True)
-
     @staticmethod
-    def _write_stage_logs(
-        results_dir: Path,
-        stage: str,
-        result: CommandResult,
-    ) -> None:
-        write_text(results_dir / f"{stage}.stdout.log", result.stdout or "")
-        write_text(results_dir / f"{stage}.stderr.log", result.stderr or "")
-
-    def _append_command_summary(
-        self,
-        results_dir: Path,
-        stage: str,
-        result: CommandResult,
-    ) -> None:
+    def _log_stage_summary(run_log: RunLog, stage: str, result: CommandResult) -> None:
         status = "OK" if result.returncode == 0 and not result.timed_out else "FAIL"
-        self._append_run_log(
-            results_dir,
+        run_log.log(
             f"[{status}] {stage} exit={result.returncode} "
             f"timed_out={str(result.timed_out).lower()} "
-            f"duration={result.duration_s:.2f}s",
+            f"duration={result.duration_s:.2f}s"
         )
         error = (result.stderr or "").strip()
         if not error and result.returncode != 0:
             error = (result.stdout or "").strip()
         if error:
             tail = " | ".join(error.splitlines()[-5:])
-            self._append_run_log(results_dir, f"  error_tail: {tail}")
-        if status == "FAIL":
-            self._append_run_log(
-                results_dir,
-                f"  logs: {stage}.stdout.log, {stage}.stderr.log",
-            )
+            run_log.log(f"  error_tail: {tail}")
 
-    def _verifier_judge_env(self, agent_spec: Optional[AgentSpec]) -> Dict[str, str]:
-        """Expose the configured model endpoint to API-backed verifiers."""
-        if agent_spec is None:
-            return {}
-        env = {
-            "AUTORLBENCH_JUDGE_PROVIDER": "openai-compatible",
-        }
-        judge_model = agent_spec.judge_model or agent_spec.model
-        if judge_model:
-            env["AUTORLBENCH_JUDGE_MODEL"] = judge_model
-        env["OPENAI_BASE_URL"] = agent_spec.base_url or "https://api.openai.com/v1"
-        if agent_spec.api_key:
-            env["OPENAI_API_KEY"] = agent_spec.api_key
-        return env
+    @staticmethod
+    def _salvage_run(run: PreparedRun, run_log: RunLog, keep_workspace: bool) -> None:
+        """Move what must outlive the run out of the staging, then delete the staging.
+
+        The staging directory carries a digest instead of the task id because it is the
+        bind-mount source for the sandbox (see _run_directory_prefix); the run log
+        directory is host-only and never mounted, so the task id in its path is safe.
+        The experiment's logs under results/ are the point of the command, so they always
+        move; the workspace only when keep_artifacts is set. A failed move keeps the
+        staging on disk rather than deleting the evidence.
+        """
+        moves: list[tuple[str, Path]] = [("results", run.results)]
+        if keep_workspace:
+            moves.append(("workspace", run.workspace))
+        salvaged = True
+        for name, source in moves:
+            if not source.is_dir():
+                continue
+            destination = run_log.root / name
+            try:
+                if destination.exists():
+                    shutil.rmtree(destination)
+                shutil.move(str(source), str(destination))
+            except OSError as exc:
+                run_log.error(f"salvaging {name} from {source} failed: {exc}")
+                salvaged = False
+        if salvaged:
+            shutil.rmtree(run.root, ignore_errors=True)
+        else:
+            run_log.error(f"staging kept for manual recovery: {run.root}")
 
     def _write_report(self, path: Path, result: EvaluationResult) -> None:
         write_text(path, json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
-
-    def _extract_metrics(
-        self, results_dir: Path, verifier_result: Any, *, require_success: bool = False
-    ) -> Dict[str, Any]:
-        """Prefer the verifier's JSON result; otherwise fall back to the exit code."""
-        metrics: Dict[str, Any] = {}
-        for filename in ("result.json", "metrics.json"):
-            path = results_dir / filename
-            if not path.exists():
-                continue
-            try:
-                with open(path, "r", encoding="utf-8") as file:
-                    payload = json.load(file)
-            except Exception as exc:
-                metrics["result_parse_error"] = str(exc)
-                continue
-            if not isinstance(payload, dict):
-                continue
-            nested = payload.get("metrics")
-            if isinstance(nested, dict):
-                metrics.update(nested)
-            for key in ("passed", "score"):
-                if key in payload:
-                    metrics[key] = payload[key]
-            for key, value in payload.items():
-                if key not in {"metrics", "passed", "score"} and key not in metrics:
-                    metrics[key] = value
-        if verifier_result is None:
-            metrics["passed"] = False
-            if require_success:
-                metrics["score"] = 0
-        elif require_success and verifier_result.returncode != 0:
-            metrics["passed"] = False
-            metrics["score"] = 0
-        else:
-            metrics.setdefault("passed", verifier_result.returncode == 0)
-        return metrics
-
-    @staticmethod
-    def _extract_score(metrics: Dict[str, Any]) -> Optional[float]:
-        if isinstance(metrics.get("score"), (int, float)):
-            return float(metrics["score"])
-        if metrics.get("passed") is True:
-            return 1.0
-        if metrics.get("passed") is False:
-            return 0.0
-        return None

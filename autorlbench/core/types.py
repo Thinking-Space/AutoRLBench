@@ -83,42 +83,8 @@ class TaskPackage:
 
 
 @dataclass(frozen=True)
-class AgentSpec:
-    """Normalized agent configuration."""
-
-    kind: str = "codex"
-    command: Optional[str] = None
-    model: Optional[str] = None
-    judge_model: Optional[str] = None
-    reasoning_effort: Optional[str] = None
-    base_url: Optional[str] = None
-    api_key: Optional[str] = None
-    extra_args: Sequence[str] = field(default_factory=tuple)
-    network: str = "bridge"
-    env: Mapping[str, str] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "extra_args", tuple(self.extra_args))
-        object.__setattr__(self, "env", _normalize_env(self.env))
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "kind": self.kind,
-            "command": self.command,
-            "model": self.model,
-            "judge_model": self.judge_model,
-            "reasoning_effort": self.reasoning_effort,
-            "base_url": self.base_url,
-            "api_key": None if self.api_key is None else "<redacted>",
-            "extra_args": list(self.extra_args),
-            "network": self.network,
-            "env": _redact_env(dict(self.env)),
-        }
-
-
-@dataclass(frozen=True)
 class CommandResult:
-    """Unified result of one command execution, shared by agent and verifier."""
+    """Unified result of one command execution, shared by every stage."""
 
     argv: List[str]
     returncode: int
@@ -327,34 +293,28 @@ class EnvironmentPlan:
 class EvaluationConfig:
     """Caller runtime configuration, kept separate from the task package's own data."""
 
-    agent: Optional[AgentSpec] = None
-    verifier_cmd: Optional[str] = None
     backend: str = "docker"
-    verifier_network: str = "bridge"
     timeout_s: Optional[int] = None
     keep_artifacts: bool = False
     work_dir: Optional[Path] = None
     evaluation_level: str = "solution"
     log_level: str = "quiet"
-    debian_mirror: Optional[str] = None
     huggingface_mirror: Optional[str] = None
-    verifier_env: Mapping[str, str] = field(default_factory=dict)
     # Shared host download caches, mounted at /autorlbench/models and /autorlbench/datasets in the container.
     # Models and datasets fetched by prepare.sh land here, so a second task needing the same model does not
     # download it again, nor does an image rebuild. Empty means models/ and datasets/ at the repo root.
     models_dir: Optional[Path] = None
     datasets_dir: Optional[Path] = None
+    # Command line to record verbatim into the run's command.sh; the CLI passes sys.argv.
+    invocation_argv: Sequence[str] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
-        if self.debian_mirror is not None:
-            object.__setattr__(self, "debian_mirror", _normalize_plain_url(self.debian_mirror))
         if self.huggingface_mirror is not None:
             object.__setattr__(
                 self,
                 "huggingface_mirror",
                 _normalize_plain_url(self.huggingface_mirror),
             )
-        object.__setattr__(self, "verifier_env", _normalize_env(self.verifier_env))
         # Both cache roots always have a value: if the caller gives none, they fall back to the repo root. Downstream
         # code never handles "not given", and the mount table has no "no cache this time" branch.
         for name, fallback in (
@@ -376,10 +336,6 @@ class EvaluationResult:
     score: Optional[float]
     metrics: Dict[str, Any]
     report_dir: Path
-    agent_spec: Optional[AgentSpec]
-    agent_setup: Optional[CommandResult]
-    agent: Optional[CommandResult]
-    verifier: Optional[CommandResult]
     workspace_before_hash: str
     workspace_after_hash: str
     metadata: Dict[str, Any]
@@ -396,11 +352,7 @@ class EvaluationResult:
             "score": self.score,
             "metrics": self.metrics,
             "report_dir": str(self.report_dir),
-            "agent_spec": None if self.agent_spec is None else self.agent_spec.to_dict(),
-            "agent_setup": None if self.agent_setup is None else self.agent_setup.to_dict(),
-            "agent": None if self.agent is None else self.agent.to_dict(),
             "rerun": None if self.rerun is None else self.rerun.to_dict(),
-            "verifier": None if self.verifier is None else self.verifier.to_dict(),
             "workspace_before_hash": self.workspace_before_hash,
             "workspace_after_hash": self.workspace_after_hash,
             "metadata": self.metadata,
@@ -426,13 +378,3 @@ def _normalize_plain_url(value: str) -> str:
 
 def _normalize_env(env: Mapping[str, str]) -> Dict[str, str]:
     return {str(key): str(value) for key, value in env.items()}
-
-
-def _redact_env(env: Dict[str, str]) -> Dict[str, str]:
-    redacted: Dict[str, str] = {}
-    for key, value in env.items():
-        if any(token in key.upper() for token in ("KEY", "TOKEN", "SECRET", "PASSWORD")):
-            redacted[key] = "<redacted>"
-        else:
-            redacted[key] = value
-    return redacted

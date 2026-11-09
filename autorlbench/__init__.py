@@ -1,7 +1,6 @@
 """AutoRLBench evaluation framework."""
 
 from .core.types import (
-    AgentSpec,
     TaskPackage,
     EvaluationConfig,
     EvaluationResult,
@@ -43,7 +42,6 @@ __all__ = [
     "LocalRuntime",
     "DockerRuntime",
     "create_runtime",
-    "AgentSpec",
     "TaskPackage",
     "ValidationIssue",
     "ValidationReport",

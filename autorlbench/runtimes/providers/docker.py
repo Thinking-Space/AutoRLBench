@@ -24,8 +24,7 @@ from ..base import (
     SandboxInstance,
     SandboxRequest,
     SandboxRuntime,
-    sees_download_cache,
-    sees_environment_dir,
+    stream_process_to_log,
 )
 from ..factory import register_runtime
 
@@ -85,18 +84,6 @@ class DockerRuntime(SandboxRuntime):
             "models": MODELS_DIR,
             "datasets": DATASETS_DIR,
         }
-        selected_paths = {
-            "oracle": request.host_oracle,
-            "verifier": request.host_verifier,
-        }
-        if name in selected_paths and selected_paths[name] is not None:
-            selected = selected_paths[name]
-            try:
-                relative = selected.resolve().relative_to(request.host_task_root.resolve())
-            except ValueError as exc:
-                raise ValueError(f"{name} must stay under the selected task root") from exc
-            return f"/task/{relative.as_posix()}"
-        paths.update({"oracle": "/task/oracle", "verifier": "/task/verifier"})
         try:
             return paths[name]
         except KeyError as exc:
@@ -177,10 +164,6 @@ class DockerRuntime(SandboxRuntime):
             raise ValueError("sandbox belongs to a different runtime")
         request = sandbox.request
         merged = self._merged_spec(request, spec)
-        merged = merged if request.stage != "agent" else self._with_env(
-            merged,
-            self._proxy_env(request, merged.env),
-        )
         cwd = self.path(request, request.workdir)
         argv = ["docker", "exec", "-w", cwd]
         if merged.user is not None:
@@ -242,6 +225,7 @@ class DockerRuntime(SandboxRuntime):
                 process,
                 timeout_s=timeout_s,
                 log_path=live_log_path,
+                to_stderr=live_log_to_stderr,
             )
         elif live_log_name and results_dir is not None:
             stdout, stderr, timed_out = DockerRuntime._stream_process(
@@ -326,44 +310,16 @@ class DockerRuntime(SandboxRuntime):
         *,
         timeout_s: Optional[int],
         log_path: Path,
+        to_stderr: bool = False,
     ) -> tuple[str, str, bool]:
         """Capture a process while streaming both of its streams into one persistent log file.
 
-        The harbor path points this at a log file that must outlive the run staging (see
-        HarborRunLog), so there is a single combined file rather than <name>.stdout/.stderr.log
-        pairs inside results/. Both drain threads share the open file and flush per line, which
-        makes tail -f follow the stage as it runs. stdout and stderr stay separately captured for
-        the CommandResult, same as with no live logging at all.
+        Thin delegate over runtimes.base.stream_process_to_log, kept for the provider's own
+        call sites and tests; see that helper for the behavior.
         """
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        captured = {"stdout": [], "stderr": []}
-        log_file = open(log_path, "w", encoding="utf-8")
-
-        def drain(stream, key: str) -> None:
-            for line in iter(stream.readline, ""):
-                captured[key].append(line)
-                log_file.write(line)
-                log_file.flush()
-            stream.close()
-
-        threads = [
-            threading.Thread(target=drain, args=(process.stdout, "stdout"), daemon=True),
-            threading.Thread(target=drain, args=(process.stderr, "stderr"), daemon=True),
-        ]
-        for thread in threads:
-            thread.start()
-
-        timed_out = False
-        try:
-            process.wait(timeout=timeout_s)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            process.kill()
-            process.wait()
-        for thread in threads:
-            thread.join()
-        log_file.close()
-        return "".join(captured["stdout"]), "".join(captured["stderr"]), timed_out
+        return stream_process_to_log(
+            process, timeout_s=timeout_s, log_path=log_path, to_stderr=to_stderr
+        )
 
     @staticmethod
     def _docker_env(env: Mapping[str, str]) -> tuple[list[str], dict[str, str]]:
@@ -377,21 +333,6 @@ class DockerRuntime(SandboxRuntime):
             else:
                 argv.extend(["-e", f"{key}={value}"])
         return argv, process_env
-
-    @staticmethod
-    def _with_env(spec: CommandSpec, env: Mapping[str, str]) -> CommandSpec:
-        """Return a command with the supplied environment merged in."""
-        return CommandSpec(
-            argv=spec.argv,
-            shell=spec.shell,
-            cwd=spec.cwd,
-            env=dict(env),
-            timeout_s=spec.timeout_s,
-            user=spec.user,
-            live_log_name=spec.live_log_name,
-            live_log_to_stderr=spec.live_log_to_stderr,
-            live_log_path=spec.live_log_path,
-        )
 
     @staticmethod
     def _proxy_env(request: SandboxRequest, env: Mapping[str, str]) -> dict[str, str]:
@@ -422,8 +363,8 @@ class DockerRuntime(SandboxRuntime):
         cuda:0..N-1 inside the container, so a task only declares a count and never names
         individual devices.
 
-        With no declaration (gpus None or 0) no flag is added, so CPU-only tasks and stages
-        (grading almost always is) behave exactly as before this wiring.
+        With no declaration (gpus None or 0) no flag is added, so CPU-only tasks behave exactly
+        as before this wiring.
 
         AUTORLBENCH_DOCKER_GPUS is a host-side override, following the opt-in convention of
         _proxy_env: a machine with only 2 GPUs should still run a task whose card says 8.
@@ -432,10 +373,7 @@ class DockerRuntime(SandboxRuntime):
         --gpus, but on some hosts the NVIDIA runtime hook fails at `docker start` when it tries
         to bind the actual device nodes.
 
-        The rerun has to run real training, so it takes the cards the task declares, exactly as the
-        agent stage does. The agent gets them too, but the protocol forbids it from launching
-        training -- there the GPU is headroom for cheap offline checks; the rerun is what actually
-        fills it.
+        The rerun has to run real training, so it takes the cards the task declares.
         """
         if request.stage == "prepare":
             return []
@@ -466,18 +404,15 @@ class DockerRuntime(SandboxRuntime):
 
         The differences between the tables are this design's access control, so each is spelled out:
 
-        * **workspace**: writable by prepare, agent and rerun, read-only for verifier. Prepare writes because
-          weights are downloaded to the relative path the task script references (`./Qwen2.5-0.5B-Instruct`);
-          rerun writes because training itself writes checkpoints;
-          the verifier is read-only because grading must not alter the scene.
-        * **/task**: prepare, agent and rerun mount visible_task (instruction only);
-          the verifier mounts the whole evaluation directory (with oracle and grading scripts). This is "no spoilers":
-          prepare runs a script shipped with the task and has no reason to read the answer, and neither does a rerun.
-        * **prepared**: writable by prepare, read-only for every later stage. The verifier reads the model
-          path prepare delivered, but must not read a copy the agent modified, or the grading basis would be editable by the examinee.
-          The rerun reads it too, read-only: that is what makes "the experiment ran on the assets prepare delivered" hold.
-        * **models / datasets**: writable by prepare, read-only for every later stage. See
-          SandboxRequest.host_models.
+        * **workspace**: writable in both stages. Prepare writes because weights are downloaded to
+          the relative path the task script references (`./Qwen2.5-0.5B-Instruct`); the rerun writes
+          because training itself writes checkpoints.
+        * **/task**: visible_task only (the instruction), never the oracle or the grading scripts --
+          "no spoilers" for a stage that runs the command the task declared, nothing more.
+        * **prepared**: writable in prepare, read-only for the rerun. That is what makes "the
+          experiment ran on the assets prepare delivered" hold.
+        * **models / datasets**: writable in prepare only -- the rerun's command comes from the task
+          declaration and needs nothing from the cache. See SandboxRequest.host_models.
         """
         if request.stage == "prepare":
             mounts = [
@@ -485,40 +420,27 @@ class DockerRuntime(SandboxRuntime):
                 DockerMount(request.host_visible_task, "/task", read_only=True),
                 DockerMount(request.host_prepared, PREPARED_DIR),
             ]
-        elif request.stage in {"agent", "rerun"}:
-            # Rerun comes after the agent: the workspace stays writable, because the training script
-            # writes checkpoints and ray writes scratch directories, and results stays writable
-            # because that is where the logs grading reads land. The only difference from the agent
-            # is nothing at all on /task -- a rerun runs the command the task declared and has no
-            # more reason to see the oracle than the agent does.
+        else:
             mounts = [
                 DockerMount(request.host_workspace, "/workspace"),
                 DockerMount(request.host_visible_task, "/task", read_only=True),
                 DockerMount(request.host_results, "/results"),
             ]
-        else:
-            mounts = [
-                DockerMount(request.host_workspace, "/workspace", read_only=True),
-                DockerMount(request.host_task_root, "/task", read_only=True),
-                DockerMount(request.host_results, "/results"),
-            ]
-        if request.host_environment is not None and sees_environment_dir(request):
+        if request.host_environment is not None:
             # Read-only: no stage has a reason to modify the task definition in the repo.
             mounts.append(
                 DockerMount(request.host_environment, AUTORLBENCH_ENVIRONMENT_DIR, read_only=True)
             )
         if request.stage != "prepare" and request.host_prepared is not None:
             mounts.append(DockerMount(request.host_prepared, PREPARED_DIR, read_only=True))
-        # Download caches: prepare writes, the verifier reads read-only, the agent does not see them at
-        # all. The predicate is sees_download_cache() -- the environment variables use the same one.
-        if sees_download_cache(request):
-            read_only = request.stage != "prepare"
+        # Download caches: prepare writes them, the rerun does not see them at all.
+        if request.stage == "prepare":
             for host, container in (
                 (request.host_models, MODELS_DIR),
                 (request.host_datasets, DATASETS_DIR),
             ):
                 if host is not None:
-                    mounts.append(DockerMount(host, container, read_only=read_only))
+                    mounts.append(DockerMount(host, container, read_only=False))
         return tuple(mounts)
 
     @staticmethod

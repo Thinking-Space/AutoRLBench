@@ -1,9 +1,6 @@
-"""Seven report/continuation cases including actual harness metric extraction."""
-from types import SimpleNamespace
-
+"""Seven report/continuation cases for the review grading pipeline."""
 import pytest
 
-from autorlbench.evaluation.evaluator import TaskEvaluator
 from tests.justrl2_review.fixtures import Fixture, ReviewRun
 
 
@@ -18,10 +15,6 @@ def test_starting_verdict_and_continuation_joint_score(tmp_path, expected, repor
     assert result['score'] == int(accepted) and result['passed'] is accepted
     assert result['metrics']['score'] is True and result['metrics']['admitted_count'] == 64
     assert (run.loader.read_bytes() != run.initial_loader) is repair
-    evaluator = object.__new__(TaskEvaluator)
-    merged = evaluator._extract_metrics(run.results, SimpleNamespace(returncode=code))
-    assert evaluator._extract_score(merged) == float(accepted)
-    assert merged['passed'] is accepted and type(merged['score']) is int
 
 
 def test_missing_report_does_not_overwrite_a_successful_original_proof(tmp_path):
