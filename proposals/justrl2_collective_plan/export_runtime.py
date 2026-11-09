@@ -106,7 +106,7 @@ def export(source, output):
             'added_source_files': sorted(set(final) - set(raw)),
             'old_local_guard_present': False,
             'provided_runtime_diagnostics': False,
-            'instrumentation_policy': 'Solver adds source logging; no prebuilt trace switch, tensor hooks, route records or intermediate snapshots.', 'historical_gpu_evidence_applies': False,
+            'instrumentation_policy': 'No prebuilt trace switch, tensor hooks, route records or intermediate snapshots; investigation method is unrestricted.', 'historical_gpu_evidence_applies': False,
             'gpu_training_validated': False, 'difficulty_calibrated': False,
             'scope': 'Native PPO/CP functions plus constructed reduction-plan transport, real CPU/Gloo; synthetic critic inputs',
             'boundary': 'Only workspace/ is contestant-visible; no parent directory, git, network or canonical source mount.',

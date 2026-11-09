@@ -34,23 +34,24 @@ communicator. Changing CP/DP groups, disabling normalization or filtering inputs
 is not a repair. Clearing a cache at one convenient boundary is not a general
 identity fix. Native empty local tensors remain legitimate participants.
 
-For acceptance require: measured failure; at least two contrasting controls;
-trace evidence of the first requested/effective group mismatch and its priming
-call; correct explanation of geometry AND invocation history; repaired replay
-and numerical preservation. Old guard diagnoses are wrong. Merely naming the
-cache key without debugging evidence is incomplete. Keep raw evidence outside
-the agent mount and rerun with a trusted evaluator; self-written JSON cannot be
-treated as proof. The optional AST replay does not validate full GPU training.
+For acceptance require a correct explanation of the communicator identity
+collision and its conditions, a repair preserving each requested group, and
+supporting validation. A bare cache-key guess is not a complete explanation.
+Do not prescribe how the solver investigates, a number or order of experiments,
+logging, trace fields or a particular artifact schema. Reviewer-side tracing
+can independently check the repair; it is not a required solver deliverable.
+The optional AST replay does not validate full GPU training.
 
 Static inspection can suggest this bug. No finite source task can honestly
-guarantee that experts cannot deduce it; the debugging deliverable and fresh
-verification make runtime evidence necessary for acceptance. Report blind
+guarantee that experts cannot deduce it; the report and independent
+verification must be judged on correctness, not on investigative technique. Report blind
 review outcomes rather than claiming an unmeasured difficulty threshold.
 
-## Solver-added instrumentation presentation
+## Method-neutral evaluation
 
-The initial export no longer supplies replay_probe.py or trace options. The
-solver receives run_replay.py and coarse completion only. Require the source
-instrumentation-only diff and actual captured output, meaningful controls,
-repair and retests. No fixed log schema is prescribed. Existing detailed
-trace graders are for trusted reviewer runs, not supplied solver helpers.
+The initial export supplies only minimal replay status. It does not tell the
+solver what information is absent or suggest how to acquire more information.
+Accept any sound investigative approach. Do not require an instrumentation-only
+diff, custom logs, trace files, experiments.json or use of grade_debugging.py.
+That tool is an optional reviewer audit of reviewer-generated experiments;
+verify_runtime.py and plan_identity.py provide independent correctness checks.

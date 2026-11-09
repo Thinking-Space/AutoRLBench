@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Require coherent before/control/after artifacts for a debugging submission.
+"""Optional reviewer audit of coherent before/control/after replay artifacts.
 
 This is an evidence-consistency gate, not tamper-proof execution attestation.
+Its artifact schema is not a solver submission requirement.
 Use verify_runtime.py separately with a trusted runner for fresh repair checks.
 """
 import argparse
