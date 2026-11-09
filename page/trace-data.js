@@ -304,6 +304,44 @@
  * the local artifacts to an SSH failure (infra), and the workspace
  * was recovered from the shared run dir and the replay run
  * manually. The ten runs were audited clean of network access.
+ * The ten idea_awm_reward_diagnosis solution records were re-published
+ * on 9 Nov 2026 from the neutral-instruction rerun, replacing the
+ * 4 Nov guided-round records (the replaced run ids stay in the git
+ * history of the site files). The guided instruction leaked the
+ * verdict direction: it titled the task "Improve the staged
+ * experiment", warned that "a reward that rises while held-out
+ * accuracy falls is a warning, not a success", and bulleted the
+ * grading rubric -- episodes whose trajectories did not satisfy the
+ * requested task must be judged incomplete, correct completions must
+ * still be judged complete. The neutral revision retitles the task
+ * "Diagnose and repair the staged experiment", asks the report to
+ * state a verdict with the evidence that decides it, and states the
+ * grading contract in prose; the task's grading pins are unchanged
+ * and every model re-ran against the de-leaked revision. Values come
+ * from the evaluation ledger joined by run_id and cross-checked
+ * against each trial's verifier result (see
+ * import_awm_neutral_solution_traces.py). Seven trials were graded
+ * in-run with the wrapper, verifier and ledger in agreement. Three
+ * CLIs died at teardown after completed work -- Gemini-4-Argon exit
+ * 255 after a nine-minute hang on a degraded gateway channel (run
+ * through a fallback alias), Qwen3.8-Max exit 255, and Grok-4.7's
+ * known post-turn futex hang released by SIGTERM -- and their
+ * verdicts were rescued from the local verifier artifacts (the
+ * in-trial deterministic replay result and reward file agree with
+ * the ledger; the rescues are not requeues); those wrapper reports
+ * stay zeroed with a nonzero-exit exception record, and each run's
+ * recovery entry carries the rescue reason. No run clears the
+ * required 14/14 classification (the guided round also had none):
+ * GPT-6-Astra reaches 11/14, the only run that rejects all seven
+ * negative episodes, its three misses over-tightening the firmware,
+ * device-count and thread rules so completed episodes read
+ * incomplete; Claude-Fable-5.1, GLM-5.3, Kimi-K3.1-Pro,
+ * Gemini-4-Argon, Qwen3.8-Max, GPT-6.1-Sol and Grok-4.7 sit at the
+ * unfixed 7/14 baseline, the rule still judging requested-but-
+ * unperformed tasks complete; and Kimi-K3 and DeepSeek-V4-Pro
+ * rewrote the rule file down to 10000 and 10008 of the required
+ * 10010 entries, scoring 0 under the in-place-repair guard. The ten
+ * runs were audited clean of network access.
  * The 190 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -4430,184 +4468,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "9bd3f62b2c465ceb57897a1616732525235e7693ffe55d8380cad3e3521ac25b"
   },
   {
-    "task": "reward/idea_awm_reward_diagnosis",
-    "slug": "fable51-idea-awm-sol",
-    "file": "agent-trace/fable51-idea-awm-sol.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.5,
-    "durationMs": 564535,
-    "steps": 49,
-    "costUsd": 21.3055,
-    "sourceRunId": "20261104-223421-addb3e87",
-    "sessionId": "93810585-1ddb-4d08-a9e1-dac2da07afd1",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "597a74336b81f13288982028f0a4bd96fcc5999672282856867d27c897c5f0d9"
-  },
-  {
-    "task": "reward/idea_awm_reward_diagnosis",
-    "slug": "dsv4-idea-awm-sol",
-    "file": "agent-trace/dsv4-idea-awm-sol.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 3236213,
-    "steps": 123,
-    "costUsd": 39.4993,
-    "sourceRunId": "20261104-213706-30d7eb5f",
-    "sessionId": "9f627cd9-5cfd-4fc6-967a-2f200b85eef4",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "a25ad4f0965fe857909c5351d1c1e2f80c379ae25857b03fd5ffe745f318a6ae"
-  },
-  {
-    "task": "reward/idea_awm_reward_diagnosis",
-    "slug": "glm53-idea-awm-sol",
-    "file": "agent-trace/glm53-idea-awm-sol.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.7857142857142857,
-    "durationMs": 25868502,
-    "steps": 939,
-    "costUsd": 337.6377,
-    "sourceRunId": "20261104-101529-f2ae8e43",
-    "sessionId": "c789fd1f-fe2f-4c66-a156-b46e9c90509c",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "ca5e7df4fc26406720c9c25d695f2958ae52cb53008b4a42655378ae1ae9d5e5"
-  },
-  {
-    "task": "reward/idea_awm_reward_diagnosis",
-    "slug": "gemini4-idea-awm-sol",
-    "file": "agent-trace/gemini4-idea-awm-sol.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.7142857142857143,
-    "durationMs": 12156445,
-    "steps": 229,
-    "costUsd": 100.4716,
-    "sourceRunId": "20261104-215630-d9a804cb",
-    "sessionId": "db366cf2-dea3-4c3b-becb-2fd9004d9f52",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "690f822548f3c7240e1274912502fdf265072005178c891a17551fccceabc753"
-  },
-  {
-    "task": "reward/idea_awm_reward_diagnosis",
-    "slug": "gpt6astra-idea-awm-sol",
-    "file": "agent-trace/gpt6astra-idea-awm-sol.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.7142857142857143,
-    "durationMs": 1706528,
-    "steps": 42,
-    "costUsd": 8.946,
-    "sourceRunId": "20261104-233955-cdf14744",
-    "sessionId": "01a1a738-1636-7a20-a033-5a17c62b8204",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "6ee234b6ecf0958729891af29573447d6e4edb4254616e2a10d3f7eec2372c08"
-  },
-  {
-    "task": "reward/idea_awm_reward_diagnosis",
-    "slug": "gpt61sol-idea-awm-sol",
-    "file": "agent-trace/gpt61sol-idea-awm-sol.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.7142857142857143,
-    "durationMs": 1638918,
-    "steps": 45,
-    "costUsd": 1.6137,
-    "sourceRunId": "20261104-212459-43903a0a",
-    "sessionId": "01a1a6bd-c3f0-7ec0-9735-11adef611f94",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "585b19f5371fa8550d5829053ed552fadac95ead727398253a7bc38e2e7e8944"
-  },
-  {
-    "task": "reward/idea_awm_reward_diagnosis",
-    "slug": "grok47-idea-awm-sol",
-    "file": "agent-trace/grok47-idea-awm-sol.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.7857142857142857,
-    "durationMs": 766611,
-    "steps": 41,
-    "sourceRunId": "20261104-142113-2096a7f2",
-    "sessionId": "c0c78a7e-1be3-4b8d-b7b9-e5a1ec8180d8",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "603aa3ab67f790056962d4b82c041dc00e8d932d8f93cc2b3699da3cc3a2fddb"
-  },
-  {
-    "task": "reward/idea_awm_reward_diagnosis",
-    "slug": "kimi-idea-awm-sol",
-    "file": "agent-trace/kimi-idea-awm-sol.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.5,
-    "durationMs": 1329124,
-    "steps": 102,
-    "costUsd": 5.846,
-    "sourceRunId": "20261104-173336-56568156",
-    "sessionId": "08190793-e14b-4add-8769-0df43e88dd6e",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "afbe51c99c9523074e75dfd83816ccb05cf42239ccc4959273069508b6793e70"
-  },
-  {
-    "task": "reward/idea_awm_reward_diagnosis",
-    "slug": "kimi31-idea-awm-sol",
-    "file": "agent-trace/kimi31-idea-awm-sol.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.5,
-    "durationMs": 4244618,
-    "steps": 206,
-    "costUsd": 21.4133,
-    "sourceRunId": "20261104-175854-1804682d",
-    "sessionId": "35ab6685-7f18-461d-8692-98766cd5e3f2",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "adb8bbf1ed8663c372ac3f101012f43e6d5bc9dcf7ad1c8049971db92f85650c"
-  },
-  {
-    "task": "reward/idea_awm_reward_diagnosis",
-    "slug": "qwen38-idea-awm-sol",
-    "file": "agent-trace/qwen38-idea-awm-sol.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.5,
-    "durationMs": 2943065,
-    "steps": 67,
-    "sourceRunId": "20261104-224748-87b282b0",
-    "sessionId": "d5f88398-6f80-4f96-8832-d79fb151ef1f",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "902450f2af2e23304d608581d93160c27568ae40a13655b1f24e99926f60b5d8"
-  },
-  {
     "task": "algorithm/verl_policy_loss_padded_mask_only",
     "slug": "fable51-policy-padded-mask-only",
     "file": "agent-trace/fable51-policy-padded-mask-only.json",
@@ -8179,6 +8039,184 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "d52b7b9b-8a44-4c56-971a-8fa589f210e9",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "0f4d28dc3555aa125f4b84c858e72f2b6d20284ffefeaae7888718b05d41e978"
+  },
+  {
+    "task": "reward/idea_awm_reward_diagnosis",
+    "slug": "fable51-idea-awm-sol",
+    "file": "agent-trace/fable51-idea-awm-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.5,
+    "durationMs": 572507,
+    "steps": 20,
+    "costUsd": 24.7844,
+    "sourceRunId": "20261108-152115-7ccf8e04",
+    "sessionId": "aedef98f-45df-43c0-a201-6100d2f8c1f2",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "d4e5545f54845ee7f1ee998495978b4eff591cc6ce17b367059bdd3ff7ca60af"
+  },
+  {
+    "task": "reward/idea_awm_reward_diagnosis",
+    "slug": "dsv4-idea-awm-sol",
+    "file": "agent-trace/dsv4-idea-awm-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 3728072,
+    "steps": 123,
+    "costUsd": 41.4329,
+    "sourceRunId": "20261108-141538-de1b4ea0",
+    "sessionId": "0ed81477-1d81-4e83-9fa5-4b9b6a184ed9",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "b57ab3867b60e29965509d8e03c313e1a2c053a8b97395ee200c1235156c712e"
+  },
+  {
+    "task": "reward/idea_awm_reward_diagnosis",
+    "slug": "glm53-idea-awm-sol",
+    "file": "agent-trace/glm53-idea-awm-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.5,
+    "durationMs": 4032442,
+    "steps": 147,
+    "costUsd": 34.0605,
+    "sourceRunId": "20261108-120817-2bc6cf0c",
+    "sessionId": "6dc6d5fa-b230-4a1a-bf0a-8db08516945f",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "b3155edfbfc6ba7a17378cfa36841c543727aaba4f8bb3be7288d6a0d6961e43"
+  },
+  {
+    "task": "reward/idea_awm_reward_diagnosis",
+    "slug": "gemini4-idea-awm-sol",
+    "file": "agent-trace/gemini4-idea-awm-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.5,
+    "durationMs": 982660,
+    "steps": 27,
+    "costUsd": 9.6421,
+    "sourceRunId": "20261109-205217-4a737355",
+    "sessionId": "d80d472d-24ff-43d6-bfa8-70c8ab966507",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "48925beccbb8bceba40aeb5362355f91f507e4e3cef781aff2197fa42179da17"
+  },
+  {
+    "task": "reward/idea_awm_reward_diagnosis",
+    "slug": "gpt6astra-idea-awm-sol",
+    "file": "agent-trace/gpt6astra-idea-awm-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.7857142857142857,
+    "durationMs": 25230062,
+    "steps": 669,
+    "costUsd": 156.9305,
+    "sourceRunId": "20261108-213816-abc50529",
+    "sessionId": "01a1bb62-6ce8-7603-a926-e16174897a9d",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "14182afbf18d2dfcdb790cb8705c63b059f9f31da81a4ab31242cc130348309c"
+  },
+  {
+    "task": "reward/idea_awm_reward_diagnosis",
+    "slug": "gpt61sol-idea-awm-sol",
+    "file": "agent-trace/gpt61sol-idea-awm-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.5,
+    "durationMs": 26199895,
+    "steps": 799,
+    "costUsd": 25.8723,
+    "sourceRunId": "20261109-044213-1261b483",
+    "sessionId": "01a1bce9-b227-7491-93df-40ec3a7f359d",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a8ed3ac6b477e92e5944d4c6e14ee554204216f6f102533f77e4612cdd645d0a"
+  },
+  {
+    "task": "reward/idea_awm_reward_diagnosis",
+    "slug": "grok47-idea-awm-sol",
+    "file": "agent-trace/grok47-idea-awm-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.5,
+    "durationMs": 3838286,
+    "steps": 46,
+    "sourceRunId": "20261109-155935-9b9f7124",
+    "sessionId": "6273e770-8d0b-4448-a05a-d685d5bb5157",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "34063e8704ee5f8645c82779782f0533859280cfc7754bd0e9cd8456259c95b2"
+  },
+  {
+    "task": "reward/idea_awm_reward_diagnosis",
+    "slug": "kimi-idea-awm-sol",
+    "file": "agent-trace/kimi-idea-awm-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1661970,
+    "steps": 120,
+    "costUsd": 6.3043,
+    "sourceRunId": "20261108-132243-3bba492b",
+    "sessionId": "079773d0-9966-4bc7-8a5f-ed0eed89bf72",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "c6c27b6b5dd6e6227fb135389661040179507b29b5108f029d91f7bb659848c1"
+  },
+  {
+    "task": "reward/idea_awm_reward_diagnosis",
+    "slug": "kimi31-idea-awm-sol",
+    "file": "agent-trace/kimi31-idea-awm-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.5,
+    "durationMs": 1066254,
+    "steps": 33,
+    "costUsd": 3.3908,
+    "sourceRunId": "20261108-135424-7cb491f9",
+    "sessionId": "7f327e6e-0b01-4097-a8ef-d750c8cf50d4",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "923a76324facca4b238a9dc6a00d1ade6d99e7e24860e4dc48561f46cbfe88ad"
+  },
+  {
+    "task": "reward/idea_awm_reward_diagnosis",
+    "slug": "qwen38-idea-awm-sol",
+    "file": "agent-trace/qwen38-idea-awm-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.5,
+    "durationMs": 2146711,
+    "steps": 56,
+    "sourceRunId": "20261109-120907-5b04b656",
+    "sessionId": "09dbaf18-5933-452d-9808-180d96aba83d",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "0f4d85ef626dba0e244c59e4640c6f3f6800e81d84619b8c25ee5b16c1402a8d"
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

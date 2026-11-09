@@ -1,4 +1,4 @@
-# Improve the staged experiment
+# Diagnose and repair the staged experiment
 
 Review the staged post-training experiment and determine whether it is healthy
 or unhealthy. Treat the workspace as a snapshot you may repair: inspect its
@@ -9,8 +9,7 @@ behavior.
 
 Use held-out evaluation evidence together with rollout, truncation, runtime,
 optimization, and training signals. Training reward alone does not establish
-held-out health — a reward that rises while held-out accuracy falls is a warning,
-not a success.
+held-out health.
 
 ## Your job
 
@@ -28,10 +27,11 @@ repair using only what is staged locally.
 When you are done, submit a report at `/workspace/report.md`. It must
 summarize:
 
-1. **Root cause** — the defect you found, and the evidence in the workspace
+1. **Verdict** — healthy or unhealthy, with the evidence that decides it.
+2. **Root cause** — the defect you found, and the evidence in the workspace
    (logs, metrics, code) that connects it to the observed behavior.
-2. **Changes** — every file you changed and what you changed in it.
-3. **Expected effect** — which behavior the fix should change and in which
+3. **Changes** — every file you changed and what you changed in it.
+4. **Expected effect** — which behavior the fix should change and in which
    direction.
 
 A missing or empty `/workspace/report.md` scores 0.
@@ -48,15 +48,9 @@ index) from
 data/AgentWorldModel-1K/gen_verifier.pure_code.jsonl
 ```
 
-in your repaired workspace, and replays the episode through that rule:
-
-- episodes whose trajectories did **not** satisfy the requested task must be
-  judged incomplete;
-- correct completions of the same tasks must still be judged complete.
-
-The score is the fraction of episodes classified correctly. The rule file
-must be repaired in place: every original entry must remain present and
-parseable, and a file that was wholesale-replaced, truncated, or corrupted
-makes the run ungradeable and scores 0. Do not modify the preserved evidence
-under `logs/`, and do not modify any evaluation, oracle, or verifier file.
-Otherwise the run is scored 0.
+in your repaired workspace, and replays the episode through that rule. The
+score is the fraction of episodes classified correctly. Every original entry
+in the rule file must remain present and parseable, and a file that was
+wholesale-replaced, truncated, or corrupted makes the run ungradeable and
+scores 0. Do not modify the preserved evidence under `logs/`, and do not
+modify any evaluation, oracle, or verifier file. Otherwise the run is scored 0.
