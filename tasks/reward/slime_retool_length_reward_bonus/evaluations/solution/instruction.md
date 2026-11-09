@@ -1,4 +1,4 @@
-# Improve the staged experiment
+# Diagnose and repair the staged experiment
 
 Review the staged post-training experiment and determine whether it is healthy
 or unhealthy. Treat the workspace as a snapshot you may repair: inspect its
@@ -17,7 +17,6 @@ If you find a defect, fix it in the staged workspace at `/workspace`. **Do not
 launch training.** Do not start the experiment, in the foreground or
 background, and do not use `nohup`, `&`, `tmux`, `screen`, or any detach
 mechanism. The system runs the experiment itself after you finish (see below);
-mechanism. The system runs the experiment itself after you finish (see below);
 anything you launch is wasted and scores nothing. Cheap, non-training checks
 are fine.
 
@@ -28,10 +27,11 @@ repair using only what is staged locally.
 When you are done, submit a report at `/workspace/report.md`. It must
 summarize:
 
-1. **Root cause** — the defect you found, and the evidence in the workspace
+1. **Verdict** — healthy or unhealthy, with the evidence that decides it.
+2. **Root cause** — the defect you found, and the evidence in the workspace
    (logs, metrics, code) that connects it to the observed behavior.
-2. **Changes** — every file you changed and what you changed in it.
-3. **Expected effect** — which metric the fix should move and in which
+3. **Changes** — every file you changed and what you changed in it.
+4. **Expected effect** — which metric the fix should move and in which
    direction.
 
 A missing or empty `/workspace/report.md` scores 0.
@@ -64,11 +64,9 @@ The effective run must use:
 - `--eval-interval 10`
 
 **Make sure your repaired launch script actually produces that run.** The
-staged `examples/retool/retool_qwen3_4b_rl.sh` bakes `--num-rollout 3000`
-directly into the training invocation with no environment override, and the
-graded rerun passes no budget override either — if you leave 3000 in place,
-the rerun blows its time budget and scores 0. Edit the script to the required
-70.
+graded rerun passes no budget or environment overrides — whatever the script
+bakes into the training invocation is what runs, and a run that exceeds its
+time budget scores 0.
 
 Four more traps specific to this task:
 
@@ -85,15 +83,12 @@ Four more traps specific to this task:
 - **Read-only scoring assets.** The exact-match scorer
   `slime/rollout/rm_hub/math_dapo_utils.py`, the tool sandbox
   `examples/retool/tool_sandbox.py`, and the staged datasets
-  `zhuzilin_dapo-math-17k/` and `zhuzilin_aime-2024/` are verified correct and
-  graded read-only: after the rerun the verifier hashes them, and any
-  modification, replacement, or deletion scores 0 no matter what the metrics
-  say. The length-term repair belongs in the reward function in
-  `examples/retool/generate_with_retool.py` — remove the injected term, do not
-  re-tune the scoring around it.
-- **The launch script's scoring and eval wiring is fixed.** Beyond the
-  instructed `--num-rollout 70` edit and the log-placement repair, the script
-  must keep wiring the run exactly as staged: the custom generate/reward-manager
+  `zhuzilin_dapo-math-17k/` and `zhuzilin_aime-2024/` are graded read-only:
+  after the rerun the verifier hashes them, and any modification, replacement,
+  or deletion scores 0 no matter what the metrics say. Any repair belongs in
+  the staged workspace outside these protected assets.
+- **The launch script's scoring and eval wiring is fixed.** The script must
+  keep wiring the run exactly as staged: the custom generate/reward-manager
   paths (`generate_with_retool.generate` /
   `generate_with_retool.reward_func`), the eval on `aime` over the staged
   `aime-2024.jsonl`, `--eval-interval 10`, `--n-samples-per-eval-prompt 16`,

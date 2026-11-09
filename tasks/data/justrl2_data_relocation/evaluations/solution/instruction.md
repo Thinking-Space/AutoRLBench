@@ -70,9 +70,8 @@ are `import json` and `from pathlib import Path`. You may use local assignments,
 boolean/equality tests and `return`. Supported path methods are `is_file`,
 `exists`, `read_text`, `joinpath` and `relative_to`; `json.loads`, dictionary
 `get/items/keys/values`, and string `startswith/endswith/replace` are available.
-A record pins the content it needs by `sha256`, not a fixed location.
-Return the current location of that pinned content when it is available; when
-no matching content can be located, the record is unavailable and you must
+A record pins the content it needs by `sha256`. When no matching content can
+be located, the record is unavailable and you must
 raise `FileNotFoundError` or `ValueError` rather than return any path. The
 verifier probes unavailability handling with synthetic records.
 
