@@ -25,7 +25,9 @@ Outputs:
   corrected_outputs.json  question_sha256 -> {fail_index, fail_input,
                           corrected_output, ...}; the external-judge table the
                           solution grader uses to score "correct but judged 0"
-                          rollouts.
+                          rollouts (at commit time it is shrunk to name/
+                          fail_index/fail_input/corrected_output_sha256 --
+                          see the data_prep README).
   --passing-manifest PATH optional extra output: problems with verdict
                           passes_loose (>= 1 bundled solution passes all tests
                           under the loose budget). Used on the test-split pool

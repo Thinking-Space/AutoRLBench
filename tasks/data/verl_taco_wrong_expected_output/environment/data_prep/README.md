@@ -119,6 +119,13 @@ cp <work>/test_manifest.jsonl  <repo>/raw_tasks/verl_taco_wrong_expected_output/
 cp <work>/corrected_outputs.json <repo>/raw_tasks/verl_taco_wrong_expected_output/evaluations/solution/verifier/resources/
 ```
 
+Before committing, shrink `corrected_outputs.json`: keep only `name`,
+`fail_index`, `fail_input`, and `corrected_output_sha256` per entry, where
+the digest is `sha256(json.dumps([str(x) for x in corrected_output]))` --
+the grader hashes the executed response's stdout lines the same way, so
+grading semantics are identical while the file drops from ~53 MB to ~6 MB
+(full corrected outputs stay in `receipts.jsonl` outside the repo).
+
 Keep `receipts.jsonl` (the audit trail) outside the repo; record its sha256
 and row count in the task README's assets table once the selection is frozen.
 

@@ -15,7 +15,8 @@ corrected-outputs table (resources/corrected_outputs.json, built during the
 task's data purification from the problems' own agreeing bundled solutions)
 and whose logged score is 0, it executes the response's code on that
 problem's recorded failing test and compares the actual output with the
-corrected output. A match is a "correct solution scored 0" sample. The metric
+corrected output's stored sha256 digest. A match is a "correct solution
+scored 0" sample. The metric
 is the maximum over the last `last_k_dumps` steps of
 (correct-but-zero samples / rows in that step's dump).
 
@@ -318,15 +319,18 @@ def grade(spec: dict[str, Any], results: Path, resources: Path) -> int:
                 continue
             code = extract_code(row.get("output", ""))
             stdin_text = entry.get("fail_input") or ""
-            corrected_output = entry.get("corrected_output")
-            # An empty corrected output cannot establish correctness: an
-            # empty-vs-empty match would vacuously "confirm" any response
-            # that prints nothing. Skip such entries (the strict selection
-            # no longer produces them; kept as a defensive invariant).
-            if code is None or not isinstance(corrected_output, list) or not corrected_output:
+            corrected_sha = entry.get("corrected_output_sha256")
+            # The corrected output is stored as the sha256 of its canonical
+            # JSON line list (the same hash of the executed response's stdout
+            # lines). Empty outputs are never present: an empty-vs-empty match
+            # would vacuously "confirm" any response that prints nothing, and
+            # the strict selection produced none.
+            if code is None or not corrected_sha:
                 continue
             actual = run_response(code, stdin_text, exec_timeout)
-            ok = actual is not None and [str(x) for x in actual] == [str(x) for x in corrected_output]
+            ok = actual is not None and hashlib.sha256(
+                json.dumps(actual).encode("utf-8")
+            ).hexdigest() == corrected_sha
             if ok:
                 judged += 1
                 if len(sample_detail) < 8:
