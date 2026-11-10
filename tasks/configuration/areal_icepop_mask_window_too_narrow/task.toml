@@ -1,0 +1,31 @@
+title = "IcePop mask window narrower than the train-inference ratio spread"
+license = "Apache-2.0"
+created_date = "2026-11-10"
+domain = "configuration"
+tags = ["areal", "decoupled-ppo", "gsm8k", "icepop", "token-masking", "moe", "issue-only"]
+
+[submitter]
+name = "Kaixiang Zhao"
+affiliation = "Brigham Young University"
+
+[model]
+name = "Qwen1.5-MoE-A2.7B-Chat"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test"
+
+[training]
+framework = "AReaL"
+algo = "decoupled PPO with IcePop token masking"
+script = "run.sh"
+
+[environment]
+image = "ghcr.io/areal-project/areal-runtime:v2.0.0-sglang@sha256:7ce1a21eee7cbdba6d1ac3d5cb5e1162edc392b8d499c9d5d7e17a1cf79276e3"
+image_stack = "areal-v2.0.0-sglang0.5.10.post1-torch2.9.1-flashattn2.8.3-cu129-py3.12"
+# One 8-GPU node: 4 SGLang rollout servers (sglang:d4p1t1) + 4 FSDP actor ranks (fsdp:d4p1t1),
+# recorded on 8 x A100-SXM4 80 GB.
+gpus = 8
+
+[outcome]
+failure_type = "training_collapse"
+failure_reason = "run.sh narrows the IcePop token-mask window (actor.rejection_sampling.lower/upper) from the shipped [0.5, 5] to [0.67, 1.5]; on this MoE model with asynchronous rollouts the behaviour importance weight spreads wider than that, so the masked token fraction starts 4x higher (0.0161 vs 0.0041 for the shipped window), crosses 0.10 at step 43 and peaks at 0.750 at step 73 while entropy rises from 0.184 to 5.92 and responses lengthen from 284 to 600 tokens; held-out GSM8K eval-rollout/reward goes 0.6448 -> 0.5463 -> 0.5777 over the three epochs against 0.627 -> 0.652 -> 0.653 with the shipped window."
