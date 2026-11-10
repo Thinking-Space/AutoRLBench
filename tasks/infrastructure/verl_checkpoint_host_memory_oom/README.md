@@ -63,7 +63,7 @@ saving.
 The 20 GiB cgroup limit is applied by `environment/docker-compose.yaml`,
 which only the Harbor backend injects; the native docker runtime passes
 `--gpus`/`--shm-size` only and cannot enforce the budget, so run this task
-on Harbor. The image is `docker/images/verl_checkpoint_host_memory_oom.Dockerfile`
+on Harbor. The image is `docker/images/verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10.Dockerfile`
 (pinned `hiyouga/verl` digest, torch 2.5.1 / vLLM 0.7.4 / Ray 2.40.0);
 prepare uses the shared `autorlbench_fetch_hf` tooling with revision,
 size, and SHA-256 pins (see `environment/data_manifest.json`).

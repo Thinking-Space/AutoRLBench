@@ -44,7 +44,7 @@ from autorlbench.evaluation.run_log import HarborRunLog
 from autorlbench.tasks import load_task_package
 
 
-FIXTURE_IMAGE = "verl-qwen3vl-cu130"
+FIXTURE_IMAGE = "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12"
 FIXTURE_REF = resolve_environment_reference(FIXTURE_IMAGE)
 
 METADATA = f"""title = "Harbor fixture"
@@ -72,7 +72,7 @@ script = "train.sh"
 
 [environment]
 image = "{FIXTURE_REF}"
-image_stack = "verl-qwen3vl-cu130"
+image_stack = "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12"
 gpus = 1
 
 [environment.env]

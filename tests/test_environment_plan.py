@@ -20,7 +20,7 @@ from autorlbench.tasks.validator import validate_metadata
 
 
 # A real environment from docker/images/, so the loader's known_images() check passes.
-FIXTURE_IMAGE = "verl_checkpoint_host_memory_oom"
+FIXTURE_IMAGE = "verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10"
 FIXTURE_REF = resolve_environment_reference(FIXTURE_IMAGE)
 # A second real environment, to exercise references other than the fixture's.
 SLIME_IMAGE = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
@@ -341,8 +341,7 @@ class EnvironmentImageTests(unittest.TestCase):
         # The activate hook and the fetch/dataset tools moved to the prepare stage: the
         # harness bind-mounts /autorlbench/prepared per run and injects the activation
         # logic inline. Any Dockerfile creating those directories is a leftover from
-        # the old bake-it-in era. (miles-ngc2506-distributable is a build recipe with
-        # several layers rather than a pull file, but the same rule applies to it.)
+        # the old bake-it-in era.
         # FROM lines and comments are exempt: registry paths and prose may carry the
         # string (ghcr.io/.../autorlbench-justrl2), instructions may not.
         for name in sorted(known_images()):

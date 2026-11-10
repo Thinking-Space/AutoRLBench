@@ -77,12 +77,12 @@ The name is assembled from **fixed slots, in a fixed order**; an absent slot is 
 | python | `py3.12` | — (essentially always present; this slot carries information, not absence) |
 
 The leading framework slot gets a version **only when the framework is actually baked into
-the image** (`slime-v0.3.2`, `slime-v0.5.0rc0`). The veRL family does not bake the framework —
+the image** (`slime-v0.3.2`). The veRL family does not bake the framework —
 `import verl` fails in the base image; the framework travels with the workspace — so `verl-`
 is a versionless family label that groups the veRL tasks, followed by the real engine /
 torch / flashattn slots. Examples:
 
-- `vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12` — no framework slot: veRL comes with
+- `vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10` — no framework slot: veRL comes with
   the workspace.
 - `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` — same, carrying the `verl-`
   family label to distinguish it from the line above.
@@ -91,9 +91,8 @@ torch / flashattn slots. Examples:
 
 Format rules: all lowercase, no `+`. The engine / `torch` / `flashattn` slots use the full
 `major.minor.patch`; pure post-release suffixes (`.post1`, `.dev2`) are left to the digest,
-but pre-release markers that genuinely fork the stack are kept (`slime-v0.5.0rc0` exists
-precisely because `0.5.0rc0 ≠ 0.5.15`). CUDA stays `cuNNN`, python stays `major.minor` —
-neither slot promises patch-level fidelity.
+but pre-release markers that genuinely fork the stack are kept. CUDA stays `cuNNN`, python
+stays `major.minor` — neither slot promises patch-level fidelity.
 
 Two consequences worth internalizing:
 
@@ -108,21 +107,10 @@ Two consequences worth internalizing:
   on the merged image and confirming the scores do not move — never by name similarity alone
   (reproducibility beats uniformity, section 1).
 
-### Why slime has two environments
-
-Not a patch-level relationship — two genuinely different stacks. The retool / search-r1
-recipes import `sglang.srt.constants.GPU_MEMORY_TYPE_CUDA_GRAPH`, which does not exist in
-`0.5.0rc0`; meanwhile the rlve tasks' recorded results were taken on `0.5.0rc0`, and moving
-them forward means rewriting their ground truth under a different torch. Two stacks that
-cannot be reconciled get two names.
-
 ### Exceptions
 
 A few Dockerfiles predate or deviate from the single-`FROM` rule:
 
-- `miles-ngc2506-distributable.Dockerfile` is a multi-layer **build recipe** (fork tree,
-  wheels) for a self-built image — its `FROM` line names a *base*, so pulling it would fetch
-  the wrong image. No task uses it yet; it is kept as the record of how that image was built.
 - `verl-v061-grpo.Dockerfile` is the veRL 0.6.1 GRPO **build recipe**: a venv layer over the
   digest-pinned upstream vLLM image, with `verl-v061-runtime/` as its lock file. Adapted to
   the bake-nothing convention on 2026-11-06 (no baked tooling or ENV; internal venv paths
@@ -179,9 +167,8 @@ One task keeps a non-image exception file:
   compose files and has no memory-limit mechanism, so the file is inert until such
   support exists; without the limit the task's own assert fails loudly.
 
-A few recorded environments (`justrl2-data-relocation`, `verl_checkpoint_host_memory_oom`,
-`verl-qwen3vl-cu130`) carry descriptive names instead of the slot grammar; treat them as
-opaque identifiers.
+One recorded environment (`justrl2-data-relocation`) carries a descriptive name instead of
+the slot grammar; treat it as an opaque identifier.
 
 ## 3. Every Dockerfile is one digest-pinned `FROM`
 
@@ -194,7 +181,7 @@ FROM verlai/verl:vllm017.latest@sha256:4c43bbf1...
 
 pointing either at an upstream framework image or at an image we built once and pushed
 (when the build is elaborate, it is pre-built and pushed, and the recipe is maintained
-separately — as with `miles-ngc2506-distributable`). The test suite enforces the digest pin:
+separately — as with `verl-v061-grpo`). The test suite enforces the digest pin:
 upstream tags move (`vllm017.latest` especially), and a task's recorded results must not
 move with them. Changing a digest is a deliberate upgrade — re-run every task on that
 environment afterwards.
@@ -215,7 +202,7 @@ pay it up front:
 python3 -m autorlbench build-images                 # every environment under docker/images/
 python3 -m autorlbench build-images \
     verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12 \
-    slime-v0.5.0rc0-sglang0.5.0rc0-torch2.8.0-flashattn2.7.4-cu126-py3.12   # a subset
+    slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12      # a subset
 python3 -m autorlbench build-images --rebuild \
     verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12                  # re-pull even if present
 ```
@@ -332,21 +319,15 @@ a fix to a fetch script is a fix to the task that ships it.
 
 | Name | Upstream base (digest-pinned in the Dockerfile) |
 | --- | --- |
-| `areal-sglang0.5.10-torch2.9.1-flashattn2.8.3-cu129-py3.12` | `ghcr.io/areal-project/areal-runtime:v2.0.0-sglang` |
 | `justrl2-data-relocation` | `ghcr.io/merak0514/autorlbench-justrl2` |
 | `maestro-vllm011` | `docker.m.daocloud.io/nvidia/cuda:12.8.1-devel-ubuntu24.04` |
-| `miles-ngc2506-distributable` | build recipe, see [Exceptions](#exceptions) |
-| `miles-sglang0.5.23-torch2.14.1-flashattn2.7.4-cu130-py3.12` | `radixark/miles` |
 | `slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12` | `slimerl/slime:v0.3.2-cu129` |
-| `slime-v0.5.0rc0-sglang0.5.0rc0-torch2.8.0-flashattn2.7.4-cu126-py3.12` | `slimerl/slime:v0.5.0rc0-cu126` |
 | `tool-rl-vllm024` | `python:3.12.10-slim-bookworm`, torch 2.11.0, vLLM 0.24.0 |
-| `verl-qwen3vl-cu130` | `verlai/verl:vllm024.dev2` |
 | `verl-v061-grpo` | legacy recipe, see [Exceptions](#exceptions) |
 | `verl-0.9-vllm0.28` | build recipe, see [Exceptions](#exceptions) |
 | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` | `verlai/verl:vllm017.latest` |
-| `verl-vllm0.8.5-torch2.6.0-flashattn2.7.4-cu124-py3.10` | `verlai/verl:app-verl0.4-vllm0.8.5-mcore0.12.2-te2.2` |
-| `verl_checkpoint_host_memory_oom` | `hiyouga/verl` |
-| `vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12` | `ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128` |
+| `verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12` | `verlai/verl:vllm024.dev2` |
+| `verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10` | `hiyouga/verl` |
 | `vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10` | `ghcr.io/yhyayi/autorlbench:vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10` |
 
 Which tasks use which environment is declared per task in `tasks/<domain>/<task_id>/task.toml`.

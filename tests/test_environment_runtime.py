@@ -292,7 +292,7 @@ class NetworkPolicyEnvTests(unittest.TestCase):
 class PrepareScriptTests(unittest.TestCase):
     """How the evaluator translates prepare.sh into a container path."""
 
-    def _package(self, root: Path, *, prepare: Path | None, image: str | None = "verl-qwen3vl-cu130"):
+    def _package(self, root: Path, *, prepare: Path | None, image: str | None = "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12"):
         from autorlbench.core.types import TaskPaths
 
         paths = TaskPaths(

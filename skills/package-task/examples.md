@@ -35,7 +35,7 @@ failure_logs:
   - logs/train.log
 include_wandb: true
 
-image: verl-vllm0.8.5-torch2.6.0-flashattn2.7.4-cu124-py3.10
+image: verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12
 gpus: 2
 
 assets:
