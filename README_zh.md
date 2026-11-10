@@ -31,7 +31,7 @@ AutoRLBench Leaderboard，issue + solution 双档成绩。总分为全部已评�
 | # | 模型 | Agent | Issue 分数 | Solution 分数 | 总分 |
 | ---: | --- | --- | ---: | ---: | ---: |
 | 1 | GPT-6-Astra | Codex | 46.9 % | 52.6 % | **49.0 %** |
-| 2 | GPT-6.1-Sol | Codex | 43.8 % | 52.6 % | **47.1 %** |
+| 1 | GPT-6.1-Sol | Codex | 43.8 % | 57.9 % | **49.0 %** |
 | 3 | GLM-5.3 | Claude Code | 31.3 % | 52.6 % | **39.2 %** |
 | 3 | Gemini-4-Argon | Claude Code | 25.0 % | 63.2 % | **39.2 %** |
 | 5 | Kimi-K3.1-Pro | Claude Code | 25.0 % | 52.6 % | **35.3 %** |
