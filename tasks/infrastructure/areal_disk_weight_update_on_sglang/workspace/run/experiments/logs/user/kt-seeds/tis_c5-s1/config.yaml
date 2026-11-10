@@ -1,0 +1,720 @@
+experiment_name: kt-seeds
+trial_name: tis_c5-s1
+cluster:
+  name_resolve:
+    type: nfs
+    nfs_record_root: /workspace/run/name_resolve
+    etcd3_addr: localhost:2379
+    ray_actor_name: ray_kv_store
+  cluster_name: local
+  fileroot: /workspace/run/experiments
+  n_nodes: 1
+  n_gpus_per_node: 8
+allocation_mode: ''
+seed: 1
+enable_offload: false
+total_train_epochs: 3
+total_train_steps: null
+total_train_n_seqs: null
+tokenizer_path: Qwen/Qwen1.5-MoE-A2.7B-Chat
+train_dataset:
+  split: train
+  path: openai/gsm8k
+  type: rl
+  batch_size: 256
+  shuffle: true
+  pin_memory: true
+  num_workers: 4
+  num_dataset_workers: 1
+  drop_last: true
+  max_length: 1024
+  dataset_kwargs: {}
+  scheduling_spec:
+    cpu: 1
+    gpu: 0
+    mem: 10
+    port_count: 2
+    image: /storage/openpsi/images/areal-latest.sif
+    task_type: worker
+    env_vars: {}
+    cmd: python3 -m areal.infra.rpc.guard
+    srun_additional_args: --unbuffered --mpi=pmi2 -K --chdir $PWD
+    additional_bash_cmds: null
+    container_type: apptainer
+    mount: /storage:/storage
+    nodelist: null
+    exclude: null
+    ray_placement_strategy: null
+  setup_timeout: 900.0
+valid_dataset:
+  split: test
+  path: openai/gsm8k
+  type: rl
+  batch_size: 256
+  shuffle: false
+  pin_memory: true
+  num_workers: 4
+  num_dataset_workers: 1
+  drop_last: false
+  max_length: null
+  dataset_kwargs: {}
+  scheduling_spec:
+    cpu: 1
+    gpu: 0
+    mem: 10
+    port_count: 2
+    image: /storage/openpsi/images/areal-latest.sif
+    task_type: worker
+    env_vars: {}
+    cmd: python3 -m areal.infra.rpc.guard
+    srun_additional_args: --unbuffered --mpi=pmi2 -K --chdir $PWD
+    additional_bash_cmds: null
+    container_type: apptainer
+    mount: /storage:/storage
+    nodelist: null
+    exclude: null
+    ray_placement_strategy: null
+  setup_timeout: 900.0
+saver:
+  experiment_name: kt-seeds
+  trial_name: tis_c5-s1
+  fileroot: /workspace/run/experiments
+  freq_epochs: 1
+  freq_steps: null
+  freq_secs: null
+  mode: auto
+evaluator:
+  experiment_name: kt-seeds
+  trial_name: tis_c5-s1
+  fileroot: /workspace/run/experiments
+  freq_epochs: 1
+  freq_steps: null
+  freq_secs: null
+  eval_before_train: false
+stats_logger:
+  experiment_name: kt-seeds
+  trial_name: tis_c5-s1
+  fileroot: /workspace/run/experiments
+  wandb:
+    mode: disabled
+    wandb_base_url: ''
+    wandb_api_key: ''
+    entity: null
+    project: null
+    name: null
+    job_type: null
+    group: null
+    notes: null
+    tags: null
+    config: null
+    id_suffix: train
+  swanlab:
+    project: null
+    name: null
+    config: null
+    logdir: null
+    mode: disabled
+    api_key: null
+  tensorboard:
+    path: null
+  trackio:
+    mode: disabled
+    project: null
+    name: null
+    space_id: null
+perf_tracer:
+  experiment_name: kt-seeds
+  trial_name: tis_c5-s1
+  fileroot: /workspace/run/experiments
+  enabled: false
+  save_interval: 1
+  profile_steps: null
+  session_tracer:
+    enabled: false
+    flush_threshold: 256
+memory_profiler: null
+recover:
+  experiment_name: kt-seeds
+  trial_name: tis_c5-s1
+  fileroot: /workspace/run/experiments
+  freq_epochs: 1
+  freq_steps: null
+  freq_secs: 3600
+  mode: disabled
+  retries: 3
+  no_save_optim: false
+  no_load_optim: false
+sglang:
+  model_path: Qwen/Qwen1.5-MoE-A2.7B-Chat
+  random_seed: 1
+  skip_tokenizer_init: true
+  disable_cuda_graph: false
+  disable_radix_cache: true
+  disable_cuda_graph_padding: false
+  enable_nccl_nvls: false
+  disable_outlines_disk_cache: false
+  disable_custom_all_reduce: false
+  disable_overlap_schedule: false
+  enable_mixed_chunk: false
+  enable_dp_attention: false
+  enable_ep_moe: false
+  enable_torch_compile: false
+  torch_compile_max_bs: 32
+  cuda_graph_max_bs: null
+  cuda_graph_bs: null
+  torchao_config: ''
+  enable_nan_detection: false
+  enable_p2p_check: false
+  triton_attention_reduce_in_fp32: false
+  triton_attention_num_kv_splits: 8
+  num_continuous_decode_steps: 1
+  load_format: auto
+  enable_memory_saver: false
+  allow_auto_truncate: false
+  attention_backend: fa3
+  enable_multimodal: false
+  sampling_backend: null
+  context_length: 32768
+  mem_fraction_static: 0.8
+  max_running_requests: null
+  chunked_prefill_size: -1
+  max_prefill_tokens: 32768
+  schedule_policy: lpm
+  schedule_conservativeness: 1.0
+  cpu_offload_gb: 0
+  dtype: bfloat16
+  kv_cache_dtype: auto
+  dp_size: 1
+  ep_size: 1
+  enable_lora: null
+  max_lora_rank: null
+  max_loaded_loras: 8
+  lora_paths: null
+  lora_backend: triton
+  log_level: warning
+  log_level_http: warning
+  log_requests: false
+  log_requests_level: 0
+  show_time_cost: false
+  enable_metrics: true
+  decode_log_interval: 1
+  enable_multithread_load: false
+  enable_return_routed_experts: false
+vllm:
+  model: Qwen/Qwen1.5-MoE-A2.7B-Chat
+  seed: 1
+  skip_tokenizer_init: false
+  enforce_eager: false
+  disable_custom_all_reduce: true
+  dtype: bfloat16
+  distributed_executor_backend: mp
+  max_num_seqs: 256
+  block_size: 16
+  cpu_offload_gb: 0.0
+  disable_sliding_window: true
+  max_model_len: 32768
+  no_enable_chunked_prefill: false
+  no_enable_prefix_caching: true
+  gpu_memory_utilization: 0.8
+  worker_extension_cls: areal.engine.vllm_ext.vllm_worker_extension.VLLMWorkerExtension
+  enable_sleep_mode: false
+  uvicorn_log_level: warning
+  gdn_prefill_backend: null
+  enable_lora: false
+  max_lora_rank: 16
+  max_loras: 8
+  lora_modules: null
+scheduler:
+  type: local
+  endpoint: http://localhost:8081
+  deploy_mode: separation
+  functioncall_service_domain: http://localhost:8080
+  reward_functioncall_config: {}
+  reward_model_path: ''
+  reward_model_service_url: http://localhost:30000/classify
+post_exit_hook: ''
+gconfig:
+  n_samples: 4
+  max_new_tokens: 1024
+  min_new_tokens: 0
+  max_tokens: 2048
+  greedy: false
+  top_p: 1.0
+  top_k: 100000000
+  temperature: 1.0
+  stop_token_ids: []
+  ignore_eos: false
+  skip_special_tokens: true
+  stop: null
+  frequency_penalty: 0.0
+  lora_name: default_lora
+  use_beam_search: false
+  reward_normalization: false
+  drop_incomplete_group: false
+eval_gconfig:
+  n_samples: 4
+  max_new_tokens: 1024
+  min_new_tokens: 0
+  max_tokens: 2048
+  greedy: false
+  top_p: 1.0
+  top_k: 100000000
+  temperature: 1.0
+  stop_token_ids: []
+  ignore_eos: false
+  skip_special_tokens: true
+  stop: null
+  frequency_penalty: 0.0
+  lora_name: default_lora
+  use_beam_search: false
+  reward_normalization: false
+  drop_incomplete_group: false
+rollout:
+  experiment_name: kt-seeds
+  trial_name: tis_c5-s1
+  fileroot: /workspace/run/experiments
+  max_concurrent_rollouts: 256
+  queue_size: null
+  consumer_batch_size: 256
+  max_head_offpolicyness: 2
+  enable_rollout_tracing: false
+  check_trajectory_format: false
+  tokenizer_path: Qwen/Qwen1.5-MoE-A2.7B-Chat
+  dump_to_file: false
+  setup_timeout: 900.0
+  workers_ready_timeout: 30.0
+  request_timeout: 10800.0
+  request_retries: 3
+  pause_grace_period: 0.0
+  scheduling_spec:
+  - cpu: 8
+    gpu: 1
+    mem: 32
+    port_count: 2
+    image: /storage/openpsi/images/areal-latest.sif
+    task_type: worker
+    env_vars: {}
+    cmd: python3 -m areal.infra.rpc.rpc_server
+    srun_additional_args: --unbuffered --mpi=pmi2 -K --chdir $PWD
+    additional_bash_cmds: null
+    container_type: apptainer
+    mount: /storage:/storage
+    nodelist: null
+    exclude: null
+    ray_placement_strategy: null
+  backend: sglang:d4p1t1
+  scheduling_strategy:
+    type: separation
+    target: null
+    fork: true
+  use_lora: false
+  lora_name: ''
+  agent:
+    agent_cls_path: areal.experimental.openai.proxy.online_agent._OnlineAgent
+    admin_api_key: areal-admin-key
+    scheduling_spec:
+    - cpu: 8
+      gpu: 0
+      mem: 32
+      port_count: 2
+      image: /storage/openpsi/images/areal-latest.sif
+      task_type: worker
+      env_vars: {}
+      cmd: python -m areal.v2.agent_service.guard
+      srun_additional_args: --unbuffered --mpi=pmi2 -K --chdir $PWD
+      additional_bash_cmds: null
+      container_type: apptainer
+      mount: /storage:/storage
+      nodelist: null
+      exclude: null
+      ray_placement_strategy: null
+    mode: inline
+    tool_call_parser: qwen
+    reasoning_parser: qwen3
+    chat_template_type: hf
+    engine_max_tokens: null
+    turn_discount: 1.0
+    export_style: individual
+    message_preprocessors: []
+    prefix_matcher: null
+    subproc_max_workers: 4
+    drop_retry_orphans: false
+    session_timeout_seconds: 3600
+    set_reward_finish_timeout: 0.0
+  return_routed_experts: false
+  _version: v1
+  model: default
+  routing_strategy: round_robin
+  poll_interval: 5.0
+  admin_api_key: areal-admin-key
+  api_url: null
+  provider_api_key: null
+actor:
+  experiment_name: kt-seeds
+  trial_name: tis_c5-s1
+  path: Qwen/Qwen1.5-MoE-A2.7B-Chat
+  attn_impl: flash_attention_2
+  use_kernels: false
+  init_from_scratch: false
+  is_critic: false
+  temperature: 1.0
+  logprobs_chunk_size: 1024
+  mb_spec:
+    n_mbs: 1
+    granularity: 1
+    max_tokens_per_mb: 4096
+    n_mbs_divisor: 1
+    packing_algorithm: ffd
+  pad_to_maximum: false
+  disable_dropout: true
+  gradient_checkpointing: true
+  dtype: bfloat16
+  grad_reduce_dtype: float32
+  optimizer_dtype: float32
+  optimizer:
+    type: adam
+    lr: 3.0e-06
+    weight_decay: 0.01
+    beta1: 0.9
+    beta2: 0.999
+    eps: 1.0e-08
+    min_lr_ratio: 0.0
+    lr_scheduler_type: constant
+    warmup_steps_proportion: 0.001
+    initial_loss_scale: 4294967296.0
+    min_loss_scale: 1.0
+    loss_scale_window: 5.0
+    hysteresis: 2
+    gradient_clipping: 1.0
+  weight_update_mode: disk
+  fsdp:
+    wrap_policy: null
+    offload_params: false
+    memory_efficient_load: false
+    per_layer_optim_step: false
+    optim_step_prefetch_layers: 1
+    shard_vision_across_sp: false
+  archon:
+    attn_type: varlen
+    offload_params: false
+    enable_compile: false
+    ac_mode: selective
+    selective_ac_option: op
+    ac_memory_budget: 0.5
+    ac_preserve_rng_state: false
+    ac_debug: false
+    pp_schedule: Interleaved1F1B
+    pp_layers_per_stage: null
+    pp_first_stage_less_layers: 1
+    pp_last_stage_less_layers: 1
+    reshard_after_forward_policy: default
+    fp8_config:
+      mode: disabled
+      exclude_modules:
+      - output
+      - router
+      - score
+      include_experts: false
+      use_triton: true
+    use_deterministic_algorithms: false
+    moe_router_dtype: fp32
+  megatron:
+    wrap_with_ddp: true
+    use_torch_fsdp2: false
+    use_custom_fsdp: false
+    ddp:
+      grad_reduce_in_fp32: true
+      overlap_grad_reduce: false
+      overlap_param_gather: false
+      align_param_gather: false
+      use_distributed_optimizer: true
+      check_for_nan_in_grad: false
+      bucket_size: null
+      average_in_collective: false
+      fp8_param_gather: false
+    virtual_pipeline_parallel_size: 1
+    overlap_param_gather_with_optimizer_step: false
+    use_precision_aware_optimizer: false
+    main_grads_dtype: float32
+    main_params_dtype: float32
+    exp_avg_dtype: float32
+    exp_avg_sq_dtype: float32
+    async_save: false
+    use_checkpoint_opt_param_scheduler: true
+    use_deterministic_algorithms: false
+    recompute_granularity: full
+    recompute_method: uniform
+    recompute_num_layers: 1
+    distribute_saved_activations: null
+    recompute_modules: null
+    moe_router_dtype: fp32
+    moe_shared_expert_overlap: false
+    moe_enable_deepep: false
+    moe_token_dispatcher_type: alltoall
+    moe_permute_fusion: false
+    moe_router_fusion: false
+    moe_router_bias_update_rate: 0.0
+    moe_z_loss_coeff: null
+    enable_chunked_logits: false
+    entropy_requires_grad: false
+    lm_head_loss_chunk_size: 0
+    enable_fp32_lm_head: false
+    cross_entropy_loss_fusion: false
+    fp8_config: null
+    bridge_type: mbridge
+    use_mbridge_save: false
+    use_bridge_for_update_weights: false
+    disable_grad_buffers_cpu_backup: false
+    enable_mtp: false
+  offload: false
+  use_lora: false
+  lora_rank: 32
+  lora_alpha: 16
+  target_modules: []
+  peft_type: lora
+  enable_tree_training: false
+  scheduling_spec:
+  - cpu: 8
+    gpu: 1
+    mem: 32
+    port_count: 2
+    image: /storage/openpsi/images/areal-latest.sif
+    task_type: worker
+    env_vars: {}
+    cmd: python3 -m areal.infra.rpc.rpc_server
+    srun_additional_args: --unbuffered --mpi=pmi2 -K --chdir $PWD
+    additional_bash_cmds: null
+    container_type: apptainer
+    mount: /storage:/storage
+    nodelist: null
+    exclude: null
+    ray_placement_strategy: null
+  backend: fsdp:d4p1t1
+  _version: v1
+  admin_api_key: areal-admin-key
+  log_level: warning
+  request_timeout: 10800.0
+  setup_timeout: 3600.0
+  workers_ready_timeout: 30.0
+  scheduling_strategy:
+    type: separation
+    target: null
+    fork: true
+  ppo_n_minibatches: 1
+  eps_clip: 0.2
+  eps_clip_higher: 0.28
+  c_clip: null
+  m2_threshold: null
+  reward_norm:
+    mean_level: group
+    mean_leave1out: false
+    std_level: group
+    std_unbiased: true
+    eps: 1.0e-05
+    group_size: 4
+  reward_scaling: 10.0
+  reward_bias: -0.5
+  reward_clip: 20.0
+  overlong_reward_penalty: false
+  overlong_tokens: null
+  overlong_penalty_factor: null
+  mask_no_eos_with_zero: false
+  discount: 1.0
+  gae_lambda: 1.0
+  adv_norm:
+    mean_level: batch
+    mean_leave1out: false
+    std_level: batch
+    std_unbiased: true
+    eps: 1.0e-05
+    group_size: 1
+  kl_ctl: 0.0
+  kl_estimator: k1
+  use_sapo_loss: false
+  sapo_tau_pos: 1.0
+  sapo_tau_neg: 1.05
+  use_cispo_loss: false
+  recompute_logprob: false
+  use_decoupled_loss: true
+  rejection_sampling:
+    level: token
+    action: clamp
+    metric: ratio
+    agg: mean
+    upper: 5.0
+    lower: 1.0e-06
+  importance_sampling_level: token
+  prox_logp_method: recompute
+  log_agent_stats: false
+  log_agent_stats_keys: []
+  max_new_tokens: 1024
+ref:
+  experiment_name: kt-seeds
+  trial_name: tis_c5-s1
+  path: Qwen/Qwen1.5-MoE-A2.7B-Chat
+  attn_impl: flash_attention_2
+  use_kernels: false
+  init_from_scratch: false
+  is_critic: false
+  temperature: 1.0
+  logprobs_chunk_size: 1024
+  mb_spec:
+    n_mbs: 1
+    granularity: 1
+    max_tokens_per_mb: 4096
+    n_mbs_divisor: 1
+    packing_algorithm: ffd
+  pad_to_maximum: false
+  disable_dropout: true
+  gradient_checkpointing: false
+  dtype: bfloat16
+  grad_reduce_dtype: float32
+  optimizer_dtype: float32
+  optimizer: null
+  weight_update_mode: xccl
+  fsdp:
+    wrap_policy: null
+    offload_params: false
+    memory_efficient_load: false
+    per_layer_optim_step: false
+    optim_step_prefetch_layers: 1
+    shard_vision_across_sp: false
+  archon:
+    attn_type: varlen
+    offload_params: false
+    enable_compile: false
+    ac_mode: selective
+    selective_ac_option: op
+    ac_memory_budget: 0.5
+    ac_preserve_rng_state: false
+    ac_debug: false
+    pp_schedule: Interleaved1F1B
+    pp_layers_per_stage: null
+    pp_first_stage_less_layers: 1
+    pp_last_stage_less_layers: 1
+    reshard_after_forward_policy: default
+    fp8_config:
+      mode: disabled
+      exclude_modules:
+      - output
+      - router
+      - score
+      include_experts: false
+      use_triton: true
+    use_deterministic_algorithms: false
+    moe_router_dtype: fp32
+  megatron:
+    wrap_with_ddp: true
+    use_torch_fsdp2: false
+    use_custom_fsdp: false
+    ddp:
+      grad_reduce_in_fp32: true
+      overlap_grad_reduce: false
+      overlap_param_gather: false
+      align_param_gather: false
+      use_distributed_optimizer: true
+      check_for_nan_in_grad: false
+      bucket_size: null
+      average_in_collective: false
+      fp8_param_gather: false
+    virtual_pipeline_parallel_size: 1
+    overlap_param_gather_with_optimizer_step: false
+    use_precision_aware_optimizer: false
+    main_grads_dtype: float32
+    main_params_dtype: float32
+    exp_avg_dtype: float32
+    exp_avg_sq_dtype: float32
+    async_save: false
+    use_checkpoint_opt_param_scheduler: true
+    use_deterministic_algorithms: false
+    recompute_granularity: full
+    recompute_method: uniform
+    recompute_num_layers: 1
+    distribute_saved_activations: null
+    recompute_modules: null
+    moe_router_dtype: fp32
+    moe_shared_expert_overlap: false
+    moe_enable_deepep: false
+    moe_token_dispatcher_type: alltoall
+    moe_permute_fusion: false
+    moe_router_fusion: false
+    moe_router_bias_update_rate: 0.0
+    moe_z_loss_coeff: null
+    enable_chunked_logits: false
+    entropy_requires_grad: false
+    lm_head_loss_chunk_size: 0
+    enable_fp32_lm_head: false
+    cross_entropy_loss_fusion: false
+    fp8_config: null
+    bridge_type: mbridge
+    use_mbridge_save: false
+    use_bridge_for_update_weights: false
+    disable_grad_buffers_cpu_backup: false
+    enable_mtp: false
+  offload: false
+  use_lora: false
+  lora_rank: 32
+  lora_alpha: 16
+  target_modules: []
+  peft_type: lora
+  enable_tree_training: false
+  scheduling_spec:
+  - cpu: 8
+    gpu: 1
+    mem: 32
+    port_count: 2
+    image: /storage/openpsi/images/areal-latest.sif
+    task_type: worker
+    env_vars: {}
+    cmd: python3 -m areal.infra.rpc.rpc_server
+    srun_additional_args: --unbuffered --mpi=pmi2 -K --chdir $PWD
+    additional_bash_cmds: null
+    container_type: apptainer
+    mount: /storage:/storage
+    nodelist: null
+    exclude: null
+    ray_placement_strategy: null
+  backend: fsdp:d4p1t1
+  _version: v1
+  admin_api_key: areal-admin-key
+  log_level: warning
+  request_timeout: 3600.0
+  setup_timeout: 3600.0
+  workers_ready_timeout: 30.0
+  scheduling_strategy:
+    type: colocation
+    target: actor
+    fork: true
+  ppo_n_minibatches: 4
+  eps_clip: 0.2
+  eps_clip_higher: null
+  c_clip: null
+  m2_threshold: null
+  reward_norm: null
+  reward_scaling: 1.0
+  reward_bias: 0.0
+  reward_clip: 20.0
+  overlong_reward_penalty: false
+  overlong_tokens: null
+  overlong_penalty_factor: null
+  mask_no_eos_with_zero: false
+  discount: 1.0
+  gae_lambda: 1.0
+  adv_norm: null
+  kl_ctl: 0.1
+  kl_estimator: k1
+  use_sapo_loss: false
+  sapo_tau_pos: 1.0
+  sapo_tau_neg: 1.05
+  use_cispo_loss: false
+  recompute_logprob: false
+  use_decoupled_loss: false
+  rejection_sampling: null
+  importance_sampling_level: token
+  prox_logp_method: recompute
+  log_agent_stats: false
+  log_agent_stats_keys: []
+  max_new_tokens: 1024
+critic: null
+teacher: null
+dynamic_bs: false
