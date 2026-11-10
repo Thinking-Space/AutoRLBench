@@ -28,6 +28,7 @@ from autorlbench.core.types import (
     AUTORLBENCH_ENVIRONMENT_DIR,
     CommandResult,
     EnvironmentImage,
+    resolve_environment_reference,
 )
 from autorlbench.evaluation.harbor_evaluator import (
     ACTIVATE_HOOK,
@@ -44,8 +45,9 @@ from autorlbench.tasks import load_task_package
 
 
 FIXTURE_IMAGE = "verl-qwen3vl-cu130"
+FIXTURE_REF = resolve_environment_reference(FIXTURE_IMAGE)
 
-METADATA = """title = "Harbor fixture"
+METADATA = f"""title = "Harbor fixture"
 license = "MIT"
 created_date = "2026-09-13"
 domain = "rl"
@@ -69,7 +71,8 @@ algo = "grpo"
 script = "train.sh"
 
 [environment]
-image = "verl-qwen3vl-cu130"
+image = "{FIXTURE_REF}"
+image_stack = "verl-qwen3vl-cu130"
 gpus = 1
 
 [environment.env]
@@ -169,7 +172,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
         task_dir = self.materialize()
 
         self.assertIn(
-            f'docker_image = "{EnvironmentImage(FIXTURE_IMAGE).tag}"', self.toml(task_dir)
+            f'docker_image = "{EnvironmentImage(FIXTURE_REF).tag}"', self.toml(task_dir)
         )
         self.assertIn('workdir = "/workspace"', self.toml(task_dir))
         self.assertFalse((task_dir / "environment" / "Dockerfile").exists())
@@ -359,7 +362,7 @@ class HarborTaskMaterializerTests(FixtureTestCase):
             (task_dir / "adapter-manifest.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(manifest["docker_image"], EnvironmentImage(FIXTURE_IMAGE).tag)
+        self.assertEqual(manifest["docker_image"], EnvironmentImage(FIXTURE_REF).tag)
         self.assertEqual(manifest["verifier_mode"], "shared")
         self.assertNotIn("debian_mirror", manifest)
 
@@ -537,7 +540,10 @@ class HarborRunnerTests(unittest.TestCase):
         self.assertIn('shm_size: "16g"', content)
 
     @patch.object(HarborRunner, "_run_streaming")
-    def test_no_overlay_without_declared_gpus(self, run_mock):
+    def test_cpu_tasks_get_the_overlay_but_no_gpu_reservation(self, run_mock):
+        # The overlay is emitted for every task -- its working_dir is what makes
+        # the /workspace workdir exist before Harbor's first exec (see
+        # _render_compose_overlay). Only the device reservation is conditional.
         run_mock.return_value.returncode = 0
         run_mock.return_value.stdout = ""
         run_mock.return_value.stderr = ""
@@ -553,7 +559,12 @@ class HarborRunnerTests(unittest.TestCase):
             )
             HarborRunner().run(prepared, HarborEvaluationConfig())
 
-        self.assertNotIn("--extra-docker-compose", run_mock.call_args.args[0])
+            argv = run_mock.call_args.args[0]
+            overlay = Path(argv[argv.index("--extra-docker-compose") + 1])
+            content = overlay.read_text(encoding="utf-8")
+
+        self.assertIn("working_dir: /workspace", content)
+        self.assertNotIn("driver: nvidia", content)
 
     def test_user_mounts_are_rejected(self):
         for flag in ("--mounts", "--mounts-json", "--mounts-json=[]"):
@@ -1115,7 +1126,8 @@ class HarborPreparerTests(FixtureTestCase):
         self.assertEqual(unit.prepared, self.root / "prep")
         self.assertEqual(unit.environment, self.root / "env")
         self.assertEqual(
-            evaluator.runtime.ensure_environment.call_args.args[0], EnvironmentImage(FIXTURE_IMAGE)
+            evaluator.runtime.ensure_environment.call_args.args[0],
+            EnvironmentImage(FIXTURE_REF),
         )
         eval_config = evaluator._prepare_run.call_args.args[2]
         self.assertEqual(eval_config.huggingface_mirror, "https://hf-mirror.com")

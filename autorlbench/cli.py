@@ -16,6 +16,7 @@ from .core.types import (
     EnvironmentImage,
     EvaluationConfig,
     known_images,
+    resolve_environment_reference,
 )
 from .evaluation.evaluator import TaskEvaluator
 from .evaluation.harbor_evaluator import HarborEvaluator, HarborShell
@@ -345,7 +346,7 @@ def main(argv=None) -> int:
             )
         runtime = DockerRuntime()
         for name in dict.fromkeys(names):
-            image = EnvironmentImage(name)
+            image = EnvironmentImage(resolve_environment_reference(name))
             try:
                 runtime.ensure_environment(image, rebuild=args.rebuild)
             except subprocess.CalledProcessError as exc:

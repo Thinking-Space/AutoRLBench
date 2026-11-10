@@ -19,13 +19,14 @@ algo = "grpo"
 script = "scripts/train_grpo.sh"
 
 [environment]
-# TODO(image): the miles-async-rollout Dockerfile was removed by the 2026-11-05
-# harness port and this name no longer resolves; the task needs the ngc-2506
+# TODO(image): the packaged image does not exist yet. The task needs the ngc-2506
 # calibration stack (Megatron 4716f754 + sglang 0.5.16.dev44 lineage, the
-# registered `miles-rl-lgs` / llm-rl/ngc-2506:nvidia.11b60366 image) as a
-# digest-pinned docker/images/<name>.Dockerfile -- pending, see
-# docker/images/miles-ngc2506-distributable.Dockerfile for the recipe.
-image = "miles-async-rollout"
+# registered `miles-rl-lgs` / llm-rl/ngc-2506:nvidia.11b60366 image): build the
+# public-ingredients rebuild recipe under docker-build/miles-ngc2506-public/,
+# push it, then pin the digest here and land
+# docker/images/miles-async-rollout.Dockerfile as a single digest-pinned FROM.
+image = "autorlbench/miles-async-rollout:ngc2506-public"
+image_stack = "miles-async-rollout"
 
 # scripts/train_grpo.sh pins the 4-GPU split (actor 2 + rollout 2); the
 # recorded defective/control runs used 4xH800 under a fixed 8h wall clock.

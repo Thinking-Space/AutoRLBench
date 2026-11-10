@@ -72,12 +72,13 @@ def select_evaluation(package: TaskPackage, level: str) -> EvaluationPaths:
 
 def required_environment_image(package: TaskPackage) -> EnvironmentImage:
     """The task's environment image; an image-backed backend has no fallback without it."""
-    if package.environment.image is None:
+    image = package.environment.environment_image
+    if image is None:
         raise SchemaError(
             f"task {package.task_id!r} declares no environment.image; "
             "an image-backed backend has nothing to run"
         )
-    return EnvironmentImage(package.environment.image)
+    return image
 
 
 class TaskEvaluator:

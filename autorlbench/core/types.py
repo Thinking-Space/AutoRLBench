@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -150,6 +151,16 @@ IMAGE_DOCKERFILE_SUFFIX = ".Dockerfile"
 # and the reference on that line is the image the task runs; the header is only a fallback.
 IMAGE_TAG_HEADER = "# autorlbench-image:"
 
+# A pullable image reference: repository (lowercase, `/`-separated), optional tag, optional
+# sha256 digest. Follows Docker's reference grammar closely enough for every reference the
+# benchmark carries; a stricter parse would reject nothing we actually use.
+IMAGE_REFERENCE_RE = re.compile(
+    r"^[a-z0-9]+(?:(?:\.|_|__|-+)[a-z0-9]+)*"  # repository name component
+    r"(?:/[a-z0-9]+(?:(?:\.|_|__|-+)[a-z0-9]+)*)*"  # ... and the registry/path components
+    r"(?::[A-Za-z0-9_][A-Za-z0-9._-]{0,127})?"  # tag
+    r"(?:@sha256:[0-9a-f]{64})?$"  # digest
+)
+
 # Default host location for download caches. They sit next to the repo rather than inside the run directory
 # because run directories are deleted afterwards, and the whole point of these is to outlive a run so the
 # next run and next task hit them. Defining the default here, not per entry point, keeps cli and harbor in sync.
@@ -179,68 +190,74 @@ def known_images() -> frozenset:
 
 @dataclass(frozen=True)
 class EnvironmentImage:
-    """The image for an environment: docker/images/<name>.Dockerfile, tag declared in its header.
+    """The image a task runs, as the reference the backends pull.
 
-    Nothing is baked into the image anymore (the activate hook and the fetch/dataset tools both moved to
-    the prepare stage), so docker evaluation, build-images, and Harbor's `docker_image` all resolve to the
-    same reference.
+    `reference` is the fully specified pullable reference — repository, optional tag, optional
+    `@sha256:` digest — taken from the task's `environment.image`; every backend (docker
+    evaluation, build-images, Harbor's `docker_image`) pulls exactly this string.
     """
 
-    name: str
+    reference: str
+
+    def __post_init__(self) -> None:
+        if not IMAGE_REFERENCE_RE.match(self.reference):
+            raise ValueError(
+                "not a valid image reference (expected repo[:tag][@sha256:<digest>]): "
+                f"{self.reference!r}"
+            )
 
     @property
     def tag(self) -> str:
-        """The image reference this environment runs.
+        """The reference string itself; kept under the backends' `tag` vocabulary."""
+        return self.reference
 
-        Every docker/images/*.Dockerfile is now a single `FROM <ref>@sha256:...` line with nothing
-        built on top, so a task runs the digest-pinned upstream image that line points at -- there is
-        no custom build anymore.
 
-        Resolution order: an optional `# autorlbench-image: <tag>` header (kept for backward
-        compatibility with a Dockerfile that still has one), otherwise the image reference from the
-        FROM line. Only when neither exists is it an error.
-        """
-        try:
-            text = self.dockerfile.read_text(encoding="utf-8")
-        except OSError as exc:
-            raise RuntimeError(
-                f"cannot read {self.dockerfile} to resolve the image of {self.name!r}"
-            ) from exc
-        from_ref: Optional[str] = None
-        for line in text.splitlines():
-            stripped = line.strip()
-            if stripped.startswith(IMAGE_TAG_HEADER):
-                tag = stripped[len(IMAGE_TAG_HEADER):].strip()
-                if tag:
-                    return tag
-            if from_ref is None and stripped[:5].upper() == "FROM ":
-                # FROM <ref> [AS <stage>]
-                parts = stripped.split()
-                if len(parts) >= 2:
-                    from_ref = parts[1]
-        if from_ref:
-            return from_ref
+def resolve_environment_reference(name: str) -> str:
+    """The pullable reference an environment under docker/images/ declares.
+
+    Resolution order: an optional `# autorlbench-image: <tag>` header (build-recipe Dockerfiles
+    use it to declare the tag the recipe is to be pushed as), otherwise the image reference from
+    the FROM line. Only when neither exists is it an error — defaulting to a tag would hide the
+    broken Dockerfile until the first run.
+    """
+    dockerfile = IMAGES_DIR / f"{name}{IMAGE_DOCKERFILE_SUFFIX}"
+    try:
+        text = dockerfile.read_text(encoding="utf-8")
+    except OSError as exc:
         raise RuntimeError(
-            f"{self.dockerfile} has neither a '{IMAGE_TAG_HEADER} <tag>' header "
-            "nor a FROM line to take the image reference from"
-        )
-
-    @property
-    def dockerfile(self) -> Path:
-        return IMAGES_DIR / f"{self.name}{IMAGE_DOCKERFILE_SUFFIX}"
-
-    @property
-    def context(self) -> Path:
-        return DOCKER_DIR
+            f"cannot read {dockerfile} to resolve the image of {name!r}"
+        ) from exc
+    from_ref: Optional[str] = None
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(IMAGE_TAG_HEADER):
+            tag = stripped[len(IMAGE_TAG_HEADER):].strip()
+            if tag:
+                return tag
+        if from_ref is None and stripped[:5].upper() == "FROM ":
+            # FROM <ref> [AS <stage>]
+            parts = stripped.split()
+            if len(parts) >= 2:
+                from_ref = parts[1]
+    if from_ref:
+        return from_ref
+    raise RuntimeError(
+        f"{dockerfile} has neither a '{IMAGE_TAG_HEADER} <tag>' header "
+        "nor a FROM line to take the image reference from"
+    )
 
 
 @dataclass(frozen=True)
 class EnvironmentPlan:
     """Parsed `environment` section of a task.
 
-    `image` is the environment name, mapping to docker/images/<image>.Dockerfile; many tasks share one image.
-    `prepare` sets up what training needs (download models and datasets, write env vars); defaults to
-    environment/prepare.sh. `env` holds variables the task exports itself.
+    `image` is the pullable image reference — repository, optional tag, `@sha256:` digest — that the
+    backends pull directly. Many tasks share one reference; the packaged image is the ground truth
+    environment, so the reference is pinned by digest wherever the image has been built and pushed.
+    `image_stack` is a free-form human-readable description of the stack inside that image (the
+    slot-grammar name, e.g. `verl-vllm0.17.0-torch2.10.0-...-py3.12`); it is descriptive only and
+    points at nothing. `prepare` sets up what training needs (download models and datasets, write
+    env vars); defaults to environment/prepare.sh. `env` holds variables the task exports itself.
 
     `gpus` is the GPU count the task needs: docker exposes it as `--gpus <count>` (cuda:0..N-1), and
     the harbor backend synthesizes a compose device reservation from it. It replaces both the old
@@ -249,6 +266,7 @@ class EnvironmentPlan:
     """
 
     image: Optional[str] = None
+    image_stack: Optional[str] = None
     prepare: Optional[Path] = None
     env: Dict[str, str] = field(default_factory=dict)
     gpus: Optional[int] = None
@@ -259,12 +277,15 @@ class EnvironmentPlan:
             raise ValueError(
                 f"environment.gpus must be a non-negative integer GPU count, got {self.gpus!r}"
             )
-        known = known_images()
-        if self.image is not None and known and self.image not in known:
+        if self.image is not None and not IMAGE_REFERENCE_RE.match(self.image):
             raise ValueError(
-                f"environment.image must be one of {', '.join(sorted(known))}, "
-                f"got {self.image!r}; add docker/images/{self.image}"
-                f"{IMAGE_DOCKERFILE_SUFFIX} if the task really needs a new one"
+                "environment.image must be a pullable image reference "
+                "repo[:tag][@sha256:<digest>], "
+                f"got {self.image!r}"
+            )
+        if self.image_stack is not None and not isinstance(self.image_stack, str):
+            raise ValueError(
+                f"environment.image_stack must be a string, got {self.image_stack!r}"
             )
         for key, value in self.env.items():
             if not key or not isinstance(key, str):

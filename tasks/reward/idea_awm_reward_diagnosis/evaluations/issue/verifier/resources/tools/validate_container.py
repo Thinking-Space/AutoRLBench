@@ -107,9 +107,9 @@ print(json.dumps({'agent_visible_episodes': len(episodes), 'oracle_hidden': True
     assert before == {path.name: digest(path) for path in (PROJECT / 'workspace/logs/rollouts').glob('*.jsonl')}
     report = {
         'checked_at': datetime.now(timezone.utc).isoformat(), 'status': 'passed',
-        'backend': 'docker', 'image_name': image.name, 'image_tag': image.tag,
+        'backend': 'docker', 'image_stack': package.environment.image_stack,
+        'image_tag': image.tag,
         'image_id': image_details['Id'], 'image_size_bytes': image_details['Size'],
-        'dockerfile_sha256': digest(image.dockerfile),
         'runtime_wiring': 'AutoRLBench TaskEvaluator and DockerRuntime',
         'prepare': {'exit_code': prepared.returncode, 'stdout': prepared.stdout.strip()},
         'agent_isolation': json.loads(agent.stdout), 'verifier': details,

@@ -98,7 +98,9 @@ def _evaluation_paths(level: str, root: Path, oracle: Path) -> EvaluationPaths:
 def load_environment_plan(paths: TaskPaths, metadata: Dict[str, Any]) -> EnvironmentPlan:
     """Parse the environment section of metadata into an EnvironmentPlan.
 
-    Only `image` is required: the environment name under docker/images/. `prepare` has a
+    Only `image` is required: the pullable image reference (repo[:tag][@sha256:...]) the backends
+    pull. `image_stack` optionally describes the stack inside that image (the slot-grammar name) —
+    a free-form label, not a file reference. `prepare` has a
     conventional path and is found even if the task omits it. Nearly every task has a
     prepare.sh, and forcing each task.toml to repeat the path only invites typos. An explicit value wins.
     """
@@ -107,6 +109,7 @@ def load_environment_plan(paths: TaskPaths, metadata: Dict[str, Any]) -> Environ
         environment = {}
 
     image = _optional_str(environment.get("image"))
+    image_stack = _optional_str(environment.get("image_stack"))
 
     # The conventional path lands on the plan only if the file actually exists. A plan carrying a
     # missing path would conflate "the task has no prepare.sh" with "the task declared a wrong path",
@@ -135,6 +138,7 @@ def load_environment_plan(paths: TaskPaths, metadata: Dict[str, Any]) -> Environ
     try:
         return EnvironmentPlan(
             image=image,
+            image_stack=image_stack,
             prepare=prepare_path,
             env=env,
             gpus=gpus,

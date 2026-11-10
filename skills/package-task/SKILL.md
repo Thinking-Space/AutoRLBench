@@ -52,7 +52,8 @@ tasks/<domain>/<task_id>/
 ```
 
 Do not produce `agent_trace.json`, `environment/Dockerfile`, `requirements.txt`, or `validation/`.
-Tasks do not ship their own image: `environment.image` in `task.toml` points to `docker/images/<name>.Dockerfile`.
+Tasks do not ship their own image: `environment.image` in `task.toml` is the digest-pinned pullable
+reference and `environment.image_stack` describes the stack inside it (a free-form label).
 A task whose stack matches no existing environment adds one new file there — a one-line digest-pinned `FROM` — instead.
 
 ## Required inputs
@@ -185,8 +186,9 @@ is not byte-for-byte reproducible, do not pin it with a checksum.
 
 - Pick an image from `docker/images/` that matches the recorded stack; do not modify existing Dockerfiles. If none fits,
   the raw task's Dockerfile must be a single digest-pinned `FROM` on a publicly pullable registry (ghcr.io, Docker Hub, …):
-  copy that line to `docker/images/<name>.Dockerfile`, named per the conventions in `docker/README.md`, and reference the
-  name in `environment.image`. An elaborate stack is built and pushed once by the contributor; the repo keeps only the pin.
+  copy that line to `docker/images/<name>.Dockerfile`, named per the conventions in `docker/README.md`, then set
+  `environment.image` to that pullable reference and `environment.image_stack` to `<name>`. An elaborate stack is built
+  and pushed once by the contributor; the repo keeps only the pin.
   If the image is not pushed yet, say so in the README (see the build-recipe exceptions in `docker/README.md`).
 - `prepare.sh` is the only networked stage. Invoke the task-local `fetch_hf.py` with the image's own interpreter; it
   downloads whole HF repos into the shared caches and hard-links the bytes into the workspace. Fetches are cache-first

@@ -4,7 +4,7 @@ The environment images every task runs in, and the conventions they follow.
 
 | Path | What it is |
 | --- | --- |
-| `images/<name>.Dockerfile` | One environment per file. A task selects it with `environment.image = "<name>"` in its `task.toml`. |
+| `images/<name>.Dockerfile` | One environment per file. Tasks reference the built image with `environment.image`; `environment.image_stack` carries the name as a descriptive label. |
 | `verl-v061-runtime/` | The pip lock the legacy `verl-v061-grpo` recipe (see [Exceptions](#exceptions)) installs from. |
 
 Everything else that used to live here — the baked activate hook, the fetch tooling, the
@@ -29,14 +29,20 @@ miles, …), so one shared image was never on the table.
 ## 2. One image per environment, shared by tasks
 
 `docker/images/<name>.Dockerfile` defines one environment and may be shared by several tasks.
-A task names the environment in `task.toml`:
+A task declares the pullable image and, optionally, a stack label in `task.toml`:
 
 ```toml
 [environment]
-image = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
 ```
 
-The environment name is `docker/images/<name>.Dockerfile` minus the suffix.
+- `image` is what the runtime actually pulls: a registry reference **pinned by digest**
+  (`repo[:tag]@sha256:<digest>`). A tag alone floats — the digest is the benchmark's ground
+  truth. Validation rejects an unpinned reference.
+- `image_stack` is a free-form human-readable description of the stack inside that image —
+  typically the environment name (see the naming convention below). It is descriptive only:
+  it points at no file and is not cross-checked against anything; what runs is `image`, alone.
 
 Because an image is shared, its content is the ground-truth environment of **every** task that
 uses it. Editing a Dockerfile changes all of them at once; a task that needs different baked-in

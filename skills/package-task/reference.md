@@ -346,7 +346,7 @@ Common naming sets: `training_reward_key` / `required_training_reward` / `traini
 
 ## Environment image
 
-`environment.image` in `task.toml` is the `<name>` of some `<name>.Dockerfile` under `docker/images/`. Every runtime Dockerfile is a **single digest-pinned `FROM` line** — either an upstream framework image or an image the contributor built once and pushed to a public registry. The reference is resolved from that `FROM` line by `EnvironmentImage` (an optional `# autorlbench-image:` header still wins, for backwards compatibility) and reaches the Docker backend, `build-images`, and the Harbor adapter unchanged. Nothing is built at evaluation time: `python3 -m autorlbench build-images <name>` just pulls the digest on demand.
+`environment.image` in `task.toml` is the pullable, **digest-pinned** registry reference (`repo[:tag]@sha256:<digest>`) the runtime actually pulls; `environment.image_stack` is a free-form human-readable description of the stack inside that image (typically the environment name) — descriptive only, pointing at no file. Every runtime Dockerfile is a **single digest-pinned `FROM` line** — either an upstream framework image or an image the contributor built once and pushed to a public registry. The reference reaches the Docker backend, `build-images`, and the Harbor adapter unchanged. Nothing is built at evaluation time: `python3 -m autorlbench build-images <name>` just pulls the digest on demand.
 
 Images are shared across tasks, and their contents are those tasks' common ground-truth environment. Do not modify an existing Dockerfile for a new task; that would also change the other tasks' environments. If no existing image fits, add a new `docker/images/<name>.Dockerfile` containing the raw task's one-line pin, named per the slot grammar in `docker/README.md` (only what is actually baked into the image: framework, engine, torch, flash-attn, CUDA, python).
 
@@ -425,7 +425,8 @@ script = "<launch script path relative to workspace/>"
 script_args = ["<arg>"]          # only when the launch script takes positional args
 
 [environment]
-image = "<environment name under docker/images/>"
+image = "<digest-pinned pullable reference, e.g. verlai/verl:vllm017.latest@sha256:…>"
+image_stack = "<free-form description of the stack inside the image>"
 # Optional GPU count; the docker backend turns it into `--gpus <n> --shm-size=16g`,
 # harbor synthesizes the compose device reservation from it. Never device ids.
 gpus = 8

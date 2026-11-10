@@ -62,10 +62,10 @@ class DockerRuntime(SandboxRuntime):
     ) -> EnvironmentArtifact:
         """Ensure the environment image is available locally.
 
-        docker/images/*.Dockerfile is now a single `FROM <ref>@sha256:...` line with no layers
-        to build, so there is no `docker build` anymore (and a digest-pinned reference cannot be
-        `-t`agged anyway). If the reference is not present locally, it is pulled. rebuild=True
-        forces a re-pull (the digest is fixed, so it fetches the very same image).
+        The reference is the task's environment.image — a packaged, digest-pinned pullable
+        reference with nothing to build (and a digest-pinned reference cannot be `-t`agged
+        anyway). If the reference is not present locally, it is pulled. rebuild=True forces a
+        re-pull (the digest is fixed, so it fetches the very same image).
         """
         ref = image.tag
         if rebuild or not self._image_exists(ref):

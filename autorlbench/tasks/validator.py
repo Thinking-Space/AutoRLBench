@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..core.types import (
     EvaluationPaths,
+    IMAGE_REFERENCE_RE,
     TaskPaths,
     ValidationReport,
-    known_images,
 )
 
 
@@ -229,10 +230,12 @@ def _validate_training(
 
 
 def _validate_environment(report: ValidationReport, environment: Dict[str, Any]) -> None:
-    """Validate the environment section: `image` is required, `prepare` / `env` / `gpus` optional.
+    """Validate the environment section: `image` is required, `image_stack` / `prepare` / `env` / `gpus` optional.
 
-    `image` is an environment name under docker/images/, resolved from docker/images/<image>.Dockerfile.
-    Old-schema `conda` / `dockerfile` / `requirements` are errors rather than ignored:
+    `image` is the pullable image reference (repo[:tag][@sha256:<digest>]) the backends pull; it must be
+    pinned by digest — a tag alone floats, and the packaged image is this benchmark's ground truth.
+    `image_stack` optionally describes the stack inside that image; it is free-form and not checked
+    against anything. Old-schema `conda` / `dockerfile` / `requirements` are errors rather than ignored:
     if ignored, task authors would think they still have an effect.
     """
     for legacy in ("conda", "dockerfile", "requirements"):
@@ -240,24 +243,36 @@ def _validate_environment(report: ValidationReport, environment: Dict[str, Any])
             report.add(
                 "error",
                 f"metadata.environment.{legacy}",
-                "no longer supported; name a docker/images/<name>.Dockerfile "
-                "with environment.image instead",
+                "no longer supported; declare the pullable reference with "
+                "environment.image (and optionally describe the stack with "
+                "environment.image_stack)",
             )
 
     image = environment.get("image")
-    known = known_images()
     if image in (None, ""):
         report.add("error", "metadata.environment.image", "missing required value")
     elif not isinstance(image, str):
         report.add("error", "metadata.environment.image", f"expected a string, got {image!r}")
-    elif known and image not in known:
-        # No error when docker/images/ is unavailable (e.g. installed as a wheel): we could only
-        # guess here; the real check is whether resolving the image finds the Dockerfile.
+    elif not IMAGE_REFERENCE_RE.match(image):
         report.add(
             "error",
             "metadata.environment.image",
-            f"must be one of {', '.join(sorted(known))}, got {image!r}; "
-            f"a new environment needs a docker/images/<name>.Dockerfile",
+            f"must be a pullable image reference repo[:tag][@sha256:<digest>], got {image!r}",
+        )
+    elif not re.search(r"@sha256:[0-9a-f]{64}$", image):
+        report.add(
+            "error",
+            "metadata.environment.image",
+            "not pinned by digest; build and push the packaged image, then pin it "
+            "as repo:tag@sha256:<digest>",
+        )
+
+    image_stack = environment.get("image_stack")
+    if image_stack not in (None, "") and not isinstance(image_stack, str):
+        report.add(
+            "error",
+            "metadata.environment.image_stack",
+            f"expected a string, got {image_stack!r}",
         )
 
     prepare = environment.get("prepare")
