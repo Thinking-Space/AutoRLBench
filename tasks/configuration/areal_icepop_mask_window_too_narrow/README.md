@@ -28,7 +28,7 @@ They replace the window that `examples/math/gsm8k_icepop.yaml` ships (`lower: 0.
 - training reward rises from 0.736 to 0.807;
 - held-out accuracy after epoch 1 (0.6448) matches the control (0.627 and 0.625).
 
-The failure starts in epoch 2. In all three recorded seeds, the masked fraction first exceeds 0.10 at step 42 or 43. It then feeds on itself alongside entropy and response length (`no_eos_ratios` stays at or below 0.0195, so this is not truncation):
+Steps are counted from 0 for the first training step, which the log prints as `Train step 1/87`. The failure starts in epoch 2. In all three recorded seeds, the masked fraction first exceeds 0.10 at step 42 or 43. It then feeds on itself alongside entropy and response length (`no_eos_ratios` stays at or below 0.0195, so this is not truncation):
 
 | step | 0 | 20 | 40 | 43 | 52 | 65 | 73 | 86 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -45,7 +45,7 @@ The frozen per-token dumps (`run/ktdump/`, indices 0, 1180 and 2340) contain the
 
 - at step 0, 1.81% of tokens fall outside [0.67, 1.5], against 0.51% outside [0.5, 5];
 - sampled tokens with probability below 0.5 make up 8.8% of tokens but 83.5% of the masked ones;
-- in the step-52 dump (index 1180), 48.4% of the dumped tokens are masked and their mean sampled-token probability has fallen from 0.898 to 0.544.
+- in the index-1180 dump (policy version 52), 48.4% of the dumped tokens are masked and their mean sampled-token probability has fallen from 0.898 to 0.544.
 
 The final checkpoint is still above the base model on GSM8K (greedy pass@1 0.6073 against 0.5550), so "the run did not learn" is wrong. On MATH500, Minerva and Olympiad it falls below the base model (0.1360 / 0.0221 / 0.0208, against 0.2120 / 0.0404 / 0.0490). The control's final checkpoints score 0.6634 and 0.6513 on GSM8K, and 0.2460 and 0.2520 on MATH500.
 

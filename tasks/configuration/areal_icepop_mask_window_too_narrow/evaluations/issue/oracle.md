@@ -27,6 +27,8 @@ window override earns partial root-cause credit at most.
 
 ## Observable impact
 
+- Step numbers below count from 0 for the first training step, which the log prints as
+  `Train step 1/87`.
 - Primary source evaluation metric: `eval-rollout/reward` (GSM8K test, end of each epoch,
   in `run/experiments/logs/user/kt-seeds/icepop_w067-s2/main.log`): 0.6448, 0.5463, 0.5777
   after epochs 1, 2 and 3. Accuracy rises in epoch 1, then falls.
@@ -44,8 +46,8 @@ window override earns partial root-cause credit at most.
     shipped [0.5, 5].
   - Sampled tokens with probability below 0.5 make up 8.8% of tokens but 83.5% of the
     masked ones (17.1% of them are masked, against 0.33% of the rest).
-  - In the step-52 dump (index 1180), 48.4% of the dumped tokens are masked, and their mean
-    sampled-token probability has fallen from 0.898 to 0.544.
+  - In the index-1180 dump (policy version 52), 48.4% of the dumped tokens are masked, and
+    their mean sampled-token probability has fallen from 0.898 to 0.544.
 - Final-checkpoint evaluation (`run/eval/final_checkpoint_suite.tsv`, greedy pass@1) against
   the untrained base model:
   - GSM8K is 0.6073 (base 0.5550).
