@@ -385,6 +385,15 @@
  * rank-1 events whose values do not match the rank-0 fractions; and
  * Kimi-K3 breaks the launch and completes zero steps. The twenty
  * runs were audited clean of network access.
+ * The recovery blocks' reason fields -- rescue narratives carried
+ * over from the evaluation ledger -- were removed from every
+ * published record on 10 Nov 2026: they duplicated the machine
+ * coordinates the blocks keep (replay job id, remote run dir and
+ * the like) and pulled internal operations text onto the published
+ * surface. The five reason-only blocks became null; each of those
+ * runs' sourceCorrection field already tells its rescue story, and
+ * the round notes above describe the recovery entries as they were
+ * published at the time.
  * The 190 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
