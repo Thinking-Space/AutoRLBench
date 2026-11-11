@@ -1,13 +1,11 @@
 # Generator-assigned zero reward lacks group reward metadata
 
-Training Qwen3.5-9B with GRPO on a mixed code-repair corpus. A valid
-behavioral zero is skipped by group reward normalization, so the group is
-discarded as having no binary reward mode.
+During GRPO training of Qwen3.5-9B on a mixed code-repair corpus, the group filter discards a valid behavioral zero because it lacks binary reward metadata and rejects the entire group.
 
 | | |
 | --- | --- |
 | **Author** | Jialin Ren |
-| **Affiliation** | Independent |
+| **Affiliation** | Tsinghua University |
 | **Type** | Infrastructure |
 | **Domain** | Code RL |
 | **Tags** | `reward-metadata` `premature-zero` `group-filter` |
@@ -25,7 +23,7 @@ binary group filter requires.
 
 A representative eight-sample group had eight valid labels: three submitted
 answers and five budget-exhausted zeros. The three submitted answers received
-ordinary binary groups scores, but the five generator-assigned zeros remained
+ordinary binary group scores, but the five generator-assigned zeros remained
 untyped. The filter rejected the otherwise valid group with
 `non_binary_reward_mode`.
 

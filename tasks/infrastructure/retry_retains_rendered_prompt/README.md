@@ -1,14 +1,11 @@
 # Retry reset retains rendered prompt and blocks recovery
 
-Training Qwen3.5-9B with GRPO on a mixed code-repair corpus. Retry and
-recycle reset the generated state but preserve the rendered prompt string, so
-every replay fails the messages-only input check and the rollout loop aborts
-after 128 consecutive groups.
+During GRPO training of Qwen3.5-9B on a mixed code-repair corpus, retry cannot recover because reset preserves the rendered prompt, so every replay fails the messages-only check and the loop aborts.
 
 | | |
 | --- | --- |
 | **Author** | Jialin Ren |
-| **Affiliation** | Independent |
+| **Affiliation** | Tsinghua University |
 | **Type** | Infrastructure |
 | **Domain** | Code RL |
 | **Tags** | `retry-lifecycle` `rendered-prompt` `abort-loop` |
