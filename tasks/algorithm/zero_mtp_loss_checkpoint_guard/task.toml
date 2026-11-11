@@ -1,0 +1,28 @@
+title = "Zero MTP loss path blocks training smoke and checkpointing"
+license = "Apache-2.0"
+created_date = "2026-11-11"
+domain = "algorithm"
+tags = ["mtp", "zero-loss", "checkpoint-guard", "rl-training"]
+
+[submitter]
+name = "Jialin Ren"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "Mixed code-repair corpus (sanitized)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/show_failure.py"
+
+[environment]
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+gpus = 0
+
+[outcome]
+failure_type = "optional_loss_and_checkpoint_guard_bug"
+failure_reason = "A zero-scaled auxiliary MTP loss is absent but consumed unconditionally, while the checkpoint guard rejects a valid one-rollout final-save smoke before training can reach that path."
