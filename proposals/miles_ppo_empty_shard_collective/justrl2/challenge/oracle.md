@@ -79,3 +79,27 @@ logging, assertions, an instrumentation-only diff, a prescribed experiment
 sequence or a particular evidence schema. Correct conclusions must not be
 penalized for the solver's choice of investigative method. The independent
 numerical verifier remains the correctness authority.
+
+## Multi-update replay reconciliation (November 12)
+
+The current initial command executes a constructed five-update assignment
+schedule, rather than the previous one-sample-per-DP fixture call. The sample
+pool contains two copies each of the original trajectories. Under default seed
+3, assignments at updates 0,1,2 are [[3,0],[2,1]], [[2,0],[3,1]],
+[[0,1],[3,2]]. The global multiset is unchanged.
+
+A complete causal explanation should account for the mixed batches containing
+some empty per-sample CP chunks while the concatenated batch is nonempty; only
+the short-only batch makes the local guard skip. At update 2 the four rank-local
+response counts are [4,0,298,360], and the mismatched DP pair is [1,3]. This
+extends rather than changes the root cause described above.
+
+The first reported exception under default deadlines is the later native
+aggregate_train_losses reduction over CP×DP. It is a symptom: three workers
+arrive there while the fourth is blocked in the earlier whitening reduction.
+Changing report timing changes error order, not the root; changing reporting
+or dropping data is not a repair. Do not require exact wall times or which of
+the three reporting ranks races to report first. Both error stages and every
+sample's numerical outputs can be verified by the private replay audit.
+The task remains method-neutral; do not tell the solver what to log or how to
+investigate, or require prescribed diagnostics as acceptance artifacts.

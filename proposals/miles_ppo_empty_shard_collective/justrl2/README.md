@@ -1,5 +1,12 @@
 # Public JustRL2 constructed regression case
 
+**November 12 staged replay:** the original guard now executes in a constructed
+multi-update assignment scenario with a real downstream metrics-timeout symptom.
+See challenge/staged_validation.json (under justrl2/ for the top-level proposal).
+This is fresh CPU/Gloo evidence, not a new GPU or production-sampler result.
+A blind solver still located the guard statically; the difficulty threshold is
+not claimed to be met.
+
 **November 8 split and observation cleanup:** this PR contains the original
 empty-shard case only. [challenge/](challenge/README.md) exports coarse replay
 status and no prebuilt tracing or tensor dumps; investigation methods are unrestricted.

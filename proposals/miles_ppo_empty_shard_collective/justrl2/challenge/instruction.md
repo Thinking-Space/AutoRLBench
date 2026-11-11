@@ -8,7 +8,7 @@ synthetic critic values and runs no model or optimizer.
 Python 3.12+, CPU PyTorch/Gloo and NumPy are required. The starting command is:
 
 ```bash
-python debug/run_replay.py --replay inputs/replay.json --cp 2 --dp 2 --output /tmp/run-a
+python debug/run_updates.py --output /tmp/run-a
 ```
 
 Use a fresh output directory for each run. Submit your source changes and

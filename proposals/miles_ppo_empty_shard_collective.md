@@ -1,5 +1,12 @@
 # Proposal: Miles PPO empty-shard whitening collective mismatch
 
+**November 12 staged replay:** the original guard now executes in a constructed
+multi-update assignment scenario with a real downstream metrics-timeout symptom.
+See challenge/staged_validation.json (under justrl2/ for the top-level proposal).
+This is fresh CPU/Gloo evidence, not a new GPU or production-sampler result.
+A blind solver still located the guard statically; the difficulty threshold is
+not claimed to be met.
+
 **November 8, 2026 split:** this PR again contains only the original empty-shard
 case. Its contestant export now omits supplied progress/mesh/error records and
 diagnostic helpers; the solver chooses its own investigation method. The communicator-cache case is a separate independent PR.

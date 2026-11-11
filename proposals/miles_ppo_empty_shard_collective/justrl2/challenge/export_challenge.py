@@ -149,6 +149,22 @@ def write_json(path, data):
     path.write_text(json.dumps(data, indent=2, sort_keys=True, allow_nan=False) + '\n')
 
 
+def build_runtime_support():
+    """Extract native-source loading helpers for the exported update runner."""
+    tree = ast.parse((HERE / 'run_replay.py').read_text())
+    constants = {'MAX_RESPONSE_LENGTH', 'PLAN', 'NATIVE_FUNCTIONS'}
+    functions = {'_bound_names', '_source_functions', '_load_native'}
+    nodes = [n for n in tree.body
+             if isinstance(n, (ast.Import, ast.ImportFrom))
+             or isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id in constants for t in n.targets)
+             or isinstance(n, ast.FunctionDef) and n.name in functions]
+    module = ast.Module(body=[ast.ImportFrom(module='__future__', names=[ast.alias(name='annotations')], level=0), *nodes],
+                        type_ignores=[])
+    result = ast.unparse(ast.fix_missing_locations(module)) + '\n'
+    ast.parse(result)
+    return result
+
+
 def archive_workspace(workspace, destination):
     with destination.open('wb') as raw, gzip.GzipFile(fileobj=raw, mode='wb', filename='', mtime=0) as compressed:
         with tarfile.open(fileobj=compressed, mode='w') as archive:
@@ -251,7 +267,8 @@ def export(source, output):
                 write_json(private / name, data)
         debug = workspace / 'debug'
         debug.mkdir()
-        shutil.copyfile(HERE / 'run_replay.py', debug / 'run_replay.py')
+        shutil.copyfile(HERE / 'run_updates.py', debug / 'run_updates.py')
+        (debug / 'runtime_support.py').write_text(build_runtime_support())
         for folder in ('miles', 'miles_plugins'):
             for path in (workspace / folder).rglob('*.py'):
                 path.write_text(clean_source(path.read_text()))
