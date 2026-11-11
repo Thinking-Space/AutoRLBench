@@ -1,0 +1,28 @@
+title = "Retry reset retains rendered prompt and blocks recovery"
+license = "Apache-2.0"
+created_date = "2026-11-11"
+domain = "infrastructure"
+tags = ["miles", "grpo", "retry", "prompt-lifecycle"]
+
+[submitter]
+name = "Jialin Ren"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "Mixed code-repair corpus (sanitized)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/show_failure.py"
+
+[environment]
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+gpus = 0
+
+[outcome]
+failure_type = "retry_state_lifecycle_bug"
+failure_reason = "Generation replaces the messages list with rendered prompt text while reset_for_retry preserves prompt; same-prompt retry and recycled groups repeatedly fail the messages-only input check until the loop stops after 128 consecutive aborted groups."

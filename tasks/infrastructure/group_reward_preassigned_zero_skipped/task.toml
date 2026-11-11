@@ -1,0 +1,28 @@
+title = "Generator-assigned zero reward lacks group reward metadata"
+license = "Apache-2.0"
+created_date = "2026-11-11"
+domain = "infrastructure"
+tags = ["miles", "grpo", "reward-metadata", "group-filter"]
+
+[submitter]
+name = "Jialin Ren"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "Mixed code-repair corpus (sanitized)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/show_failure.py"
+
+[environment]
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+gpus = 0
+
+[outcome]
+failure_type = "reward_interface_bug"
+failure_reason = "The generator writes a valid behavioral zero before group normalization; the group adapter skips every preassigned reward and never records the binary mode, so the downstream filter drops otherwise valid mixed groups with non_binary_reward_mode."

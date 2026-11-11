@@ -1,0 +1,19 @@
+category: implementation
+framework: miles
+task: retry_retains_rendered_prompt
+verdict: unhealthy
+root_cause:
+  - name: rendered_prompt_survives_retry_reset
+    where: runtime/generate.py::run_generation, runtime/sample.py::Sample.reset_for_retry, and runtime/fully_async.py retry helpers
+    observed: generation overwrites the messages list with rendered text, retry reset preserves prompt, and replayed samples fail the messages-only input check
+    expected: every retry and recycle reconstructs native messages from durable task fields before generation, independently of the rendered training prompt
+evidence_metrics:
+  - the run completed 20 rollouts and 160 optimizer updates before the retry loop stopped progress
+  - rollout raw reward remained finite with range 0.53516 to 0.63281 and the last normal update reached step 159
+  - the retry path repeatedly raised native message input required
+  - the run terminated after 128 consecutive aborted or recycled groups
+  - the focused repair covered same-prompt retry, environment recycle, and direct rendered-string input with 56 passing tests
+fix:
+  must:
+    - rebuild the native messages representation for each retry and recycle
+    - keep rendered text available for training without treating it as the replay input contract

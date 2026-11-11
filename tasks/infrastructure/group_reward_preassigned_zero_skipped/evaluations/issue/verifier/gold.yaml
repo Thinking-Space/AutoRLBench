@@ -1,0 +1,18 @@
+category: implementation
+framework: miles
+task: group_reward_preassigned_zero_skipped
+verdict: unhealthy
+root_cause:
+  - name: preassigned_zero_bypasses_group_normalization
+    where: runtime/group_adapter.py::mark_generator_zero and normalize_group
+    observed: generator writes a valid behavioral reward of 0.0 before normalization; the adapter skips existing rewards and leaves no binary reward record
+    expected: a validated generator zero is preserved and normalized into the same binary record and validity state used by submitted candidates; unrelated preassigned rewards remain untouched
+evidence_metrics:
+  - a representative group has eight valid samples, three submitted answers and five budget-exhausted behavioral zeros
+  - the submitted answers receive binary records, but the five generator zeros have no reward record
+  - the group filter drops the representative group with non_binary_reward_mode
+  - 881 unique groups in the log snapshot have this drop reason, distinct from the expected 605 all-pass and 42 all-fail drops
+fix:
+  must:
+    - preserve the behavioral zero and attach the required binary reward record before the filter
+    - avoid relabeling environment failures or arbitrary preassigned rewards
