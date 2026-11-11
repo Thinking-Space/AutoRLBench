@@ -26,6 +26,7 @@ A row is "built" when the reference resolves to a complete, digest-pinned image 
 | `vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10` | `ghcr.io/yhyayi/autorlbench:vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10@sha256:f5dbe597c6dad59dcbdee5e363e645f96656f9bea94641f3438f8b2f639c5b3d` | vLLM 0.6.3 · torch 2.4.0 · cu121 (Search-R1 lineage) | 1 |
 | `verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12` | `verlai/verl:vllm024.dev2@sha256:b867883b0dd011363e69ab2ab344922a28c5bd0409e2a324e3ee70fb27ca7543` | vLLM 0.24.0 · torch 2.11.0 · cu130 (veRL travels with the workspace) | 1 |
 | `justrl2-data-relocation` | `ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b` | JustRL-II / miles · ray · cp2dp2 | 1 |
+| `verl-vllm0.8.5-torch2.6.0-flashattn2.7.4-cu124-py3.10` | `verlai/verl:app-verl0.4-vllm0.8.5-mcore0.12.2-te2.2@sha256:8550dd839d858b0b8097fe3d3fe5b8ee0b8906469f60c7a6cd55e1d572d070ff` | vLLM 0.8.5.post1 · torch 2.6.0 · cu124 (veRL travels with the workspace) | 1 |
 
 Six more environments exist as build recipes but are not pushed yet (`verl-v061-grpo`,
 `verl-vllm011`, `trl-grpo-torch26`, `verl-0.9-vllm0.28`, `tool-rl-vllm024`, `maestro-vllm011`);

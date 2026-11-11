@@ -328,6 +328,7 @@ a fix to a fetch script is a fix to the task that ships it.
 | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` | `verlai/verl:vllm017.latest` |
 | `verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12` | `verlai/verl:vllm024.dev2` |
 | `verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10` | `hiyouga/verl` |
+| `verl-vllm0.8.5-torch2.6.0-flashattn2.7.4-cu124-py3.10` | `verlai/verl:app-verl0.4-vllm0.8.5-mcore0.12.2-te2.2` |
 | `vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10` | `ghcr.io/yhyayi/autorlbench:vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10` |
 
 Which tasks use which environment is declared per task in `tasks/<domain>/<task_id>/task.toml`.

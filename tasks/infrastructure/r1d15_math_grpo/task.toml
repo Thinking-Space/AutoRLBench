@@ -1,0 +1,28 @@
+title = "Numerical policy divergence in a completed math GRPO run"
+license = "Apache-2.0"
+created_date = "2026-11-06"
+domain = "infrastructure"
+tags = ["verl", "grpo", "sequence-mis", "numerical-consistency", "hybrid-backend"]
+
+[submitter]
+name = "benchmark_evaluation"
+
+[model]
+name = "DeepSeek-R1-Distill-Qwen-1.5B"
+
+[dataset]
+name = "MATH 1460-question subset; AIME 2024 / 2025"
+
+[training]
+framework = "verl"
+algo = "GRPO + sequence-MIS"
+script = "scripts/train.sh"
+
+[environment]
+image = "verlai/verl:app-verl0.4-vllm0.8.5-mcore0.12.2-te2.2@sha256:8550dd839d858b0b8097fe3d3fe5b8ee0b8906469f60c7a6cd55e1d572d070ff"
+image_stack = "verl-vllm0.8.5-torch2.6.0-flashattn2.7.4-cu124-py3.10"
+gpus = 0
+
+[outcome]
+failure_type = "numerical_policy_divergence"
+failure_reason = "BF16 FSDP2 learner and vLLM rollout forwards produce significantly different token probabilities despite synchronized nominal weights: the recorded token-weighted mean absolute logprob difference is 0.01121 nat and the maximum sampled-token probability difference reaches 0.999926."

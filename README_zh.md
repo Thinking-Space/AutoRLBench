@@ -19,6 +19,7 @@
 
 ## 🚀 新闻
 
+- **2026 年 11 月 11 日** — r1d15_math_grpo 双档发布（10 条 issue 判定 + 10 条 solution 轨迹）：共 33 个任务，其中 25 个支持 solution 级评测。
 - **2026 年 11 月 6 日** — 公开第二版任务列表：共 32 个任务，其中 24 个支持 solution 级评测。
 - **2026 年 11 月 2 日** — 公开第一版任务列表：共 18 个任务，其中 13 个支持 solution 级评测。
 - **2026 年 10 月 24 日** — 正式开始征集贡献（call for contributions），并在 leaderboard 中加入 Kimi-K3.1-Pro 评测结果。
@@ -30,16 +31,16 @@ AutoRLBench Leaderboard，issue + solution 双档成绩。总分为全部已评�
 
 | # | 模型 | Agent | Issue 分数 | Solution 分数 | 总分 |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | GPT-6-Astra | Codex | 46.9 % | 52.6 % | **49.0 %** |
-| 1 | GPT-6.1-Sol | Codex | 43.8 % | 57.9 % | **49.0 %** |
-| 3 | GLM-5.3 | Claude Code | 31.3 % | 52.6 % | **39.2 %** |
-| 3 | Gemini-4-Argon | Claude Code | 25.0 % | 63.2 % | **39.2 %** |
-| 5 | Kimi-K3.1-Pro | Claude Code | 25.0 % | 52.6 % | **35.3 %** |
-| 6 | Qwen3.8-Max | Qwen Code | 28.1 % | 42.1 % | **33.3 %** |
-| 7 | Claude-Fable-5.1 | Claude Code | 25.0 % | 42.1 % | **31.4 %** |
-| 8 | Grok-4.7 | Grok Build | 25.0 % | 26.3 % | **25.5 %** |
-| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 15.8 % | **5.9 %** |
-| 10 | Kimi-K3 | Claude Code | 0.0 % | 10.5 % | **3.9 %** |
+| 1 | GPT-6-Astra | Codex | 45.5 % | 50.0 % | **47.2 %** |
+| 1 | GPT-6.1-Sol | Codex | 42.4 % | 55.0 % | **47.2 %** |
+| 3 | GLM-5.3 | Claude Code | 30.3 % | 50.0 % | **37.7 %** |
+| 3 | Gemini-4-Argon | Claude Code | 24.2 % | 60.0 % | **37.7 %** |
+| 5 | Kimi-K3.1-Pro | Claude Code | 24.2 % | 50.0 % | **34.0 %** |
+| 6 | Qwen3.8-Max | Qwen Code | 27.3 % | 40.0 % | **32.1 %** |
+| 7 | Claude-Fable-5.1 | Claude Code | 24.2 % | 40.0 % | **30.2 %** |
+| 8 | Grok-4.7 | Grok Build | 24.2 % | 25.0 % | **24.5 %** |
+| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 15.0 % | **5.7 %** |
+| 10 | Kimi-K3 | Claude Code | 0.0 % | 10.0 % | **3.8 %** |
 
 
 ## 任务

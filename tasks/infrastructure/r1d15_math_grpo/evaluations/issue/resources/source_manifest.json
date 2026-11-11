@@ -1,0 +1,2841 @@
+{
+  "upstream_repository": "https://github.com/sail-sg/Precision-RL-verl",
+  "upstream_revision": "a4a7659dfababdc94c74c76c3c0155e561d71748",
+  "upstream_archive_sha256": "095887c0d61b4564f3f2ab60680157b428eecadd03b9db3987405b3d71559b45",
+  "recorded_source_patch": [
+    {
+      "path": "verl/trainer/ppo/ray_trainer.py",
+      "before": "f5d233e8892698ca1ea0da45c8db0654f2b47a5c8468d5ff723cc32fe913977e",
+      "after": "902534e08a2d88aba9de5633f2048c922c6df30dfe8661610e10bcdaa643fff8"
+    },
+    {
+      "path": "verl/utils/checkpoint/fsdp_checkpoint_manager.py",
+      "before": "bd91928c68a1653735b0dc97b1eedf9e4922122ec893daf3fefd64a660b1d509",
+      "after": "21b9abab071d0603e26a94bf3551174feb8af05a64df4f7afff327cd3b7bf617"
+    },
+    {
+      "path": "verl/workers/fsdp_workers.py",
+      "before": "6b7982378d01ac8aa78b473a8cde1818f163ec32fba0573b03f95b0723f1d0e1",
+      "after": "b41026fc12e3efa510abe8a15ce1ed60ba5588bf67e8ff921eb9e257feae08b4"
+    },
+    {
+      "path": "verl/utils/tracking.py",
+      "before": "40d27f61a6a5e100274b5d86cd1dd88804018df62be412cf9a8dd58f4c14a94a",
+      "after": "e7b0f3717cae9ab1c2e824992c6fb5d2b3214abd5f60facfc7bae1103f0f3943"
+    },
+    {
+      "path": "verl/workers/rollout/vllm_rollout/vllm_rollout_spmd.py",
+      "before": "38183db0e41a8ae9f391803ff53844274b774acc4dc84f67ac1052b501bb4f14",
+      "after": "047c899bb157fe677c5108cec73ddadd697c53ca540e685200b4175f120db29f"
+    },
+    {
+      "path": "verl/workers/actor/dp_actor.py",
+      "before": "0293a9e1855b6aadc54c9accf51561e6ee641b9967f11805bc529ccae6ac9c14",
+      "after": "73606cd01784ec20b541a08a531a64f804dc557156d6f8098b989e984c125f29"
+    }
+  ],
+  "recorded_runtime": {
+    "torch": "2.6.0",
+    "vllm": "0.8.5.post1",
+    "transformers": "4.51.3",
+    "ray": "2.47.1",
+    "tensordict": "0.6.2",
+    "flash_attn": "2.7.4.post1",
+    "tensorboard": "2.16.2"
+  },
+  "packaging_changes": [
+    "Only the BF16 formal run is agent visible. Earlier qualification runs are excluded.",
+    "The paper README, figures, research demos, docs and unused tests are omitted.",
+    "Hydra config is renamed and contains the recorded effective overrides; policy math is unchanged.",
+    "Checkpoint payloads and derived TensorBoard binaries are omitted; all per-step scalar JSON and optimizer audit records are retained.",
+    "The portable launcher performs a normal auto-resumable launch without injecting the historical step-1 resume drill.",
+    "Console paths, host labels and ANSI SGR controls are normalized; metric numbers and model text remain unchanged.",
+    "Retain exactly three native validation generation records: step 0 row 0, step 200 row 960, step 440 row 1919; all scalar evaluation aggregates remain intact.",
+    "Portable launcher and prepare place writable runtime caches and temporary files in the staged workspace; an explicit RAY_TMPDIR may point to a shorter task-owned path.",
+    "Environment follows the three-file qwen3vl_geo3k layout: pinned fetching is inline in prepare.sh and source provenance is stored only in hidden issue resources.",
+    "The portable prepare and training entrypoints honor an explicit TMPDIR, so long deployment paths can use a short task-owned socket directory. This fixes packaging-only tensor IPC startup, without changing the recorded policy computation."
+  ],
+  "files": [
+    {
+      "source": "source_v2/verl/__init__.py",
+      "destination": "workspace/verl/verl/__init__.py",
+      "before_sha256": "62ff1f047da92185acbafc5f6aac84f837d240b01eb2d5635de6bdfe7ca2f712",
+      "after_sha256": "62ff1f047da92185acbafc5f6aac84f837d240b01eb2d5635de6bdfe7ca2f712",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/base_config.py",
+      "destination": "workspace/verl/verl/base_config.py",
+      "before_sha256": "f9eccccdc8dd57628574dd964b45b10d4f50d7be107698757cf614fd9e2e1a92",
+      "after_sha256": "f9eccccdc8dd57628574dd964b45b10d4f50d7be107698757cf614fd9e2e1a92",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/experimental/__init__.py",
+      "destination": "workspace/verl/verl/experimental/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/experimental/agent_loop/__init__.py",
+      "destination": "workspace/verl/verl/experimental/agent_loop/__init__.py",
+      "before_sha256": "2341694e26f7cb89469721af8d45a5fe4abc1aed27249cf90e10f30d4d338701",
+      "after_sha256": "2341694e26f7cb89469721af8d45a5fe4abc1aed27249cf90e10f30d4d338701",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/experimental/agent_loop/agent_loop.py",
+      "destination": "workspace/verl/verl/experimental/agent_loop/agent_loop.py",
+      "before_sha256": "f8cd84de61ac1f5dafc946e9f226f237fd14d70ad0ba272d0cbe1bf612e97bc0",
+      "after_sha256": "f8cd84de61ac1f5dafc946e9f226f237fd14d70ad0ba272d0cbe1bf612e97bc0",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/experimental/agent_loop/single_turn_agent_loop.py",
+      "destination": "workspace/verl/verl/experimental/agent_loop/single_turn_agent_loop.py",
+      "before_sha256": "3b970f0c6d3e4dd17ca8af21e09b6f0206e210e2b6c6131ad91ba818b10f70ad",
+      "after_sha256": "3b970f0c6d3e4dd17ca8af21e09b6f0206e210e2b6c6131ad91ba818b10f70ad",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/experimental/agent_loop/tool_agent_loop.py",
+      "destination": "workspace/verl/verl/experimental/agent_loop/tool_agent_loop.py",
+      "before_sha256": "614a0e4522a72ab66410960a8b8172732e3594e5c64fc2d26f6611d5effd794c",
+      "after_sha256": "614a0e4522a72ab66410960a8b8172732e3594e5c64fc2d26f6611d5effd794c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/experimental/agent_loop/tool_parser.py",
+      "destination": "workspace/verl/verl/experimental/agent_loop/tool_parser.py",
+      "before_sha256": "3de0e0650b0977da40608a2fe86dfe65e556060388a3f9f2fe354416a8baf820",
+      "after_sha256": "3de0e0650b0977da40608a2fe86dfe65e556060388a3f9f2fe354416a8baf820",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/experimental/dataset/__init__.py",
+      "destination": "workspace/verl/verl/experimental/dataset/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/experimental/dataset/sampler.py",
+      "destination": "workspace/verl/verl/experimental/dataset/sampler.py",
+      "before_sha256": "4524187caf870f595f721157e00a2df55f13bdb8cddf47d42741a89fd676a700",
+      "after_sha256": "4524187caf870f595f721157e00a2df55f13bdb8cddf47d42741a89fd676a700",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/experimental/dynamic_dataset/__init__.py",
+      "destination": "workspace/verl/verl/experimental/dynamic_dataset/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/experimental/dynamic_dataset/dynamicgen_dataset.py",
+      "destination": "workspace/verl/verl/experimental/dynamic_dataset/dynamicgen_dataset.py",
+      "before_sha256": "d22edba8c5bd0c6b0176a5ca04622a303680ae03837c5a28d03ed102ee0e48b1",
+      "after_sha256": "d22edba8c5bd0c6b0176a5ca04622a303680ae03837c5a28d03ed102ee0e48b1",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/interactions/__init__.py",
+      "destination": "workspace/verl/verl/interactions/__init__.py",
+      "before_sha256": "48e4a0c1591de920175cf07b36cb6f87e094becf910af84c9db2d527a9464497",
+      "after_sha256": "48e4a0c1591de920175cf07b36cb6f87e094becf910af84c9db2d527a9464497",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/interactions/base.py",
+      "destination": "workspace/verl/verl/interactions/base.py",
+      "before_sha256": "83e444e1d4ac7e256464d9591be7a223a1a988dab22d09bc660d96f3ec5ebffe",
+      "after_sha256": "83e444e1d4ac7e256464d9591be7a223a1a988dab22d09bc660d96f3ec5ebffe",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/interactions/gsm8k_interaction.py",
+      "destination": "workspace/verl/verl/interactions/gsm8k_interaction.py",
+      "before_sha256": "53d83ea06588ac4df63ef565aa1d0479b737071592c324108508c04cacbc05f1",
+      "after_sha256": "53d83ea06588ac4df63ef565aa1d0479b737071592c324108508c04cacbc05f1",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/interactions/utils/__init__.py",
+      "destination": "workspace/verl/verl/interactions/utils/__init__.py",
+      "before_sha256": "0bae18fab65cb4028732b91a1215baf8e02f9fdf8b4762a523662a34374e7432",
+      "after_sha256": "0bae18fab65cb4028732b91a1215baf8e02f9fdf8b4762a523662a34374e7432",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/interactions/utils/interaction_registry.py",
+      "destination": "workspace/verl/verl/interactions/utils/interaction_registry.py",
+      "before_sha256": "653d7d4b7fe1c3d1fa9a26a0e0b0324252596ba09ebfe2aa658327e05b4ac5eb",
+      "after_sha256": "653d7d4b7fe1c3d1fa9a26a0e0b0324252596ba09ebfe2aa658327e05b4ac5eb",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/model_merger/__init__.py",
+      "destination": "workspace/verl/verl/model_merger/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/model_merger/__main__.py",
+      "destination": "workspace/verl/verl/model_merger/__main__.py",
+      "before_sha256": "bbeaa19d4993c1c6c6d5552e8d1eaf1f56e5e737661acc0d750f0d41c2d4bce0",
+      "after_sha256": "bbeaa19d4993c1c6c6d5552e8d1eaf1f56e5e737661acc0d750f0d41c2d4bce0",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/model_merger/base_model_merger.py",
+      "destination": "workspace/verl/verl/model_merger/base_model_merger.py",
+      "before_sha256": "c8e240245f407d25ebb47d11460f0a3a4054aa02be714366b66c47d31f494cfb",
+      "after_sha256": "c8e240245f407d25ebb47d11460f0a3a4054aa02be714366b66c47d31f494cfb",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/model_merger/fsdp_model_merger.py",
+      "destination": "workspace/verl/verl/model_merger/fsdp_model_merger.py",
+      "before_sha256": "2ae5f3f7fc95871b08a2e185def4f1a5cec09164579cd15eeb2314cb73ef1f0f",
+      "after_sha256": "2ae5f3f7fc95871b08a2e185def4f1a5cec09164579cd15eeb2314cb73ef1f0f",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/model_merger/megatron_model_merger.py",
+      "destination": "workspace/verl/verl/model_merger/megatron_model_merger.py",
+      "before_sha256": "e27ec2cd5f2bece00ba654ad257b5ab6c55c09fcc727cc2cfde50c7e0ce0c4d4",
+      "after_sha256": "e27ec2cd5f2bece00ba654ad257b5ab6c55c09fcc727cc2cfde50c7e0ce0c4d4",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/README.md",
+      "destination": "workspace/verl/verl/models/README.md",
+      "before_sha256": "5e3bd067a590fca3a0d571b639ac466e1c6a5ad68abc18fcb6a3a176fb5ab476",
+      "after_sha256": "5e3bd067a590fca3a0d571b639ac466e1c6a5ad68abc18fcb6a3a176fb5ab476",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/__init__.py",
+      "destination": "workspace/verl/verl/models/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/__init__.py",
+      "destination": "workspace/verl/verl/models/llama/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/__init__.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/__init__.py",
+      "before_sha256": "882e9d87f97eba0d0f67cacb2851e709c1771043e06c42880ccb11170d9914bd",
+      "after_sha256": "882e9d87f97eba0d0f67cacb2851e709c1771043e06c42880ccb11170d9914bd",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/checkpoint_utils/__init__.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/checkpoint_utils/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/checkpoint_utils/llama_loader.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/checkpoint_utils/llama_loader.py",
+      "before_sha256": "842e23c86ebc1e327f230c6cb9e178d83df92a11900315ed23d71fbd099aa43a",
+      "after_sha256": "842e23c86ebc1e327f230c6cb9e178d83df92a11900315ed23d71fbd099aa43a",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/checkpoint_utils/llama_loader_depracated.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/checkpoint_utils/llama_loader_depracated.py",
+      "before_sha256": "03c5c40fa17fc68b238951334e670ee592f5e356f7d35b7e0d353ea86170aac9",
+      "after_sha256": "03c5c40fa17fc68b238951334e670ee592f5e356f7d35b7e0d353ea86170aac9",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/checkpoint_utils/llama_saver.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/checkpoint_utils/llama_saver.py",
+      "before_sha256": "98ab4629ea317f20458ef5a850332ede5da4990416fac3da65adf012aa5ad3f7",
+      "after_sha256": "98ab4629ea317f20458ef5a850332ede5da4990416fac3da65adf012aa5ad3f7",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/layers/__init__.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/layers/__init__.py",
+      "before_sha256": "9cb3d2cecc91f210d111fd44f8122e652285265204832c22799428b41be8db9f",
+      "after_sha256": "9cb3d2cecc91f210d111fd44f8122e652285265204832c22799428b41be8db9f",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/layers/parallel_attention.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/layers/parallel_attention.py",
+      "before_sha256": "fafa53c0cbbfbabbb21e0cca09c9be45ce137f31800436685b0461c502a47cb8",
+      "after_sha256": "fafa53c0cbbfbabbb21e0cca09c9be45ce137f31800436685b0461c502a47cb8",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/layers/parallel_decoder.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/layers/parallel_decoder.py",
+      "before_sha256": "597288c158587c4a47f3e0e916bbeefb4e97d2085e850928ba482ad94f61a569",
+      "after_sha256": "597288c158587c4a47f3e0e916bbeefb4e97d2085e850928ba482ad94f61a569",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/layers/parallel_linear.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/layers/parallel_linear.py",
+      "before_sha256": "cc74ba5c9c3dc6e7e7051dc3d6c1954dcdb204dd9a1e551e7cf91c017fa649d2",
+      "after_sha256": "cc74ba5c9c3dc6e7e7051dc3d6c1954dcdb204dd9a1e551e7cf91c017fa649d2",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/layers/parallel_mlp.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/layers/parallel_mlp.py",
+      "before_sha256": "d8cd610347584db7f6557c4324bce63a750af0a783168ba4d41e3f50af85af67",
+      "after_sha256": "d8cd610347584db7f6557c4324bce63a750af0a783168ba4d41e3f50af85af67",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/layers/parallel_rmsnorm.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/layers/parallel_rmsnorm.py",
+      "before_sha256": "93f929f88639f8b8ab56f2a67e21dd94f4fac64ccead78de443c770728472ef5",
+      "after_sha256": "93f929f88639f8b8ab56f2a67e21dd94f4fac64ccead78de443c770728472ef5",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/llama/megatron/modeling_llama_megatron.py",
+      "destination": "workspace/verl/verl/models/llama/megatron/modeling_llama_megatron.py",
+      "before_sha256": "0d7f09def7d9bcb833c09bb76038bae889f260c92a5e7cd66c15a371b095d361",
+      "after_sha256": "0d7f09def7d9bcb833c09bb76038bae889f260c92a5e7cd66c15a371b095d361",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/__init__.py",
+      "destination": "workspace/verl/verl/models/mcore/__init__.py",
+      "before_sha256": "a777d81de53982d265c9fc780374e112df0b4795436ba177062da58613ec03c0",
+      "after_sha256": "a777d81de53982d265c9fc780374e112df0b4795436ba177062da58613ec03c0",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/config_converter.py",
+      "destination": "workspace/verl/verl/models/mcore/config_converter.py",
+      "before_sha256": "4d946aeaa2c928a2a3404cfa1f9ff457ac6a12e723a39fac58fcb54b1636804f",
+      "after_sha256": "4d946aeaa2c928a2a3404cfa1f9ff457ac6a12e723a39fac58fcb54b1636804f",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/loader.py",
+      "destination": "workspace/verl/verl/models/mcore/loader.py",
+      "before_sha256": "f3db070750f2c835aef42f3a05f9d51e96b085acc0b3e2235cc33771e274809e",
+      "after_sha256": "f3db070750f2c835aef42f3a05f9d51e96b085acc0b3e2235cc33771e274809e",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/mbridge.py",
+      "destination": "workspace/verl/verl/models/mcore/mbridge.py",
+      "before_sha256": "213ebe4dfa813b18bb48a18eb575669baa2df345c1428294bd32cd7208195954",
+      "after_sha256": "213ebe4dfa813b18bb48a18eb575669baa2df345c1428294bd32cd7208195954",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/model_forward.py",
+      "destination": "workspace/verl/verl/models/mcore/model_forward.py",
+      "before_sha256": "c9c9ea3578703bbdd84b8478b8bcd3cd5bf201315dd609f91159ba5a90769d57",
+      "after_sha256": "c9c9ea3578703bbdd84b8478b8bcd3cd5bf201315dd609f91159ba5a90769d57",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/model_forward_fused.py",
+      "destination": "workspace/verl/verl/models/mcore/model_forward_fused.py",
+      "before_sha256": "bdf4d6d549be041b87d4ad7670647c14b09b3b1b2f6881ebcf9468de30faee53",
+      "after_sha256": "bdf4d6d549be041b87d4ad7670647c14b09b3b1b2f6881ebcf9468de30faee53",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/model_initializer.py",
+      "destination": "workspace/verl/verl/models/mcore/model_initializer.py",
+      "before_sha256": "505aaaa2d9e4d46bb50b6312d0839054d01dde199242a7e28707b43c60ee6640",
+      "after_sha256": "505aaaa2d9e4d46bb50b6312d0839054d01dde199242a7e28707b43c60ee6640",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/patch_v012.py",
+      "destination": "workspace/verl/verl/models/mcore/patch_v012.py",
+      "before_sha256": "5e983d17aa0f67f0309ad26c6c9fe8c2bfef40691b91f162748454f2f26880ad",
+      "after_sha256": "5e983d17aa0f67f0309ad26c6c9fe8c2bfef40691b91f162748454f2f26880ad",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/qwen2_5_vl/__init__.py",
+      "destination": "workspace/verl/verl/models/mcore/qwen2_5_vl/__init__.py",
+      "before_sha256": "aef86e621b8b2e2c1c59334915e3e040b92e5e49df6574e5d20768d1bcf47828",
+      "after_sha256": "aef86e621b8b2e2c1c59334915e3e040b92e5e49df6574e5d20768d1bcf47828",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/qwen2_5_vl/attention.py",
+      "destination": "workspace/verl/verl/models/mcore/qwen2_5_vl/attention.py",
+      "before_sha256": "3f7566c9d621bb87abc70a870c2286e082f92f6e708d5da876f6c13c1de73bb2",
+      "after_sha256": "3f7566c9d621bb87abc70a870c2286e082f92f6e708d5da876f6c13c1de73bb2",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/qwen2_5_vl/model.py",
+      "destination": "workspace/verl/verl/models/mcore/qwen2_5_vl/model.py",
+      "before_sha256": "bed786906b1049585ddfd0bc2794c745f52340903527b8f41911b6a91e227e41",
+      "after_sha256": "bed786906b1049585ddfd0bc2794c745f52340903527b8f41911b6a91e227e41",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/qwen2_5_vl/rope_utils.py",
+      "destination": "workspace/verl/verl/models/mcore/qwen2_5_vl/rope_utils.py",
+      "before_sha256": "9202aaa71b9167efde1fdc9a726015e05e44d217a2d62187325debd447a72fd2",
+      "after_sha256": "9202aaa71b9167efde1fdc9a726015e05e44d217a2d62187325debd447a72fd2",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/qwen2_5_vl/vision_config.py",
+      "destination": "workspace/verl/verl/models/mcore/qwen2_5_vl/vision_config.py",
+      "before_sha256": "f173783cc6213543063e65035c5ca3c927d93d5a0899d5555fa2a3979d8f1a22",
+      "after_sha256": "f173783cc6213543063e65035c5ca3c927d93d5a0899d5555fa2a3979d8f1a22",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/qwen2_5_vl/vision_model.py",
+      "destination": "workspace/verl/verl/models/mcore/qwen2_5_vl/vision_model.py",
+      "before_sha256": "19d68643babddbe29893d641783b490a807206fb7601121b25596b589ea97002",
+      "after_sha256": "19d68643babddbe29893d641783b490a807206fb7601121b25596b589ea97002",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/qwen2_5_vl/vision_transformer_block.py",
+      "destination": "workspace/verl/verl/models/mcore/qwen2_5_vl/vision_transformer_block.py",
+      "before_sha256": "0041d05ef50a3301d3eeabfffaf5baf8d45abc3a83d54112724de53dfb5775d0",
+      "after_sha256": "0041d05ef50a3301d3eeabfffaf5baf8d45abc3a83d54112724de53dfb5775d0",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/readme.md",
+      "destination": "workspace/verl/verl/models/mcore/readme.md",
+      "before_sha256": "8675def1699cb17cbc86a1c0bcf650f14bcf4161a1db0250b4c9c3413a77dccc",
+      "after_sha256": "8675def1699cb17cbc86a1c0bcf650f14bcf4161a1db0250b4c9c3413a77dccc",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/registry.py",
+      "destination": "workspace/verl/verl/models/mcore/registry.py",
+      "before_sha256": "dd7d147dfdd4bd87a1bc32d5b3a058dc0637239141649c1c412b1279fd537fd9",
+      "after_sha256": "dd7d147dfdd4bd87a1bc32d5b3a058dc0637239141649c1c412b1279fd537fd9",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/saver.py",
+      "destination": "workspace/verl/verl/models/mcore/saver.py",
+      "before_sha256": "a82703fade74e67efe7e65dac451d25b0f1489ccd4dc689a618399ef051858b4",
+      "after_sha256": "a82703fade74e67efe7e65dac451d25b0f1489ccd4dc689a618399ef051858b4",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/util.py",
+      "destination": "workspace/verl/verl/models/mcore/util.py",
+      "before_sha256": "ebad217f219c7942095f5859635f34be6604986f2e7e3861da4da6ee57b316c5",
+      "after_sha256": "ebad217f219c7942095f5859635f34be6604986f2e7e3861da4da6ee57b316c5",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/mcore/weight_converter.py",
+      "destination": "workspace/verl/verl/models/mcore/weight_converter.py",
+      "before_sha256": "2d6cf1ed29cf6cf0468dac4767fe450a98bba32495a35e80feb15713bdf403ce",
+      "after_sha256": "2d6cf1ed29cf6cf0468dac4767fe450a98bba32495a35e80feb15713bdf403ce",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/__init__.py",
+      "destination": "workspace/verl/verl/models/qwen2/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/__init__.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/__init__.py",
+      "before_sha256": "8aee5796a576d05221db3a2fad83298ca997e9906a9d897575c1dc79455085c1",
+      "after_sha256": "8aee5796a576d05221db3a2fad83298ca997e9906a9d897575c1dc79455085c1",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/checkpoint_utils/__init__.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/checkpoint_utils/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/checkpoint_utils/qwen2_loader.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/checkpoint_utils/qwen2_loader.py",
+      "before_sha256": "e9c79c8e11898f0eee4671ddd6bd8b2c669074078fd2987e4e9f3cd28f3da9d8",
+      "after_sha256": "e9c79c8e11898f0eee4671ddd6bd8b2c669074078fd2987e4e9f3cd28f3da9d8",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/checkpoint_utils/qwen2_loader_depracated.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/checkpoint_utils/qwen2_loader_depracated.py",
+      "before_sha256": "aa1fab9f73d274b1bc66dbcde02d96850872ba8c669b144cc58963322830bee6",
+      "after_sha256": "aa1fab9f73d274b1bc66dbcde02d96850872ba8c669b144cc58963322830bee6",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/checkpoint_utils/qwen2_saver.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/checkpoint_utils/qwen2_saver.py",
+      "before_sha256": "cc9e10740645e7e00c8d3a3f929fd9f7d2e23fb7747496b1e48a9755a906dea8",
+      "after_sha256": "cc9e10740645e7e00c8d3a3f929fd9f7d2e23fb7747496b1e48a9755a906dea8",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/layers/__init__.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/layers/__init__.py",
+      "before_sha256": "9f705565e0ce116d7bf2844f845c2e77ed8759d76d59b8b9b9ac94434d4398b7",
+      "after_sha256": "9f705565e0ce116d7bf2844f845c2e77ed8759d76d59b8b9b9ac94434d4398b7",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/layers/parallel_attention.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/layers/parallel_attention.py",
+      "before_sha256": "0d329783d60f01e7839900554064910f63bd32caaab44a3231775ddc0fdca84d",
+      "after_sha256": "0d329783d60f01e7839900554064910f63bd32caaab44a3231775ddc0fdca84d",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/layers/parallel_decoder.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/layers/parallel_decoder.py",
+      "before_sha256": "be67a0f79d43f30fcb5a4878459bcc136cae71abee317967c6e8849416e9b082",
+      "after_sha256": "be67a0f79d43f30fcb5a4878459bcc136cae71abee317967c6e8849416e9b082",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/layers/parallel_linear.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/layers/parallel_linear.py",
+      "before_sha256": "234bd3cdb743212308aeb8f501fc8b18e931d5c8b5b7367613bc24266ca08981",
+      "after_sha256": "234bd3cdb743212308aeb8f501fc8b18e931d5c8b5b7367613bc24266ca08981",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/layers/parallel_mlp.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/layers/parallel_mlp.py",
+      "before_sha256": "2bd521a8cd29ce446e0322d469d0f74bf7f0903d983db3cf3a2c7cfa8d9a04c0",
+      "after_sha256": "2bd521a8cd29ce446e0322d469d0f74bf7f0903d983db3cf3a2c7cfa8d9a04c0",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/layers/parallel_rmsnorm.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/layers/parallel_rmsnorm.py",
+      "before_sha256": "a0c7dfaaa31622b2e5195e23c338ed466054cd22ca7e385bb19daae2ee426604",
+      "after_sha256": "a0c7dfaaa31622b2e5195e23c338ed466054cd22ca7e385bb19daae2ee426604",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/qwen2/megatron/modeling_qwen2_megatron.py",
+      "destination": "workspace/verl/verl/models/qwen2/megatron/modeling_qwen2_megatron.py",
+      "before_sha256": "7485fe813dc2eb4350681aafcade3097775f73674ae4f0cc8cff4ae9aef176f6",
+      "after_sha256": "7485fe813dc2eb4350681aafcade3097775f73674ae4f0cc8cff4ae9aef176f6",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/registry.py",
+      "destination": "workspace/verl/verl/models/registry.py",
+      "before_sha256": "9162f35cd00423c7044f7ff38b65b53d2ef4be9d339cd475ba16dfb98ea4c410",
+      "after_sha256": "9162f35cd00423c7044f7ff38b65b53d2ef4be9d339cd475ba16dfb98ea4c410",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/transformers/__init__.py",
+      "destination": "workspace/verl/verl/models/transformers/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/transformers/dense_common.py",
+      "destination": "workspace/verl/verl/models/transformers/dense_common.py",
+      "before_sha256": "9f455a8af01290eae28f78ce5329175edf31c2425b02722567c350619c3b548a",
+      "after_sha256": "9f455a8af01290eae28f78ce5329175edf31c2425b02722567c350619c3b548a",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/transformers/kimi_vl.py",
+      "destination": "workspace/verl/verl/models/transformers/kimi_vl.py",
+      "before_sha256": "6602f43ae26756d24eb4efc61a89f7f739fb9533a8328594eec317d574abe92f",
+      "after_sha256": "6602f43ae26756d24eb4efc61a89f7f739fb9533a8328594eec317d574abe92f",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/transformers/llama.py",
+      "destination": "workspace/verl/verl/models/transformers/llama.py",
+      "before_sha256": "0d6028bd4728053d35c6c4f64867ca547cb6b56c8fa3e34069594ff86c01707b",
+      "after_sha256": "0d6028bd4728053d35c6c4f64867ca547cb6b56c8fa3e34069594ff86c01707b",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/transformers/monkey_patch.py",
+      "destination": "workspace/verl/verl/models/transformers/monkey_patch.py",
+      "before_sha256": "5f4cbd47aac27fc04be8916b7b14c1892af7bc34e2399699fade48103813b341",
+      "after_sha256": "5f4cbd47aac27fc04be8916b7b14c1892af7bc34e2399699fade48103813b341",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/transformers/npu_patch.py",
+      "destination": "workspace/verl/verl/models/transformers/npu_patch.py",
+      "before_sha256": "d9b79065e0df1bd2c91887fc7166f6882cecce6d6beba7f1c7de9aa5acc0a9e8",
+      "after_sha256": "d9b79065e0df1bd2c91887fc7166f6882cecce6d6beba7f1c7de9aa5acc0a9e8",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/transformers/qwen2.py",
+      "destination": "workspace/verl/verl/models/transformers/qwen2.py",
+      "before_sha256": "5ab746638e74902011a357a3df9d95a3f26fdc868c7fe4fd1ee848db0568c5b5",
+      "after_sha256": "5ab746638e74902011a357a3df9d95a3f26fdc868c7fe4fd1ee848db0568c5b5",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/transformers/qwen2_5_vl.py",
+      "destination": "workspace/verl/verl/models/transformers/qwen2_5_vl.py",
+      "before_sha256": "5577e8b751d3d1a4e339a4ce0efd648e56ab5b437f5789a2c2bca53ab0a10395",
+      "after_sha256": "5577e8b751d3d1a4e339a4ce0efd648e56ab5b437f5789a2c2bca53ab0a10395",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/transformers/qwen2_vl.py",
+      "destination": "workspace/verl/verl/models/transformers/qwen2_vl.py",
+      "before_sha256": "a4c8bc599f3953a6e33e4009b76c247bd0be5ce5a09988bf4b76f1e708080a64",
+      "after_sha256": "a4c8bc599f3953a6e33e4009b76c247bd0be5ce5a09988bf4b76f1e708080a64",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/models/weight_loader_registry.py",
+      "destination": "workspace/verl/verl/models/weight_loader_registry.py",
+      "before_sha256": "35df7a7bcc8d200aad7da052c3e2b1f00204f93b94f13b48bd8595f66bd93cad",
+      "after_sha256": "35df7a7bcc8d200aad7da052c3e2b1f00204f93b94f13b48bd8595f66bd93cad",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/protocol.py",
+      "destination": "workspace/verl/verl/protocol.py",
+      "before_sha256": "29ad4e0e73128594aa3c894cadc83747b8578b8131981e5a310243765f7043d5",
+      "after_sha256": "29ad4e0e73128594aa3c894cadc83747b8578b8131981e5a310243765f7043d5",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/py.typed",
+      "destination": "workspace/verl/verl/py.typed",
+      "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/__init__.py",
+      "destination": "workspace/verl/verl/single_controller/__init__.py",
+      "before_sha256": "bc8a469c28cee85f4c7e7bcf75733a03316a56adfb8254abd33b368253b07fe3",
+      "after_sha256": "bc8a469c28cee85f4c7e7bcf75733a03316a56adfb8254abd33b368253b07fe3",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/base/__init__.py",
+      "destination": "workspace/verl/verl/single_controller/base/__init__.py",
+      "before_sha256": "90b679f1bb261ca69ccc0ec2bec1fdae7372c3403521d82a420c3a6634e9b31b",
+      "after_sha256": "90b679f1bb261ca69ccc0ec2bec1fdae7372c3403521d82a420c3a6634e9b31b",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/base/decorator.py",
+      "destination": "workspace/verl/verl/single_controller/base/decorator.py",
+      "before_sha256": "3f09898158c65142e0fdce5b24a043622eb478e98cbc5582bbb70ab907d67a01",
+      "after_sha256": "3f09898158c65142e0fdce5b24a043622eb478e98cbc5582bbb70ab907d67a01",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/base/megatron/__init__.py",
+      "destination": "workspace/verl/verl/single_controller/base/megatron/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/base/megatron/worker.py",
+      "destination": "workspace/verl/verl/single_controller/base/megatron/worker.py",
+      "before_sha256": "d47120c9298c7d92651065b6ba82d47788b133a04d007175e4508716356d7f94",
+      "after_sha256": "d47120c9298c7d92651065b6ba82d47788b133a04d007175e4508716356d7f94",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/base/megatron/worker_group.py",
+      "destination": "workspace/verl/verl/single_controller/base/megatron/worker_group.py",
+      "before_sha256": "1238d4054741f721a1adb89d969d180e38300eb1f9dda63bdf53a6ee6def0632",
+      "after_sha256": "1238d4054741f721a1adb89d969d180e38300eb1f9dda63bdf53a6ee6def0632",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/base/register_center/__init__.py",
+      "destination": "workspace/verl/verl/single_controller/base/register_center/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/base/register_center/ray.py",
+      "destination": "workspace/verl/verl/single_controller/base/register_center/ray.py",
+      "before_sha256": "5e5aaa5bb2394e0455a36d71d664165f1e5bbeaccdbe4d3b49feccd6355bd25b",
+      "after_sha256": "5e5aaa5bb2394e0455a36d71d664165f1e5bbeaccdbe4d3b49feccd6355bd25b",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/base/worker.py",
+      "destination": "workspace/verl/verl/single_controller/base/worker.py",
+      "before_sha256": "6536c0661b45e57352518b4ff6c0f5d8ccc7c143ad5aab65a75766bcb41f8fda",
+      "after_sha256": "6536c0661b45e57352518b4ff6c0f5d8ccc7c143ad5aab65a75766bcb41f8fda",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/base/worker_group.py",
+      "destination": "workspace/verl/verl/single_controller/base/worker_group.py",
+      "before_sha256": "1bfb1b66ba42aece2ad391aea171cf8ad86ee9565649626bf1240b77ff51b6cc",
+      "after_sha256": "1bfb1b66ba42aece2ad391aea171cf8ad86ee9565649626bf1240b77ff51b6cc",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/ray/__init__.py",
+      "destination": "workspace/verl/verl/single_controller/ray/__init__.py",
+      "before_sha256": "0845f10bbf2ed64a0777aaa5b5eba575329befa88adba20559a5d2ce3821b2c9",
+      "after_sha256": "0845f10bbf2ed64a0777aaa5b5eba575329befa88adba20559a5d2ce3821b2c9",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/ray/base.py",
+      "destination": "workspace/verl/verl/single_controller/ray/base.py",
+      "before_sha256": "994f0e80dd7c5c846f31cf1aa9f5b9638e8af6443cb32d81cc12a49ae692e2f1",
+      "after_sha256": "994f0e80dd7c5c846f31cf1aa9f5b9638e8af6443cb32d81cc12a49ae692e2f1",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/single_controller/ray/megatron.py",
+      "destination": "workspace/verl/verl/single_controller/ray/megatron.py",
+      "before_sha256": "42806fc7baff38e943919690e6ae94a4ed64cded398d31dd52a078a0b17faa43",
+      "after_sha256": "42806fc7baff38e943919690e6ae94a4ed64cded398d31dd52a078a0b17faa43",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/third_party/__init__.py",
+      "destination": "workspace/verl/verl/third_party/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/third_party/sglang/__init__.py",
+      "destination": "workspace/verl/verl/third_party/sglang/__init__.py",
+      "before_sha256": "566ce76a0185427357ae049e2c5e346ba6f73fedc32690f30862b3cf275bd7dc",
+      "after_sha256": "566ce76a0185427357ae049e2c5e346ba6f73fedc32690f30862b3cf275bd7dc",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/third_party/sglang/parallel_state.py",
+      "destination": "workspace/verl/verl/third_party/sglang/parallel_state.py",
+      "before_sha256": "254a9a6c9523e5794ad400e9842de52b1b742e7b3733f394f1703c3d96e158ca",
+      "after_sha256": "254a9a6c9523e5794ad400e9842de52b1b742e7b3733f394f1703c3d96e158ca",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/third_party/vllm/__init__.py",
+      "destination": "workspace/verl/verl/third_party/vllm/__init__.py",
+      "before_sha256": "40fa70ea891a300f3ca82e88efbff625efb5dc18ce4b092d376d1133f50d3779",
+      "after_sha256": "40fa70ea891a300f3ca82e88efbff625efb5dc18ce4b092d376d1133f50d3779",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/__init__.py",
+      "destination": "workspace/verl/verl/tools/__init__.py",
+      "before_sha256": "0bae18fab65cb4028732b91a1215baf8e02f9fdf8b4762a523662a34374e7432",
+      "after_sha256": "0bae18fab65cb4028732b91a1215baf8e02f9fdf8b4762a523662a34374e7432",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/base_tool.py",
+      "destination": "workspace/verl/verl/tools/base_tool.py",
+      "before_sha256": "ede9e08699ef6e2f247c7db802dff330800fe6d820fd772129a8fc94e56a5d66",
+      "after_sha256": "ede9e08699ef6e2f247c7db802dff330800fe6d820fd772129a8fc94e56a5d66",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/geo3k_tool.py",
+      "destination": "workspace/verl/verl/tools/geo3k_tool.py",
+      "before_sha256": "4d86eb557caed61c7cdd360473b1b175afd506fa5fdfee7e8cb260e36f607c14",
+      "after_sha256": "4d86eb557caed61c7cdd360473b1b175afd506fa5fdfee7e8cb260e36f607c14",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/gsm8k_tool.py",
+      "destination": "workspace/verl/verl/tools/gsm8k_tool.py",
+      "before_sha256": "b400be3fec457049f696f01b2238270349f48d2392963ab076d04a6174143c86",
+      "after_sha256": "b400be3fec457049f696f01b2238270349f48d2392963ab076d04a6174143c86",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/mcp_base_tool.py",
+      "destination": "workspace/verl/verl/tools/mcp_base_tool.py",
+      "before_sha256": "40e413a47f9a7c167fb2b2943f3b7304055915870eecfaaeb65238ba3b8c4c54",
+      "after_sha256": "40e413a47f9a7c167fb2b2943f3b7304055915870eecfaaeb65238ba3b8c4c54",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/mcp_search_tool.py",
+      "destination": "workspace/verl/verl/tools/mcp_search_tool.py",
+      "before_sha256": "1c4513ce18243045bc8d15ef0015cfb8a1b522d47d2463d4fbfaf10abbdffde6",
+      "after_sha256": "1c4513ce18243045bc8d15ef0015cfb8a1b522d47d2463d4fbfaf10abbdffde6",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/sandbox_fusion_tools.py",
+      "destination": "workspace/verl/verl/tools/sandbox_fusion_tools.py",
+      "before_sha256": "880852349318e56b1a174c0fecdfb25165aab8e4c9e6faf8c2908631f88c7a2b",
+      "after_sha256": "880852349318e56b1a174c0fecdfb25165aab8e4c9e6faf8c2908631f88c7a2b",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/schemas.py",
+      "destination": "workspace/verl/verl/tools/schemas.py",
+      "before_sha256": "aab51d994e2353212e170db0870e360c4aa8b1700076a8a571203a153b97233b",
+      "after_sha256": "aab51d994e2353212e170db0870e360c4aa8b1700076a8a571203a153b97233b",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/search_tool.py",
+      "destination": "workspace/verl/verl/tools/search_tool.py",
+      "before_sha256": "8c142d9046a9d1a11fe3b90e2e04794d615f1fbd2cf0a6eb64511048f66758b5",
+      "after_sha256": "8c142d9046a9d1a11fe3b90e2e04794d615f1fbd2cf0a6eb64511048f66758b5",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/utils/__init__.py",
+      "destination": "workspace/verl/verl/tools/utils/__init__.py",
+      "before_sha256": "0bae18fab65cb4028732b91a1215baf8e02f9fdf8b4762a523662a34374e7432",
+      "after_sha256": "0bae18fab65cb4028732b91a1215baf8e02f9fdf8b4762a523662a34374e7432",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/utils/mcp_clients/McpClientManager.py",
+      "destination": "workspace/verl/verl/tools/utils/mcp_clients/McpClientManager.py",
+      "before_sha256": "63da1edd39965a601021e79e97bd2165291f92aa04fe2b489f149e334a760c37",
+      "after_sha256": "63da1edd39965a601021e79e97bd2165291f92aa04fe2b489f149e334a760c37",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/utils/mcp_clients/utils.py",
+      "destination": "workspace/verl/verl/tools/utils/mcp_clients/utils.py",
+      "before_sha256": "f8b0f14030e90d5fce8e58d6beaf301b5477e1d2d40dc56b5c41cacc0a7429c0",
+      "after_sha256": "f8b0f14030e90d5fce8e58d6beaf301b5477e1d2d40dc56b5c41cacc0a7429c0",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/utils/search_r1_like_utils.py",
+      "destination": "workspace/verl/verl/tools/utils/search_r1_like_utils.py",
+      "before_sha256": "64dbed2fd7cd86d264f81e82a4330e61ee8aae30ae4446cdf8aace36f0ff4b27",
+      "after_sha256": "64dbed2fd7cd86d264f81e82a4330e61ee8aae30ae4446cdf8aace36f0ff4b27",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/tools/utils/tool_registry.py",
+      "destination": "workspace/verl/verl/tools/utils/tool_registry.py",
+      "before_sha256": "c2cc1f97d158897ca54f8b06a7c0d42f198c1c34103927e94a40a49f6b4c1fc6",
+      "after_sha256": "c2cc1f97d158897ca54f8b06a7c0d42f198c1c34103927e94a40a49f6b4c1fc6",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/__init__.py",
+      "destination": "workspace/verl/verl/trainer/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/__init__.py",
+      "destination": "workspace/verl/verl/trainer/config/__init__.py",
+      "before_sha256": "06bac5b0f9f43a2afd96420c7a597887c159a71340bafacb7692b90c97f71fc3",
+      "after_sha256": "06bac5b0f9f43a2afd96420c7a597887c159a71340bafacb7692b90c97f71fc3",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/_generated_ppo_trainer.yaml",
+      "destination": "workspace/verl/verl/trainer/config/_generated_ppo_trainer.yaml",
+      "before_sha256": "7daa4cc452503029d6c436d361db903b6fd3fe8c839ef7298c252ac4b4887934",
+      "after_sha256": "7daa4cc452503029d6c436d361db903b6fd3fe8c839ef7298c252ac4b4887934",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/actor/actor.yaml",
+      "destination": "workspace/verl/verl/trainer/config/actor/actor.yaml",
+      "before_sha256": "bbd218054551aaf0b0c7328fe51aa305281341d433ceab42e98ee1d4841c4cab",
+      "after_sha256": "bbd218054551aaf0b0c7328fe51aa305281341d433ceab42e98ee1d4841c4cab",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/actor/dp_actor.yaml",
+      "destination": "workspace/verl/verl/trainer/config/actor/dp_actor.yaml",
+      "before_sha256": "c9be2ffd6cfba2f0a2dbf2c80574ee15a43b836b5138dc0b9b487be0425c78d8",
+      "after_sha256": "c9be2ffd6cfba2f0a2dbf2c80574ee15a43b836b5138dc0b9b487be0425c78d8",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/actor/megatron_actor.yaml",
+      "destination": "workspace/verl/verl/trainer/config/actor/megatron_actor.yaml",
+      "before_sha256": "23eae3ab1d020e9cc73a289e05f90e0686a5484a80077bb890f337cf128a17f4",
+      "after_sha256": "23eae3ab1d020e9cc73a289e05f90e0686a5484a80077bb890f337cf128a17f4",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/algorithm.py",
+      "destination": "workspace/verl/verl/trainer/config/algorithm.py",
+      "before_sha256": "77e276d4b54453f1c6b8ebf39faf77eeec77b5e1d005cc9dba3f6871d54b002c",
+      "after_sha256": "77e276d4b54453f1c6b8ebf39faf77eeec77b5e1d005cc9dba3f6871d54b002c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/critic/critic.yaml",
+      "destination": "workspace/verl/verl/trainer/config/critic/critic.yaml",
+      "before_sha256": "ca8909e88f61fec22c740ebe92968bcc2933c7526fe71fedcf2050322ccb7a54",
+      "after_sha256": "ca8909e88f61fec22c740ebe92968bcc2933c7526fe71fedcf2050322ccb7a54",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/critic/dp_critic.yaml",
+      "destination": "workspace/verl/verl/trainer/config/critic/dp_critic.yaml",
+      "before_sha256": "79a2b5b17168c5d26ea53bcf7f642b63c6f49aa0847a997186417917074500b7",
+      "after_sha256": "79a2b5b17168c5d26ea53bcf7f642b63c6f49aa0847a997186417917074500b7",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/critic/megatron_critic.yaml",
+      "destination": "workspace/verl/verl/trainer/config/critic/megatron_critic.yaml",
+      "before_sha256": "31b3219dd69b49b2b931313601b1ac6a0202627af12f74664cf5b6de5fc253da",
+      "after_sha256": "31b3219dd69b49b2b931313601b1ac6a0202627af12f74664cf5b6de5fc253da",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/data/legacy_data.yaml",
+      "destination": "workspace/verl/verl/trainer/config/data/legacy_data.yaml",
+      "before_sha256": "120a665c4ea186fff53f24b31e084de529fcdc0ec15421705e2a3c9bd0eed976",
+      "after_sha256": "120a665c4ea186fff53f24b31e084de529fcdc0ec15421705e2a3c9bd0eed976",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/evaluation.yaml",
+      "destination": "workspace/verl/verl/trainer/config/evaluation.yaml",
+      "before_sha256": "5009c7671c59d64de224ff5e9d5c44e597dfa1b5ec506f06c97394b60e0bef87",
+      "after_sha256": "5009c7671c59d64de224ff5e9d5c44e597dfa1b5ec506f06c97394b60e0bef87",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/generation.yaml",
+      "destination": "workspace/verl/verl/trainer/config/generation.yaml",
+      "before_sha256": "0b68a58b7d19894bd1e9b67d48486290f2b1cb96b08dbe4ca94af2b82aa849cd",
+      "after_sha256": "0b68a58b7d19894bd1e9b67d48486290f2b1cb96b08dbe4ca94af2b82aa849cd",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/npu_profile/npu_profile.yaml",
+      "destination": "workspace/verl/verl/trainer/config/npu_profile/npu_profile.yaml",
+      "before_sha256": "16140e814f9a1c7d5460a741e9b03d511ec83a02cb443ce3226ea4dca051d71e",
+      "after_sha256": "16140e814f9a1c7d5460a741e9b03d511ec83a02cb443ce3226ea4dca051d71e",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/ppo_megatron_trainer.yaml",
+      "destination": "workspace/verl/verl/trainer/config/ppo_megatron_trainer.yaml",
+      "before_sha256": "201f02858877dee403a0330ef52f15193484603c34dcfe86978da85c3c27fd99",
+      "after_sha256": "201f02858877dee403a0330ef52f15193484603c34dcfe86978da85c3c27fd99",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/ppo_trainer.yaml",
+      "destination": "workspace/verl/verl/trainer/config/ppo_trainer.yaml",
+      "before_sha256": "ce169e57b6790def987a0a8a90be6e0ed8107a4e6927a7a473a73a0812612401",
+      "after_sha256": "ce169e57b6790def987a0a8a90be6e0ed8107a4e6927a7a473a73a0812612401",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/ref/dp_ref.yaml",
+      "destination": "workspace/verl/verl/trainer/config/ref/dp_ref.yaml",
+      "before_sha256": "b1553f1ae99cf56a67f4a9464cf6df3ee3a31d0b5b8f6e4017e9052d925b2787",
+      "after_sha256": "b1553f1ae99cf56a67f4a9464cf6df3ee3a31d0b5b8f6e4017e9052d925b2787",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/ref/megatron_ref.yaml",
+      "destination": "workspace/verl/verl/trainer/config/ref/megatron_ref.yaml",
+      "before_sha256": "a866594a0eee07ea1bf460d030e8b9c3b69519f9cd5088777d99a42fda35bfb3",
+      "after_sha256": "a866594a0eee07ea1bf460d030e8b9c3b69519f9cd5088777d99a42fda35bfb3",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/ref/ref.yaml",
+      "destination": "workspace/verl/verl/trainer/config/ref/ref.yaml",
+      "before_sha256": "c627226b5720585e26a74f5bbf80f34ccce0f530fc7c2b6ae8da4f9d7cfbe86c",
+      "after_sha256": "c627226b5720585e26a74f5bbf80f34ccce0f530fc7c2b6ae8da4f9d7cfbe86c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/reward_model/dp_reward_model.yaml",
+      "destination": "workspace/verl/verl/trainer/config/reward_model/dp_reward_model.yaml",
+      "before_sha256": "2cc5d2b4345f32adb00e7cbf8af7dca609fa09a0f310d84f62473df63ccaa98c",
+      "after_sha256": "2cc5d2b4345f32adb00e7cbf8af7dca609fa09a0f310d84f62473df63ccaa98c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/reward_model/megatron_reward_model.yaml",
+      "destination": "workspace/verl/verl/trainer/config/reward_model/megatron_reward_model.yaml",
+      "before_sha256": "a33852a0d93aff954ba8eb7f7047252692ca9e8dda49193e17b2e7d7fd306d27",
+      "after_sha256": "a33852a0d93aff954ba8eb7f7047252692ca9e8dda49193e17b2e7d7fd306d27",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/reward_model/reward_model.yaml",
+      "destination": "workspace/verl/verl/trainer/config/reward_model/reward_model.yaml",
+      "before_sha256": "ea04580f34bf7a34473034b8f497b3e78534c1edab06d6fd028bf4dd4546c3dd",
+      "after_sha256": "ea04580f34bf7a34473034b8f497b3e78534c1edab06d6fd028bf4dd4546c3dd",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/rollout/rollout.yaml",
+      "destination": "workspace/verl/verl/trainer/config/rollout/rollout.yaml",
+      "before_sha256": "cee44876dec168f83e9bf8b1b42aed7c06c2b271327134ee99ff6908a15c3f67",
+      "after_sha256": "cee44876dec168f83e9bf8b1b42aed7c06c2b271327134ee99ff6908a15c3f67",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/sft_trainer.yaml",
+      "destination": "workspace/verl/verl/trainer/config/sft_trainer.yaml",
+      "before_sha256": "0159f5f72458c1d76287e66e52debb7ed31349dcdf2149590e40db980a79e4a0",
+      "after_sha256": "0159f5f72458c1d76287e66e52debb7ed31349dcdf2149590e40db980a79e4a0",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/constants_ppo.py",
+      "destination": "workspace/verl/verl/trainer/constants_ppo.py",
+      "before_sha256": "89a4064a250798cfdec7a4395a4cfc0170eab16d2c1acc3374e2d165f5464db3",
+      "after_sha256": "89a4064a250798cfdec7a4395a4cfc0170eab16d2c1acc3374e2d165f5464db3",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/fsdp_sft_trainer.py",
+      "destination": "workspace/verl/verl/trainer/fsdp_sft_trainer.py",
+      "before_sha256": "1d365b7ea8ad2b078eb645c573ad338fd1145e673d82d90370ab6dc23923d08c",
+      "after_sha256": "1d365b7ea8ad2b078eb645c573ad338fd1145e673d82d90370ab6dc23923d08c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/main_eval.py",
+      "destination": "workspace/verl/verl/trainer/main_eval.py",
+      "before_sha256": "59cd305bccbd08061c54a218abdbdc086d60fabaded2022842af6f50b8ca88b8",
+      "after_sha256": "59cd305bccbd08061c54a218abdbdc086d60fabaded2022842af6f50b8ca88b8",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/main_generation.py",
+      "destination": "workspace/verl/verl/trainer/main_generation.py",
+      "before_sha256": "edbcf4481879ead51169f64dab44dad63176a9ff9ab117e18230fb736a8fa8e0",
+      "after_sha256": "edbcf4481879ead51169f64dab44dad63176a9ff9ab117e18230fb736a8fa8e0",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/main_ppo.py",
+      "destination": "workspace/verl/verl/trainer/main_ppo.py",
+      "before_sha256": "c12cc963e71d2fc67447481d86779246da8118c62d02e949a447c54b800540df",
+      "after_sha256": "f5903305166613d20b773b06f8af98972cbe9a6ed1098ad55f520aad7215b145",
+      "replacements": [
+        {
+          "from": "config_name=\"fp16_trainer\"",
+          "to": "config_name=\"math_grpo\""
+        }
+      ]
+    },
+    {
+      "source": "source_v2/verl/trainer/ppo/__init__.py",
+      "destination": "workspace/verl/verl/trainer/ppo/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/ppo/core_algos.py",
+      "destination": "workspace/verl/verl/trainer/ppo/core_algos.py",
+      "before_sha256": "328e6bb79a5160aca0dc9b9b5f14388d0621f78cafcf9e97b73aa8f5ac9b724d",
+      "after_sha256": "328e6bb79a5160aca0dc9b9b5f14388d0621f78cafcf9e97b73aa8f5ac9b724d",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/ppo/math_grader.py",
+      "destination": "workspace/verl/verl/trainer/ppo/math_grader.py",
+      "before_sha256": "d4a96d62cce4a5533623fa54f8193419f2da549220e2d7bfab4bfa8e00b4ec5c",
+      "after_sha256": "d4a96d62cce4a5533623fa54f8193419f2da549220e2d7bfab4bfa8e00b4ec5c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/ppo/math_utils.py",
+      "destination": "workspace/verl/verl/trainer/ppo/math_utils.py",
+      "before_sha256": "092b0f4797d1f471f6ebac112ea32f4d5277df06f1ad2c83eab548384f6acdfc",
+      "after_sha256": "092b0f4797d1f471f6ebac112ea32f4d5277df06f1ad2c83eab548384f6acdfc",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/ppo/metric_utils.py",
+      "destination": "workspace/verl/verl/trainer/ppo/metric_utils.py",
+      "before_sha256": "86c620106c3595b14933c93b6f63720fc68d4bcebf2b8426f70ce4497ccad3c6",
+      "after_sha256": "86c620106c3595b14933c93b6f63720fc68d4bcebf2b8426f70ce4497ccad3c6",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/ppo/ray_trainer.py",
+      "destination": "workspace/verl/verl/trainer/ppo/ray_trainer.py",
+      "before_sha256": "902534e08a2d88aba9de5633f2048c922c6df30dfe8661610e10bcdaa643fff8",
+      "after_sha256": "902534e08a2d88aba9de5633f2048c922c6df30dfe8661610e10bcdaa643fff8",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/ppo/reward.py",
+      "destination": "workspace/verl/verl/trainer/ppo/reward.py",
+      "before_sha256": "046777aef7d4d397afabae726405fe63c0211fb5c45614fc5f236f7b18e084d1",
+      "after_sha256": "046777aef7d4d397afabae726405fe63c0211fb5c45614fc5f236f7b18e084d1",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/runtime_env.yaml",
+      "destination": "workspace/verl/verl/trainer/runtime_env.yaml",
+      "before_sha256": "e8915ff83f2ddabb21abffe2abe303779aa1d9fe0a980c99519389062f4e4cea",
+      "after_sha256": "e8915ff83f2ddabb21abffe2abe303779aa1d9fe0a980c99519389062f4e4cea",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/__init__.py",
+      "destination": "workspace/verl/verl/utils/__init__.py",
+      "before_sha256": "491e8b6c6aa19b06dafcb72e706b1a30e79783d302f7909d3032ae699da8ba9e",
+      "after_sha256": "491e8b6c6aa19b06dafcb72e706b1a30e79783d302f7909d3032ae699da8ba9e",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/activation_offload.py",
+      "destination": "workspace/verl/verl/utils/activation_offload.py",
+      "before_sha256": "b3ee9de51d83985dc7644ff0779f96e923c321d1c8fa5a9033f58b0b609e3e4b",
+      "after_sha256": "b3ee9de51d83985dc7644ff0779f96e923c321d1c8fa5a9033f58b0b609e3e4b",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/checkpoint/__init__.py",
+      "destination": "workspace/verl/verl/utils/checkpoint/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/checkpoint/checkpoint_manager.py",
+      "destination": "workspace/verl/verl/utils/checkpoint/checkpoint_manager.py",
+      "before_sha256": "24224b963c42c61b873f4992ea45ee32745fc312d43672cd8e1b90a240e25637",
+      "after_sha256": "24224b963c42c61b873f4992ea45ee32745fc312d43672cd8e1b90a240e25637",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/checkpoint/fsdp_checkpoint_manager.py",
+      "destination": "workspace/verl/verl/utils/checkpoint/fsdp_checkpoint_manager.py",
+      "before_sha256": "21b9abab071d0603e26a94bf3551174feb8af05a64df4f7afff327cd3b7bf617",
+      "after_sha256": "21b9abab071d0603e26a94bf3551174feb8af05a64df4f7afff327cd3b7bf617",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/checkpoint/megatron_checkpoint_manager.py",
+      "destination": "workspace/verl/verl/utils/checkpoint/megatron_checkpoint_manager.py",
+      "before_sha256": "5137a25ef27a8756357a4fce22d8aac768b3d7f2d782a8bcd23f8eb13aa200ca",
+      "after_sha256": "5137a25ef27a8756357a4fce22d8aac768b3d7f2d782a8bcd23f8eb13aa200ca",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/config.py",
+      "destination": "workspace/verl/verl/utils/config.py",
+      "before_sha256": "913dbc5bd2374637c569004c2e0840b80942e99cf2f5f8474a8851cef3bf90e7",
+      "after_sha256": "913dbc5bd2374637c569004c2e0840b80942e99cf2f5f8474a8851cef3bf90e7",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/dataset/README.md",
+      "destination": "workspace/verl/verl/utils/dataset/README.md",
+      "before_sha256": "de346fc1a883566c1b8f1f22c0ba4563efadfdb7b53d5935796401ad18d56f57",
+      "after_sha256": "de346fc1a883566c1b8f1f22c0ba4563efadfdb7b53d5935796401ad18d56f57",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/dataset/__init__.py",
+      "destination": "workspace/verl/verl/utils/dataset/__init__.py",
+      "before_sha256": "dd228db2fbd127fbad9d44ed15c4602a6979dcd67c33507c6c3f21c2b298beb1",
+      "after_sha256": "dd228db2fbd127fbad9d44ed15c4602a6979dcd67c33507c6c3f21c2b298beb1",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/dataset/multiturn_sft_dataset.py",
+      "destination": "workspace/verl/verl/utils/dataset/multiturn_sft_dataset.py",
+      "before_sha256": "fc2fddcc8c46585a539aa6c7d69b2020a644f735402474e319c1a7fa6b5fa504",
+      "after_sha256": "fc2fddcc8c46585a539aa6c7d69b2020a644f735402474e319c1a7fa6b5fa504",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/dataset/rl_dataset.py",
+      "destination": "workspace/verl/verl/utils/dataset/rl_dataset.py",
+      "before_sha256": "588b04cffb27701d13a268dfe6d00cf0d384546ed4fd7e8571ace69515bf1afc",
+      "after_sha256": "588b04cffb27701d13a268dfe6d00cf0d384546ed4fd7e8571ace69515bf1afc",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/dataset/rm_dataset.py",
+      "destination": "workspace/verl/verl/utils/dataset/rm_dataset.py",
+      "before_sha256": "20725571210bc63520d3f6648b23fc8617b447b929c50abfbbdf63b22a9fb580",
+      "after_sha256": "20725571210bc63520d3f6648b23fc8617b447b929c50abfbbdf63b22a9fb580",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/dataset/sft_dataset.py",
+      "destination": "workspace/verl/verl/utils/dataset/sft_dataset.py",
+      "before_sha256": "3e91cdeb4b4e2cedaea6f929db7ad38c3a120b16f40aee49323ccaa0bdf512cb",
+      "after_sha256": "3e91cdeb4b4e2cedaea6f929db7ad38c3a120b16f40aee49323ccaa0bdf512cb",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/dataset/vision_utils.py",
+      "destination": "workspace/verl/verl/utils/dataset/vision_utils.py",
+      "before_sha256": "b5c74738e372eb54fb22881c0ab427cc6bc3c4258686609eaac95329ff197ed3",
+      "after_sha256": "b5c74738e372eb54fb22881c0ab427cc6bc3c4258686609eaac95329ff197ed3",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/debug/__init__.py",
+      "destination": "workspace/verl/verl/utils/debug/__init__.py",
+      "before_sha256": "77c85ee623d2778dc5978030d6be10a0418672c0b76f0fa14846b8f6a727ff06",
+      "after_sha256": "77c85ee623d2778dc5978030d6be10a0418672c0b76f0fa14846b8f6a727ff06",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/debug/performance.py",
+      "destination": "workspace/verl/verl/utils/debug/performance.py",
+      "before_sha256": "e8b1d7d3f6360cc70628f07cfc32810a48a5c07df3bace4132fe4b31e18af05a",
+      "after_sha256": "e8b1d7d3f6360cc70628f07cfc32810a48a5c07df3bace4132fe4b31e18af05a",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/debug/trajectory_tracker.py",
+      "destination": "workspace/verl/verl/utils/debug/trajectory_tracker.py",
+      "before_sha256": "2600fcdfca5a59fdc1a7ab63e41b8278d89ff47459bad1a78fdcebc348b3a72f",
+      "after_sha256": "2600fcdfca5a59fdc1a7ab63e41b8278d89ff47459bad1a78fdcebc348b3a72f",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/device.py",
+      "destination": "workspace/verl/verl/utils/device.py",
+      "before_sha256": "3141ab0ee99b326642c8330fc901b81bd9c0d587fe02e0974e85d64de7521a10",
+      "after_sha256": "3141ab0ee99b326642c8330fc901b81bd9c0d587fe02e0974e85d64de7521a10",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/distributed.py",
+      "destination": "workspace/verl/verl/utils/distributed.py",
+      "before_sha256": "e50e6d91818c80564b05a7c8e298fb0e554092b6efabdfa2d87886856a8813b5",
+      "after_sha256": "e50e6d91818c80564b05a7c8e298fb0e554092b6efabdfa2d87886856a8813b5",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/experimental/__init__.py",
+      "destination": "workspace/verl/verl/utils/experimental/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/experimental/torch_functional.py",
+      "destination": "workspace/verl/verl/utils/experimental/torch_functional.py",
+      "before_sha256": "ce635532bed786a9e4179f25de0925a8ff87d7574d2085d44ed8c74547fa3802",
+      "after_sha256": "ce635532bed786a9e4179f25de0925a8ff87d7574d2085d44ed8c74547fa3802",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/flops_counter.py",
+      "destination": "workspace/verl/verl/utils/flops_counter.py",
+      "before_sha256": "a9d6a49dbd79781f43b281ebdb3dd7ef6682dc795e58c3ccbbc3e03cd3495516",
+      "after_sha256": "a9d6a49dbd79781f43b281ebdb3dd7ef6682dc795e58c3ccbbc3e03cd3495516",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/fs.py",
+      "destination": "workspace/verl/verl/utils/fs.py",
+      "before_sha256": "e3cbe6e1d000ecf7ed7aa59f5b0a694a04e1413606887eb81c4ee6e5e5518f65",
+      "after_sha256": "e3cbe6e1d000ecf7ed7aa59f5b0a694a04e1413606887eb81c4ee6e5e5518f65",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/fsdp_utils.py",
+      "destination": "workspace/verl/verl/utils/fsdp_utils.py",
+      "before_sha256": "d6deb6c58dcf091812a0f94051cb425409b7d1c3c44422759840f8acc42e7079",
+      "after_sha256": "d6deb6c58dcf091812a0f94051cb425409b7d1c3c44422759840f8acc42e7079",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/hdfs_io.py",
+      "destination": "workspace/verl/verl/utils/hdfs_io.py",
+      "before_sha256": "14ea05cfdf000666899109a417d8d8bd23cb02afc43e06c16a861a3020590bd8",
+      "after_sha256": "14ea05cfdf000666899109a417d8d8bd23cb02afc43e06c16a861a3020590bd8",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/import_utils.py",
+      "destination": "workspace/verl/verl/utils/import_utils.py",
+      "before_sha256": "090c3de33b12a6d10b58603341d483d30cc8e2e8de16e4011733769dd4f487ae",
+      "after_sha256": "090c3de33b12a6d10b58603341d483d30cc8e2e8de16e4011733769dd4f487ae",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/kernel/__init__.py",
+      "destination": "workspace/verl/verl/utils/kernel/__init__.py",
+      "before_sha256": "db5168f476482dee94850c08859bc403f08f8eb0673d32a918b89b3ce9a430ef",
+      "after_sha256": "db5168f476482dee94850c08859bc403f08f8eb0673d32a918b89b3ce9a430ef",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/kernel/kernels.py",
+      "destination": "workspace/verl/verl/utils/kernel/kernels.py",
+      "before_sha256": "d532eda7de2867651ab35620faf94814a04224a323241dd1e578aeb715dfb3b4",
+      "after_sha256": "d532eda7de2867651ab35620faf94814a04224a323241dd1e578aeb715dfb3b4",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/kernel/linear_cross_entropy.py",
+      "destination": "workspace/verl/verl/utils/kernel/linear_cross_entropy.py",
+      "before_sha256": "e2919fe3d1574cb9b342997af04ce4beea9e9f6943ea3a4f34a8295754401278",
+      "after_sha256": "e2919fe3d1574cb9b342997af04ce4beea9e9f6943ea3a4f34a8295754401278",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/logger/__init__.py",
+      "destination": "workspace/verl/verl/utils/logger/__init__.py",
+      "before_sha256": "d4e7601565ea3c5126abd8e8b60751f62fdd3bdabf55f80eb9589abe7b342867",
+      "after_sha256": "d4e7601565ea3c5126abd8e8b60751f62fdd3bdabf55f80eb9589abe7b342867",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/logger/aggregate_logger.py",
+      "destination": "workspace/verl/verl/utils/logger/aggregate_logger.py",
+      "before_sha256": "64d8556b0d6acc667a5be2dd43908111c9e58aae58d779ee9b02f0f28e2b42f7",
+      "after_sha256": "64d8556b0d6acc667a5be2dd43908111c9e58aae58d779ee9b02f0f28e2b42f7",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/logging_utils.py",
+      "destination": "workspace/verl/verl/utils/logging_utils.py",
+      "before_sha256": "72f6abe76274ecee5812c90879dc8f0b40e68d105c91da32a8923b8862320294",
+      "after_sha256": "72f6abe76274ecee5812c90879dc8f0b40e68d105c91da32a8923b8862320294",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/megatron/__init__.py",
+      "destination": "workspace/verl/verl/utils/megatron/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/megatron/dist_checkpointing.py",
+      "destination": "workspace/verl/verl/utils/megatron/dist_checkpointing.py",
+      "before_sha256": "ef32128cc423fffaed869c71bcb85c0bba3a89b75648f4e1d311e585c041d34e",
+      "after_sha256": "ef32128cc423fffaed869c71bcb85c0bba3a89b75648f4e1d311e585c041d34e",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/megatron/memory.py",
+      "destination": "workspace/verl/verl/utils/megatron/memory.py",
+      "before_sha256": "b5e9dd018ea85a9d99ac80bc6bf7820b3d75cecd61fab4cfdfb9f78f5a992fdd",
+      "after_sha256": "b5e9dd018ea85a9d99ac80bc6bf7820b3d75cecd61fab4cfdfb9f78f5a992fdd",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/megatron/optimizer.py",
+      "destination": "workspace/verl/verl/utils/megatron/optimizer.py",
+      "before_sha256": "2e477bee15a6c5a1c26c28fa026df928982038b13df9e8996916698ad3b53d1f",
+      "after_sha256": "2e477bee15a6c5a1c26c28fa026df928982038b13df9e8996916698ad3b53d1f",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/megatron/pipeline_parallel.py",
+      "destination": "workspace/verl/verl/utils/megatron/pipeline_parallel.py",
+      "before_sha256": "b1bcc5ed48abd97f520b95f2c650d93e3a5f2c0c3518eb7baa4984c069f74781",
+      "after_sha256": "b1bcc5ed48abd97f520b95f2c650d93e3a5f2c0c3518eb7baa4984c069f74781",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/megatron/sequence_parallel.py",
+      "destination": "workspace/verl/verl/utils/megatron/sequence_parallel.py",
+      "before_sha256": "8acb3406dd403eeab34a972e172982001c451e5e804ba0cf833a511a43f2a915",
+      "after_sha256": "8acb3406dd403eeab34a972e172982001c451e5e804ba0cf833a511a43f2a915",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/megatron/tensor_parallel.py",
+      "destination": "workspace/verl/verl/utils/megatron/tensor_parallel.py",
+      "before_sha256": "b7ec4767856a0f83e423f1e7a2a56bdcce122a2a90cba94b0507f768dc8559d9",
+      "after_sha256": "b7ec4767856a0f83e423f1e7a2a56bdcce122a2a90cba94b0507f768dc8559d9",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/megatron_utils.py",
+      "destination": "workspace/verl/verl/utils/megatron_utils.py",
+      "before_sha256": "8b7a10c3757ea6dae860f8587881b4d118e685c57da2b1d59aed736257b78a53",
+      "after_sha256": "8b7a10c3757ea6dae860f8587881b4d118e685c57da2b1d59aed736257b78a53",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/memory_buffer.py",
+      "destination": "workspace/verl/verl/utils/memory_buffer.py",
+      "before_sha256": "6d6724fbbe179cc2697289784abdd3124cff6715b77496f4b1945ab1d3be467d",
+      "after_sha256": "6d6724fbbe179cc2697289784abdd3124cff6715b77496f4b1945ab1d3be467d",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/metric/__init__.py",
+      "destination": "workspace/verl/verl/utils/metric/__init__.py",
+      "before_sha256": "0446c5125e52e296b4f3e54f766f0d0b9c5544648f02e6fecc1d83ea450be5e6",
+      "after_sha256": "0446c5125e52e296b4f3e54f766f0d0b9c5544648f02e6fecc1d83ea450be5e6",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/metric/utils.py",
+      "destination": "workspace/verl/verl/utils/metric/utils.py",
+      "before_sha256": "de2265da8b27ae1045f87f76df12b38cf382c8ef233f3f947fea64c09773989c",
+      "after_sha256": "de2265da8b27ae1045f87f76df12b38cf382c8ef233f3f947fea64c09773989c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/model.py",
+      "destination": "workspace/verl/verl/utils/model.py",
+      "before_sha256": "92f5f8d1398643b2720af320bf137e25df06aa51a3c33321fc08c9054a9a4a39",
+      "after_sha256": "92f5f8d1398643b2720af320bf137e25df06aa51a3c33321fc08c9054a9a4a39",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/net_utils.py",
+      "destination": "workspace/verl/verl/utils/net_utils.py",
+      "before_sha256": "3088a0ee3f514390cf503abbd53e6b0d68369383bd9585e566d476033bd9d5be",
+      "after_sha256": "3088a0ee3f514390cf503abbd53e6b0d68369383bd9585e566d476033bd9d5be",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/profiler/__init__.py",
+      "destination": "workspace/verl/verl/utils/profiler/__init__.py",
+      "before_sha256": "e47c386bcb82fc11e7d49e0c7595e10ac5229c69f0547ab8de9c04c0a1517eeb",
+      "after_sha256": "e47c386bcb82fc11e7d49e0c7595e10ac5229c69f0547ab8de9c04c0a1517eeb",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/profiler/config.py",
+      "destination": "workspace/verl/verl/utils/profiler/config.py",
+      "before_sha256": "3ee6222cf4cbd3a7f2e6dc5cd9bdf14746ab8536caea4d3735fcc9a0a72f5db3",
+      "after_sha256": "3ee6222cf4cbd3a7f2e6dc5cd9bdf14746ab8536caea4d3735fcc9a0a72f5db3",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/profiler/empty_annotations.py",
+      "destination": "workspace/verl/verl/utils/profiler/empty_annotations.py",
+      "before_sha256": "19d56f53436bdd181b79a5dbee0dca77a232131a382883c302de30eaa2a80c30",
+      "after_sha256": "19d56f53436bdd181b79a5dbee0dca77a232131a382883c302de30eaa2a80c30",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/profiler/mstx_profile.py",
+      "destination": "workspace/verl/verl/utils/profiler/mstx_profile.py",
+      "before_sha256": "42b8ed7aa4edc4c6336b33710b2d5b09f60bd710fa10ee2e5d2a3d62e250afbc",
+      "after_sha256": "42b8ed7aa4edc4c6336b33710b2d5b09f60bd710fa10ee2e5d2a3d62e250afbc",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/profiler/nvtx_profile.py",
+      "destination": "workspace/verl/verl/utils/profiler/nvtx_profile.py",
+      "before_sha256": "7daeb53436d97c722eae25f6064c2b020b253ec1044193cdc549fe35d1dc1f72",
+      "after_sha256": "7daeb53436d97c722eae25f6064c2b020b253ec1044193cdc549fe35d1dc1f72",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/profiler/performance.py",
+      "destination": "workspace/verl/verl/utils/profiler/performance.py",
+      "before_sha256": "8bf9c54a9cdeb052c08705ad38c8ebc60d40645b77f5f181cc7afbbfc725fdae",
+      "after_sha256": "8bf9c54a9cdeb052c08705ad38c8ebc60d40645b77f5f181cc7afbbfc725fdae",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/profiler/profile.py",
+      "destination": "workspace/verl/verl/utils/profiler/profile.py",
+      "before_sha256": "33503b2abfca27c04e7badf3ed13e34c4d3acfe396a8b7af6765ac987a3818fd",
+      "after_sha256": "33503b2abfca27c04e7badf3ed13e34c4d3acfe396a8b7af6765ac987a3818fd",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/py_functional.py",
+      "destination": "workspace/verl/verl/utils/py_functional.py",
+      "before_sha256": "fcad80993343ff5212b337ac3e25631d7c09cac51e9ae2592c2d602fb4b52475",
+      "after_sha256": "fcad80993343ff5212b337ac3e25631d7c09cac51e9ae2592c2d602fb4b52475",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/ray_utils.py",
+      "destination": "workspace/verl/verl/utils/ray_utils.py",
+      "before_sha256": "b5b9a78990f765447a0fb4d9ac7d86edf70751c31bec424ec9550804a1527a3c",
+      "after_sha256": "b5b9a78990f765447a0fb4d9ac7d86edf70751c31bec424ec9550804a1527a3c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/rendezvous/__init__.py",
+      "destination": "workspace/verl/verl/utils/rendezvous/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/rendezvous/ray_backend.py",
+      "destination": "workspace/verl/verl/utils/rendezvous/ray_backend.py",
+      "before_sha256": "ae45c1c6e1a204b8c4d99849b03f1a571ce05a0e143a3b1dcc27522c7aee0ff9",
+      "after_sha256": "ae45c1c6e1a204b8c4d99849b03f1a571ce05a0e143a3b1dcc27522c7aee0ff9",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/__init__.py",
+      "destination": "workspace/verl/verl/utils/reward_score/__init__.py",
+      "before_sha256": "544ff17794a509f3070dcb22d91595a822a8c6135e0d0cb134c237ac2c9891a6",
+      "after_sha256": "544ff17794a509f3070dcb22d91595a822a8c6135e0d0cb134c237ac2c9891a6",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/geo3k.py",
+      "destination": "workspace/verl/verl/utils/reward_score/geo3k.py",
+      "before_sha256": "7e2821b85e2e07bf03e36f8fcd5f27faf2506e6f287098154b518c0a128b1e6c",
+      "after_sha256": "7e2821b85e2e07bf03e36f8fcd5f27faf2506e6f287098154b518c0a128b1e6c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/gsm8k.py",
+      "destination": "workspace/verl/verl/utils/reward_score/gsm8k.py",
+      "before_sha256": "497c6e32b708d0bc8803b5a048ca5983de7756eb9c146abdc56e6f5d28767189",
+      "after_sha256": "497c6e32b708d0bc8803b5a048ca5983de7756eb9c146abdc56e6f5d28767189",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/math.py",
+      "destination": "workspace/verl/verl/utils/reward_score/math.py",
+      "before_sha256": "2d48827903f42fc4bc0dbabd4652a5501d9a9b5bd3c4e6f32f06dc2fcd6993aa",
+      "after_sha256": "2d48827903f42fc4bc0dbabd4652a5501d9a9b5bd3c4e6f32f06dc2fcd6993aa",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/math_batch.py",
+      "destination": "workspace/verl/verl/utils/reward_score/math_batch.py",
+      "before_sha256": "0ca3381c9e635abd87c4099fd80370933660c18750e57dafab2cf9f931c3a0ba",
+      "after_sha256": "0ca3381c9e635abd87c4099fd80370933660c18750e57dafab2cf9f931c3a0ba",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/math_dapo.py",
+      "destination": "workspace/verl/verl/utils/reward_score/math_dapo.py",
+      "before_sha256": "4d8db99737fc392285772f4dd71dc54995ec57013f320a31d7ab027902e59d6f",
+      "after_sha256": "4d8db99737fc392285772f4dd71dc54995ec57013f320a31d7ab027902e59d6f",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/math_verify.py",
+      "destination": "workspace/verl/verl/utils/reward_score/math_verify.py",
+      "before_sha256": "0bf89ab36401642a42bfacc53b8a954d87b168a11fca0dc9014c9d1e21ecded3",
+      "after_sha256": "0bf89ab36401642a42bfacc53b8a954d87b168a11fca0dc9014c9d1e21ecded3",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/prime_code/README.md",
+      "destination": "workspace/verl/verl/utils/reward_score/prime_code/README.md",
+      "before_sha256": "cd5d1f2d0f2dc84ddfe9f4a8b221990c816628870c95c6f0fe46a078397549fb",
+      "after_sha256": "cd5d1f2d0f2dc84ddfe9f4a8b221990c816628870c95c6f0fe46a078397549fb",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/prime_code/__init__.py",
+      "destination": "workspace/verl/verl/utils/reward_score/prime_code/__init__.py",
+      "before_sha256": "139690b83b2b21c0797696e07a36f24a206808183793d29fb15a5d49b8e58efc",
+      "after_sha256": "139690b83b2b21c0797696e07a36f24a206808183793d29fb15a5d49b8e58efc",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/prime_code/testing_util.py",
+      "destination": "workspace/verl/verl/utils/reward_score/prime_code/testing_util.py",
+      "before_sha256": "953c97e7fcdda429a27ab45eb2a5246fb40b8ed98fe42375f876e8a4ed8c28dc",
+      "after_sha256": "953c97e7fcdda429a27ab45eb2a5246fb40b8ed98fe42375f876e8a4ed8c28dc",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/prime_code/utils.py",
+      "destination": "workspace/verl/verl/utils/reward_score/prime_code/utils.py",
+      "before_sha256": "a85e7d0cb7f5caf2615c6d0861e695102f3c0e0a19ddae29efb1e726297aa67c",
+      "after_sha256": "a85e7d0cb7f5caf2615c6d0861e695102f3c0e0a19ddae29efb1e726297aa67c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/prime_math/__init__.py",
+      "destination": "workspace/verl/verl/utils/reward_score/prime_math/__init__.py",
+      "before_sha256": "789eb6cd927251bc1b0ed9e0bec4056fed40d5e97c3d45bb51fd5e2df1bec5c0",
+      "after_sha256": "789eb6cd927251bc1b0ed9e0bec4056fed40d5e97c3d45bb51fd5e2df1bec5c0",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/prime_math/grader.py",
+      "destination": "workspace/verl/verl/utils/reward_score/prime_math/grader.py",
+      "before_sha256": "b41fe7d562925de30d102ebbe9f063e1275b0a82df08a1e7c52ef4a5532e88e5",
+      "after_sha256": "b41fe7d562925de30d102ebbe9f063e1275b0a82df08a1e7c52ef4a5532e88e5",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/prime_math/math_normalize.py",
+      "destination": "workspace/verl/verl/utils/reward_score/prime_math/math_normalize.py",
+      "before_sha256": "048ed5e48921fcf40575bffad8701e6ac780b93ee3fabdd8846c761fd7021d07",
+      "after_sha256": "048ed5e48921fcf40575bffad8701e6ac780b93ee3fabdd8846c761fd7021d07",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/sandbox_fusion/__init__.py",
+      "destination": "workspace/verl/verl/utils/reward_score/sandbox_fusion/__init__.py",
+      "before_sha256": "c2170fe3644c083b39d824b7fcd52149badf015a093a1389cded88e1258aeb4d",
+      "after_sha256": "c2170fe3644c083b39d824b7fcd52149badf015a093a1389cded88e1258aeb4d",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/sandbox_fusion/utils.py",
+      "destination": "workspace/verl/verl/utils/reward_score/sandbox_fusion/utils.py",
+      "before_sha256": "d69378bbb1c5d8e45ae63204018037710914697b6aaf0a16cfabc8fa0a2b3598",
+      "after_sha256": "d69378bbb1c5d8e45ae63204018037710914697b6aaf0a16cfabc8fa0a2b3598",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/reward_score/search_r1_like_qa_em.py",
+      "destination": "workspace/verl/verl/utils/reward_score/search_r1_like_qa_em.py",
+      "before_sha256": "8070e4d07719f23e626968b983c597918c73d15c6ab5b09c5346e7311d0cac83",
+      "after_sha256": "8070e4d07719f23e626968b983c597918c73d15c6ab5b09c5346e7311d0cac83",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/rollout_trace.py",
+      "destination": "workspace/verl/verl/utils/rollout_trace.py",
+      "before_sha256": "241ee0b5d1b4a62c75cb1bb84238beed042b51c74e61c631177c29a1144ef2b3",
+      "after_sha256": "241ee0b5d1b4a62c75cb1bb84238beed042b51c74e61c631177c29a1144ef2b3",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/seqlen_balancing.py",
+      "destination": "workspace/verl/verl/utils/seqlen_balancing.py",
+      "before_sha256": "1d5edf39f58150270b296ec1cb88799455bebbc04508ec8abdf09ace84f8a020",
+      "after_sha256": "1d5edf39f58150270b296ec1cb88799455bebbc04508ec8abdf09ace84f8a020",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/tokenizer.py",
+      "destination": "workspace/verl/verl/utils/tokenizer.py",
+      "before_sha256": "b81a09a2ac5a4e8fd3df37712b19d336d4174f40903b76ab817453282fab6205",
+      "after_sha256": "b81a09a2ac5a4e8fd3df37712b19d336d4174f40903b76ab817453282fab6205",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/torch_dtypes.py",
+      "destination": "workspace/verl/verl/utils/torch_dtypes.py",
+      "before_sha256": "d189134cac9dcd237823d60fcfe52459ca6ea7e42117621f3c7f9a8c5be302e9",
+      "after_sha256": "d189134cac9dcd237823d60fcfe52459ca6ea7e42117621f3c7f9a8c5be302e9",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/torch_functional.py",
+      "destination": "workspace/verl/verl/utils/torch_functional.py",
+      "before_sha256": "7133e257bc12afd3a527c9bd706418f39f740d43def556f4c5b9f8525108dece",
+      "after_sha256": "7133e257bc12afd3a527c9bd706418f39f740d43def556f4c5b9f8525108dece",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/tracking.py",
+      "destination": "workspace/verl/verl/utils/tracking.py",
+      "before_sha256": "e7b0f3717cae9ab1c2e824992c6fb5d2b3214abd5f60facfc7bae1103f0f3943",
+      "after_sha256": "e7b0f3717cae9ab1c2e824992c6fb5d2b3214abd5f60facfc7bae1103f0f3943",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/ulysses.py",
+      "destination": "workspace/verl/verl/utils/ulysses.py",
+      "before_sha256": "5d858a85c6683185c11eb720aa551d13d2e3eb38d2ee57cbeca8bb22b0be8186",
+      "after_sha256": "5d858a85c6683185c11eb720aa551d13d2e3eb38d2ee57cbeca8bb22b0be8186",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/utils/vllm_utils.py",
+      "destination": "workspace/verl/verl/utils/vllm_utils.py",
+      "before_sha256": "36c347fd8797b69323314871077bfe6032dc4eb2d346c8f95006a4288d4542b6",
+      "after_sha256": "36c347fd8797b69323314871077bfe6032dc4eb2d346c8f95006a4288d4542b6",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/version/version",
+      "destination": "workspace/verl/verl/version/version",
+      "before_sha256": "a1497f84381f259370c2d4962da0cbfbcf0f0c4f3b235f991a472b1f4cdb2349",
+      "after_sha256": "a1497f84381f259370c2d4962da0cbfbcf0f0c4f3b235f991a472b1f4cdb2349",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/__init__.py",
+      "destination": "workspace/verl/verl/workers/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/actor/__init__.py",
+      "destination": "workspace/verl/verl/workers/actor/__init__.py",
+      "before_sha256": "3053474474716dc57f7e1b5d80d23b28c7b146d9257f8b6bf3b7878de4eae219",
+      "after_sha256": "3053474474716dc57f7e1b5d80d23b28c7b146d9257f8b6bf3b7878de4eae219",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/actor/base.py",
+      "destination": "workspace/verl/verl/workers/actor/base.py",
+      "before_sha256": "4b0be9f5c3024e079b3aecd6fe755ff880eb2664d884cd52a1d79dc73897202e",
+      "after_sha256": "4b0be9f5c3024e079b3aecd6fe755ff880eb2664d884cd52a1d79dc73897202e",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/actor/dp_actor.py",
+      "destination": "workspace/verl/verl/workers/actor/dp_actor.py",
+      "before_sha256": "73606cd01784ec20b541a08a531a64f804dc557156d6f8098b989e984c125f29",
+      "after_sha256": "73606cd01784ec20b541a08a531a64f804dc557156d6f8098b989e984c125f29",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/actor/megatron_actor.py",
+      "destination": "workspace/verl/verl/workers/actor/megatron_actor.py",
+      "before_sha256": "0417f72622b1bd3eba95ce3177b8eabf290fa05a880e70c0c42d18f8a95d4456",
+      "after_sha256": "0417f72622b1bd3eba95ce3177b8eabf290fa05a880e70c0c42d18f8a95d4456",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/critic/__init__.py",
+      "destination": "workspace/verl/verl/workers/critic/__init__.py",
+      "before_sha256": "a61c624ef2dd6bec59cc59302d88d1ccdc151ea5beb776b9733ac19bcfbe8fb7",
+      "after_sha256": "a61c624ef2dd6bec59cc59302d88d1ccdc151ea5beb776b9733ac19bcfbe8fb7",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/critic/base.py",
+      "destination": "workspace/verl/verl/workers/critic/base.py",
+      "before_sha256": "9088e17a21d2aea6c524380e1eeb10eaf19df2719cc5d343cb4debafd8da033a",
+      "after_sha256": "9088e17a21d2aea6c524380e1eeb10eaf19df2719cc5d343cb4debafd8da033a",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/critic/dp_critic.py",
+      "destination": "workspace/verl/verl/workers/critic/dp_critic.py",
+      "before_sha256": "38f7e6ea0b93a1cf27aee6d7fd6a10f25d32f5ac3e43815fdf931c00c5134d14",
+      "after_sha256": "38f7e6ea0b93a1cf27aee6d7fd6a10f25d32f5ac3e43815fdf931c00c5134d14",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/critic/megatron_critic.py",
+      "destination": "workspace/verl/verl/workers/critic/megatron_critic.py",
+      "before_sha256": "1f52ff6f399e969abaf22d99cf88790a82919a9bb7e6d95b8f8cd78ea8fe3eaf",
+      "after_sha256": "1f52ff6f399e969abaf22d99cf88790a82919a9bb7e6d95b8f8cd78ea8fe3eaf",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/fsdp_workers.py",
+      "destination": "workspace/verl/verl/workers/fsdp_workers.py",
+      "before_sha256": "b41026fc12e3efa510abe8a15ce1ed60ba5588bf67e8ff921eb9e257feae08b4",
+      "after_sha256": "b41026fc12e3efa510abe8a15ce1ed60ba5588bf67e8ff921eb9e257feae08b4",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/megatron_workers.py",
+      "destination": "workspace/verl/verl/workers/megatron_workers.py",
+      "before_sha256": "cf704cb220a75b935b20918e7eba360bd132162292b4ce9a01fd021f7bfa819a",
+      "after_sha256": "cf704cb220a75b935b20918e7eba360bd132162292b4ce9a01fd021f7bfa819a",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/reward_manager/__init__.py",
+      "destination": "workspace/verl/verl/workers/reward_manager/__init__.py",
+      "before_sha256": "d5c0178556e5dd9a0c625d71d795fd9f47dc5e9916f1b082c54914a357284d66",
+      "after_sha256": "d5c0178556e5dd9a0c625d71d795fd9f47dc5e9916f1b082c54914a357284d66",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/reward_manager/batch.py",
+      "destination": "workspace/verl/verl/workers/reward_manager/batch.py",
+      "before_sha256": "e2f046e0d937fa4505c768751b1f1de1239a92bef2e0431849aa7459b3533fe7",
+      "after_sha256": "e2f046e0d937fa4505c768751b1f1de1239a92bef2e0431849aa7459b3533fe7",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/reward_manager/dapo.py",
+      "destination": "workspace/verl/verl/workers/reward_manager/dapo.py",
+      "before_sha256": "9340e7676ed7ef859cfddd70f7e035df3e04157184bf0d38693c6d6ef50f7b51",
+      "after_sha256": "9340e7676ed7ef859cfddd70f7e035df3e04157184bf0d38693c6d6ef50f7b51",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/reward_manager/naive.py",
+      "destination": "workspace/verl/verl/workers/reward_manager/naive.py",
+      "before_sha256": "98cc111243bdf991530895e82d566758221891c7f9a380f54dddc071b99ed310",
+      "after_sha256": "98cc111243bdf991530895e82d566758221891c7f9a380f54dddc071b99ed310",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/reward_manager/prime.py",
+      "destination": "workspace/verl/verl/workers/reward_manager/prime.py",
+      "before_sha256": "a19408319ed5a75a71ee179ac31c7e9e18438a6f20726e7ffb2a3c04fc4b3296",
+      "after_sha256": "a19408319ed5a75a71ee179ac31c7e9e18438a6f20726e7ffb2a3c04fc4b3296",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/reward_manager/registry.py",
+      "destination": "workspace/verl/verl/workers/reward_manager/registry.py",
+      "before_sha256": "4178c70c6317a8a18103eaabedb167bd63cd1fd896c8271c5ebd1e552e7b49a9",
+      "after_sha256": "4178c70c6317a8a18103eaabedb167bd63cd1fd896c8271c5ebd1e552e7b49a9",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/reward_model/__init__.py",
+      "destination": "workspace/verl/verl/workers/reward_model/__init__.py",
+      "before_sha256": "c8e1a52f1a40f97bb885a5667ce0bc936f09d8416ca90243148417f416c4456c",
+      "after_sha256": "c8e1a52f1a40f97bb885a5667ce0bc936f09d8416ca90243148417f416c4456c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/reward_model/base.py",
+      "destination": "workspace/verl/verl/workers/reward_model/base.py",
+      "before_sha256": "9e3c68d62138dc39ca99b8f1cbbe01c24cf9b3a85a6a30e08fe59c910452de18",
+      "after_sha256": "9e3c68d62138dc39ca99b8f1cbbe01c24cf9b3a85a6a30e08fe59c910452de18",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/reward_model/megatron/__init__.py",
+      "destination": "workspace/verl/verl/workers/reward_model/megatron/__init__.py",
+      "before_sha256": "b820fe8d2c91d40953937619463b5bce5efc8e296725a673bfcfe41d5a262d6d",
+      "after_sha256": "b820fe8d2c91d40953937619463b5bce5efc8e296725a673bfcfe41d5a262d6d",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/reward_model/megatron/reward_model.py",
+      "destination": "workspace/verl/verl/workers/reward_model/megatron/reward_model.py",
+      "before_sha256": "2cd6270586f0f8d06df62083d83954682f2b6f653747607849f9d6b7bdbc6dff",
+      "after_sha256": "2cd6270586f0f8d06df62083d83954682f2b6f653747607849f9d6b7bdbc6dff",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/__init__.py",
+      "destination": "workspace/verl/verl/workers/rollout/__init__.py",
+      "before_sha256": "4e772ac911483c3fa4ad7b301f532d10fd9a10ccd6fcc0aaa82a29cd9df14b7f",
+      "after_sha256": "4e772ac911483c3fa4ad7b301f532d10fd9a10ccd6fcc0aaa82a29cd9df14b7f",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/async_server.py",
+      "destination": "workspace/verl/verl/workers/rollout/async_server.py",
+      "before_sha256": "3b58491d8f0535e9f2798cec181ef74afad7e3799454fc717a09f35e291f57db",
+      "after_sha256": "3b58491d8f0535e9f2798cec181ef74afad7e3799454fc717a09f35e291f57db",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/base.py",
+      "destination": "workspace/verl/verl/workers/rollout/base.py",
+      "before_sha256": "962d7ba51e86e72da1a8254e4ff39cc9952bde8db85dee6507bdf3f6a279ad5f",
+      "after_sha256": "962d7ba51e86e72da1a8254e4ff39cc9952bde8db85dee6507bdf3f6a279ad5f",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/chat_scheduler.py",
+      "destination": "workspace/verl/verl/workers/rollout/chat_scheduler.py",
+      "before_sha256": "1614064ffbad080c479f14064447f9a185069cdfd06acb3c3736e8a51833c7dd",
+      "after_sha256": "1614064ffbad080c479f14064447f9a185069cdfd06acb3c3736e8a51833c7dd",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/hf_rollout.py",
+      "destination": "workspace/verl/verl/workers/rollout/hf_rollout.py",
+      "before_sha256": "5dc5f347ebbce3fe26d77b45aa106824ee0d81befe186646a03581eadcff01aa",
+      "after_sha256": "5dc5f347ebbce3fe26d77b45aa106824ee0d81befe186646a03581eadcff01aa",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/naive/__init__.py",
+      "destination": "workspace/verl/verl/workers/rollout/naive/__init__.py",
+      "before_sha256": "68176cf43c79bc96d5549d1950e402f391f39ddd62582ffaac62d649015af785",
+      "after_sha256": "68176cf43c79bc96d5549d1950e402f391f39ddd62582ffaac62d649015af785",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/naive/naive_rollout.py",
+      "destination": "workspace/verl/verl/workers/rollout/naive/naive_rollout.py",
+      "before_sha256": "f243226fbb0db0cf2d2e2c3c96730da81994ef358c2c06921c98564164356edc",
+      "after_sha256": "f243226fbb0db0cf2d2e2c3c96730da81994ef358c2c06921c98564164356edc",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/schemas.py",
+      "destination": "workspace/verl/verl/workers/rollout/schemas.py",
+      "before_sha256": "b01262435eb100b87d2b3a7e2b939102176e182948ec33e2b57bd131590d465c",
+      "after_sha256": "b01262435eb100b87d2b3a7e2b939102176e182948ec33e2b57bd131590d465c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/sglang_rollout/__init__.py",
+      "destination": "workspace/verl/verl/workers/rollout/sglang_rollout/__init__.py",
+      "before_sha256": "75183db302121275b3f66320e61ef9c82431c11b8c4945939fd64ea4f1f3455e",
+      "after_sha256": "75183db302121275b3f66320e61ef9c82431c11b8c4945939fd64ea4f1f3455e",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/sglang_rollout/async_sglang_server.py",
+      "destination": "workspace/verl/verl/workers/rollout/sglang_rollout/async_sglang_server.py",
+      "before_sha256": "49ec5a93b687fed94fa9ce5450fb128fd24dadf06486f5f5d1fdefdc93f00bbe",
+      "after_sha256": "49ec5a93b687fed94fa9ce5450fb128fd24dadf06486f5f5d1fdefdc93f00bbe",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/sglang_rollout/sglang_rollout.py",
+      "destination": "workspace/verl/verl/workers/rollout/sglang_rollout/sglang_rollout.py",
+      "before_sha256": "7202975d8ccfb31a478607c6bf576dc2a4ef3404056e772a7eca480a9d8c76b7",
+      "after_sha256": "7202975d8ccfb31a478607c6bf576dc2a4ef3404056e772a7eca480a9d8c76b7",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/sglang_rollout/utils.py",
+      "destination": "workspace/verl/verl/workers/rollout/sglang_rollout/utils.py",
+      "before_sha256": "8d86d43884c2931f7a11d5a41a1fcaf78898983473b240f597473457afe1a16b",
+      "after_sha256": "8d86d43884c2931f7a11d5a41a1fcaf78898983473b240f597473457afe1a16b",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/tokenizer.py",
+      "destination": "workspace/verl/verl/workers/rollout/tokenizer.py",
+      "before_sha256": "021bb6a1e8a2efe9266a6b2b3f6f894ccc228ae3e28f617da0f5bf70e5625e86",
+      "after_sha256": "021bb6a1e8a2efe9266a6b2b3f6f894ccc228ae3e28f617da0f5bf70e5625e86",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/vllm_rollout/__init__.py",
+      "destination": "workspace/verl/verl/workers/rollout/vllm_rollout/__init__.py",
+      "before_sha256": "a2b5cfddb2691014a2b0319f16758e37ff207cfed4a9065f19028b52e358109c",
+      "after_sha256": "a2b5cfddb2691014a2b0319f16758e37ff207cfed4a9065f19028b52e358109c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/vllm_rollout/vllm_async_server.py",
+      "destination": "workspace/verl/verl/workers/rollout/vllm_rollout/vllm_async_server.py",
+      "before_sha256": "67c8b1edcc04c8ba71f94c3ff5c1e3e09e1ee1369b506760e29a0e5217a9bc8e",
+      "after_sha256": "67c8b1edcc04c8ba71f94c3ff5c1e3e09e1ee1369b506760e29a0e5217a9bc8e",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/rollout/vllm_rollout/vllm_rollout_spmd.py",
+      "destination": "workspace/verl/verl/workers/rollout/vllm_rollout/vllm_rollout_spmd.py",
+      "before_sha256": "047c899bb157fe677c5108cec73ddadd697c53ca540e685200b4175f120db29f",
+      "after_sha256": "047c899bb157fe677c5108cec73ddadd697c53ca540e685200b4175f120db29f",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/sharding_manager/__init__.py",
+      "destination": "workspace/verl/verl/workers/sharding_manager/__init__.py",
+      "before_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "after_sha256": "e65abd77db034b4f29eb1268c24867f84919dbce22e28d1997e563ed1d94179c",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/sharding_manager/base.py",
+      "destination": "workspace/verl/verl/workers/sharding_manager/base.py",
+      "before_sha256": "8c38bf57c5bf9c3ae5d51725ce20a8042beb4a77d8b9462c4b2ad6462c083e1e",
+      "after_sha256": "8c38bf57c5bf9c3ae5d51725ce20a8042beb4a77d8b9462c4b2ad6462c083e1e",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/sharding_manager/fsdp_sglang.py",
+      "destination": "workspace/verl/verl/workers/sharding_manager/fsdp_sglang.py",
+      "before_sha256": "e83ba6095f053830c7e19d83fc2737481a01040b5fcbd30be776058a8e156d98",
+      "after_sha256": "e83ba6095f053830c7e19d83fc2737481a01040b5fcbd30be776058a8e156d98",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/sharding_manager/fsdp_ulysses.py",
+      "destination": "workspace/verl/verl/workers/sharding_manager/fsdp_ulysses.py",
+      "before_sha256": "196bddf4f25815a48f94f7e8991f1dd8bc1477204acf6e0b0ea54a553a0784dc",
+      "after_sha256": "196bddf4f25815a48f94f7e8991f1dd8bc1477204acf6e0b0ea54a553a0784dc",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/sharding_manager/fsdp_vllm.py",
+      "destination": "workspace/verl/verl/workers/sharding_manager/fsdp_vllm.py",
+      "before_sha256": "1dec72da48b245ca23d20cd997aeee033eedbad3034e62b56969fc4aacbbb55a",
+      "after_sha256": "1dec72da48b245ca23d20cd997aeee033eedbad3034e62b56969fc4aacbbb55a",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/sharding_manager/megatron_sglang.py",
+      "destination": "workspace/verl/verl/workers/sharding_manager/megatron_sglang.py",
+      "before_sha256": "b95fee7f62cce17b9857a4ea93f3b9c9b59511612124664aba2ca349c3054ffd",
+      "after_sha256": "b95fee7f62cce17b9857a4ea93f3b9c9b59511612124664aba2ca349c3054ffd",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/workers/sharding_manager/megatron_vllm.py",
+      "destination": "workspace/verl/verl/workers/sharding_manager/megatron_vllm.py",
+      "before_sha256": "3db658eb4fa7f7dfcf2259f7833f31531e63566ca9d9c063b74847e98781f7be",
+      "after_sha256": "3db658eb4fa7f7dfcf2259f7833f31531e63566ca9d9c063b74847e98781f7be",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/LICENSE",
+      "destination": "workspace/verl/LICENSE",
+      "before_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "after_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/setup.py",
+      "destination": "workspace/verl/setup.py",
+      "before_sha256": "ca4e277d78af55795492c1f939f9fb03c722370c40237da94e54a80761d4f016",
+      "after_sha256": "ca4e277d78af55795492c1f939f9fb03c722370c40237da94e54a80761d4f016",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/pyproject.toml",
+      "destination": "workspace/verl/pyproject.toml",
+      "before_sha256": "f1a057b9f899cfa19bc2df8f1eb047cde6d2357600be7f69125c2337939dce5d",
+      "after_sha256": "f1a057b9f899cfa19bc2df8f1eb047cde6d2357600be7f69125c2337939dce5d",
+      "replacements": []
+    },
+    {
+      "source": "scripts/run_support.py",
+      "destination": "workspace/scripts/run_support.py",
+      "before_sha256": "f061db716069ab7176b216a0a9487a1c507163a2a0f10a5d90f11a799199c7e4",
+      "after_sha256": "c28fcab7ceff7a6a5897861a9a859e87a686f228c0f1d2aaa0099d44cc7028e2",
+      "replacements": [
+        {
+          "from": "Durable run state and observational metrics; shared by both precision arms.",
+          "to": "Durable run state and observational metrics."
+        }
+      ]
+    },
+    {
+      "source": "scripts/train_entry.py",
+      "destination": "workspace/scripts/train_entry.py",
+      "before_sha256": "10f38939b008d5e82ef851000aec89425934696ee082020fb29723f3a07aac3d",
+      "after_sha256": "10f38939b008d5e82ef851000aec89425934696ee082020fb29723f3a07aac3d",
+      "replacements": []
+    },
+    {
+      "source": "source_v2/verl/trainer/config/fp16_trainer.yaml",
+      "destination": "workspace/verl/verl/trainer/config/math_grpo.yaml",
+      "before_sha256": "6e33b103ec76df3c8778f645535e21c71bcce74b3c00d859d07ab5a4e17a7e1c",
+      "after_sha256": "af691766c1671a83f19ba6b1fbaec0a5d1df0b82bdac5655953ca7c0059b1190",
+      "replacements": [
+        {
+          "from": "ppo_mini_batch_size: 32",
+          "to": "ppo_mini_batch_size: 16"
+        },
+        {
+          "from": "gpu_memory_utilization: 0.90",
+          "to": "gpu_memory_utilization: 0.75"
+        },
+        {
+          "from": "    n: 16",
+          "to": "    n: 8"
+        },
+        {
+          "from": "project_name: 'fp16_is_all_you_need'",
+          "to": "project_name: 'r1d15_math_grpo'"
+        },
+        {
+          "from": "experiment_name: 'math_1460-fp16-ppo'",
+          "to": "experiment_name: 'run_001'"
+        },
+        {
+          "from": "logger: ['console','wandb']",
+          "to": "logger: ['console','tensorboard']"
+        },
+        {
+          "from": "save_freq: 200",
+          "to": "save_freq: 5"
+        },
+        {
+          "from": "log_val_generations: 20",
+          "to": "log_val_generations: 4"
+        },
+        {
+          "from": "max_actor_ckpt_to_keep: 8",
+          "to": "max_actor_ckpt_to_keep: null"
+        },
+        {
+          "from": "total_epochs: 1",
+          "to": "total_epochs: 20"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/checkpoints/best_validation.json",
+      "destination": "workspace/logs/run_001/checkpoints/best_validation.json",
+      "before_sha256": "da4a80f77427e6b02e391de2039cb929742ee3ab54806f379618b7e9c7b0ecf2",
+      "after_sha256": "da4a80f77427e6b02e391de2039cb929742ee3ab54806f379618b7e9c7b0ecf2",
+      "replacements": []
+    },
+    {
+      "source": "retrieved/runs/run_003/checkpoints/global_step_400/complete.json",
+      "destination": "workspace/logs/run_001/checkpoints/global_step_400/complete.json",
+      "before_sha256": "36c6ca43f7dca65cafb5a9151eaa9e7e72842c819881d5bb2cd9511c41d5f37c",
+      "after_sha256": "36c6ca43f7dca65cafb5a9151eaa9e7e72842c819881d5bb2cd9511c41d5f37c",
+      "replacements": []
+    },
+    {
+      "source": "retrieved/runs/run_003/checkpoints/global_step_435/complete.json",
+      "destination": "workspace/logs/run_001/checkpoints/global_step_435/complete.json",
+      "before_sha256": "b5e226857a56f33a4836c8b8d5d0408faae5e2ff5ba050138f955ff684e65094",
+      "after_sha256": "b5e226857a56f33a4836c8b8d5d0408faae5e2ff5ba050138f955ff684e65094",
+      "replacements": []
+    },
+    {
+      "source": "retrieved/runs/run_003/checkpoints/global_step_440/complete.json",
+      "destination": "workspace/logs/run_001/checkpoints/global_step_440/complete.json",
+      "before_sha256": "f4a84b034068ef18b4af806d24e5a8bb54dc87231eda97dab08619e64ca67e21",
+      "after_sha256": "f4a84b034068ef18b4af806d24e5a8bb54dc87231eda97dab08619e64ca67e21",
+      "replacements": []
+    },
+    {
+      "source": "retrieved/runs/run_003/checkpoints/latest.json",
+      "destination": "workspace/logs/run_001/checkpoints/latest.json",
+      "before_sha256": "09d1b65cff29559d2641da7b1c1e138da5985da3d49840f627de7eec02639ddc",
+      "after_sha256": "560b9c2f3eb16666ae0b12be5985b402654530037399673e7ee4ef420d8b17c8",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/last_exit.json",
+      "destination": "workspace/logs/run_001/last_exit.json",
+      "before_sha256": "3046d741340088db4de22472ca90496d6ee5b5831e14e6e2110e2031724f5736",
+      "after_sha256": "809a50335e492b1bf08571d6693725d4a630b9f6c9d2897a68886fcccea01769",
+      "replacements": [
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/latest_metrics.json",
+      "destination": "workspace/logs/run_001/latest_metrics.json",
+      "before_sha256": "827c77cbc143af80871b732fb8d9923d6c9929b8613e44af7ee1b5f0396364aa",
+      "after_sha256": "46a53cce0d69a8ad59ee8f7b2a46fc55035f2ac102ff048e9cc4bc56501fa94a",
+      "replacements": [
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/launch.json",
+      "destination": "workspace/logs/run_001/launch.json",
+      "before_sha256": "a65029496a54aff7e054f4e663b2f68c5ac08153cd5668bd96f30f018426f89f",
+      "after_sha256": "a060b579e5db4db82f0828bd74c16cdc8ff1901ac5e1a1709f40c3e40c74d1bc",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "/workspace/env/runtime/bin/python",
+          "to": "python3"
+        },
+        {
+          "from": "r1d15_math_mis",
+          "to": "r1d15_math_grpo"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        },
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        },
+        {
+          "from": "math_1460.parquet",
+          "to": "train.parquet"
+        },
+        {
+          "from": "aime_2024.parquet",
+          "to": "aime2024.parquet"
+        },
+        {
+          "from": "aime_2025.parquet",
+          "to": "aime2025.parquet"
+        },
+        {
+          "from": "/workspace/models/DeepSeek-R1-Distill-Qwen-1.5B",
+          "to": "/workspace/model"
+        },
+        {
+          "from": "/workspace/datasets/",
+          "to": "/workspace/data/"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/metrics.jsonl",
+      "destination": "workspace/logs/run_001/metrics.jsonl",
+      "before_sha256": "60dcab3f39cfa521b7e760ba6bf28b26d1a02c25239373fde7cd656a8fcea8d3",
+      "after_sha256": "3dafa19ed4d17e65c0fcd55f63d46402112c9a249c3da31680e0ae7d1b34f53b",
+      "replacements": [
+        {
+          "from": "20261105T172128-926-0",
+          "to": "attempt_001"
+        },
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/optimizer_rank_0.jsonl",
+      "destination": "workspace/logs/run_001/optimizer_rank_0.jsonl",
+      "before_sha256": "84ef84b15dfa071af3be0f92e662d22b9b6f251a8561883ad8e02c04b3151376",
+      "after_sha256": "d3ab49bb9b41ff0faffe87cff92d54b487d73927bbbb7d90fda9863b5ffc4e4a",
+      "replacements": [
+        {
+          "from": "20261105T172128-926-0",
+          "to": "attempt_001"
+        },
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/optimizer_rank_1.jsonl",
+      "destination": "workspace/logs/run_001/optimizer_rank_1.jsonl",
+      "before_sha256": "689d9855c0c831bbda670fb6675a1381bdccf0f1458a9f2a739da84028b87351",
+      "after_sha256": "24335ccbf66cbdac5b8a7813f29b8b858b7f2273676174ed94cb687ef0740cb6",
+      "replacements": [
+        {
+          "from": "20261105T172128-926-0",
+          "to": "attempt_001"
+        },
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/optimizer_rank_2.jsonl",
+      "destination": "workspace/logs/run_001/optimizer_rank_2.jsonl",
+      "before_sha256": "63d1472586d39afe9f73de2aaf89a89938dd4de9697daef1b24b6544b1c60aa5",
+      "after_sha256": "96527640a38e0701df927d5732ca5fd7141f3082df2242c2d127f6a8241ff207",
+      "replacements": [
+        {
+          "from": "20261105T172128-926-0",
+          "to": "attempt_001"
+        },
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/optimizer_rank_3.jsonl",
+      "destination": "workspace/logs/run_001/optimizer_rank_3.jsonl",
+      "before_sha256": "b4dc21b4abf7ecb58ac8fec21623e64210eb9c9d61af7911e943d7bce1bcadaf",
+      "after_sha256": "d6cf4d1c37f482f7b10c1f673f5a3da505121983d129c991f3808971aef9bc80",
+      "replacements": [
+        {
+          "from": "20261105T172128-926-0",
+          "to": "attempt_001"
+        },
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/optimizer_rank_4.jsonl",
+      "destination": "workspace/logs/run_001/optimizer_rank_4.jsonl",
+      "before_sha256": "f7329241e8e248763810fab212241171fbc4ea275c8244acb7f00e9b2812bedc",
+      "after_sha256": "0fc30bd129a183c16a8171b83adf4bfe15256fb10b45f63e29ffed8d2189e9ea",
+      "replacements": [
+        {
+          "from": "20261105T172128-926-0",
+          "to": "attempt_001"
+        },
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/optimizer_rank_5.jsonl",
+      "destination": "workspace/logs/run_001/optimizer_rank_5.jsonl",
+      "before_sha256": "9ac1082ead874a4e9b662592e7c25291267258e8722a18e5c3400ae41e625a42",
+      "after_sha256": "7c6109653abff66461d25d545e44ce1d5bbf50493eb6d4e22d2fbef756fb986e",
+      "replacements": [
+        {
+          "from": "20261105T172128-926-0",
+          "to": "attempt_001"
+        },
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/optimizer_rank_6.jsonl",
+      "destination": "workspace/logs/run_001/optimizer_rank_6.jsonl",
+      "before_sha256": "7d0d2a049f7debf945d5ffb306cde013c9eb7b921f5fd0f202991b425c57e4b6",
+      "after_sha256": "62815b8300289caa90528da28bc3e46fea65f3a00a9fcf42f9db7b1d764dfcb5",
+      "replacements": [
+        {
+          "from": "20261105T172128-926-0",
+          "to": "attempt_001"
+        },
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/optimizer_rank_7.jsonl",
+      "destination": "workspace/logs/run_001/optimizer_rank_7.jsonl",
+      "before_sha256": "01bbee1d2892b27ce9e447d88a1263b57807722cdda78ed5a99ca56964a72d1c",
+      "after_sha256": "400e255d53db2246ced3d8c6aa0c33aac8869f412f1515db8bde81ac5c0bd0b0",
+      "replacements": [
+        {
+          "from": "20261105T172128-926-0",
+          "to": "attempt_001"
+        },
+        {
+          "from": "20261105T173225-926-1",
+          "to": "attempt_002"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/parity_record.json",
+      "destination": "workspace/logs/run_001/parity_record.json",
+      "before_sha256": "8c84794216235c1536f88f19616abdaa1178dbc4a562b16761757b1431936fb8",
+      "after_sha256": "8c84794216235c1536f88f19616abdaa1178dbc4a562b16761757b1431936fb8",
+      "replacements": []
+    },
+    {
+      "source": "retrieved/runs/run_003/resume.json",
+      "destination": "workspace/logs/run_001/resume.json",
+      "before_sha256": "e29535fb4f89f75740dcb3d97614cdc67b0f1327058cd7a3b8ca1a595e158a4f",
+      "after_sha256": "e29535fb4f89f75740dcb3d97614cdc67b0f1327058cd7a3b8ca1a595e158a4f",
+      "replacements": []
+    },
+    {
+      "source": "retrieved/runs/run_003/resume_probe.saved.json",
+      "destination": "workspace/logs/run_001/resume_probe.saved.json",
+      "before_sha256": "0e8cd810415efc93ce745179074ecd5e31b19e3c13d27b0699b3504a20df777c",
+      "after_sha256": "0e8cd810415efc93ce745179074ecd5e31b19e3c13d27b0699b3504a20df777c",
+      "replacements": []
+    },
+    {
+      "source": "retrieved/runs/run_003/resume_rank_0.json",
+      "destination": "workspace/logs/run_001/resume_rank_0.json",
+      "before_sha256": "8df82e36cb854749cfcb40d148e15e8756918ad83d1bf7335231d05b42e7326d",
+      "after_sha256": "a5d1b22ced2013e8b796bf06099215fc9afccf54b4849dcd44879f896d787fbe",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/resume_rank_1.json",
+      "destination": "workspace/logs/run_001/resume_rank_1.json",
+      "before_sha256": "c43c44b98302087aff0b7b2ab97ab9951580d5d83b139b9e2c21a72bf75c3060",
+      "after_sha256": "7da73186859dd1e8f38bdb4078254e3075a89183550b3f08683542ec60d4a96e",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/resume_rank_2.json",
+      "destination": "workspace/logs/run_001/resume_rank_2.json",
+      "before_sha256": "08dd36a039585ea3d3713d954bb5ead5c28678ddee26ed39a317561f373aff40",
+      "after_sha256": "1a11a80e1a800dc7b485e5755ec3084c76e8e96317fc5eed161b0ebb83581b26",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/resume_rank_3.json",
+      "destination": "workspace/logs/run_001/resume_rank_3.json",
+      "before_sha256": "43622a6ec7d0223339df8132daf48b2bf53ea5d2468a1594051622856c9287e7",
+      "after_sha256": "d3744e195f0591f5cddf9e4c8deed66e954e88c381943f4af7e6cd4d354d4cc9",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/resume_rank_4.json",
+      "destination": "workspace/logs/run_001/resume_rank_4.json",
+      "before_sha256": "f0d1b275b32557751e67850464d6cc6437c64c5d62b953dade04fe5dd20db54d",
+      "after_sha256": "526e9bc036fbd3dd39d4f7a3444e91d980a49cff4373c351775abbbd1c5b028c",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/resume_rank_5.json",
+      "destination": "workspace/logs/run_001/resume_rank_5.json",
+      "before_sha256": "10386610f2bf863d01ab569d894625c05b76fb75977c3525e3b9e3b2c4f3ab24",
+      "after_sha256": "334922e72fcf200050f26af823c2020e1667a856b56be775d8b1f63458beb819",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/resume_rank_6.json",
+      "destination": "workspace/logs/run_001/resume_rank_6.json",
+      "before_sha256": "710995b5307377e82e7387ab18d8ef8cd6eb3a797f39837ca1c7e6a4016ac5f3",
+      "after_sha256": "815ea771d19f232128d7b4379ec2312edff37606b626b4b04ab97780632c3e9a",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/resume_rank_7.json",
+      "destination": "workspace/logs/run_001/resume_rank_7.json",
+      "before_sha256": "5fd3148c942999d4646d49bb0200d19b6a6d9c4a8ccb530b4e636e927036fa68",
+      "after_sha256": "5a312812453aa2c1c7341447c70cd98951a871a59c2c44fcc4766a10c7b78f2d",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        }
+      ]
+    },
+    {
+      "source": "retrieved/runs/run_003/training.complete.json",
+      "destination": "workspace/logs/run_001/training.complete.json",
+      "before_sha256": "c6cb6491b6b35a5336b8a29d3e6d5a86d278d45f401d50e29fabe388c81ece58",
+      "after_sha256": "c6cb6491b6b35a5336b8a29d3e6d5a86d278d45f401d50e29fabe388c81ece58",
+      "replacements": []
+    },
+    {
+      "source": "runs/run_003/logs/20261105T172128-926-0.log",
+      "destination": "workspace/logs/run_001/console/attempt_001.log",
+      "before_sha256": "4c00bdec904efccb645f2f4e978da26fa53f9f7036c876a34802cb66114a968e",
+      "after_sha256": "62eb5acd0d05a095f7103a08c1aa5cba7954f4ba083e00a5c50fd38c125a34d5",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "/workspace/src/verl",
+          "to": "/workspace/verl"
+        },
+        {
+          "from": "/workspace/models/DeepSeek-R1-Distill-Qwen-1.5B",
+          "to": "/workspace/model"
+        },
+        {
+          "from": "/workspace/datasets/",
+          "to": "/workspace/data/"
+        },
+        {
+          "from": "r1d15_math_mis",
+          "to": "r1d15_math_grpo"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        },
+        {
+          "from": "math_1460.parquet",
+          "to": "train.parquet"
+        },
+        {
+          "from": "aime_2024.parquet",
+          "to": "aime2024.parquet"
+        },
+        {
+          "from": "aime_2025.parquet",
+          "to": "aime2025.parquet"
+        },
+        {
+          "from": "job-ptdbench-1479066-main-0",
+          "to": "worker-node"
+        },
+        {
+          "from": "10.163.236.174",
+          "to": "worker-address"
+        },
+        {
+          "from": "/tmp/r15_003_926_0",
+          "to": "/runtime/attempt_001"
+        },
+        {
+          "from": "ANSI SGR terminal controls",
+          "to": ""
+        }
+      ]
+    },
+    {
+      "source": "runs/run_003/logs/20261105T173225-926-1.log",
+      "destination": "workspace/logs/run_001/console/attempt_002.log",
+      "before_sha256": "9ad03917edb277a4170ce374e74cdbdad0b389aacae11841a718462cc32af589",
+      "after_sha256": "e497ec6192e3170ceb1aa89a634909f4cc9bffe4fa8b7f4b084a174fc8e12ed1",
+      "replacements": [
+        {
+          "from": "/user/lyh4170/r1d15_math_mis_20261105",
+          "to": "/workspace"
+        },
+        {
+          "from": "/workspace/models/DeepSeek-R1-Distill-Qwen-1.5B",
+          "to": "/workspace/model"
+        },
+        {
+          "from": "/workspace/datasets/",
+          "to": "/workspace/data/"
+        },
+        {
+          "from": "r1d15_math_mis",
+          "to": "r1d15_math_grpo"
+        },
+        {
+          "from": "run_003",
+          "to": "run_001"
+        },
+        {
+          "from": "math_1460.parquet",
+          "to": "train.parquet"
+        },
+        {
+          "from": "aime_2024.parquet",
+          "to": "aime2024.parquet"
+        },
+        {
+          "from": "aime_2025.parquet",
+          "to": "aime2025.parquet"
+        },
+        {
+          "from": "job-ptdbench-1479066-main-0",
+          "to": "worker-node"
+        },
+        {
+          "from": "/tmp/r15_003_926_1",
+          "to": "/runtime/attempt_002"
+        },
+        {
+          "from": "ANSI SGR terminal controls",
+          "to": ""
+        }
+      ]
+    },
+    {
+      "source": "runs/run_003/validation/0.jsonl",
+      "destination": "workspace/logs/run_001/samples/step_000000.jsonl",
+      "before_sha256": "f3f8fc577ed7c8d300b6e14cf9bdcad6f937e9fe9678a958ec5c8b0c9754561b",
+      "after_sha256": "f20c6b6c3a87bcf0cb14c5aa4e1d5b468fb5c10f6eb25d7309930db720650c6d",
+      "selection": {
+        "zero_based_row": 0,
+        "source_rows": 1920
+      },
+      "replacements": []
+    },
+    {
+      "source": "runs/run_003/validation/200.jsonl",
+      "destination": "workspace/logs/run_001/samples/step_000200.jsonl",
+      "before_sha256": "d105fcf9b69ce97573a04c1b4bcec8d2a0f5bdd23dbd129f650923595e258193",
+      "after_sha256": "eb2c91a9aa53d137bf303d5ba082e9a839b10b97d299d5e60c3f934247f7e1bd",
+      "selection": {
+        "zero_based_row": 960,
+        "source_rows": 1920
+      },
+      "replacements": []
+    },
+    {
+      "source": "runs/run_003/validation/440.jsonl",
+      "destination": "workspace/logs/run_001/samples/step_000440.jsonl",
+      "before_sha256": "36990f92c52cdeb1b9083a14ce0e1b6cb95f4739af15b558c6425acd8986e9be",
+      "after_sha256": "0b52dfb042f4fd1a0b3063867823537f1129b3ff4468b5594a79194500777a6a",
+      "selection": {
+        "zero_based_row": 1919,
+        "source_rows": 1920
+      },
+      "replacements": []
+    }
+  ],
+  "upstream_word_exceptions": [
+    "Native precision branches (float16/bfloat16), mismatch metric names and framework error messages are code/evidence, not custom experiment labels.",
+    "The term fixed in upstream comments and identifiers is an ordinary programming term."
+  ],
+  "packaging_checks": {
+    "metric_rows_preserved": 441,
+    "training_iterations": 440,
+    "issue_scaffold": "instruction.md and judge.py match the family reference; task-local entrypoint and prompt differences are documented below.",
+    "paired_configuration": "dtype and run/attempt paths only; see hidden paired_configuration.json",
+    "remote_cpu_check": {
+      "versions": {
+        "torch": "2.6.0",
+        "vllm": "0.8.5.post1",
+        "transformers": "4.51.3",
+        "ray": "2.47.1",
+        "tensordict": "0.6.2",
+        "flash_attn": "2.7.4.post1"
+      },
+      "resolved_config": "passed",
+      "data": {
+        "train.parquet": {
+          "rows": 1460,
+          "over_1024": 1,
+          "max_prompt_tokens": 1065
+        },
+        "aime2024.parquet": {
+          "rows": 30,
+          "over_1024": 0,
+          "max_prompt_tokens": 414
+        },
+        "aime2025.parquet": {
+          "rows": 30,
+          "over_1024": 0,
+          "max_prompt_tokens": 789
+        }
+      },
+      "reward_smoke": "passed",
+      "cpu_model_forward": {
+        "finite": true,
+        "shape": [
+          1,
+          7,
+          151936
+        ],
+        "dtype": "torch.bfloat16"
+      },
+      "frozen_training_rows": 440,
+      "status": "complete"
+    },
+    "cpu_check_environment": "Recorded experiment image on CPU-only job 1490509; initial model cache prepopulated from the original verified bytes, dataset fetched from hf-mirror at the pinned revision.",
+    "gpu_training_rerun_during_packaging": {
+      "short_launch_and_resume": true,
+      "full_440_steps": false
+    },
+    "dockerfile_build": {
+      "status": "passed",
+      "builder": "Kaniko v1.24.0",
+      "exit_code": 0,
+      "image_digest": "sha256:053034ae70f0fe2947ad968b37133284991a0695525faa8fe9c30b85fb350341",
+      "registry_source": "SHA-256-verified Docker Hub index, amd64 manifest and config; offline cache",
+      "scope": "The task Dockerfile contains only a pinned FROM. No base-image layer extraction, container run, push or full image export is claimed.",
+      "mount_metadata": "The executor ran in a task-owned chroot. Its mount-info snapshot was read from the kernel after entering that chroot; no mounts changed during the single-FROM build."
+    },
+    "native_docker_build": {
+      "status": "blocked",
+      "remote_job": 1493156,
+      "error": "remount /, flags: 0x84000: permission denied",
+      "receipt": "evaluations/issue/resources/native_image_check.json",
+      "interpretation": "The private daemon started successfully; native build failed before base-image extraction."
+    },
+    "remote_storage_root": "/user/lyh4170/r1d15_math_grpo_package_20261106",
+    "local_large_downloads_removed_bytes": 994784947,
+    "final_scoped_cpu_check": {
+      "versions": {
+        "torch": "2.6.0",
+        "vllm": "0.8.5.post1",
+        "transformers": "4.51.3",
+        "ray": "2.47.1",
+        "tensordict": "0.6.2",
+        "flash_attn": "2.7.4.post1"
+      },
+      "resolved_config": "passed",
+      "data": {
+        "train.parquet": {
+          "rows": 1460,
+          "over_1024": 1,
+          "max_prompt_tokens": 1065
+        },
+        "aime2024.parquet": {
+          "rows": 30,
+          "over_1024": 0,
+          "max_prompt_tokens": 414
+        },
+        "aime2025.parquet": {
+          "rows": 30,
+          "over_1024": 0,
+          "max_prompt_tokens": 789
+        }
+      },
+      "reward_smoke": "passed",
+      "cpu_model_forward": {
+        "finite": true,
+        "shape": [
+          1,
+          7,
+          151936
+        ],
+        "dtype": "torch.bfloat16"
+      },
+      "frozen_training_rows": 440,
+      "status": "complete"
+    },
+    "final_scoped_cpu_job": 1491198,
+    "launcher_ipc_fix": {
+      "first_gpu_job": 1491909,
+      "first_result": "timed out following repeated AF_UNIX path too long errors",
+      "cpu_regression_job": 1492622,
+      "cpu_regression_status": "Succeeded",
+      "launch_script_sha256": "44b1f626e7a9ba0e2d00d2ae1286273de54a7db5570f62e3aa9b2691d07598d1",
+      "cpu_regression": {
+        "status": "passed",
+        "tensor_ipc_cases": [
+          {
+            "case": "long",
+            "tmpdir": "/user/lyh4170/r1d15_math_grpo_package_20261106/startup_002/gpu_task/workspace/runtime/tmp",
+            "exit_code": 1,
+            "log": "Traceback (most recent call last):\n  File \"/usr/lib/python3.10/multiprocessing/queues.py\", line 244, in _feed\n    obj = _ForkingPickler.dumps(obj)\n  File \"/usr/lib/python3.10/multiprocessing/reduction.py\", line 51, in dumps\n    cls(buf, protocol).dump(obj)\n  File \"/usr/local/lib/python3.10/dist-packages/torch/multiprocessing/reductions.py\", line 619, in reduce_storage\n    df = multiprocessing.reduction.DupFd(fd)\n  File \"/usr/lib/python3.10/multiprocessing/reduction.py\", line 198, in DupFd\n    return resource_sharer.DupFd(fd)\n  File \"/usr/lib/python3.10/multiprocessing/resource_sharer.py\", line 53, in __init__\n    self._id = _resource_sharer.register(send, close)\n  File \"/usr/lib/python3.10/multiprocessing/resource_sharer.py\", line 76, in register\n    self._start()\n  File \"/usr/lib/python3.10/multiprocessing/resource_sharer.py\", line 126, in _start\n    self._listener = Listener(authkey=process.current_process().authkey)\n  File \"/usr/lib/python3.10/multiprocessing/connection.py\", line 448, in __init__\n    self._listener = SocketListener(address, family, backlog)\n  File \"/usr/lib/python3.10/multiprocessing/connection.py\", line 591, in __init__\n    self._socket.bind(address)\nOSError: AF_UNIX path too long\nTraceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n  File \"/usr/lib/python3.10/multiprocessing/queues.py\", line 114, in get\n    raise Empty\n_queue.Empty\n"
+          },
+          {
+            "case": "short",
+            "tmpdir": "/user/lyh4170/r1p6t",
+            "exit_code": 0,
+            "log": "TENSOR_IPC_PASSED /user/lyh4170/r1p6t\n"
+          }
+        ],
+        "environment_files": [
+          "asset_pins.json",
+          "fetch_hf.py",
+          "prepare.sh"
+        ],
+        "launch_script_sha256": "44b1f626e7a9ba0e2d00d2ae1286273de54a7db5570f62e3aa9b2691d07598d1"
+      }
+    },
+    "gpu_launch_check": {
+      "job": 1492643,
+      "status": "passed",
+      "budget": "2 steps then resume through step 3",
+      "image": "recorded cluster runtime image",
+      "report": "evaluations/issue/resources/startup_verification.json",
+      "completed_steps": 3,
+      "resume_verified_ranks": 8,
+      "first_gpu_attempt": 1491909
+    },
+    "public_image_runtime_attempt": {
+      "status": "blocked before submission",
+      "reason": "The platform accepts only its designated private-registry prefixes for non-inference images; no external-image runtime check was run."
+    },
+    "submission_entrypoint": "bash evaluations/issue/verifier/test.sh",
+    "judge_qualification": {
+      "real_api_called": false,
+      "reason": "User explicitly requested no real judge calls.",
+      "scope": "Offline protocol, score boundaries and submission isolation only; LLM semantic agreement is not empirically qualified."
+    },
+    "source_visibility": {
+      "environment": "Only immutable neutral model/data asset coordinates and hashes.",
+      "source_manifest": "Hidden issue resources; no agent mount in Docker-native or Harbor-local."
+    },
+    "issue_resources": {
+      "gpus": 0,
+      "manual_training_gpus": 8
+    },
+    "scaffolding": {
+      "reference": "tasks/reward/slime_retool_length_reward_bonus/evaluations/issue",
+      "byte_identical": [
+        "instruction.md",
+        "verifier/judge.py"
+      ],
+      "intentional_deviations": {
+        "verifier/test.sh": "Reject non-regular or symbolic-link answers before the canonical judge resolves any paths.",
+        "verifier/judge_prompt.md": "Keep one root cause and exactly two evidence groups; any one correctly interpreted gap satisfies the numerical evidence group."
+      }
+    },
+    "workspace_integrity": {
+      "verified_files": 317,
+      "status": "passed"
+    },
+    "final_offline_checks": "evaluations/issue/resources/package_checks.json"
+  }
+}

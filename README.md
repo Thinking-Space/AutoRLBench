@@ -18,6 +18,7 @@ A benchmark and open call for valuable, reproducible RL runs. Each task is a rea
 
 ## 🚀 News 
 
+- **11 Nov 2026** — r1d15_math_grpo published at both levels (ten issue judgments, ten solution traces): 33 tasks, 25 of which support solution-level evaluation.
 - **6 Nov 2026** — We release the second version of the task list: 32 tasks, 24 of which support solution-level evaluation.
 - **2 Nov 2026** — We release the first version of the task list: 18 tasks, 13 of which support solution-level evaluation.
 - **24 Oct 2026** — Call for contributions officially open, and Kimi-K3.1-Pro added to the leaderboard.
@@ -29,16 +30,16 @@ AutoRLBench Leaderboard, issue + solution evaluation. Overall is the combined pa
 
 | # | Model | Agent | Issue Score | Solution Score | Overall |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | GPT-6-Astra | Codex | 46.9 % | 52.6 % | **49.0 %** |
-| 1 | GPT-6.1-Sol | Codex | 43.8 % | 57.9 % | **49.0 %** |
-| 3 | GLM-5.3 | Claude Code | 31.3 % | 52.6 % | **39.2 %** |
-| 3 | Gemini-4-Argon | Claude Code | 25.0 % | 63.2 % | **39.2 %** |
-| 5 | Kimi-K3.1-Pro | Claude Code | 25.0 % | 52.6 % | **35.3 %** |
-| 6 | Qwen3.8-Max | Qwen Code | 28.1 % | 42.1 % | **33.3 %** |
-| 7 | Claude-Fable-5.1 | Claude Code | 25.0 % | 42.1 % | **31.4 %** |
-| 8 | Grok-4.7 | Grok Build | 25.0 % | 26.3 % | **25.5 %** |
-| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 15.8 % | **5.9 %** |
-| 10 | Kimi-K3 | Claude Code | 0.0 % | 10.5 % | **3.9 %** |
+| 1 | GPT-6-Astra | Codex | 45.5 % | 50.0 % | **47.2 %** |
+| 1 | GPT-6.1-Sol | Codex | 42.4 % | 55.0 % | **47.2 %** |
+| 3 | GLM-5.3 | Claude Code | 30.3 % | 50.0 % | **37.7 %** |
+| 3 | Gemini-4-Argon | Claude Code | 24.2 % | 60.0 % | **37.7 %** |
+| 5 | Kimi-K3.1-Pro | Claude Code | 24.2 % | 50.0 % | **34.0 %** |
+| 6 | Qwen3.8-Max | Qwen Code | 27.3 % | 40.0 % | **32.1 %** |
+| 7 | Claude-Fable-5.1 | Claude Code | 24.2 % | 40.0 % | **30.2 %** |
+| 8 | Grok-4.7 | Grok Build | 24.2 % | 25.0 % | **24.5 %** |
+| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 15.0 % | **5.7 %** |
+| 10 | Kimi-K3 | Claude Code | 0.0 % | 10.0 % | **3.8 %** |
 
 ## Tasks
 

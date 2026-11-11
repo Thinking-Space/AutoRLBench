@@ -394,7 +394,35 @@
  * runs' sourceCorrection field already tells its rescue story, and
  * the round notes above describe the recovery entries as they were
  * published at the time.
- * The 190 solution records are reconciled against AutoRLBench validation-first
+ * The ten r1d15_math_grpo issue records and ten solution records were
+ * published on 11 Nov 2026 from the 10-11 Nov harbor rounds -- both
+ * all-fail: the task's frozen run completes 440 steps and improves
+ * AIME, so a healthy verdict is the trap. On the issue round (judge
+ * weights verdict/root cause/evidence 0.2/0.6/0.2) no judgment
+ * passes: three models return the correct unhealthy verdict without
+ * the required root cause; GLM-5.3 earns the round's only
+ * root-cause credit (score 0.7) but does not clear the verdict gate;
+ * six judge the run healthy. On the solution round the canonical
+ * repair flips both dtype keys bfloat16->float16 in the staged
+ * workspace's math_grpo.yaml; no model applies a passing repair.
+ * Five verdicts were rescued: 0-GPU devspace trials whose verifier
+ * stage was a placeholder, with beijing 8xH800 BATCH replay
+ * verdicts pulled back into the trial verifier files and the ledger
+ * (the three replays that completed 30 steps measured token-weighted
+ * means of 0.0125-0.0126 nat/token -- the BF16-baseline level, above
+ * the 0.005 bound; one died at step 29 of 30; one recorded zero steps
+ * with a config violation); the five healthy-verdict trials made no
+ * repair and are recorded as structural zeros with no scoring run
+ * under runs/run_001. The solution package was ported with the
+ * environment-channel renames only; the solution instruction still
+ * carries the leaky-era title "Improve the staged experiment" (the
+ * runs already happened against it; see
+ * import_r1d15_math_grpo_traces.py). The twenty runs were audited
+ * clean of network access. The solution-record reconciliation count
+ * below moves 190 -> 200 with this round, and the published
+ * issue-judgment total was recounted at 320 records (a thirty-record
+ * shortfall since 2026-11-07 is restored in solution-results.json).
+ * The 200 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -8269,6 +8297,324 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "f6e317a6-89eb-409c-be1e-5b53fc3c0112",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "17aba67a3baebbacebcb8e9efaf22df03d998110933a765fe9b5bc5434043c57"
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "gpt6astra-math-grpo",
+    "file": "agent-trace/gpt6astra-math-grpo.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 676318,
+    "steps": 20,
+    "costUsd": 2.4377
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "gpt6astra-math-grpo-sol",
+    "file": "agent-trace/gpt6astra-math-grpo-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 868611,
+    "steps": 35,
+    "costUsd": 5.7345,
+    "sourceRunId": "20261111-045156-a2141fb8",
+    "sessionId": "01a1c73b-a49b-7701-91d0-2221972a00c9",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a239e4c245131e79f6c35d7bf254ba1a3089df70088668d3458ce33b882b3614"
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "gpt61sol-math-grpo",
+    "file": "agent-trace/gpt61sol-math-grpo.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 1776575,
+    "steps": 18,
+    "costUsd": 0.394
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "gpt61sol-math-grpo-sol",
+    "file": "agent-trace/gpt61sol-math-grpo-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 559100,
+    "steps": 29,
+    "costUsd": 0.7782,
+    "sourceRunId": "20261111-050708-16578ac9",
+    "sessionId": "01a1c749-7a22-7d62-9627-99c9e0ab5b37",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a11175da602a009b24e408b344275cafa7a6b790e88630b2a4e3ff398f94f682"
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "fable51-math-grpo",
+    "file": "agent-trace/fable51-math-grpo.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 696028,
+    "steps": 29,
+    "costUsd": 15.5723
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "fable51-math-grpo-sol",
+    "file": "agent-trace/fable51-math-grpo-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 4348428,
+    "steps": 166,
+    "costUsd": 167.7291,
+    "sourceRunId": "20261111-062017-95502823",
+    "sessionId": "aab1973b-ace5-434d-a34e-076fd797f402",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "9bf561c6aaff4c87a2ea03890dc88ace89e8b41485c0784618eea2f256f7ef75"
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "glm53-math-grpo",
+    "file": "agent-trace/glm53-math-grpo.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.7,
+    "durationMs": 3319629,
+    "steps": 178,
+    "costUsd": 36.7016
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "glm53-math-grpo-sol",
+    "file": "agent-trace/glm53-math-grpo-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2576585,
+    "steps": 101,
+    "costUsd": 26.6782,
+    "sourceRunId": "20261111-045156-f9b4dfc6",
+    "sessionId": "20da01d5-924e-41be-ad44-516628fac596",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "5bb7dfb279c1558aa9f1b952de414b0966d27672757bafc27ebc73f8a2efb88e"
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "kimi-math-grpo",
+    "file": "agent-trace/kimi-math-grpo.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 1396309,
+    "steps": 21,
+    "costUsd": 3.9928
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "kimi-math-grpo-sol",
+    "file": "agent-trace/kimi-math-grpo-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 555250,
+    "steps": 55,
+    "costUsd": 10.8568,
+    "sourceRunId": "20261111-053535-2f81d488",
+    "sessionId": "575fc730-8364-4c0d-93f6-c138c2508323",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "3bfb69a6389c5f05accfa931376616eb2a25305faead8b6d762f83b431274afd"
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "kimi31-math-grpo",
+    "file": "agent-trace/kimi31-math-grpo.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 1699605,
+    "steps": 63,
+    "costUsd": 4.7084
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "kimi31-math-grpo-sol",
+    "file": "agent-trace/kimi31-math-grpo-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1176680,
+    "steps": 26,
+    "costUsd": 4.9401,
+    "sourceRunId": "20261111-080244-588e6e9d",
+    "sessionId": "484edcc4-e827-4a60-acc6-3e8d3c15cd72",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "0de0b0f41947957a1dfb57e3070574a3d270d6185df509a24f880fdd3fb6ccbb"
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "dsv4-math-grpo",
+    "file": "agent-trace/dsv4-math-grpo.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 2799262,
+    "steps": 61,
+    "costUsd": 16.1131
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "dsv4-math-grpo-sol",
+    "file": "agent-trace/dsv4-math-grpo-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2009235,
+    "steps": 93,
+    "costUsd": 26.8105,
+    "sourceRunId": "20261111-054524-bf8bb113",
+    "sessionId": "4181372b-f989-459d-b98d-1512623ffd17",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "89c65f8496a74510fa14ac9d73f2b099081bf6f034f64497053f1e81be738b9d"
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "gemini4-math-grpo",
+    "file": "agent-trace/gemini4-math-grpo.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 582013,
+    "steps": 33,
+    "costUsd": 4.7182
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "gemini4-math-grpo-sol",
+    "file": "agent-trace/gemini4-math-grpo-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 903549,
+    "steps": 43,
+    "costUsd": 13.5049,
+    "sourceRunId": "20261111-061931-9e7d6f85",
+    "sessionId": "6c8107c2-4d90-4f14-a764-8dc1f8b6402a",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "33b3e91e256ad4c5b2b7db88dd7c1d5f73d09a49183ede855f0713370e01d262"
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "qwen38-math-grpo",
+    "file": "agent-trace/qwen38-math-grpo.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 2226256,
+    "steps": 28,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "qwen38-math-grpo-sol",
+    "file": "agent-trace/qwen38-math-grpo-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2241947,
+    "steps": 55,
+    "sourceRunId": "20261111-051659-df1f9aea",
+    "sessionId": "32cb48d3-9cd7-4771-98b9-8b38025d3e3b",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "f85ba5b0686d560746cdc1ef4e1e82f7119a5c31ae8e49118490b3fbc92af17b"
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "grok47-math-grpo",
+    "file": "agent-trace/grok47-math-grpo.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 1044045,
+    "steps": 43,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/r1d15_math_grpo",
+    "slug": "grok47-math-grpo-sol",
+    "file": "agent-trace/grok47-math-grpo-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1487004,
+    "steps": 56,
+    "sourceRunId": "20261111-055450-e2ed4bae",
+    "sessionId": "c7839fb7-bb5c-47fb-959f-bb5f763415da",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "7e3cf7d28623b27f6b7667c8dbba63e1daa4d6a602409664ee34ed7028cba347"
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

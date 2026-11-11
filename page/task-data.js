@@ -636,5 +636,19 @@ window.AUTORLBENCH_TASKS = [
     "license": "MIT",
     "brief": "The first-turn search-action reconstruction omits <|im_end|> before the final-token replacement eats the closing '>' of </search>, so recorded rollouts carry corrupted delimiters and training collapses.",
     "issue": "Training Qwen3-VL-4B-Thinking with multimodal GRPO over the Maestro tool loop (six staged tool-service models, 200 steps). The first-turn <search>...</search> reconstruction appends no <|im_end|>, and the new_gen_tokens[:-1] + gen_ids[-1:] final-token replacement assumes the reconstructed last token is the EOS and instead removes the '>' that closes </search>: sampled step-1 rollouts carry unequal opening/closing search-tag counts with closing tags like </search<|im_end|>, degenerating to forms like </search<<|im_start|> by step 200. At step 200 critic/score/mean=-1.0, verl_tool/is_traj_finished/mean=0.0, and responses clip at the 4096-token cap (response_length/clip_ratio=0.5625, response_length/max=4096) with no completed final-answer trajectory among the sampled rows. Training reward still improves temporarily (step-120 mean 0.71), so never having learned is a wrong attribution. No crash."
+  },
+  {
+    "id": "infrastructure/r1d15_math_grpo",
+    "title": "Numerical policy divergence in a completed math GRPO run",
+    "family": "Infrastructure",
+    "tags": ["verl", "grpo", "sequence-mis", "numerical-consistency", "hybrid-backend"],
+    "model": "DeepSeek-R1-Distill-Qwen-1.5B",
+    "dataset": "MATH 1460-question subset (train); AIME 2024 / 2025 (held-out)",
+    "framework": "verl / GRPO + sequence-MIS",
+    "image": "verl-vllm0.8.5-torch2.6.0-flashattn2.7.4-cu124-py3.10",
+    "created": "2026-11-06",
+    "license": "Apache-2.0",
+    "brief": "DeepSeek-R1-Distill-Qwen-1.5B trains with GRPO + sequence-MIS and the run completes with improving AIME, but the BF16 FSDP2 learner forward and the vLLM rollout forward compute materially different token probabilities for the same synchronized weights.",
+    "issue": "Training DeepSeek-R1-Distill-Qwen-1.5B with GRPO + sequence-MIS on the MATH 1460-question subset (440 steps). With both forwards at bfloat16, the recorded token-weighted mean absolute logprob difference is 0.0112137 nat/token over 1.03 billion response tokens, the maximum sampled-token probability difference reaches 0.999926 (step 252), the max absolute logprob difference is 17.5485 (step 326), the mean sequence ESS fraction collapses to 0.0989, and 5.65% of sequences are mis-rejected by the sequence log-ratio gate. An FP16 arm of the same experiment measures 0.00135637 nat/token with ESS 0.9506 -- an 8.27x separation -- while both arms learn and finish with finite optimizer records, and BF16 finishes within 2.81 / 2.71 points of FP16 on AIME 2024 / 2025 avg@32: the run looks healthy and is not."
   }
 ];
