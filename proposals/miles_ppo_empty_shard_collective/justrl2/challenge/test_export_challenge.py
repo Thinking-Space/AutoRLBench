@@ -4,6 +4,7 @@ import copy
 import json
 import os
 import shutil
+import subprocess
 from pathlib import Path
 import sys
 import tarfile
@@ -72,21 +73,22 @@ def test_strip_diagnostics_preserves_executable_statements():
     ast.parse(cleaned)
 
 
-def test_native_guard_injection_and_inverse():
-    source = '''def compute_advantages_and_returns(args, rollout_data):
-    if args.normalize_advantages:
-        whitened_advs_flat = distributed_masked_whiten(
-            all_advs, all_masks, process_group=dp_group, shift_mean=True,
-        )
-        chunk_lengths = [chunk.size(0) for chunk in advantages]
-        advantages = list(torch.split(whitened_advs_flat, chunk_lengths))
-    rollout_data["advantages"] = advantages
-'''
-    changed = exporter.inject_guard(source)
-    assert 'if all_masks.numel() > 0:' in changed
-    assert exporter.remove_guard(changed) == source
+def test_cached_moment_injection_preserves_collective_and_math():
+    source = """def distributed_masked_whiten(values, mask, process_group=None):
+    local_sum = (values * mask).sum()
+    local_sum_sq = (values.square() * mask).sum()
+    local_mask_sum = mask.sum()
+    stats_tensor = torch.tensor([local_sum, local_sum_sq, local_mask_sum])
+    dist.all_reduce(stats_tensor, group=process_group)
+    return stats_tensor
+"""
+    changed = exporter.inject_cached_moment_reducer(source)
+    assert 'stats_tensor = _moments(values, mask)' in changed
+    assert changed[changed.index('    dist.all_reduce'):] == source[source.index('    dist.all_reduce'):]
+    assert 'if values.numel()' not in changed
+    assert 'stats_tensor = _moments(values, mask).clone()' in exporter.repair_cached_moment_reducer(changed)
     with pytest.raises(ValueError):
-        exporter.inject_guard('def other(): pass\n')
+        exporter.inject_cached_moment_reducer('def other(): pass\n')
 
 
 def test_export_real_pinned_source(tmp_path):
@@ -105,15 +107,25 @@ def test_export_real_pinned_source(tmp_path):
     assert (maintainer / 'repair.patch').is_file()
     assert (maintainer / 'manifest.json').is_file()
     assert (maintainer / 'topology_verifier.py').is_file()
+    assert (maintainer / 'window_probe.py').is_file()
+    assert (maintainer / 'window_reference.py').is_file()
+    assert (maintainer / 'sequence_audit.py').is_file()
+    assert (maintainer / 'window_evaluator/run_window.py').is_file()
+    assert (maintainer / 'window_evaluator/runtime_support.py').is_file()
+    assert (maintainer / 'window_evaluator/inputs/replay.json').is_file()
+    assert (maintainer / 'window_evaluator/inputs/expected.json').is_file()
+    assert not (workspace / 'window_evaluator').exists()
     assert (maintainer / 'mesh.json').is_file()
     assert (maintainer / 'progress.json').is_file()
     assert (maintainer / 'failure.txt').is_file()
     assert not (workspace / 'observed').exists()
     assert (workspace / 'inputs/replay.json').is_file()
-    assert (workspace / 'debug/run_updates.py').is_file()
+    assert (workspace / 'debug/run_window.py').is_file()
     assert (workspace / 'debug/runtime_support.py').is_file()
+    assert not (workspace / 'debug/run_updates.py').exists()
+    assert set(json.loads((workspace / 'inputs/expected.json').read_text())) == {'1', '2', '4'}
     assert not (workspace / 'debug/run_replay.py').exists()
-    assert '--trace' not in (workspace / 'debug/run_updates.py').read_text()
+    assert '--trace' not in (workspace / 'debug/run_window.py').read_text()
     assert not (workspace / 'miles/utils/debug_utils/run_megatron').exists()
     assert 'MILES_LOGPROB_BACKWARD_DEBUG_DIR' not in (workspace / 'miles/utils/ppo_utils.py').read_text()
     assert 'torch.save' not in (workspace / 'miles/utils/train_dump_utils.py').read_text()
@@ -130,7 +142,16 @@ def test_export_real_pinned_source(tmp_path):
             if p.suffix == '.py' and p.relative_to(workspace).parts[0] in ('miles', 'miles_plugins'):
                 assert not any(is_observation(node) for node in ast.walk(ast.parse(p.read_text()))), p
     target = workspace / 'miles/backends/training_utils/loss.py'
-    assert 'if all_masks.numel() > 0:' in target.read_text()
+    assert 'if all_masks.numel() > 0:' not in target.read_text()
+    whitespace = (workspace / 'miles/utils/distributed_utils.py').read_text()
+    assert 'stats_tensor = _moments(values, mask)' in whitespace
+    assert 'if values.numel() == 0:' not in whitespace
+    repaired = tmp_path / 'repaired'
+    shutil.copytree(workspace, repaired)
+    subprocess.run(['git', 'apply', str(maintainer / 'repair.patch')], cwd=repaired, check=True)
+    assert 'stats_tensor = _moments(values, mask).clone()' in (repaired / 'miles/utils/distributed_utils.py').read_text()
+    assert 'return origin.clone()' in (repaired / 'miles/utils/moments.py').read_text()
+    assert (repaired / exporter.TARGET).read_text() == target.read_text()
     assert 'Collective-communication invariant: distributed_masked_whiten' not in target.read_text()
     with pytest.raises(FileExistsError):
         exporter.export(Path(source), out)
@@ -209,5 +230,4 @@ def test_exported_computation_matches_original_recorded_pair(tmp_path):
         return ast.dump(RemoveObservationCalls().visit(function), include_attributes=False)
 
     candidate = (out / 'workspace' / exporter.TARGET).read_text()
-    assert computation(candidate) == computation((pair / 'faulty' / exporter.TARGET).read_text())
-    assert computation(exporter.remove_guard(candidate)) == computation((pair / 'healthy' / exporter.TARGET).read_text())
+    assert computation(candidate) == computation((pair / 'healthy' / exporter.TARGET).read_text())

@@ -185,6 +185,9 @@ def _source_functions(source):
                 elif isinstance(n, ast.Import) and any(a.name == 'miles.utils.collective_plan' for a in n.names):
                     plan_needed = True
         selected[relative] = nodes
+    helper = Path(source) / 'miles/utils/moments.py'
+    if helper.exists():
+        hashes['miles/utils/moments.py'] = hashlib.sha256(helper.read_bytes()).hexdigest()
     if plan_needed:
         hashes[PLAN] = hashlib.sha256((Path(source) / PLAN).read_bytes()).hexdigest()
     return selected, hashes

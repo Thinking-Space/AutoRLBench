@@ -1,23 +1,20 @@
 # Public JustRL2 constructed regression case
 
-**November 12 staged replay:** the original guard now executes in a constructed
-multi-update assignment scenario with a real downstream metrics-timeout symptom.
-See challenge/staged_validation.json (under justrl2/ for the top-level proposal).
-This is fresh CPU/Gloo evidence, not a new GPU or production-sampler result.
-A blind solver still located the guard statically; the difficulty threshold is
-not claimed to be met.
+**November 12 redesign:** [challenge/](challenge/README.md) injects a cached-moment
+identity defect: an empty CP shard lets an in-place all-reduce mutate a reused
+initializer, so later nonempty updates produce incorrect PPO metrics while all
+collectives complete. Earlier guard-based CPU/GPU receipts below are historical
+and do not validate this authored scenario. Current evidence is in
+[challenge/window_validation.json](challenge/window_validation.json).
 
-**November 8 split and observation cleanup:** this PR contains the original
-empty-shard case only. [challenge/](challenge/README.md) exports coarse replay
-status and no prebuilt tracing or tensor dumps; investigation methods are unrestricted.
-Historical evidence below stays reviewer-only. The unrelated cache case is
-submitted independently and is not a build or validation dependency.
+**Scope and boundary:** this PR contains the original empty-shard theme only; the
+communicator-cache challenge remains independent in PR #30. The contestant export
+has no prebuilt diagnostics, and the investigation method is unrestricted. The
+older GPU/checkpoint evidence below describes the earlier one-update guard fault;
+it does not validate the new cached-moment regression.
 
-**November 7 review revision:** [challenge/](challenge/README.md) adds a
-reproducible defective-only contestant export, a reduced observation view and
-maintainer-only CP/DP numerical checks. Use that export for difficulty review;
-this directory deliberately retains complete, answer-revealing audit evidence.
-The new export has not been GPU-revalidated or difficulty-calibrated.
+**Review boundary:** [challenge/](challenge/README.md) documents the authored
+CPU/Gloo regression. Complete historical audit evidence remains reviewer-only.
 
 **Status (October 30, 2026): the final public image passed a real 8×H100
 healthy/faulty training pair and native model/Adam checkpoint restoration.** A
@@ -29,8 +26,9 @@ The case pins public `merak0514/JustRL-II` at
 `75814318f243af7e39af337c1173fc3927c9635b` and public
 `openbmb/JustRL-II-base-model` at
 `b558bbc71d9433e7c5869effcbac07d4c7f2c5b4`.
-**The pinned public source already fixes the empty-shard defect.** The faulty
-arm deliberately reintroduces its local guard; it is not an unfixed upstream bug.
+**The pinned public source is already repaired.** This proposal authors a new
+stateful empty-shard regression in a local moments helper; it is not an upstream
+defect and does not reintroduce the former local guard.
 
 ## Validated image and evidence
 

@@ -15,6 +15,7 @@ import subprocess
 import tarfile
 import tempfile
 from source_cleanup import clean_source, remove_diagnostic_tools
+from window_reference import exported_expectations
 
 HERE = Path(__file__).resolve().parent
 EVIDENCE = HERE.parent
@@ -55,22 +56,38 @@ def strip_diagnostics(text):
     return result
 
 
-def inject_guard(text):
-    start = text.index('        whitened_advs_flat = distributed_masked_whiten(\n')
-    end_marker = '        advantages = list(torch.split(whitened_advs_flat, chunk_lengths))\n'
-    end = text.index(end_marker, start) + len(end_marker)
-    block = text[start:end]
-    return text[:start] + '        if all_masks.numel() > 0:\n' + ''.join(
-        '    ' + line if line.strip() else line for line in block.splitlines(True)) + text[end:]
+MOMENT_REDUCER = '# SPDX-License-Identifier: Apache-2.0\nfrom functools import reduce\nfrom operator import add\n\nimport torch\n\n\nclass MomentReducer:\n    def __init__(self, width=4096):\n        self.width = width\n        self._origins = {}\n\n    def __call__(self, values, mask):\n        key = (values.device, torch.float32)\n        origin = self._origins.get(key)\n        if origin is None:\n            origin = torch.zeros(3, device=values.device, dtype=torch.float32)\n            self._origins[key] = origin\n        blocks = (\n            torch.stack(((x * m).sum(), (x.square() * m).sum(), m.sum())).float()\n            for start in range(0, values.numel(), self.width)\n            for x, m in [(values[start:start + self.width], mask[start:start + self.width])]\n        )\n        return reduce(add, blocks, origin)\n'
+MOMENT_IMPORTS = 'from miles.utils.moments import MomentReducer\n\n_moments = MomentReducer()\n\n'
+MOMENT_CALL = '    stats_tensor = _moments(values, mask)\n'
 
 
-def remove_guard(text):
-    start = text.index('        if all_masks.numel() > 0:\n')
-    body = start + len('        if all_masks.numel() > 0:\n')
-    end_marker = '            advantages = list(torch.split(whitened_advs_flat, chunk_lengths))\n'
-    end = text.index(end_marker, body) + len(end_marker)
-    return text[:start] + ''.join(line[4:] if line.strip() else line
-                                for line in text[body:end].splitlines(True)) + text[end:]
+def inject_cached_moment_reducer(text):
+    tree = ast.parse(text)
+    fn = next((n for n in tree.body if isinstance(n, ast.FunctionDef)
+               and n.name == 'distributed_masked_whiten'), None)
+    if fn is None:
+        raise ValueError('Whitening function missing')
+    nodes = [n for n in fn.body if isinstance(n, ast.Assign)
+             and any(isinstance(t, ast.Name) and t.id in
+                     {'local_sum', 'local_sum_sq', 'local_mask_sum', 'stats_tensor'} for t in n.targets)]
+    if len(nodes) != 4:
+        raise ValueError('Whitening moment construction differs from pinned source')
+    lines = text.splitlines(keepends=True)
+    lines[nodes[0].lineno - 1:nodes[-1].end_lineno] = [MOMENT_CALL]
+    return MOMENT_IMPORTS + ''.join(lines)
+
+
+def repair_cached_moment_reducer(text):
+    if text.count(MOMENT_CALL) != 1:
+        raise ValueError('Cached moment reducer call missing or ambiguous')
+    return text.replace(MOMENT_CALL, '    stats_tensor = _moments(values, mask).clone()\n', 1)
+
+
+def repair_moment_origin(text):
+    if text.count('        return reduce(add, blocks, origin)\n') != 1:
+        raise ValueError('Cached moment reduction missing or ambiguous')
+    return text.replace('        return reduce(add, blocks, origin)\n',
+                        '        if values.numel() == 0:\n            return origin.clone()\n        return reduce(add, blocks, origin)\n', 1)
 
 
 def project_evidence(rows, trace, fixture):
@@ -212,10 +229,14 @@ def export(source, output):
         begin = loss.index('        # Collective-communication invariant: distributed_masked_whiten')
         end = loss.index('        assert (', begin)
         control = strip_diagnostics(loss[:begin] + loss[end:])
-        defective = inject_guard(control)
-        if remove_guard(defective) != control:
-            raise ValueError('Guard transformation is not reversible')
-        (workspace / TARGET).write_text(defective)
+        if 'if all_masks.numel() > 0:' in control:
+            raise ValueError('Pinned caller unexpectedly contains the old local guard')
+        (workspace / TARGET).write_text(control)
+        whitening_path = workspace / 'miles/utils/distributed_utils.py'
+        whitening_control = whitening_path.read_text()
+        whitening_defective = inject_cached_moment_reducer(whitening_control)
+        whitening_path.write_text(whitening_defective)
+        (workspace / 'miles/utils/moments.py').write_text(MOMENT_REDUCER)
         # Retain the runtime compatibility change used in the recorded GPU run.
         actor = workspace / 'miles/backends/megatron_utils/actor.py'
         actor.write_text('from benchmark.process_group_compat import install as install_process_group_compat\n' +
@@ -267,17 +288,39 @@ def export(source, output):
                 write_json(private / name, data)
         debug = workspace / 'debug'
         debug.mkdir()
-        shutil.copyfile(HERE / 'run_updates.py', debug / 'run_updates.py')
+        shutil.copyfile(HERE / 'run_window.py', debug / 'run_window.py')
+        write_json(workspace / 'inputs/expected.json', exported_expectations(evidence['replay.json']))
         (debug / 'runtime_support.py').write_text(build_runtime_support())
+        evaluator = private / 'window_evaluator'
+        evaluator.mkdir()
+        shutil.copyfile(HERE / 'run_window.py', evaluator / 'run_window.py')
+        (evaluator / 'runtime_support.py').write_text(build_runtime_support())
+        (evaluator / 'inputs').mkdir()
+        shutil.copyfile(EVIDENCE / 'fixture.json', evaluator / 'inputs/replay.json')
+        write_json(evaluator / 'inputs/expected.json', exported_expectations(evidence['replay.json']))
+        shutil.copyfile(HERE / 'window_probe.py', private / 'window_probe.py')
+        shutil.copyfile(HERE / 'window_reference.py', private / 'window_reference.py')
+        shutil.copyfile(HERE / 'sequence_audit.py', private / 'sequence_audit.py')
         for folder in ('miles', 'miles_plugins'):
             for path in (workspace / folder).rglob('*.py'):
                 path.write_text(clean_source(path.read_text()))
         remove_diagnostic_tools(workspace)
         for path in workspace.rglob('*.py'):
             ast.parse(path.read_text(), filename=str(path.relative_to(workspace)))
-        defective, control = clean_source(defective), clean_source(control)
-        repair = ''.join(difflib.unified_diff(defective.splitlines(True), control.splitlines(True),
-                                            fromfile='a/' + TARGET, tofile='b/' + TARGET))
+        repair_parts = []
+        helper_defective = (workspace / 'miles/utils/moments.py').read_text()
+        helper_control = repair_moment_origin(helper_defective)
+        for relative, defective_text, control_text in (
+                (TARGET, (workspace / TARGET).read_text(), control),
+                ('miles/utils/distributed_utils.py', whitening_defective,
+                 repair_cached_moment_reducer(whitening_defective)),
+                ('miles/utils/moments.py', helper_defective, helper_control)):
+            defective_text, control_text = clean_source(defective_text), clean_source(control_text)
+            if defective_text != control_text:
+                repair_parts.extend(difflib.unified_diff(
+                    defective_text.splitlines(True), control_text.splitlines(True),
+                    fromfile='a/' + relative, tofile='b/' + relative))
+        repair = ''.join(repair_parts)
         (private / 'repair.patch').write_text(repair)
         shutil.copyfile(HERE / 'oracle.md', private / 'oracle.md')
         shutil.copyfile(HERE / 'topology_verifier.py', private / 'topology_verifier.py')
@@ -292,11 +335,13 @@ def export(source, output):
                                         ('fixture.json', 'public_runtime_events.json', 'public_faulty_trace.txt')},
                     'projection': {'source_arm': 'faulty',
                                    'reviewer_only': ['CP/DP membership ledger', 'all rank progress', 'backend exception', 'full original artifacts'],
-                                   'contestant_inputs': ['replay token IDs, lengths, rewards and masks'],
+                                   'contestant_inputs': ['replay token IDs, lengths, rewards and masks',
+                                                         'independent aggregate loss references',
+                                                         'authored synthetic critic and log-ratio formulas in runner'],
                                    'provided_runtime_diagnostics': False},
                     'code_transformations': ['allow-list native framework modules and model args',
                                              'remove answer-revealing repair comment', 'replace all adv-diag logger calls with pass',
-                                             'inject the recorded local numel guard', 'retain common process-group compatibility helper',
+                                             'add a reusable window-statistics reducer with an in-place collective boundary', 'retain common process-group compatibility helper',
                                              'keep historical GPU launcher and its diagnostic setup reviewer-only'],
                     'observation_policy': 'No supplied log/print calls or non-license comments in framework copies; no prebuilt trace; investigation method is unrestricted.',
                     'gpu_revalidated': False, 'difficulty_calibrated': False,

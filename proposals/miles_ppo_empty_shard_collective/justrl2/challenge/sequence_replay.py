@@ -173,17 +173,30 @@ def worker(source, output, scratch, config, rank):
                 loss_module = sys.modules['miles.backends.training_utils.loss']
                 native_whiten = loss_module.distributed_masked_whiten
                 def capture_whiten(advs, masks, process_group=None, **kwargs):
-                    record['whitening_called'] = True
-                    record['whitening_members'] = dist.get_process_group_ranks(process_group)
-                    record['whitening_values'] = advs.detach().float().cpu().tolist()
-                    record['whitening_mask'] = masks.detach().float().cpu().tolist()
+                    original_all_reduce = dist.all_reduce
+                    entered = {'value': False}
+                    def capture_collective(tensor, *args, **call_kwargs):
+                        entered['value'] = True
+                        record['whitening_called'] = True
+                        record['whitening_members'] = dist.get_process_group_ranks(process_group)
+                        record['whitening_values'] = advs.detach().float().cpu().tolist()
+                        record['whitening_mask'] = masks.detach().float().cpu().tolist()
+                        return original_all_reduce(tensor, *args, **call_kwargs)
+                    dist.all_reduce = capture_collective
                     try:
                         result = native_whiten(advs, masks, process_group=process_group, **kwargs)
-                        record['whitening_output'] = result.detach().float().cpu().tolist()
+                        if entered['value']:
+                            record['whitening_called'] = True
+                            record['whitening_members'] = dist.get_process_group_ranks(process_group)
+                            record['whitening_values'] = advs.detach().float().cpu().tolist()
+                            record['whitening_mask'] = masks.detach().float().cpu().tolist()
+                            record['whitening_output'] = result.detach().float().cpu().tolist()
                         return result
                     except Exception as exc:
                         record['whitening_error_type'] = type(exc).__name__
                         raise
+                    finally:
+                        dist.all_reduce = original_all_reduce
                 loss_module.distributed_masked_whiten = capture_whiten
                 native_gae = loss_module.get_advantages_and_returns_batch
                 def capture_gae(*args, **kwargs):

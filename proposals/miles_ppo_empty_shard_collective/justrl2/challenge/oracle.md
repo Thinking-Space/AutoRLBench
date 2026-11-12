@@ -1,105 +1,27 @@
 # Maintainer-only diagnosis and repair contract
 
-Expected verdict: unhealthy. The regression was deliberately inserted into
-already-repaired public source. It is not an outstanding upstream defect.
+This is an authored regression inserted into already-repaired JustRL-II revision `75814318f243af7e39af337c1173fc3927c9635b`. PR #30 remains a separate communicator-cache defect.
 
-## Necessary causal chain
+## Root cause
 
-1. Dispatch assigns sample 0 (424 total tokens, 2 response tokens) to DP
-   replica 0 and sample 1 (357 total, 329 response) to replica 1. With zigzag
-   CP2 response slicing, derive local response counts `[2, 0]` and `[149, 180]`
-   from `get_logits_and_tokens_offset_with_cp` and the masks. Merely naming a
-   short response without relating it to the slicing is incomplete.
-2. In each role, CP groups are `[0,1]` and `[2,3]`; DP groups at fixed CP
-   coordinate are `[0,2]` and `[1,3]`. The problematic pair is ranks 1 and 3,
-   not ranks 0 and 1. Actor and critic have separate four-rank worlds.
-3. In `compute_advantages_and_returns`, `all_masks.numel()>0` is a local
-   predicate around `distributed_masked_whiten`. Rank 1 skips it and progresses;
-   rank 3 calls the DP collective. Empty tensors and nonempty zero masks are
-   different cases. GAE's preceding two CP reductions do not have this guard.
-4. `distributed_masked_whiten` packs sum, squared sum and mask count into a
-   fixed-size FP32 tensor and reduces over `parallel_state.intra_dp.group`.
-   A tensor-empty member must still participate with zeros. Divergent
-   participation causes the communicator/store failure; a later timeout is a
-   symptom, and its communicator-local labels alone do not identify the ranks.
-5. Remove the local conditional while preserving the same DP group, masks,
-   unbiased pooled variance, GAE and returns. Changing to CP/WORLD, disabling
-   normalization, filtering away the short replay, or increasing timeouts does
-   not preserve the intended computation.
+`miles/utils/moments.py::MomentReducer` caches a zero FP32 vector of `[sum, sumsq, mask_count]` per device. It creates chunk triples lazily and computes `reduce(add, blocks, origin)`. For a nonempty input, `reduce` adds the chunks and returns a fresh tensor. For an empty input, it returns `identity` itself. The caller then passes that tensor to `dist.all_reduce`, which mutates the tensor in place. The empty worker's correct zero contribution is thereby replaced by its peer's aggregate statistics.
 
-## Scoring contract for integration
+On a later nonempty input, the reducer uses the same mutated tensor as its starting value and adds the current chunks to stale prior statistics. The ensuing all-reduce combines old and current moments. Every DP member has entered the same collective, with the right group and tensor shape; the error is that one participant's local accumulator contains state from a prior update.
 
-Keep the current issue judge's verdict/root-cause/evidence weights 0.2/0.6/0.2
-for the reported aggregate score. Passing is conjunctive: verdict must equal
-1.0, root-cause must be strictly greater than 0.8, and evidence must be strictly
-greater than 0.8, matching the existing issue `judge.py`. Root-cause credit is
-at most 0.4 unless ALL causal links 1–4 are explained
-correctly with concrete groups and local counts (equivalent derivations count).
-Perfect verdict and evidence cannot compensate for incomplete root-cause credit.
-A bare function name, grep result or correct one-line patch cannot pass the
-diagnosis tier. Evidence credit requires distinguishing observations from
-inference: runtime claims must be supported rather than invented. No particular
-investigation method or artifact format is required. This is an explicit rubric,
-not a calibrated LLM judge.
+A valid repair must ensure the tensor passed to all-reduce is independently owned per invocation. The reference clones the cached identity for the empty case. Other equivalent implementations may also be valid if they preserve all moments and collective participation. Keep DP membership, masked sums, squared sums, count, Bessel correction, epsilon, returns and native zero-global-mask `ValueError` unchanged. Avoid persistent mutation of the reducer's identity.
 
-## Plausible alternatives
+## Default assignment and expected symptom
 
-- A network/NCCL failure: consistent within-group divergence is predicted by
-  dispatch, slicing and local control flow; raising the deadline cannot restore
-  a missing participant. Retained evidence alone is not a network health audit.
-- CP GAE reconstruction: the source places its two unconditional CP reductions
-  before the guarded DP reduction; the groups differ. The observation view does
-  not locate checkpoint 0 relative to these callsites, and a contestant must not
-  be required to infer that hidden mapping or claim runtime proof of it.
-- Bad rewards or zero loss masks: replay masks are all ones; the empty local
-  tensor is created by slicing, not bad global data or mask values.
-- A model/optimizer/attention failure: the first mismatched collective precedes
-  the optimizer; changing unrelated components is unsupported.
+Two copies of each authored sample are shuffled with seed 3 and placed contiguously on the two DP replicas. The five batches are `[[3,0],[2,1]]`, `[[2,0],[3,1]]`, `[[0,1],[3,2]]`, `[[3,2],[1,0]]`, `[[3,1],[0,2]]`. The global sample multiset and all sample contents remain fixed.
 
-## Repair verification
+Under CP2, short response shards have counts `[2,0]` and long response shards `[149,180]`. Updates 0 and 1 mix short/long responses on both replicas, so each CP rank has nonempty concatenated data. At update 2, one DP replica has only short samples; CP rank 1 has an empty local tensor. The same rank's reducer identity is mutated by the valid DP all-reduce. At update 3 that rank has nonempty data and its local triples include stale moments. The original policy-loss mismatch is first visible at update 3; later updates can remain affected. The first empty-shard update can itself agree with the independent oracle because the empty output contains no values.
 
-Apply `repair.patch` in a copy of the contestant workspace. Run the separate
-`topology_verifier.py` against both versions, including topology permutations
-and numerical negative controls. The verifier executes extracted native Python
-functions with real Gloo collectives; it does not load model weights or verify
-GPU forward/backward/checkpoint behavior. Existing October 30 GPU receipts apply
-to the original instrumented pair. Do not relabel them as a new exported run.
+The distinguishing history is: mixed calls, one locally empty but globally nonempty collective, then another nonempty call in the same worker process. A fresh standalone nonempty calculation, CP1, or an all-mixed schedule can pass. A prefix ending immediately after the empty update can also pass. These controls are intentional and should not be used alone to declare the repair correct.
 
-The original full trace, rank events, pair generator and SHA inventories remain
-in the proposal for reviewer audit. Never expose this file, the exporter,
-`maintainer/`, original proposal, healthy checkout, source git history or an
-installed repaired framework copy to the contestant. Disable network access.
-Public publication inherently permits prior familiarity; measure it during
-blind difficulty calibration instead of claiming contamination is impossible.
+## Evaluation
 
-## Method-neutral evaluation
+The private evaluator should compare per-update policy loss, value loss, clip fraction, local moment vectors and normalized advantages against the independent scalar oracle. It must test a continuous worker lifetime across the empty and subsequent nonempty calls. It must reject missing ranks, changed references, nonfinite outputs, wrong group membership and stale-state mutations.
 
-Assess the causal explanation, repair and supporting validation. Do not require
-logging, assertions, an instrumentation-only diff, a prescribed experiment
-sequence or a particular evidence schema. Correct conclusions must not be
-penalized for the solver's choice of investigative method. The independent
-numerical verifier remains the correctness authority.
+The task does not require runtime discovery, logs, a fixed report schema, or specific debugging steps. Blind review must honestly report whether static reading found the cached identity alias and whether execution changed or confirmed the hypothesis. Difficulty calibration is empirical, not guaranteed by test count.
 
-## Multi-update replay reconciliation (November 12)
-
-The current initial command executes a constructed five-update assignment
-schedule, rather than the previous one-sample-per-DP fixture call. The sample
-pool contains two copies each of the original trajectories. Under default seed
-3, assignments at updates 0,1,2 are [[3,0],[2,1]], [[2,0],[3,1]],
-[[0,1],[3,2]]. The global multiset is unchanged.
-
-A complete causal explanation should account for the mixed batches containing
-some empty per-sample CP chunks while the concatenated batch is nonempty; only
-the short-only batch makes the local guard skip. At update 2 the four rank-local
-response counts are [4,0,298,360], and the mismatched DP pair is [1,3]. This
-extends rather than changes the root cause described above.
-
-The first reported exception under default deadlines is the later native
-aggregate_train_losses reduction over CP×DP. It is a symptom: three workers
-arrive there while the fourth is blocked in the earlier whitening reduction.
-Changing report timing changes error order, not the root; changing reporting
-or dropping data is not a repair. Do not require exact wall times or which of
-the three reporting ranks races to report first. Both error stages and every
-sample's numerical outputs can be verified by the private replay audit.
-The task remains method-neutral; do not tell the solver what to log or how to
-investigate, or require prescribed diagnostics as acceptance artifacts.
+The historical one-update empty-shard collective defect is not the injected root in this export; retained GPU receipts are unrelated historical evidence. CPU/Gloo replay does not establish full model/optimizer/GPU training behavior.

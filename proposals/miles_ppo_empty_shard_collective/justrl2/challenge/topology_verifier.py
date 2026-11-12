@@ -79,21 +79,37 @@ def _source_nodes(source):
         path = source / relative
         text = path.read_text()
         hashes[relative] = hashlib.sha256(text.encode()).hexdigest()
-        functions = {n.name: n for n in ast.parse(text, filename=str(path)).body
-                     if isinstance(n, ast.FunctionDef)}
-        missing = set(required) - functions.keys()
-        if missing:
-            raise ValueError(f"{relative}: missing native functions {sorted(missing)}")
-        # Include any same-file helper introduced by a candidate refactor.
-        names = set(required)
+        tree = ast.parse(text, filename=str(path))
+        def bound(node):
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                return {node.name}
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                return {a.asname or a.name.split('.')[0] for a in node.names}
+            if isinstance(node, ast.Assign):
+                return {n.id for t in node.targets for n in ast.walk(t) if isinstance(n, ast.Name)}
+            return set()
+        by_name = {name: node for node in tree.body for name in bound(node)}
+        if not set(required) <= set(by_name):
+            raise ValueError(f'{relative}: missing native functions')
+        chosen = {by_name[name] for name in required}
+        provided = set(namespace_name for names in FUNCTIONS.values() for namespace_name in names)
+        provided.update({'torch', 'dist', 'F', 'get_parallel_state', 'Namespace', 'RolloutBatch', '_diag_logger'})
+        native_modules = {name[:-3].replace('/', '.') for name in FUNCTIONS}
         while True:
-            dependencies = {n.id for name in names for n in ast.walk(functions[name])
-                            if isinstance(n, ast.Name)} & functions.keys()
-            expanded = names | dependencies
-            if expanded == names:
+            needed = {n.id for node in chosen for n in ast.walk(node)
+                      if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)}
+            extra = {by_name[name] for name in needed if name in by_name
+                     and (name not in provided or isinstance(by_name[name], (ast.FunctionDef, ast.ClassDef)))
+                     and not (isinstance(by_name[name], ast.ImportFrom)
+                              and (by_name[name].module in native_modules
+                                   or by_name[name].module in ('parallel', 'miles.backends.training_utils.parallel')))}
+            if extra <= chosen:
                 break
-            names = expanded
-        selected[relative] = [n for name, n in functions.items() if name in names]
+            chosen |= extra
+        selected[relative] = [n for n in tree.body if n in chosen]
+    helper = source / 'miles/utils/moments.py'
+    if helper.exists():
+        hashes['miles/utils/moments.py'] = hashlib.sha256(helper.read_bytes()).hexdigest()
     return selected, hashes
 
 
@@ -104,8 +120,11 @@ def _load(source, namespace):
                             names=[ast.alias(name="annotations")], level=0), *nodes], type_ignores=[])
         exec(compile(ast.fix_missing_locations(module), str(source / relative), "exec"), namespace)
         if relative.endswith("cp_utils.py"):
-            for name in ("miles", "miles.backends", "miles.backends.training_utils"):
-                sys.modules[name] = ModuleType(name)
+            for name in ('miles', 'miles.utils', 'miles.backends', 'miles.backends.training_utils'):
+                package = ModuleType(name)
+                package.__path__ = [str(source.joinpath(*name.split('.')))]
+                sys.modules[name] = package
+            sys.modules.pop('miles.utils.moments', None)
             cp_module = ModuleType("miles.backends.training_utils.cp_utils")
             cp_module.__dict__.update(namespace)
             sys.modules[cp_module.__name__] = cp_module

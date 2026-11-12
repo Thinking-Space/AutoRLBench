@@ -1,107 +1,33 @@
-# Original empty-shard case: multi-update symptom replay
+# Original empty-shard case: stale distributed PPO statistics
 
-This PR retains the original rank-local empty-shard guard. PR #30's separate
-communicator-cache defect is not a dependency or part of this export.
+**November 12 redesign:** the injected defect is now a cached-moment identity alias in distributed whitening. It preserves the CP-empty-shard topic while replacing the old rank-local skipped-collective guard. PR #30 stays separate. See [window_validation.json](window_validation.json) for tests, blind review and GPU scope.
 
-The November 11 review noted that cleaning hints does not increase causal
-difficulty. This revision changes the executed workload: the same four sample
-copies run through multiple assignments and the native metric aggregator.
-Two updates complete before the third fails. The first reported error can be
-in downstream metric aggregation, although the initiating fault is an earlier
-DP collective. These symptoms are produced by real CPU/Gloo execution.
+The replay completes five updates, but PPO policy metrics first drift after an empty CP shard has participated in a whitening reduction. The first empty update can look correct; the problem appears when the same worker later processes nonempty data. The solver sees only aggregate expected values and normal replay output. It is not asked to add logs or follow a prescribed method.
 
 ## Build and run
 
-Use Python 3.12+, CPU PyTorch/Gloo and NumPy and the pinned public JustRL-II
-checkout at 75814318f243af7e39af337c1173fc3927c9635b:
+Use Python 3.12+, CPU PyTorch/Gloo and NumPy with the public JustRL-II checkout at `75814318f243af7e39af337c1173fc3927c9635b`:
 
     python export_challenge.py --source /path/to/JustRL-II --output /tmp/empty-case
     cd /tmp/empty-case/workspace
-    python debug/run_updates.py --output /tmp/run-a
+    python debug/run_window.py --output /tmp/run-a
 
-The exporter checks all 286 source hashes and the historical input pins.
-Mount only workspace/ (or workspace.tar.gz) for the solver, without the parent
-repository, maintainer/, source history or network access. The only native
-defect is still the original guard; the reference patch removes it.
+Mount only `workspace/` or `workspace.tar.gz`. Keep `maintainer/`, source history and network inaccessible. The exporter pins the upstream source and authored trajectory inputs. The source revision is already repaired; the challenge exporter authors the regression.
 
-The solver gets the source, two authored trajectory inputs reused as four
-copies, and run_updates.py plus its source loader. The runner records aggregate
-status, completed-update count and the first actual exception's operation/type/
-message. It omits Python caller frames, peer identities and later peer errors.
-Worker stdout remains available for any solver-authored observations.
-There is no trace switch, per-rank event ledger, intermediate tensor dump or
-prescribed investigation method. Source print/logger calls and dormant dump
-helpers remain removed, as in the previous export.
+## Scenario and computation
 
-## Constructed workload and limits
+The authored replay reuses two copies each of the original trajectories (total/response lengths 424/2 and 357/329). Seeded assignments keep the global multiset, rewards and masks fixed. Under CP2, short responses contribute `[2,0]` local tokens and long responses `[149,180]`.
 
-This is a constructed assignment replay, not the pinned upstream sampler.
-The global multiset (two copies of each original short/long sample), rewards,
-masks and aggregate lengths remain identical at every update. Seeded contiguous
-DP partitioning produces mixed batches for updates 0 and 1, then both short
-samples on one replica at update 2. The total lengths are 424/357, while response
-lengths are 2/329; they must not be conflated.
+The defect is in a newly introduced chunked statistics helper used by distributed whitening. It caches a zero-valued identity tensor per device and passes it as the initial value to a lazy reduction over response chunks. When the local response is empty, the reduction returns the identity object itself. The next Gloo all-reduce mutates its input in place. That poisons the cached identity. Later reductions on that worker add the stale three-moment vector (sum, squared sum, valid-token count) to the current batch, even though all ranks enter the same DP collective in the same order.
 
-Under CP2 the short-only replica has an empty local response batch at CP1.
-Its DP peer has nonempty responses. The original local guard skips whitening
-on the empty rank. That rank and two others advance to a native CP×DP report
-reduction; the nonempty peer is still waiting in DP whitening. A configured
-one-second reporting deadline expires before the four-second compute deadline.
-The default first exception therefore names the metric aggregator.
+With the default schedule, earlier mixed updates agree. The empty local partition itself gets the right global moments for its empty output, while contaminating the cached identity. Later nonempty updates produce finite but incorrect policy metrics. A fresh process or a run ending immediately after the empty partition does not show the later discrepancy. This distinguishes a history-dependent local-state error from a permanently wrong process group or normalization formula.
 
-The timeout separation is deliberate and identical between defect and repair.
-Controls change reporting/compute deadlines independently or make them equal;
-ordering is not asserted for equal deadlines. Turning reporting off or extending
-its deadline exposes the compute failure but does not repair it. An all-mixed
-assignment and CP1 complete, even with the same global input lengths. The fixed
-code completes all five original assignments. No sleeps or fabricated errors
-are used to create this sequence.
+A valid correction must preserve the global sum, squared sum and mask count for each current batch, along with the DP group, unbiased variance correction, GAE, CP slicing and native clipped policy loss. Safe repairs include cloning the reused initializer when the reduction returns it directly or using a fresh zero accumulator for empty input. The native all-zero-global-mask `ValueError` behavior must remain. The replay uses synthetic critic values and log-ratios with native CPU/Gloo operations; no model, optimizer, GPU, or full production sampler is claimed.
 
-The report values are synthetic squared-advantage/return summaries supplied to
-the unchanged native aggregate_train_losses function. They use the native
-sample-mean convention (full per-sample mask denominator, CP-local numerator,
-replicated sample count). This is not the full training call order: no model
-forward/backward or optimizer step occurs. The old GPU receipts do not validate
-this new schedule or its report-stage timing.
+## Independent validation
 
-## Independent reviewer checks
+`window_reference.py` predicts per-update outputs from a separate scalar implementation. The private evaluator bundles its own runner, loader, fixture and expected values; it does not trust the contestant runner's reported validation. Private wrappers capture reducer inputs/outputs, rank, group and update identity while leaving collectives and numerical calls unchanged.
 
-The detailed sequence_replay.py and sequence_audit.py stay outside the solver
-mount. They retain the complete rank/update arrays and all timed errors.
-A scalar implementation independently checks CP ownership, pre-normalized GAE,
-whitening inputs/masks and DP group membership, normalized per-sample outputs,
-returns and aggregate metrics. Missing ranks, corrupted outputs, wrong groups
-and absent later peer errors fail the audit.
+Controls include a three-update prefix ending immediately after the empty partition, the full five-update schedule, mixed-only assignment, CP1, CP4, a valid rank permutation, a report-every-update schedule, and the reference correction. The four-topology verifier checks the same-group collective sequence, empty and zero-mask behavior, and numerical output after preceding scenarios have changed reducer state.
 
-Reviewer controls cover the default defect and repair, mixed assignment, CP1,
-disabled reporting, longer compute/report timeouts, equal timeouts and rank
-permutation. The original numerical topology verifier remains available for
-its broader mask/topology mutation coverage.
-
-    JUSTRL2_SOURCE=/path/to/JustRL-II python -m pytest . -q
-
-See staged_validation.json for fresh code/archive hashes and measured outcomes.
-The older validation.json, instrumentation_validation.json and
-instruction_validation.json describe their respective earlier exports.
-
-Correct diagnosis and validation are graded on correctness. No log format,
-instrumentation diff, experiment order or technique is required. A solver may
-still infer the guard statically; this work does not claim impossible static
-deduction or a calibrated solve rate. Blind-review findings are recorded
-explicitly before claiming any difficulty improvement.
-
-
-## Validation and blind review
-
-The final revision passes **129 pytest cases plus 10 subtests**, with no failures
-or skips. Nine staged control experiments pass the per-sample scalar audit.
-The reference repair also passes the existing four-topology, 36-case verifier.
-The final archive and scripts are bound by staged_validation.json.
-
-One workspace-only blind solver explained the first reporting timeout and the
-change from two completed updates to a failure. It reported that source reading
-still directly exposed the guard; runs confirmed rather than enabled discovery.
-Its synchronized-skip repair completed the visible sequence but was rejected by
-the independent empty-DP-group case because it suppressed the native global
-zero-mask error. These outcomes are not evidence that root location now meets a
-target difficulty threshold; no calibrated solve-rate claim is made.
+The independent blind solver first suspected a wrong process group. Changing the group made results worse; a runtime empty-input reproduction then exposed the reused, in-place-mutated initializer. The report attributes that hypothesis change to execution and validates the repair. One blind run is evidence of meaningful diagnostic difficulty, not a calibrated solve rate or a guarantee that static inspection can never reveal the alias. Historical GPU/restore receipts remain historical and do not validate this authored stateful CPU scenario.

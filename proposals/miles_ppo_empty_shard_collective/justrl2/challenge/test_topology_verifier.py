@@ -669,3 +669,19 @@ def compute_advantages_and_returns(args: Namespace, rollout_data: RolloutBatch) 
     rollout_data['returns'] = returns
 ''',
 }
+
+
+def test_stateful_empty_identity_corruption_is_detected_after_valid_collectives(native_source, tmp_path):
+    sys.path.insert(0, str(HERE))
+    import export_challenge
+    path = native_source / WHITEN
+    path.write_text(export_challenge.inject_cached_moment_reducer(path.read_text()))
+    helper = native_source / 'miles/utils/moments.py'
+    helper.write_text(export_challenge.MOMENT_REDUCER)
+    result = run(native_source, tmp_path, topologies=['cp2_dp2'],
+                 scenarios=['baseline', 'asymmetric_empty', 'uneven_counts'])
+    assert result['status'] == 'fail', result
+    failures = all_failures(result)
+    assert any(f['kind'] == 'numerical_mismatch' for f in failures), failures
+    assert not any(f['kind'] == 'infrastructure_error' for f in failures)
+    assert not any(f['kind'] == 'collective_participation_mismatch' for f in failures)
