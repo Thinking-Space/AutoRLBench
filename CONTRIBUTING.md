@@ -11,8 +11,6 @@ We suggest something like this:
 <your_task>/
 ├── buggy_workspace/   code that reproduces the defect, plus that run's artifacts
 ├── fixed_workspace/   the same tree with the fix, plus its run's artifacts   (optional)
-├── Dockerfile         names the environment both runs used (a digest-pinned FROM line
-│                      is the cleanest form)
 └── README.md          the defect, the fix, and the measured outcome
 ```
 
@@ -25,19 +23,13 @@ calibrated on.
 stdout/stderr, the offline W&B directory (including `run-*.wandb`, or `wandb sync`
 cannot replay the run), every per-step metric file, and a couple of rollout dumps as
 samples.
-- **A Dockerfile that pins the environment** It's suggested that you package the heavy
-training stack — torch, CUDA, compiled kernels, the framework — into a single image,
-build it and push to a public registry (ghcr.io, Docker Hub, …), or reuse an existing
-environment in [docker/images/](docker/images/). The cleanest pin is a single
-digest-pinned line:
-  ```dockerfile
-  FROM ghcr.io/<you>/<your-image>@sha256:4c43bbf1...
-  ```
-
-  The digest is what makes the environment deterministic. Model and dataset
-  downloads and other small environment touches can reside in separate scripts: a couple
-  of pure-Python wheels the image lacks, env vars the run needs, or specific
-  post-processing of the dataset or model.
+- **A buggy run executed in one of the eight shared environments.** Pick the row in
+[ENVIRONMENTS.md](ENVIRONMENTS.md) whose stack is closest to your run, **run the buggy run
+inside that image**, and ship that run's artifacts — the recorded evidence must come from
+the environment the task declares. Framework or dependency versions the image lacks, and
+other small environment touches, reside in separate scripts rather than a new image. If
+the defect reproduces in none of the eight, you may submit your own environment
+configuration with an explanation — details in [ENVIRONMENTS.md](ENVIRONMENTS.md).
 - **The README** states the defect, the fix as a diff, the measured outcome of both arms,
 and every plausible-but-wrong diagnosis. If you ran each arm once, say so — a
 single-seed result supports margins, not variance.
@@ -62,8 +54,8 @@ search-r1-zero-query-embedding/
 ├── fixed_workspace/       the same tree with four lines changed in
 │                          search_r1/search/retrieval_server.py,
 │                          plus its own results/baseline32/
-├── Dockerfile             CUDA 12.1, Python 3.10, torch 2.4.0, vLLM 0.6.3,
-│                          flash-attn 2.6.3, faiss-cpu 1.14.2
+├── (environment)          the run was re-run in the vllm0.6.3-torch2.4.0-
+│                          flashattn2.6.3-cu121-py3.10 shared image
 ├── prepare.sh             downloads the two models (Qwen2.5-1.5B-Instruct,
 │                          e5-base-v2), rebuilds the FAISS index
 └── README.md
@@ -104,9 +96,10 @@ Then point an agent at the raw material with the
 Package <path-to-your_task> as an AutoRLBench task using the package-task skill at skills/package-task in this repository.
 ```
 
-It produces `tasks/<domain>/<task_id>/` in the [task layout](README.md#task-layout), and
-if your environment is a new image, its one-line Dockerfile lands under
-[docker/images/](docker/images/).
+It produces `tasks/<domain>/<task_id>/` in the [task layout](README.md#task-layout),
+with the environment you ran the buggy run in recorded — digest-pinned — in the
+task's `task.toml` (see [ENVIRONMENTS.md](ENVIRONMENTS.md)); on the exception path,
+your separate environment configuration and its justification are submitted with the PR.
 
 ```bash
 python3 -m autorlbench validate tasks/<domain>/<task_id>

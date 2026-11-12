@@ -50,9 +50,9 @@ Each trial is recorded under outputs/harbor-evaluate/<task_id>/<agent>-<model>/<
 ```bash
 git clone <AutoRLBench repo> && cd AutoRLBench
 
-# 1) docker available, task images pulled (32 tasks across 11 image stacks, 7 shared ones cover 27; pull only what you need)
-python3 -m autorlbench build-images            # all; or build-images verl-vllm0.17.0-...
-docker images                                  # verify
+# 1) docker available; task images are pulled on demand at run time (the 8 shared images
+#    are listed in ENVIRONMENTS.md — pre-pull with `docker pull <reference>` if you want)
+docker images                                  # verify what is already local
 
 # 2) harbor CLI available (AutoRLBench drives agents through it)
 harbor --help || pip install harbor            # or --harbor-command 'uv run ... harbor'
@@ -236,7 +236,7 @@ runs for re-work.
 | solution `"system rerun failed"` | re-run crashed (exit 137=OOM etc.); capability failure, record 0 |
 | prepare stalls for a long time | normal — fetching models/datasets; `tail prepare.log`; if HF is slow, add `--huggingface-mirror` |
 | want to see what the agent is doing | `<run-dir>/harbor-job/logs/agent/<agent>.txt` |
-| a task's image is missing | `python3 -m autorlbench build-images <stack-name>`; list at `docker/images/` |
+| a task's image is missing | nothing to do — the run pulls the task's digest-pinned reference on demand; to pre-pull manually, `docker pull <reference>` from the task's `task.toml` |
 
 For depth (run directory layout, env contract, task list, anti-leak checks, full debug
 table) see [reference.md](reference.md).

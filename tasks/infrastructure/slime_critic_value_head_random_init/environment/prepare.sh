@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # slime_critic_value_head_random_init: what to prepare before training.
 #
-# Runs in a separate prepare-stage container: root, the `slime-v0.3.2` image,
+# Runs in a separate prepare-stage container: root, the `slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12` image,
 # **the only stage with network**, and $AUTORLBENCH_WORKSPACE, $AUTORLBENCH_MODELS,
 # and $AUTORLBENCH_DATASETS are all writable. The assets are immutable inputs to
 # every later stage: the agent and the verifier see the same bytes this script

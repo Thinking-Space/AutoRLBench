@@ -49,5 +49,5 @@ The held-out curve does not reveal the defect at a 60-step budget (0.0454 →
   the verifier writes `status=unavailable` instead of a pass.
 
 The default prepare step fetches Llama-3.2-1B-Instruct weights (~2.4 GB) and
-the DAPO-Math-17k parquet files. The `verl` image includes vLLM 0.17, torch
+the DAPO-Math-17k parquet files. The `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` image includes vLLM 0.17, torch
 2.10 / CUDA 12.9 / Ubuntu 22.04. GPU training requires 2 × H800.

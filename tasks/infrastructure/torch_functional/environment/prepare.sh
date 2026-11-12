@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # torch_functional — prepare stage.
 #
-# Runs in a separate prepare-stage container: root, `verl` image, **the only
+# Runs in a separate prepare-stage container: root, the `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` image, **the only
 # stage with network**. In the agent stage this file is mounted read-only at
 # /autorlbench/environment. $AUTORLBENCH_WORKSPACE, $AUTORLBENCH_PREPARED,
 # $AUTORLBENCH_MODELS and $AUTORLBENCH_DATASETS are all writable.

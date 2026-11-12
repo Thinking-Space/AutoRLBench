@@ -28,7 +28,6 @@ from autorlbench.core.types import (
     AUTORLBENCH_ENVIRONMENT_DIR,
     CommandResult,
     EnvironmentImage,
-    resolve_environment_reference,
 )
 from autorlbench.evaluation.harbor_evaluator import (
     ACTIVATE_HOOK,
@@ -44,8 +43,12 @@ from autorlbench.evaluation.run_log import HarborRunLog
 from autorlbench.tasks import load_task_package
 
 
+# A digest-pinned reference from the ENVIRONMENTS.md table, plus its stack label.
+FIXTURE_REF = (
+    "verlai/verl:vllm024.dev2"
+    "@sha256:b867883b0dd011363e69ab2ab344922a28c5bd0409e2a324e3ee70fb27ca7543"
+)
 FIXTURE_IMAGE = "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12"
-FIXTURE_REF = resolve_environment_reference(FIXTURE_IMAGE)
 
 METADATA = f"""title = "Harbor fixture"
 license = "MIT"

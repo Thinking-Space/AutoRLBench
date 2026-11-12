@@ -7,7 +7,7 @@
 # data, weights, or ref checkpoint differ anywhere, comparing the two curves no longer shows anything.
 # Before changing this file, check whether the other copy needs the same change.
 #
-# Runs in a separate prepare-stage container: root, `slime-v0.3.2` image, **the only stage with
+# Runs in a separate prepare-stage container: root, `slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12` image, **the only stage with
 # network**, and $AUTORLBENCH_WORKSPACE, $AUTORLBENCH_MODELS, and $AUTORLBENCH_DATASETS are all writable.
 #
 # Four assets: three downloaded, one converted on the spot. Directory names are set by the

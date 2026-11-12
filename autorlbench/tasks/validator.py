@@ -19,7 +19,7 @@ def validate_task_paths(paths: TaskPaths, strict: bool = True) -> ValidationRepo
     _expect_file(report, paths.task_toml, "task.toml")
     _expect_dir(report, paths.workspace, "workspace")
     # environment/ now holds only optional content (prepare.sh etc.); the image itself comes from
-    # metadata environment.image pointing into docker/images/. The directory may be absent, but if present it must be a directory.
+    # the digest-pinned metadata environment.image (one of the shared images in ENVIRONMENTS.md).
     if paths.environment.exists() and not paths.environment.is_dir():
         report.add("error", "environment", "expected a directory")
     if not paths.evaluations:

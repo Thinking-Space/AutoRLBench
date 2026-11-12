@@ -163,8 +163,8 @@ class TaskEvaluator:
             if self.runtime.needs_environment_image:
                 run_log.log(f"[START] environment_prepare backend={self.runtime.name}")
                 image = required_environment_image(package)
-                # Images are shared by environment name: reuse if present, otherwise pull the
-                # digest-pinned reference from docker/images/<image>.Dockerfile.
+                # Images are shared across tasks: reuse if present locally, otherwise
+                # pull the task's digest-pinned reference on demand.
                 artifact = self.runtime.ensure_environment(image)
                 run_log.log(
                     f"[OK] environment_prepare backend={self.runtime.name} "

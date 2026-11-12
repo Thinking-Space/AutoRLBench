@@ -1233,7 +1233,8 @@ class HarborPreparer:
             keep_artifacts=True,
         )
         run = evaluator._prepare_run(package, unit.evaluation, eval_config)
-        # Images are shared per environment: reuse if present, build only if missing. Harbor uses the same tag.
+        # Images are shared across tasks: reuse if present locally, otherwise pull the
+        # task's digest-pinned reference on demand. Harbor uses the same reference.
         artifact = evaluator.runtime.ensure_environment(image)
         live_log_path = run_log.prepare_log_path if run_log is not None else None
         result = evaluator._run_prepare(

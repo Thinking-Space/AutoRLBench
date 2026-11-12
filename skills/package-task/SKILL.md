@@ -23,7 +23,7 @@ Packages one faulty RL training run into `tasks/<domain>/<task_id>/`. `<domain>`
 | [readme-template.md](readme-template.md) | Template and style guide for the task `README.md` |
 | [pr-body-template.md](pr-body-template.md) | Format of the PR body derived from the finished README |
 
-Authoritative sources in the repo: `autorlbench/tasks/validator.py` (validation rules), `docker/README.md` (environment images).
+Authoritative sources in the repo: `autorlbench/tasks/validator.py` (validation rules), `ENVIRONMENTS.md` (the eight fixed shared images).
 For finished tasks, see `tasks/reward/slime_retool_length_reward_bonus/` (issue + solution) and
 `tasks/data/verl_taco_difficulty_mismatch/` (issue only).
 
@@ -53,8 +53,10 @@ tasks/<domain>/<task_id>/
 
 Do not produce `agent_trace.json`, `environment/Dockerfile`, `requirements.txt`, or `validation/`.
 Tasks do not ship their own image: `environment.image` in `task.toml` is the digest-pinned pullable
-reference and `environment.image_stack` describes the stack inside it (a free-form label).
-A task whose stack matches no existing environment adds one new file there — a one-line digest-pinned `FROM` — instead.
+reference of one of the eight fixed shared images in
+[ENVIRONMENTS.md](../../ENVIRONMENTS.md), and `environment.image_stack` is that row's stack
+label. The only path to a different image is the documented exception: a defect that reproduces
+in none of the eight (see the Environment rules).
 
 ## Required inputs
 
@@ -64,8 +66,10 @@ If any item is missing, stop and ask. Field list in [reference.md](reference.md#
 - `domain`, `task_id`, title; model, dataset, framework, algorithm
 - Launch script (relative to `workspace/`), positional args, env vars; in-container paths for model, train set, and validation set
 - Logs of the failed run (keep W&B too if present)
-- Environment: an existing `docker/images/` name matching the recorded stack, or the raw task's one-line
-  digest-pinned Dockerfile (becomes a new environment); the GPU count to declare
+- Environment: the shared image from [ENVIRONMENTS.md](../../ENVIRONMENTS.md) the buggy run
+  was executed in — if the recorded run used anything else, it must be re-run in the chosen
+  shared image before packaging (exception: a user-supplied environment configuration for a
+  defect that reproduces in none of the eight); plus the GPU count to declare
 - For each asset: source (HF repo or URL), the 40-char revision or wheel SHA-256 + byte size to pin, destination
 - Only when you will build a solution tier (see [Does the task get a solution tier?](#does-the-task-get-a-solution-tier)):
   metric key, one log sample, `final_step`, `required_final_score`, and **how many runs per side** the threshold was
@@ -89,7 +93,7 @@ Form 2 **publishes only the defective side**. Putting both sides in `workspace/`
 | Defective-side code + launch script + run artifacts | `workspace/` |
 | Changed files from the control side | `evaluations/solution/oracle/` |
 | Control-side run results and curves | `evaluations/solution/oracle/` (used to calibrate the threshold) |
-| The raw `Dockerfile` | Map to an existing image under `docker/images/`, or add its one-line digest-pinned `FROM` as a new `docker/images/<name>.Dockerfile` |
+| The environment the run used | Must map to one of the eight shared images in [ENVIRONMENTS.md](../../ENVIRONMENTS.md) — the closest row wins, and a run recorded elsewhere is re-run in it first (exception: a separately submitted environment configuration with its justification) |
 | The raw `README.md` | Rewrite as the task `README.md` |
 
 ## Does the task get a solution tier?
@@ -184,12 +188,20 @@ is not byte-for-byte reproducible, do not pin it with a checksum.
 
 ### Environment
 
-- Pick an image from `docker/images/` that matches the recorded stack; do not modify existing Dockerfiles. If none fits,
-  the raw task's Dockerfile must be a single digest-pinned `FROM` on a publicly pullable registry (ghcr.io, Docker Hub, …):
-  copy that line to `docker/images/<name>.Dockerfile`, named per the conventions in `docker/README.md`, then set
-  `environment.image` to that pullable reference and `environment.image_stack` to `<name>`. An elaborate stack is built
-  and pushed once by the contributor; the repo keeps only the pin.
-  If the image is not pushed yet, say so in the README (see the build-recipe exceptions in `docker/README.md`).
+- The image is one of the eight fixed shared images in [ENVIRONMENTS.md](../../ENVIRONMENTS.md):
+  pick the row closest to the recorded stack, set `environment.image` to its digest-pinned
+  pullable reference, and `environment.image_stack` to the row's stack label. Never build,
+  push, or modify an image for a task on this path. Framework or dependency versions the
+  chosen image lacks go into `prepare.sh` (`pip install --target` into
+  `$AUTORLBENCH_PREPARED/pysite`, exposed via `PYTHONPATH`). The recorded buggy run must
+  have been executed in the chosen image: when it was not, re-run it there before packaging.
+- **The exception:** a defect that reproduces in none of the eight shared images may ship
+  its own environment. Then the user supplies a separate environment configuration — an
+  image they built and pushed to a public registry, pinned by a single digest-pinned
+  `FROM` line — and `environment.image` / `environment.image_stack` come from it. The task
+  README must explain why no shared image fits, and the exception is reviewed by the
+  maintainers; a gap `prepare.sh` could bridge does not qualify. If the user has neither a
+  shared-image run nor a justified separate environment, stop and ask for one of the two.
 - `prepare.sh` is the only networked stage. Invoke the task-local `fetch_hf.py` with the image's own interpreter; it
   downloads whole HF repos into the shared caches and hard-links the bytes into the workspace. Fetches are cache-first
   without checksum verification, so record each pinned 40-char revision in a comment next to the call, and for anything
@@ -222,7 +234,7 @@ is not byte-for-byte reproducible, do not pin it with a checksum.
 - [ ] With a solution tier: `instruction.md` forbids launching training and requires `report.md`; its command, env and budget match `run_spec.json`
 - [ ] Workspace has the launch script and failure logs; sanitize scan shows only upstream hits
 - [ ] `task.toml` declares an integer `gpus` count (no device ids); `env` values are strings, no `AUTORLBENCH_*`
-- [ ] A new environment, if any, is one digest-pinned `FROM` line under `docker/images/`, named per `docker/README.md`
+- [ ] The environment is one of the eight shared images in `ENVIRONMENTS.md`, digest-pinned in `task.toml`, and the recorded buggy run was executed in it — or the exception applies and the task ships the separately submitted environment configuration with its justification in the README
 - [ ] Every fetched asset has a pinned 40-char revision or verified wheel sha256 + byte size, and a `--dest` the launch script reads
 - [ ] `python3 -m autorlbench validate <task_dir>` reports no errors
 - [ ] The PR body was emitted per [pr-body-template.md](pr-body-template.md) from the finished README

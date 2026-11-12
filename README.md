@@ -124,7 +124,7 @@ At the solution level the agent repairs the workspace and submits `report.md` �
 | --- | --- |
 | [`tasks/`](tasks/) | Benchmark tasks, grouped by domain |
 | [`autorlbench/`](autorlbench/) | Evaluation harness: task loader, validator, runtimes, agent adapters, CLI |
-| [`docker/`](docker/) | Shared environment images and in-container tooling ([README](docker/README.md)) |
+| [`ENVIRONMENTS.md`](ENVIRONMENTS.md) | The eight fixed shared environment images every task runs in |
 | [`skills/package-task/`](skills/package-task/) | Agent skill that turns a raw task into a task |
 | [`tests/`](tests/) | Harness unit tests |
 | [`page/`](page/) | Website source, deployed to GitHub Pages |
@@ -164,7 +164,7 @@ Run `python3 -m autorlbench --help` for every option. The issue verifier calls a
 
 ## Contributing
 
-We welcome both problematic runs and healthy reference runs. Bring the issue materials, or add the repaired run when it exists; an agent does the packaging — inside a clone of this repository, using the [package-task](skills/package-task/SKILL.md) skill. Contribute **two valid tasks** and you become a co-author on the benchmark paper. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution guide](https://thinking-space.github.io/AutoRLBench/contribute.html).
+We welcome both problematic runs and healthy reference runs. Bring the issue materials, or add the repaired run when it exists; an agent does the packaging — inside a clone of this repository, using the [package-task](skills/package-task/SKILL.md) skill. Every task runs in one of the eight fixed shared images in [ENVIRONMENTS.md](ENVIRONMENTS.md): run your buggy run in one of them and ship that run's artifacts — a defect that reproduces in none of the eight may submit its own environment configuration with an explanation instead. Contribute **two valid tasks** and you become a co-author on the benchmark paper. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution guide](https://thinking-space.github.io/AutoRLBench/contribute.html).
 
 ## License
 

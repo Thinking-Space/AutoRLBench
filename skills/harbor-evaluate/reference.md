@@ -144,7 +144,7 @@ graded). Details in the task's
 | `missing or invalid agent_answer.md` | the agent wrote no deliverable | capability class; re-run within quota (max 3); first check `logs/agent/<agent>.txt` to confirm it was really working |
 | solution `"agent did not submit report.md"` | report gate | a true zero; record as a capability failure |
 | solution `"system rerun failed"` | the re-run crashed (OOM etc.) | see `verifier/autorlbench-run.log` and its `rerun exit=` line; capability failure, record 0 |
-| containers won't start / image missing | image not pulled | `python3 -m autorlbench build-images <stack>` (list under `docker/images/`) |
+| containers won't start / image missing | image not pulled | the run pulls the task's digest-pinned reference on demand; to pre-pull manually, `docker pull <reference>` from the task's `task.toml` |
 | want a shell inside the task environment | — | `python3 -m autorlbench harbor-shell <task> --evaluation-level <level>` (same container shape, no agent) |
 | want to verify the task environment itself is healthy | — | `python3 -m autorlbench rerun <task>` (maintainer-side self-check, unrelated to model evaluation; use it when triaging environment problems) |
 | the agent is completely idle | keys/gateway | check `.env`; `logs/agent/<agent>.txt` usually shows 401/timeout traces |

@@ -73,7 +73,7 @@ the observed gap without establishing cross-seed variance.
 
 ## Environment notes
 
-The task runs on the shared `verl` image
+The task runs on the shared `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` image
 (`docker/images/verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12.Dockerfile`,
 the same pinned digest the former `verl-moe-token` image was built on; no
 custom image is built or published). The MCore router prescaling backport

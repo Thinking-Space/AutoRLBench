@@ -139,17 +139,10 @@ AUTORLBENCH_ENVIRONMENT_DIR = "/autorlbench/environment"
 TASK_FILE = "task.toml"
 DEFAULT_PREPARE = "environment/prepare.sh"
 
-# The single source of truth for available environments is <name>.Dockerfile under docker/images/; the image
-# it points at is pulled, not built. No copy of the list lives here: a copy drifts, and drift means a task
-# names an environment with no Dockerfile, which goes unnoticed until evaluation runs.
+# The image a task runs is the digest-pinned reference in its task.toml (`environment.image`);
+# the authoritative list of shared images is the table in ENVIRONMENTS.md, which code never
+# reads — a run pulls the task's reference on demand, so no copy of the list lives here.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-DOCKER_DIR = _REPO_ROOT / "docker"
-IMAGES_DIR = DOCKER_DIR / "images"
-IMAGE_DOCKERFILE_SUFFIX = ".Dockerfile"
-# Legacy header for Dockerfiles that declare their tag explicitly, e.g. `# autorlbench-image:
-# autorlbench/verl:vllm0.17-torch2.10-cu129`. Current Dockerfiles are a single digest-pinned FROM line,
-# and the reference on that line is the image the task runs; the header is only a fallback.
-IMAGE_TAG_HEADER = "# autorlbench-image:"
 
 # A pullable image reference: repository (lowercase, `/`-separated), optional tag, optional
 # sha256 digest. Follows Docker's reference grammar closely enough for every reference the
@@ -171,30 +164,13 @@ DEFAULT_DATASETS_DIR = _REPO_ROOT / "datasets"
 DEFAULT_OUTPUT_DIR = _REPO_ROOT / "outputs"
 
 
-def known_images() -> frozenset:
-    """Environment names that have a Dockerfile under docker/images/; empty set if the directory is unavailable.
-
-    An empty set means "cannot tell", not "none exist". Once installed as a wheel, `docker/` may not come
-    along, so validating environment names has to wait until the image build.
-    """
-    if not IMAGES_DIR.is_dir():
-        return frozenset()
-    return frozenset(
-        item.name[: -len(IMAGE_DOCKERFILE_SUFFIX)]
-        for item in IMAGES_DIR.iterdir()
-        if item.is_file()
-        and item.name.endswith(IMAGE_DOCKERFILE_SUFFIX)
-        and not item.name.startswith(".")
-    )
-
-
 @dataclass(frozen=True)
 class EnvironmentImage:
     """The image a task runs, as the reference the backends pull.
 
     `reference` is the fully specified pullable reference — repository, optional tag, optional
     `@sha256:` digest — taken from the task's `environment.image`; every backend (docker
-    evaluation, build-images, Harbor's `docker_image`) pulls exactly this string.
+    evaluation, Harbor's `docker_image`) pulls exactly this string.
     """
 
     reference: str
@@ -210,41 +186,6 @@ class EnvironmentImage:
     def tag(self) -> str:
         """The reference string itself; kept under the backends' `tag` vocabulary."""
         return self.reference
-
-
-def resolve_environment_reference(name: str) -> str:
-    """The pullable reference an environment under docker/images/ declares.
-
-    Resolution order: an optional `# autorlbench-image: <tag>` header (build-recipe Dockerfiles
-    use it to declare the tag the recipe is to be pushed as), otherwise the image reference from
-    the FROM line. Only when neither exists is it an error — defaulting to a tag would hide the
-    broken Dockerfile until the first run.
-    """
-    dockerfile = IMAGES_DIR / f"{name}{IMAGE_DOCKERFILE_SUFFIX}"
-    try:
-        text = dockerfile.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise RuntimeError(
-            f"cannot read {dockerfile} to resolve the image of {name!r}"
-        ) from exc
-    from_ref: Optional[str] = None
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith(IMAGE_TAG_HEADER):
-            tag = stripped[len(IMAGE_TAG_HEADER):].strip()
-            if tag:
-                return tag
-        if from_ref is None and stripped[:5].upper() == "FROM ":
-            # FROM <ref> [AS <stage>]
-            parts = stripped.split()
-            if len(parts) >= 2:
-                from_ref = parts[1]
-    if from_ref:
-        return from_ref
-    raise RuntimeError(
-        f"{dockerfile} has neither a '{IMAGE_TAG_HEADER} <tag>' header "
-        "nor a FROM line to take the image reference from"
-    )
 
 
 @dataclass(frozen=True)

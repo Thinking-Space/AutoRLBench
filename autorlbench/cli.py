@@ -5,7 +5,6 @@ import hashlib
 import json
 import os
 import shlex
-import subprocess
 import sys
 from pathlib import Path
 
@@ -13,14 +12,10 @@ from .core.harbor_types import HarborEvaluationConfig
 from .core.types import (
     TASK_FILE,
     DEFAULT_OUTPUT_DIR,
-    EnvironmentImage,
     EvaluationConfig,
-    known_images,
-    resolve_environment_reference,
 )
 from .evaluation.evaluator import TaskEvaluator
 from .evaluation.harbor_evaluator import HarborEvaluator, HarborShell
-from .runtimes.providers.docker import DockerRuntime
 from .tasks import SchemaError
 
 
@@ -123,34 +118,6 @@ def build_parser() -> argparse.ArgumentParser:
             "parent directory for persistent per-run logs and command records, laid out as "
             "<output-root>/<task_id>/<timestamp>/ (default: <repo>/outputs/rerun) "
             "[env: AUTORLBENCH_RERUN_OUTPUT_DIR]"
-        ),
-    )
-
-    b = sub.add_parser(
-        "build-images",
-        help="pull the environment images under docker/images/ ahead of time",
-        description=(
-            "Pull each environment image referenced by docker/images/<name>.Dockerfile's "
-            "FROM line. Nothing is baked anymore, so there is no build step -- "
-            "`evaluate` pulls a missing image on demand; this command lets a "
-            "machine pay that cost up front. Images that already exist are "
-            "skipped unless --repull is given."
-        ),
-        allow_abbrev=False,
-    )
-    b.add_argument(
-        "names",
-        nargs="*",
-        metavar="NAME",
-        help="environment names (default: every docker/images/*.Dockerfile)",
-    )
-    b.add_argument(
-        "--rebuild",
-        "--repull",
-        action="store_true",
-        help=(
-            "re-pull even if the image exists (the digest is pinned, so the "
-            "same image is fetched again)"
         ),
     )
 
@@ -332,27 +299,6 @@ def main(argv=None) -> int:
             }
         print(json.dumps(report, indent=2, ensure_ascii=False))
         return 0 if report.get("ok", False) else 1
-
-    if args.command == "build-images":
-        known = known_images()
-        if not known:
-            raise SystemExit("no docker/images/*.Dockerfile found")
-        names = args.names or sorted(known)
-        unknown = [name for name in names if name not in known]
-        if unknown:
-            raise SystemExit(
-                f"unknown environment(s): {', '.join(unknown)}; "
-                f"expected one of {', '.join(sorted(known))}"
-            )
-        runtime = DockerRuntime()
-        for name in dict.fromkeys(names):
-            image = EnvironmentImage(resolve_environment_reference(name))
-            try:
-                runtime.ensure_environment(image, rebuild=args.rebuild)
-            except subprocess.CalledProcessError as exc:
-                raise SystemExit(f"pulling {image.tag} failed (exit {exc.returncode})")
-            print(image.tag)
-        return 0
 
     if args.command == "rerun":
         evaluator = TaskEvaluator(backend=args.backend)

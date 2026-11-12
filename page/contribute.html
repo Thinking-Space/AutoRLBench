@@ -39,7 +39,7 @@
             <aside class="guide-hero-card" aria-label="Required materials">
                 <span class="guide-card-label">Required</span>
                 <div class="guide-hero-row"><span>01</span><strong>Workspace</strong><em>the recorded run</em></div>
-                <div class="guide-hero-row"><span>02</span><strong>Environment</strong><em>image pin + prepare.sh</em></div>
+                <div class="guide-hero-row"><span>02</span><strong>Environment</strong><em>one of 8 shared images + prepare.sh</em></div>
                 <div class="guide-hero-row"><span>03</span><strong>README</strong><em>defect, fix, outcome</em></div>
             </aside>
             <ol class="guide-timeline-track" id="timeline" aria-label="Timeline">
@@ -174,7 +174,7 @@ Training Qwen3-4B with GRPO on DAPO-Math-17k. The reward adds an unconditional l
 | **Model** | Qwen3-4B (Instruct-2507, SFT → RL) |
 | **Dataset** | DAPO-Math-17k (RL), ReTool-SFT (SFT warm-up), AIME-2024 (eval) |
 | **Framework** | slime (Megatron + SGLang), `examples/retool/retool_qwen3_4b_rl.sh` |
-| **Environment** | `slime-v0.3.2` · 8 GPUs |
+| **Environment** | `slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12` · 8 GPUs |
 | **Evaluations** | issue · solution |
 | **Recorded runs** | 1 defective run (100 steps) · 1 repaired reference run (70 rollouts) |
 
@@ -212,12 +212,10 @@ algo = "grpo"
 script = "examples/retool/retool_qwen3_4b_rl.sh"
 
 [environment]
-image = "slime-v0.3.2"
-
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb…"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
 # The recipe needs 8 GPUs: ray start --num-gpus 8 + --actor-num-gpus-per-node 8.
-[environment.env]
-CUDA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
-NVIDIA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
+gpus = 8
 
 [outcome]
 failure_type = "reward_hacking"
@@ -233,7 +231,7 @@ failure_reason = "The ground-truth verdict is unhealthy because generate_with_re
 # data, weights, or ref checkpoint differ anywhere, comparing the two curves no longer shows anything.
 # Before changing this file, check whether the other copy needs the same change.
 #
-# Runs in a separate prepare-stage container: root, `slime-v0.3.2` image, **the only stage with
+# Runs in a separate prepare-stage container: root, the task's environment image, **the only stage with
 # network**, and $AUTORLBENCH_WORKSPACE, $AUTORLBENCH_MODELS, and $AUTORLBENCH_DATASETS are all writable.
 #
 # Four assets: three downloaded, one converted on the spot. Directory names are set by the
@@ -485,7 +483,7 @@ metrics. Otherwise the run is scored 0.</pre>
                     </div>
                     <div class="guide-file-rows">
                         <div><span>Workspace</span>The code that reproduces the defect, plus that run's artifacts — logs, W&B, per-step metrics. The same tree with the fix, when you have it: anything else that differs confounds the comparison.</div>
-                        <div><span>Dockerfile</span><p>It's suggested that you package the heavy training stack into a single image, build it and push to public registry, or reuse existing environment in <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/docker/images" target="_blank" rel="noopener noreferrer">docker/images</a>. Model and dataset downloads and other small environment touches can reside in separate scripts.</p></div>
+                        <div><span>Environment</span><p>Run your buggy run in one of the eight shared environments listed in <a href="https://github.com/Thinking-Space/AutoRLBench/blob/main/ENVIRONMENTS.md" target="_blank" rel="noopener noreferrer">ENVIRONMENTS.md</a> and ship that run's artifacts. If none of them reproduces the defect, you may submit your own environment configuration with an explanation.</p></div>
                         <div><span>README</span>The defect, the fix as a diff, the measured outcome of both arms, and every plausible-but-wrong diagnosis.</div>
                     </div>
                 </article>

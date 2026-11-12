@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # search_r1_zero_query_vector: what to prepare before running.
 #
-# Runs in a separate prepare-stage container: root, `search-r1-verl` image, **the only stage with network**,
+# Runs in a separate prepare-stage container: root, the `vllm0.6.3-torch2.4.0-flashattn2.6.3-cu121-py3.10` image, **the only stage with network**,
 # and $AUTORLBENCH_WORKSPACE, $AUTORLBENCH_MODELS, $AUTORLBENCH_DATASETS are all writable.
 # Network cutoff for the agent / verifier stages is set per stage by the framework (HF_HUB_OFFLINE /
 # TRANSFORMERS_OFFLINE / HF_DATASETS_OFFLINE in _network_policy_env in runtimes/base.py). Do **not**

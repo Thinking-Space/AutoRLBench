@@ -6,7 +6,7 @@
 # assets. Any difference in the container environment or the assets makes the
 # two runs incomparable, so a change here must be mirrored there.
 #
-# Runs in a separate prepare-stage container: root, the `slime-v0.3.2` image,
+# Runs in a separate prepare-stage container: root, the `slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12` image,
 # **the only stage with network**, and $AUTORLBENCH_WORKSPACE, $AUTORLBENCH_MODELS,
 # and $AUTORLBENCH_DATASETS are all writable. The framework enforces the
 # agent/verifier stage offline policy itself (HF_HUB_OFFLINE /

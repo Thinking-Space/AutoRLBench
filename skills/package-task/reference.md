@@ -45,14 +45,14 @@ Keep only code and launch scripts, plus the training settings, hyperparameters, 
 
 ### Environment and assets
 
-- Environment: an existing `docker/images/` name matching the recorded stack (see the table in `docker/README.md`), or the raw task's one-line digest-pinned Dockerfile, which becomes a new `docker/images/<name>.Dockerfile`
+- Environment: the shared image from `ENVIRONMENTS.md` (the eight fixed images) the buggy run was executed in — a run recorded elsewhere must be re-run in the chosen shared image first; exception: a separately submitted environment configuration (digest-pinned Dockerfile + justification) for a defect that reproduces in none of the eight
 - GPU count to declare under `[environment] gpus` in `task.toml` (never device ids)
 - Each HF asset: repo (`org/name`), `--type` (`model` or `dataset`), the pinned 40-char commit sha, `--dest`
 - URL assets (e.g. pure-Python wheels the image lacks): URL, SHA-256, byte size
 - Any derived asset the recorded run built from fetched data (parquet files, FAISS indexes, torch_dist weights) that `prepare.sh` must rebuild
 - Any env vars the run needs beyond what the harness already sets (they go through `$AUTORLBENCH_PREPARED/env`)
 
-Do not collect a build recipe: the repo keeps only one-line digest pins, and an elaborate stack is built and pushed by the contributor to a public registry (ghcr.io, Docker Hub, …).
+Do not collect a build recipe: images are a fixed set of eight maintained by the benchmark (see `ENVIRONMENTS.md`); a task never adds or modifies one.
 
 ### Scoring keys (needed only when the task gets a solution tier)
 
@@ -346,11 +346,11 @@ Common naming sets: `training_reward_key` / `required_training_reward` / `traini
 
 ## Environment image
 
-`environment.image` in `task.toml` is the pullable, **digest-pinned** registry reference (`repo[:tag]@sha256:<digest>`) the runtime actually pulls; `environment.image_stack` is a free-form human-readable description of the stack inside that image (typically the environment name) — descriptive only, pointing at no file. Every runtime Dockerfile is a **single digest-pinned `FROM` line** — either an upstream framework image or an image the contributor built once and pushed to a public registry. The reference reaches the Docker backend, `build-images`, and the Harbor adapter unchanged. Nothing is built at evaluation time: `python3 -m autorlbench build-images <name>` just pulls the digest on demand.
+`environment.image` in `task.toml` is the pullable, **digest-pinned** registry reference (`repo[:tag]@sha256:<digest>`) the runtime actually pulls; `environment.image_stack` is the row's stack label from the table. Both come from the **eight fixed shared images** in `ENVIRONMENTS.md` — never build, push, or modify an image for a task on this path, and never modify the existing ones (their contents are the shared ground-truth environment of every task that names them). Pick the row closest to the recorded stack; framework or dependency versions the image lacks are layered on per task in `prepare.sh` (`pip install --target` into `$AUTORLBENCH_PREPARED/pysite`). The recorded buggy run must have been executed in the chosen image — re-run it there when the original run used a different stack.
 
-Images are shared across tasks, and their contents are those tasks' common ground-truth environment. Do not modify an existing Dockerfile for a new task; that would also change the other tasks' environments. If no existing image fits, add a new `docker/images/<name>.Dockerfile` containing the raw task's one-line pin, named per the slot grammar in `docker/README.md` (only what is actually baked into the image: framework, engine, torch, flash-attn, CUDA, python).
+**The exception:** a defect that reproduces in none of the eight shared images may ship its own environment. The user supplies a separate environment configuration — an image they built and pushed to a public registry, pinned by a single digest-pinned `FROM` line — and `environment.image` / `environment.image_stack` come from it. The task README must explain why no shared image fits, and the maintainers review the exception; a gap `prepare.sh` could bridge does not qualify.
 
-The framework (verl / slime) usually travels with the task's workspace checkout rather than the image; environments that bake it in lead their name with its version (e.g. `slime-v0.3.2-...`).
+The framework (verl / slime) usually travels with the task's workspace checkout rather than the image; environments that bake it in lead their stack label with its version (e.g. `slime-v0.3.2-...`).
 
 ## environment/prepare.sh
 
@@ -358,7 +358,7 @@ The framework (verl / slime) usually travels with the task's workspace checkout 
 #!/usr/bin/env bash
 # <task_id>: prepare stage.
 #
-# Runs in a separate prepare-stage container: root, the `<image-name>` image,
+# Runs in a separate prepare-stage container: root, the `<image_stack>` image,
 # **the only networked stage**, and $AUTORLBENCH_WORKSPACE is writable.
 set -euo pipefail
 : "${AUTORLBENCH_WORKSPACE:?}"
@@ -444,7 +444,7 @@ failure_reason = "<one sentence from the filtered diff, with the user-given metr
 
 The validator rejects:
 
-- Missing `image`, or `image` with no matching `<name>.Dockerfile` under `docker/images/`
+- Missing `image`, or `image` that is not a digest-pinned pullable reference (normally one of the eight shared images in `ENVIRONMENTS.md`; a different reference is valid only on the documented exception path)
 - Legacy fields `conda` / `requirements` / `dockerfile`
 - `script` that is absolute, contains `..`, or points to a file not in `workspace/`
 - `script_args` without `script`; `script_args` that is not a list of strings

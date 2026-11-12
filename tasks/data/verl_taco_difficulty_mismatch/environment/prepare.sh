@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # verl_taco_difficulty_mismatch — prepare stage.
 #
-# Runs in a separate prepare-stage container: root, `verl` image, **the only
+# Runs in a separate prepare-stage container: root, the `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` image, **the only
 # stage with network**, and $AUTORLBENCH_WORKSPACE, $AUTORLBENCH_PREPARED,
 # $AUTORLBENCH_MODELS, $AUTORLBENCH_DATASETS are all writable.
 #

@@ -125,7 +125,7 @@ solution 层里 agent 只负责修 workspace 并提交 `report.md`，**不自己
 | --- | --- |
 | [`tasks/`](tasks/) | 按 domain 分组的 benchmark 任务 |
 | [`autorlbench/`](autorlbench/) | 评测框架：任务加载、校验、运行时、agent 适配器、CLI |
-| [`docker/`](docker/) | 共享环境镜像与容器内工具（[说明](docker/README.md)） |
+| [`ENVIRONMENTS.md`](ENVIRONMENTS.md) | 全部任务运行的 8 个固定共享环境镜像 |
 | [`skills/package-task/`](skills/package-task/) | 把 raw task 打包成任务的 agent skill |
 | [`tests/`](tests/) | 框架单元测试 |
 | [`page/`](page/) | 网站源码，部署到 GitHub Pages |
@@ -163,7 +163,7 @@ python3 -m autorlbench harbor-evaluate tasks/reward --agent codex --model <model
 
 ## 贡献
 
-有问题的 run 和健康的对照 run 都欢迎。带上 issue 所需材料即可，已有修复版本时再补上 solution 运行；打包由 agent 在本仓库的 clone 中、用 [package-task](skills/package-task/SKILL.md) skill 完成。贡献**两个有效任务**即可成为 benchmark 论文的共同作者。详见 [CONTRIBUTING.md](CONTRIBUTING.md) 与[贡献指南](https://thinking-space.github.io/AutoRLBench/contribute.html)。
+有问题的 run 和健康的对照 run 都欢迎。带上 issue 所需材料即可，已有修复版本时再补上 solution 运行；打包由 agent 在本仓库的 clone 中、用 [package-task](skills/package-task/SKILL.md) skill 完成。所有任务都跑在 [ENVIRONMENTS.md](ENVIRONMENTS.md) 中 8 个固定的共享镜像之一上：请在这 8 个环境之一里跑你的 buggy run，并提交那次运行的产物；8 个镜像都无法复现的缺陷，也可以单独提交自己的环境配置并说明原因。贡献**两个有效任务**即可成为 benchmark 论文的共同作者。详见 [CONTRIBUTING.md](CONTRIBUTING.md) 与[贡献指南](https://thinking-space.github.io/AutoRLBench/contribute.html)。
 
 ## 许可
 

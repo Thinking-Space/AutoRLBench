@@ -249,7 +249,7 @@ and unpacks the prebuilt Endless Terminals prompt payload into
 `workspace/et_prompts`, from which `run.sh` seeds its `ET_DATA_ROOT` — the
 ~40-minute transpile+validate pass is skipped, and `ET_SRC` is only read when
 that payload is absent. The agent then runs `./run.sh` from `/workspace` on the
-`slime-v0.3.2` image. The
+`slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12` image. The
 short decider-only reproduction is `EVAL_INTERVAL=0`;
 the full score curve below is `NUM_ROLLOUTS_B=30 EVAL_INTERVAL=5`.
 

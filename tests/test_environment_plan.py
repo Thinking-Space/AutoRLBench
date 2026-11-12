@@ -2,27 +2,29 @@
 
 from __future__ import annotations
 
-import re
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from autorlbench.core.types import (
-    IMAGES_DIR,
-    EnvironmentImage,
-    known_images,
-    resolve_environment_reference,
-)
+from autorlbench.core.types import EnvironmentImage
 from autorlbench.tasks import SchemaError, load_task_package
 from autorlbench.tasks.validator import validate_metadata
 
 
-# A real environment from docker/images/, so the loader's known_images() check passes.
-FIXTURE_IMAGE = "verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10"
-FIXTURE_REF = resolve_environment_reference(FIXTURE_IMAGE)
-# A second real environment, to exercise references other than the fixture's.
+# A digest-pinned reference from the ENVIRONMENTS.md table, plus its stack label; the
+# environment section carries both, and only the reference decides what runs.
+FIXTURE_REF = (
+    "verlai/verl:vllm017.latest"
+    "@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+)
+FIXTURE_IMAGE = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+# A second reference from the table, to exercise references other than the fixture's.
+SLIME_REF = (
+    "slimerl/slime:v0.3.2-cu129"
+    "@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+)
 SLIME_IMAGE = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
 
 METADATA_HEAD = """title = "Image task"
@@ -105,7 +107,7 @@ class EnvironmentPlanTests(unittest.TestCase):
         # A plan carrying a missing path would conflate "the task has no prepare.sh" with "declared but wrong path",
         # and the latter must be an error.
         plan = self._load(
-            f'[environment]\nimage = "{resolve_environment_reference(SLIME_IMAGE)}"\n'
+            f'[environment]\nimage = "{SLIME_REF}"\n'
             f'image_stack = "{SLIME_IMAGE}"\n'
         ).environment
         self.assertIsNone(plan.prepare)
@@ -127,11 +129,10 @@ class EnvironmentPlanTests(unittest.TestCase):
     def test_image_and_stack_are_independent(self) -> None:
         # The pair is not cross-checked: `image` alone determines what runs, so a stack
         # label from a different lineage must not reject the load.
-        other = resolve_environment_reference(SLIME_IMAGE)
         plan = self._load(
-            f'[environment]\nimage = "{other}"\nimage_stack = "{FIXTURE_IMAGE}"\n'
+            f'[environment]\nimage = "{SLIME_REF}"\nimage_stack = "{FIXTURE_IMAGE}"\n'
         ).environment
-        self.assertEqual(plan.image, other)
+        self.assertEqual(plan.image, SLIME_REF)
 
     def test_legacy_schema_is_reported_not_silently_ignored(self) -> None:
         package = self._load('[environment]\ndockerfile = "environment/Dockerfile"\n')
@@ -145,23 +146,6 @@ class EnvironmentPlanTests(unittest.TestCase):
     def _environment_issues(self, environment: dict) -> list:
         report = validate_metadata({"environment": environment})
         return [i.path for i in report.issues if i.path.startswith("metadata.environment")]
-
-    def test_validator_accepts_every_built_image_under_docker_images(self) -> None:
-        # Every pushed environment resolves to a digest-pinned reference; declaring that
-        # reference plus its stack label must validate cleanly.
-        names = known_images()
-        self.assertTrue(names, "docker/images/ should exist in a source checkout")
-        for name in sorted(names):
-            reference = resolve_environment_reference(name)
-            if not re.search(r"@sha256:[0-9a-f]{64}$", reference):
-                # Build recipes whose image is not pushed yet (docker/README.md "Exceptions")
-                # carry a tag without a digest; they are pending, not valid.
-                continue
-            self.assertEqual(
-                self._environment_issues({"image": reference, "image_stack": name}),
-                [],
-                name,
-            )
 
     def test_validator_takes_any_image_stack_label(self) -> None:
         self.assertEqual(
@@ -288,15 +272,6 @@ class EnvironmentEnvRuntimeTests(unittest.TestCase):
 
 
 class EnvironmentImageTests(unittest.TestCase):
-    def test_environment_name_resolves_to_its_dockerfiles_from_ref(self):
-        reference = resolve_environment_reference(FIXTURE_IMAGE)
-        froms = re.findall(
-            r"^FROM\s+(\S+)",
-            (IMAGES_DIR / f"{FIXTURE_IMAGE}.Dockerfile").read_text(encoding="utf-8"),
-            flags=re.MULTILINE,
-        )
-        self.assertEqual(reference, froms[0])
-
     def test_environment_image_is_just_the_reference(self):
         image = EnvironmentImage(FIXTURE_REF)
         self.assertEqual(image.tag, FIXTURE_REF)
@@ -308,52 +283,6 @@ class EnvironmentImageTests(unittest.TestCase):
         for bad in ("not a ref!!", "", "UPPERCASE/repo:v1"):
             with self.assertRaises(ValueError):
                 EnvironmentImage(bad)
-
-    def test_every_dockerfile_resolves_to_a_unique_reference(self):
-        # Each environment pulls a distinct upstream image; two environments sharing a
-        # reference would silently run the same stack under two names.
-        refs = {name: resolve_environment_reference(name) for name in sorted(known_images())}
-        self.assertTrue(refs)
-        self.assertEqual(len(set(refs.values())), len(refs), refs)
-
-    def test_a_dockerfile_without_a_from_line_is_an_error(self):
-        # Neither a header nor a FROM line: there is nothing to pull, and defaulting
-        # to a tag would hide the broken Dockerfile until the first run.
-        with tempfile.TemporaryDirectory() as temp:
-            with mock.patch("autorlbench.core.types.IMAGES_DIR", Path(temp)):
-                (Path(temp) / "x.Dockerfile").write_text(
-                    "# nothing to run\n", encoding="utf-8"
-                )
-                with self.assertRaises(RuntimeError):
-                    resolve_environment_reference("x")
-
-    def test_every_base_image_is_pinned_by_digest(self):
-        # Tags can be repointed upstream; without a pinned digest, the same Dockerfile may
-        # build two different stacks on two machines.
-        for name in sorted(known_images()):
-            text = (IMAGES_DIR / f"{name}.Dockerfile").read_text(encoding="utf-8")
-            froms = re.findall(r"^FROM\s+(\S+)", text, flags=re.MULTILINE)
-            self.assertTrue(froms, name)
-            for ref in froms:
-                self.assertRegex(ref, r"@sha256:[0-9a-f]{64}$", name)
-
-    def test_no_image_bakes_harness_tooling_anymore(self):
-        # The activate hook and the fetch/dataset tools moved to the prepare stage: the
-        # harness bind-mounts /autorlbench/prepared per run and injects the activation
-        # logic inline. Any Dockerfile creating those directories is a leftover from
-        # the old bake-it-in era.
-        # FROM lines and comments are exempt: registry paths and prose may carry the
-        # string (ghcr.io/.../autorlbench-justrl2), instructions may not.
-        for name in sorted(known_images()):
-            text = (IMAGES_DIR / f"{name}.Dockerfile").read_text(encoding="utf-8")
-            body = "\n".join(
-                line for line in text.splitlines()
-                if line.strip()
-                and not line.lstrip().startswith("#")
-                and not line.lstrip().upper().startswith("FROM ")
-            )
-            self.assertNotIn("/ptdbench", body, name)
-            self.assertNotIn("/autorlbench", body, name)
 
 
 class EnsureEnvironmentTests(unittest.TestCase):
@@ -391,39 +320,6 @@ class EnsureEnvironmentTests(unittest.TestCase):
                 ):
             with self.assertRaises(subprocess.CalledProcessError):
                 DockerRuntime().ensure_environment(EnvironmentImage(FIXTURE_REF))
-
-
-class BuildImagesCommandTests(unittest.TestCase):
-    def _main(self, *argv):
-        from autorlbench import cli
-        from autorlbench.runtimes.providers.docker import DockerRuntime
-
-        with mock.patch.object(DockerRuntime, "ensure_environment") as ensure, \
-                mock.patch("builtins.print"):
-            code = cli.main(["build-images", *argv])
-        return code, [(c.args[0].tag, c.kwargs["rebuild"]) for c in ensure.call_args_list]
-
-    def test_default_is_every_image(self):
-        code, calls = self._main()
-        self.assertEqual(code, 0)
-        self.assertEqual(
-            calls,
-            [
-                (resolve_environment_reference(name), False)
-                for name in sorted(known_images())
-            ],
-        )
-
-    def test_names_and_rebuild_are_passed_through(self):
-        self.assertEqual(
-            self._main(FIXTURE_IMAGE, "--rebuild"),
-            (0, [(resolve_environment_reference(FIXTURE_IMAGE), True)]),
-        )
-
-    def test_unknown_name_is_rejected_before_building(self):
-        with self.assertRaises(SystemExit) as ctx:
-            self._main(FIXTURE_IMAGE, "pytorch")
-        self.assertIn("pytorch", str(ctx.exception))
 
 
 if __name__ == "__main__":
