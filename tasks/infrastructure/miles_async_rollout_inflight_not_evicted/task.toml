@@ -19,14 +19,23 @@ algo = "grpo"
 script = "scripts/train_grpo.sh"
 
 [environment]
-# TODO(image): the packaged image does not exist yet. The task needs the ngc-2506
-# calibration stack (Megatron 4716f754 + sglang 0.5.16.dev44 lineage, the
-# registered `miles-rl-lgs` / llm-rl/ngc-2506:nvidia.11b60366 image): build the
-# public-ingredients rebuild recipe under docker-build/miles-ngc2506-public/,
-# push it, then pin the digest here and land
-# docker/images/miles-async-rollout.Dockerfile as a single digest-pinned FROM.
-image = "autorlbench/miles-async-rollout:ngc2506-public"
-image_stack = "miles-async-rollout"
+# Migrated (2026-11-11) from the never-built miles-async-rollout env to the
+# slime cu129 image to reduce environment count. Rationale (see
+# tmp/image-audit-2026-11-10.md and tmp/env-task-matrix-2026-11-11.md):
+# the slime image's base is lmsysorg/sglang:v0.5.15.post1-cu129 -- the same
+# official CI lineage as the calibration base (lmsysorg/sglang:v0.5.16-cu130),
+# carrying the same-generation binary closure: sgl-kernel 0.4.4+cu129,
+# flashinfer 0.6.12 (cu12 flavor), flash-attn 2.8.3 + fa3-hopper (source-built
+# against the image's torch 2.11.0+cu129, the cu12-flavor equivalents of the
+# calibration's fa trio), apex (source-built), TE 2.16.1, ray[default],
+# Megatron-LM (slime's 1dcf0daf -- replaced at prepare time). prepare.sh
+# shadows the sglang-miles fork d218d6c7, Megatron-LM 4716f754, and
+# megatron-energon 7.4.0 over the image via $AUTORLBENCH_PREPARED/pysite.
+# NOTE: the recorded defective/control thresholds (92/148 steps, >=120 /
+# >=0.48) were calibrated on the ngc-2506 cu130 stack -- a FULL RE-RECORD on
+# this stack is required before grading numbers are valid again.
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
 
 # scripts/train_grpo.sh pins the 4-GPU split (actor 2 + rollout 2); the
 # recorded defective/control runs used 4xH800 under a fixed 8h wall clock.

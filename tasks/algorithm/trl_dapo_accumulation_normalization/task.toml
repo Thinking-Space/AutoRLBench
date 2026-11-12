@@ -21,15 +21,19 @@ algo = "GRPO with DAPO loss"
 script = "train.sh"
 
 [environment]
-# Build-recipe exception (see docker/README.md "Exceptions"): no published
-# image carries the TRL GRPO stack, so docker/images/trl-grpo-torch26.Dockerfile
-# holds the recipe and must be built and pushed as
-# autorlbench/trl-grpo-torch26:py312-cu124 once; the image pull fails until
-# then. After the push, collapse the Dockerfile to a digest-pinned one-liner.
-# Build recipe not yet built/pushed (see docker/README.md "Exceptions");
-# pin the digest here once the image is pushed.
-image = "autorlbench/trl-grpo-torch26:py312-cu124"
-image_stack = "trl-grpo-torch26"
+# Runs on the packaged vllm0.11-torch2.8-cu128 image — the same image five
+# other tasks already use, platform-registered on Cybertron as
+# ptdbench-vllm0.11-torch2.8-cu128. The recorded stack is torch 2.6.0 /
+# cu124 / py3.12 with no engine; the image's torch 2.8.0 / cu128 compiled
+# layer is native and self-consistent, the vLLM engine and flash-attn stay
+# inert (train.py pins attn_implementation="sdpa" and use_vllm=False, and
+# the recorded environment carried no vLLM at all), and prepare.sh shadows
+# the recorded pure-Python majors into $AUTORLBENCH_PREPARED/pysite. The
+# graded metric is a structural step count recomputed by the grader from
+# the run records, so the 23.5 threshold carries over from the torch 2.6
+# recording.
+image = "ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128@sha256:6f7c302c0161a6c32d978faade165c86c153575baf028e729d7eebe44c06f683"
+image_stack = "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12"
 
 # 1 GPU, matching the recorded runs: run_training.sh drives
 # torch.distributed.run with --nproc_per_node=1 on a single H100 80 GB.

@@ -47,9 +47,15 @@ Prepare downloads dataset inputs from `locaszzz/AgentWorldModel-1K` at commit
 Frozen logs and trajectories ship with the task; diagnosis and verification are
 offline after prepare. Offline checks replay the 8 cases, verify the 20-episode subset
 and check answer isolation. Hosted semantic grading and a corrected/control run
-have not been performed. The optional `idea-historical` training image is
-**not yet published**, and the `docker/images/idea-issue.Dockerfile` definition
-is pending. Commands and evidence boundaries are in
+have not been performed. The task runs on the packaged
+`vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12` image: the scoring surface is
+environment-independent (the issue judge runs outside the sandbox and the solution
+grader is stdlib-only), so the recorded CPU-only diagnosis stack survives only as
+the 23 prepare-time shadow pins in
+[environment/runtime/diagnosis-requirements.txt](environment/runtime/diagnosis-requirements.txt).
+The optional `idea-historical` training image (GPU reproduction, non-scoring)
+remains an unpublished manual recipe — `docker-build/idea-historical.Dockerfile`.
+Commands and evidence boundaries are in
 [verifier resources](evaluations/issue/verifier/resources/README.md).
 Component terms are in [LICENSE](LICENSE) and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

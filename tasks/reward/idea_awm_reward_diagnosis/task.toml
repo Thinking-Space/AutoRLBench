@@ -22,12 +22,19 @@ script_args = ["--train"]
 [environment]
 # Static diagnosis only; optional training uses the separate idea-historical
 # image. CPU-only, no GPUs declared: the issue tier reads the frozen evidence
-# and the judge runs outside the sandbox. The image is not yet published
-# (see README.md, environment requirement): the recipe is
-# docker-build/idea-issue.Dockerfile -- TODO(image): build and push it, then
-# pin the digest here.
-image = "ptdbench/idea-issue:py312-20261023-deps1"
-image_stack = "idea-issue"
+# and the judge runs outside the sandbox. Runs on the packaged
+# vllm0.11-torch2.8-cu128 image (py3.12): the scoring surface is fully
+# environment-independent (issue tier = LLM judge over agent_answer.md outside
+# the sandbox; solution tier = stdlib-only deterministic replay), so the
+# recorded CPU-only diagnosis stack only supplies the evidence-reading pins
+# (pyarrow 25.0.1 · omegaconf 2.3.1 · wandb 0.28.2 + their 20 transitive pins)
+# -- those are shadowed at prepare time from $AUTORLBENCH_PREPARED/pysite,
+# see environment/prepare.sh and environment/runtime/diagnosis-requirements.txt.
+# The GPU training path stays structurally blocked regardless of host:
+# run_local.sh pins /opt/idea/bin/python and reproduce.py requires AWM_PYTHON,
+# neither of which any scoring image carries.
+image = "ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128@sha256:6f7c302c0161a6c32d978faade165c86c153575baf028e729d7eebe44c06f683"
+image_stack = "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12"
 
 [outcome]
 failure_type = "reward_validity"

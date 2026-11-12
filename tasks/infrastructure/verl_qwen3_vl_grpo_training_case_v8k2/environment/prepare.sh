@@ -27,6 +27,44 @@ for _kv in PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLA
     fi
 done
 
+# --- recorded numpy, shadowed over the image ---------------------------------
+# The cu128 image's compiled layer matches the recorded stack version-for-
+# version (vLLM 0.11.0 / torch 2.8.0 / triton 3.4.0 / xformers 0.0.32.post1 /
+# transformers 4.57.6 / nccl 2.27.3 / cudnn 9.10.2.21); the differences are
+# the CUDA build tag (cu128 vs cu129 wheels of torch/vLLM/flash-attn), ray
+# 2.56.0 vs the recorded 2.49.2, and pure-Python pins. Of those pins only the
+# numpy major is load-bearing here: the vendored verl pins numpy<2.0.0
+# (framework/setup.py), while the image froze numpy 2.2.6 — NumPy 2's NEP 50
+# promotion rules can shift mixed-dtype arithmetic during training. scipy
+# must follow numpy into the shadow (its image build is compiled against
+# numpy>=2; the ABI clash would break transformers' lazy imports).
+# --no-deps: everything else these two need already sits in the image at
+# recorded-compatible versions. The same numpy 1.26.4 + scipy 1.17.1 pair was
+# verified on this image on real AVX-512 x86 (PiSSA task pair, 2026-11-10).
+site="$AUTORLBENCH_PREPARED/pysite"
+if [ ! -d "$site/numpy" ]; then
+    _pip_args=(--no-cache-dir --no-deps --only-binary :all: --target "$site")
+    if [ -n "${AUTORLBENCH_PIP_INDEX_URL:-}" ]; then
+        _pip_args+=(--index-url "$AUTORLBENCH_PIP_INDEX_URL")
+        if [ -n "${AUTORLBENCH_PIP_TRUSTED_HOST:-}" ]; then
+            _pip_args+=(--trusted-host "$AUTORLBENCH_PIP_TRUSTED_HOST")
+        fi
+    fi
+    python3 -m pip install "${_pip_args[@]}" numpy==1.26.4 scipy==1.17.1
+fi
+# Shadow for the rest of this script and for the agent/rerun/verifier stages
+# via prepared/env. The explicit /workspace keeps the image's PYTHONPATH ENV
+# in play — the prepared/env line replaces it.
+export PYTHONPATH="$site${PYTHONPATH:+:$PYTHONPATH}"
+if ! grep -qs "^PYTHONPATH=" "${AUTORLBENCH_PREPARED}/env"; then
+    echo "PYTHONPATH=$site:/workspace" >> "${AUTORLBENCH_PREPARED}/env"
+fi
+PYTHONPATH="$site" python3 - <<'EOF'
+import numpy, scipy
+assert numpy.__version__ == "1.26.4", numpy.__version__
+assert scipy.__version__ == "1.17.1", scipy.__version__
+EOF
+
 # prepare_data.py reads/writes parquet and pins outputs by content digest, so
 # any pyarrow that round-trips the recorded content passes; only install if the
 # image is missing pyarrow entirely.

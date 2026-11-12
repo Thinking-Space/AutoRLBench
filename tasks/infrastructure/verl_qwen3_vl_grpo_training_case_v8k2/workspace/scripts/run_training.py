@@ -13,7 +13,15 @@ root = Path(__file__).resolve().parents[1]
 source = root / 'framework'
 run = root / 'runs/session'
 sys.path.insert(0, str(source))
-os.environ['PYTHONPATH'] = os.pathsep.join([str(source), str(root/'scripts')])
+# Keep any inherited PYTHONPATH prefix (the prepare-stage pysite shadow of
+# numpy 1.26.4 + scipy 1.17.1, exported via prepared/env) ahead of the
+# workspace sources: ray worker subprocesses re-resolve imports from this
+# variable, and dropping the prefix would silently mix the image's numpy 2.x
+# into the workers while the driver runs the shadowed numpy 1.x (verl pins
+# numpy<2.0.0).
+_inherited = os.environ.get('PYTHONPATH', '')
+os.environ['PYTHONPATH'] = os.pathsep.join(
+    [p for p in (_inherited, str(source), str(root/'scripts')) if p])
 from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf
 params = [s.replace('/workspace', str(root)) for s in json.loads((root/'config/overrides.json').read_text())]

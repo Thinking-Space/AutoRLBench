@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Prepare stage, shared byte-identical by the trl-grpo-torch26 task pair
+# Prepare stage, shared byte-identical by the trl task pair
 # (trl_dapo_accumulation_normalization, trl_conditional_reward_logging).
 #
-# Runs in the prepare-stage container: root, the trl-grpo-torch26 image, the
-# only networked stage, and $AUTORLBENCH_WORKSPACE writable. It fetches the
-# Qwen2.5-0.5B-Instruct weights and the GSM8K parquet, then pip-installs the
-# vendored TRL checkout from the workspace -- the defective tree the agent
-# repairs. Destinations are what run.py's flags read: --model model --data data.
+# Runs in the prepare-stage container: root, the vllm0.11-torch2.8-cu128
+# image, the only networked stage, and $AUTORLBENCH_WORKSPACE writable. It
+# fetches the Qwen2.5-0.5B-Instruct weights and the GSM8K parquet, shadows
+# the recorded pure-Python pins the image freezes at other versions, then
+# pip-installs the vendored TRL checkout from the workspace -- the defective
+# tree the agent repairs. Destinations are what the runner's flags read:
+# --model model --data data.
 set -euo pipefail
 : "${AUTORLBENCH_WORKSPACE:?}"
 W="$AUTORLBENCH_WORKSPACE"
@@ -15,15 +17,83 @@ export HOME="$W/.home" TMPDIR="$W/.tmp"
 export PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1
 
 # --- image-level env, seeded here --------------------------------------------
-# docker/images/trl-grpo-torch26.Dockerfile is a build recipe baked without
-# ENV; the two entries the recording rig's image carried ride the
-# prepared/env handoff into the agent/rerun/verifier stages via the activate
-# hook. Idempotent.
+# The vllm0.11-torch2.8-cu128 image bakes no CUDA_DEVICE_ORDER /
+# TOKENIZERS_PARALLELISM defaults; the two entries the recording rig's
+# image carried ride the prepared/env handoff into the agent/rerun/verifier
+# stages via the activate hook. Idempotent.
 for _kv in CUDA_DEVICE_ORDER=PCI_BUS_ID TOKENIZERS_PARALLELISM=false; do
     if ! grep -qs "^${_kv%%=*}=" "${AUTORLBENCH_PREPARED}/env" 2>/dev/null; then
         echo "$_kv" >> "${AUTORLBENCH_PREPARED}/env"
     fi
 done
+
+# --- recorded pure-Python pins, shadowed over the image ----------------------
+# The pair runs on the packaged vllm0.11-torch2.8-cu128 image (torch 2.8.0 /
+# cu128 / py3.12): the compiled layer is image-native and self-consistent,
+# and the engine side stays inert (train.py pins attn_implementation="sdpa"
+# and use_vllm=False, and the recorded environment carried no vLLM at all).
+# The image's pure-Python layer is frozen at different versions, so the
+# recorded majors the TRL GRPO stack is sensitive to are shadowed from
+# $AUTORLBENCH_PREPARED/pysite: the four majors plus huggingface_hub —
+# transformers 5.15.1 imports is_offline_mode from it, which the image's
+# older hub does not export. tokenizers is already 0.22.2 in the image (the
+# recorded pin); everything else stays image-native. --no-deps: the image
+# carries the transitive closure, and letting pip resolve would float pins
+# the image deliberately holds.
+site="$AUTORLBENCH_PREPARED/pysite"
+if [ ! -d "$site/transformers" ]; then
+    _pip_args=(--no-cache-dir --no-deps --only-binary :all: --target "$site")
+    if [ -n "${AUTORLBENCH_PIP_INDEX_URL:-}" ]; then
+        _pip_args+=(--index-url "$AUTORLBENCH_PIP_INDEX_URL")
+        if [ -n "${AUTORLBENCH_PIP_TRUSTED_HOST:-}" ]; then
+            _pip_args+=(--trusted-host "$AUTORLBENCH_PIP_TRUSTED_HOST")
+        fi
+    fi
+    python3 -m pip install "${_pip_args[@]}" \
+        transformers==5.15.1 datasets==4.7.0 accelerate==1.15.0 peft==0.18.1 \
+        huggingface_hub==1.29.0
+fi
+# Shadow for the rest of this script and for the agent/rerun/verifier stages
+# via prepared/env (run_training.sh re-prefixes it ahead of $PWD/src).
+export PYTHONPATH="$site${PYTHONPATH:+:$PYTHONPATH}"
+if ! grep -qs "^PYTHONPATH=" "${AUTORLBENCH_PREPARED}/env"; then
+    echo "PYTHONPATH=$site:/workspace/src" >> "${AUTORLBENCH_PREPARED}/env"
+fi
+PYTHONPATH="$site" python3 - <<'EOF'
+import transformers, datasets, accelerate, peft, huggingface_hub
+assert transformers.__version__ == "5.15.1", transformers.__version__
+assert datasets.__version__ == "4.7.0", datasets.__version__
+assert accelerate.__version__ == "1.15.0", accelerate.__version__
+assert peft.__version__ == "0.18.1", peft.__version__
+assert huggingface_hub.__version__ == "1.29.0", huggingface_hub.__version__
+EOF
+
+# --- engine neutrality: reproduce the recorded no-vLLM environment ----------
+# The image carries vLLM 0.11.0; the recording rig carried none. The vendored
+# TRL gates every vllm import behind is_vllm_available(), which keys off
+# importlib.util.find_spec("vllm") -- on the image that resolves (0.11 is out
+# of TRL's supported range, but the check only warns), and the gated imports
+# then die on vllm 0.11's moved internals ("No module named
+# vllm.utils.network_utils"). Parking a None sentinel in sys.modules makes
+# find_spec return None -- the exact state the recorded runs saw. The sentinel
+# rides pysite/sitecustomize.py, which CPython imports from PYTHONPATH at
+# interpreter startup, so every stage (and every torchrun worker) starts with
+# vllm effectively absent; train.py's use_vllm=False + sdpa pins keep the
+# engine inert regardless, and nothing else in either task imports vllm.
+if [ ! -f "$site/sitecustomize.py" ]; then
+    cat > "$site/sitecustomize.py" <<'STUB'
+# Generated by prepare.sh: park a None sentinel so importlib.util.find_spec
+# ("vllm") returns None and the vendored TRL's is_vllm_available() gate sees
+# the no-vLLM environment the recorded runs used. See prepare.sh for context.
+import sys
+
+sys.modules.setdefault("vllm", None)
+STUB
+fi
+PYTHONPATH="$site" python3 - <<'EOF'
+import importlib.util
+assert importlib.util.find_spec("vllm") is None, "vllm sentinel not active"
+EOF
 
 # --- Base model ---------------------------------------------------------------
 # The task-local fetch_hf.py fetches the whole repos, cache-first, without

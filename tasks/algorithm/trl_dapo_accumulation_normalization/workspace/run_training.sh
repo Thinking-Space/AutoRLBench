@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$AUTORLBENCH_WORKSPACE"
-export PYTHONPATH="$PWD/src"
+export PYTHONPATH="${AUTORLBENCH_PREPARED:+${AUTORLBENCH_PREPARED}/pysite:}$PWD/src"
 export WANDB_MODE=offline
 export WANDB_PROJECT=autorlbench-reproductions
 export WANDB_DIR="$AUTORLBENCH_RESULTS/experiment_logs/wandb"
