@@ -422,6 +422,21 @@
  * below moves 190 -> 200 with this round, and the published
  * issue-judgment total was recounted at 320 records (a thirty-record
  * shortfall since 2026-11-07 is restored in solution-results.json).
+ * The ten qwen25_gsm8k_grpo issue records were published on 12 Nov
+ * 2026 from the 10-11 Nov harbor round: two pass (GLM-5.3 and
+ * Claude-Fable-5.1 score 1.0 -- the round's only judgments that name
+ * the prompt-appended reference answer as the cause with full
+ * evidence); GPT-6-Astra and Qwen3.8-Max each reach 0.7 (correct
+ * root cause, wrong health verdict, half the evidence); Grok-4.7
+ * scores 0.1; the remaining five score 0.0. The task ships
+ * issue-only: the preprocessor appends each selected row's own gold
+ * answer to 1,494 of 7,473 prompts while the labels, row order, test
+ * rows and native scorer stay correct, and the run completes and
+ * improves -- a healthy verdict is the trap. All ten verdicts agree
+ * across the ledger, the trial verifier files and the wrapper
+ * reports, and the ten trajectories were audited clean of network
+ * access. The published issue-judgment total below moves 310 -> 320
+ * with this round.
  * The 180 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -7979,6 +7994,146 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "c7839fb7-bb5c-47fb-959f-bb5f763415da",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "7e3cf7d28623b27f6b7667c8dbba63e1daa4d6a602409664ee34ed7028cba347"
+  },
+  {
+    "task": "data/qwen25_gsm8k_grpo",
+    "slug": "gpt6astra-gsm8k-grpo",
+    "file": "agent-trace/gpt6astra-gsm8k-grpo.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.7,
+    "durationMs": 1255816,
+    "steps": 17,
+    "costUsd": 2.2054
+  },
+  {
+    "task": "data/qwen25_gsm8k_grpo",
+    "slug": "gpt61sol-gsm8k-grpo",
+    "file": "agent-trace/gpt61sol-gsm8k-grpo.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 5753214,
+    "steps": 55,
+    "costUsd": 1.3176
+  },
+  {
+    "task": "data/qwen25_gsm8k_grpo",
+    "slug": "fable51-gsm8k-grpo",
+    "file": "agent-trace/fable51-gsm8k-grpo.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 4545994,
+    "steps": 19,
+    "costUsd": 12.5114
+  },
+  {
+    "task": "data/qwen25_gsm8k_grpo",
+    "slug": "glm53-gsm8k-grpo",
+    "file": "agent-trace/glm53-gsm8k-grpo.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1519989,
+    "steps": 91,
+    "costUsd": 14.3486
+  },
+  {
+    "task": "data/qwen25_gsm8k_grpo",
+    "slug": "kimi-gsm8k-grpo",
+    "file": "agent-trace/kimi-gsm8k-grpo.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 4880481,
+    "steps": 15,
+    "costUsd": 2.2257
+  },
+  {
+    "task": "data/qwen25_gsm8k_grpo",
+    "slug": "kimi31-gsm8k-grpo",
+    "file": "agent-trace/kimi31-gsm8k-grpo.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1895131,
+    "steps": 24,
+    "costUsd": 2.4823
+  },
+  {
+    "task": "data/qwen25_gsm8k_grpo",
+    "slug": "dsv4-gsm8k-grpo",
+    "file": "agent-trace/dsv4-gsm8k-grpo.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 3505446,
+    "steps": 50,
+    "costUsd": 16.9468
+  },
+  {
+    "task": "data/qwen25_gsm8k_grpo",
+    "slug": "gemini4-gsm8k-grpo",
+    "file": "agent-trace/gemini4-gsm8k-grpo.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2836913,
+    "steps": 37,
+    "costUsd": 10.6244
+  },
+  {
+    "task": "data/qwen25_gsm8k_grpo",
+    "slug": "qwen38-gsm8k-grpo",
+    "file": "agent-trace/qwen38-gsm8k-grpo.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.7,
+    "durationMs": 2581530,
+    "steps": 25,
+    "costUsd": null
+  },
+  {
+    "task": "data/qwen25_gsm8k_grpo",
+    "slug": "grok47-gsm8k-grpo",
+    "file": "agent-trace/grok47-gsm8k-grpo.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 2569339,
+    "steps": 43,
+    "costUsd": null
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

@@ -617,5 +617,23 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "DeepSeek-R1-Distill-Qwen-1.5B trains with GRPO + sequence-MIS and the run completes with improving AIME, but the BF16 FSDP2 learner forward and the vLLM rollout forward compute materially different token probabilities for the same synchronized weights.",
     "issue": "Training DeepSeek-R1-Distill-Qwen-1.5B with GRPO + sequence-MIS on the MATH 1460-question subset (440 steps). With both forwards at bfloat16, the recorded token-weighted mean absolute logprob difference is 0.0112137 nat/token over 1.03 billion response tokens, the maximum sampled-token probability difference reaches 0.999926 (step 252), the max absolute logprob difference is 17.5485 (step 326), the mean sequence ESS fraction collapses to 0.0989, and 5.65% of sequences are mis-rejected by the sequence log-ratio gate. An FP16 arm of the same experiment measures 0.00135637 nat/token with ESS 0.9506 -- an 8.27x separation -- while both arms learn and finish with finite optimizer records, and BF16 finishes within 2.81 / 2.71 points of FP16 on AIME 2024 / 2025 avg@32: the run looks healthy and is not."
+  },
+  {
+    "id": "data/qwen25_gsm8k_grpo",
+    "title": "Qwen2.5 GSM8K GRPO run",
+    "family": "Data",
+    "tags": [
+      "input-contamination",
+      "data-preprocessing",
+      "issue-only"
+    ],
+    "model": "Qwen2.5-1.5B-Instruct",
+    "dataset": "GSM8K (7,473 train / 1,319 test; 256-row held-out validation subset)",
+    "framework": "verl / GRPO",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-07",
+    "license": "Apache-2.0",
+    "brief": "A preprocessing regression appends each selected training row's own gold answer to about 20% of prompts; nothing crashes and the run improves, but reward flows to copying the disclosed answer.",
+    "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on GSM8K completes 40 steps. The preprocessor appends the same row's gold answer to 1,494 of 7,473 training prompts; all labels, row order and 1,319 test rows remain unchanged. The affected subset's online accuracy rises from 9.5% at step 1 to 96.0% at step 40; a recorded rollout computes 55/6 and then explicitly adopts the reference answer; clean test accuracy reaches 78.09%. The native scorer is correct -- the run looks healthy and is not."
   }
 ];
