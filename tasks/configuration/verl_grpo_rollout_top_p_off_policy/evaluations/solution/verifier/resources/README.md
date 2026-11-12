@@ -33,6 +33,7 @@ on one RTX PRO 6000), log root `experiment_logs`, executed in the agent's worksp
 verifier runs. The harness deletes the declared log roots before the rerun, so grading only ever
 sees this fresh run's dump.
 
-`tests/grade_submission.py` is the grader of `tasks/reward/verl_grpo_gsm8k_any_number_reward`
-(same runner and dump format) with optional spec keys added, of which this task uses one:
-`runner_pinned: false` skips the runner byte-compare.
+`tests/grade_submission.py` is the grader originally built for
+`tasks/reward/verl_grpo_gsm8k_any_number_reward` (same runner and dump format; that task
+was removed from the benchmark on 12 Nov 2026), with optional spec keys added, of which
+this task uses one: `runner_pinned: false` skips the runner byte-compare.

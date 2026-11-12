@@ -11,8 +11,7 @@
 # Stack: Python 3.12, torch 2.6.0 / CUDA 12.4, transformers 5.15.1,
 # datasets 4.7.0, accelerate 1.15.0, wandb 0.22.3, and the vendored TRL
 # 1.14.0.dev0 checkout that prepare.sh pip-installs from the workspace.
-# Tasks: algorithm/trl_dapo_accumulation_normalization,
-# infrastructure/trl_conditional_reward_logging.
+# Tasks: algorithm/trl_dapo_accumulation_normalization.
 #
 # Restored from the pre-2026-11-05 recipe (git show
 # 87c6be6c^:docker/images/trl-grpo-torch26.Dockerfile), adapted to the

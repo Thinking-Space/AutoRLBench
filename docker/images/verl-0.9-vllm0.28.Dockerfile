@@ -5,8 +5,7 @@
 # ray 2.58.0, tensordict 0.10.0, flash-attn 2.8.3 (built from source: there is no torch-2.13
 # wheel upstream). verl itself is not installed: the task workspace carries verl v0.9.0 and its
 # launch script puts it first on PYTHONPATH.
-# Tasks: configuration/verl_grpo_ppo_mini_batch_too_small,
-#        reward/verl_grpo_gsm8k_any_number_reward.
+# Tasks: configuration/verl_grpo_ppo_mini_batch_too_small.
 #
 # The versions are those of the conda env both recorded runs of these tasks used (1 x RTX A6000,
 # SM86, 2026-10-27). The base is the vLLM v0.28.0 release image, which already ships the

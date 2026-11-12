@@ -124,9 +124,8 @@ A few Dockerfiles predate or deviate from the single-`FROM` rule:
   `autorlbench/tool-rl-vllm024:py312-cu130` once, then collapsed to a single digest-pinned
   `FROM`. Adapted to the bake-nothing convention on 2026-11-06. Until the push exists, the
   task's image pull fails — build first (`algorithm/verl_reinforcepp_observation_credit`).
-- `trl-grpo-torch26.Dockerfile` is the restored build recipe for the TRL GRPO task pair
-  (`algorithm/trl_dapo_accumulation_normalization`,
-  `infrastructure/trl_conditional_reward_logging`): no published image carries that stack
+- `trl-grpo-torch26.Dockerfile` is the restored build recipe for the TRL GRPO task
+  `algorithm/trl_dapo_accumulation_normalization`: no published image carries that stack
   (Python 3.12, torch 2.6.0, transformers 5.15.1), so it must be built and pushed as
   `autorlbench/trl-grpo-torch26:py312-cu124` once, after which it collapses to a single
   digest-pinned `FROM`. Until the push exists, the tasks' image pull fails — build first.
@@ -136,9 +135,8 @@ A few Dockerfiles predate or deviate from the single-`FROM` rule:
   upstream `verlai/verl:vllm011.dev5` image, to be built and pushed as
   `autorlbench/verl-vllm011:vllm0.11-torch2.8` once, after which it collapses to a single
   digest-pinned `FROM`. Until the push exists, the tasks' image pull fails — build first.
-- `verl-0.9-vllm0.28.Dockerfile` is the restored build recipe for the verl 0.9.0 GRPO pair
-  (`configuration/verl_grpo_ppo_mini_batch_too_small`,
-  `reward/verl_grpo_gsm8k_any_number_reward`): a pip + source-built flash-attn layer over
+- `verl-0.9-vllm0.28.Dockerfile` is the restored build recipe for the verl 0.9.0 GRPO task
+  `configuration/verl_grpo_ppo_mini_batch_too_small`: a pip + source-built flash-attn layer over
   the digest-pinned `vllm/vllm-openai:v0.28.0` image (torch 2.13.0 / cu130), to be built
   and pushed as `autorlbench/verl-0.9-vllm0.28:torch2.13-cu130` once, after which it
   collapses to a single digest-pinned `FROM`. Until the push exists, the tasks' image pull
