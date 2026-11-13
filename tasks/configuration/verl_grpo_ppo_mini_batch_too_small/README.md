@@ -9,7 +9,7 @@ Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K where the launch script sets `
 | **Type** | Configuration |
 | **Domain** | Math RL |
 | **Tags** | `ppo-mini-batch` `off-policy-drift` `peak-then-decline` |
-| **Framework** | verl 0.9.0 (GRPO), FSDP + vLLM 0.28 colocated |
+| **Framework** | verl 0.9.0 (GRPO), FSDP + vLLM 0.24 colocated |
 | **Run time** | ~2.7 hours per run |
 | **Resources** | 1 GPU |
 
@@ -121,8 +121,15 @@ Wrong diagnoses a reviewer should expect and reject:
   and 0.487 at step 0, so applying the fix without the rerun fails. The dose run with mini-batch 8 is
   0.541. Calibrated on one run per arm, so the margins (0.036 / 0.035) are not a variance estimate.
   Grader replay on the recorded dumps: defective exit 1, control exit 0. A symlinked or missing dump
-  exits 1. Not verified: the `verl-0.9-vllm0.28` image is not built and `prepare.sh` has not been run
-  in Docker. All recorded runs used the same stack natively. The control was launched with the hydra
+  exits 1. Image migration verified: the task now runs on the packaged verl-vllm024.dev2 image
+  (vLLM 0.24 / torch 2.11 / flash-attn 2.8.3, the same image infrastructure/qwen3vl_geo3k uses; the
+  recorded runs above used torch 2.13 / vLLM 0.28 natively on RTX A6000). A full 100-step run of
+  the defective configuration completed with exit 0 in 73 minutes on 1x H800 and reproduced the
+  signature: held-out accuracy 0.49 at its peak (steps 10-30) falling to 0.31 at step 100, response
+  truncation rising from 0.06 to 0.5, `actor/ppo_kl` 3-5e-3 throughout, training score 0.62 (step
+  30) falling to 0.33-0.44. `prepare.sh`'s pysite shadow (math-verify 0.9.0 +
+  latex2sympy2_extended, antlr4 pinned to 4.9.3 against the image's omegaconf 2.3.1) was exercised
+  end-to-end by that run's reward scoring. The control was launched with the hydra
   override `actor_rollout_ref.actor.ppo_mini_batch_size=32` rather than an edited script. The recorded
   launch log shows the override and the script's sha256 is identical across the three arms. A
   previously recorded control of the same recipe from a different day was not used because its step-0

@@ -19,18 +19,26 @@ algo = "grpo"
 script = "run_gsm8k_grpo.sh"
 
 [environment]
-# Build-recipe exception (see docker/README.md "Exceptions"): docker/images/
-# verl-0.9-vllm0.28.Dockerfile holds the recipe and must be built and pushed
-# as autorlbench/verl-0.9-vllm0.28:torch2.13-cu130 once; the image pull fails
-# until then. After the push, collapse the Dockerfile to a digest-pinned
-# one-liner.
-# Build recipe not yet built/pushed (see docker/README.md "Exceptions");
-# pin the digest here once the image is pushed.
-image = "autorlbench/verl-0.9-vllm0.28:torch2.13-cu130"
-image_stack = "verl-0.9-vllm0.28"
+# Runs on the packaged verl-vllm024.dev2 image — the same image
+# infrastructure/qwen3vl_geo3k uses. verl itself is workspace-vendored
+# (v0.9.0) and launched first on PYTHONPATH, so the image supplies the
+# runtime stack: vLLM 0.24.0 (verl 0.9's adapter requires >=0.18), torch
+# 2.11.0+cu130, flash-attn 2.8.3 baked in and active (the actor defaults to
+# flash_attention_2), transformers 5.5.3, ray 2.56.1, tensordict 0.10.0.
+# The repo's recorded evidence is from the original stack (torch 2.13 /
+# vLLM 0.28, run natively). On this image the experiment was verified with a
+# full 100-step run of the defective configuration (exit 0, 73 minutes on
+# 1x H800) that reproduced the signature: held-out accuracy 0.49 at its peak
+# (steps 10-30) falling to 0.31 at step 100, response truncation rising
+# 0.06 -> 0.5, actor/ppo_kl 3-5e-3 throughout. prepare.sh shadows the
+# scorer pins the image lacks (math-verify 0.9.0 + latex2sympy2_extended,
+# with antlr4 4.9.3 to stay compatible with the image's omegaconf 2.3.1)
+# into $AUTORLBENCH_PREPARED/pysite.
+image = "verlai/verl:vllm024.dev2@sha256:b867883b0dd011363e69ab2ab344922a28c5bd0409e2a324e3ee70fb27ca7543"
+image_stack = "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12"
 
 # Single-GPU task: FSDP actor and vLLM rollout are colocated on one GPU
-# (recorded on 1x RTX A6000 48 GB). WANDB_MODE/WANDB_API_KEY are exported by
+# (verified on 1x H800 80 GB). WANDB_MODE/WANDB_API_KEY are exported by
 # the harness itself for every stage.
 gpus = 1
 
