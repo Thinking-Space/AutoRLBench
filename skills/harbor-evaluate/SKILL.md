@@ -209,7 +209,7 @@ Ready-made scripts (copy to the repo root or run directly as
 `bash skills/harbor-evaluate/examples/...`):
 
 ```bash
-# issue level: all 31 tasks
+# issue level: all 32 tasks
 bash skills/harbor-evaluate/examples/run-issue.sh claude-code <model-id> [judge-model]
 
 # solution level: all 23 tasks that have solutions

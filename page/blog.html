@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AutoRLBench research blog: can AI agents diagnose and repair failures in RL trainings?">
+    <title>Can AI Agents Diagnose and Repair Failures in RL Trainings? — AutoRLBench</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <link rel="stylesheet" href="styles.css?v=20261112-2">
+    <style>
+        /* Blog layer: the shared guide-page tokens stay in charge of the palette. */
+        .blog-page { --blog-max: 1320px; }
+        .blog-page .blog-main {
+            max-width: var(--blog-max);
+            margin: 0 auto;
+            padding: 8rem 2rem 7rem;
+        }
+        .blog-page nav { padding: 1.2rem 2rem; }
+        .blog-page .nav-links { gap: 2.2rem; font-size: 1rem; }
+        .blog-page nav .nav-logo img { width: 165px; height: auto; }
+        .blog-page .nav-github svg { width: 21px; height: 21px; }
+        .blog-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            margin-bottom: 2.2rem;
+            color: var(--text-secondary);
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: .72rem;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+        .blog-breadcrumb a { color: var(--text); }
+        .blog-hero {
+            position: relative;
+            overflow: hidden;
+            display: block;
+            min-height: 410px;
+            padding: 3rem 2.3rem 3.2rem;
+            border: 1px solid rgba(36,52,71,.13);
+            border-radius: 24px;
+            background: rgba(251,250,248,.72);
+            box-shadow: 0 18px 45px rgba(47,63,86,.08), inset 0 1px 0 rgba(255,255,255,.85);
+        }
+        .blog-hero::before,
+        .blog-hero::after {
+            position: absolute;
+            z-index: 0;
+            content: '';
+            width: 440px;
+            height: 440px;
+            border-radius: 50%;
+            filter: blur(18px);
+            opacity: .52;
+            pointer-events: none;
+        }
+        .blog-hero::before {
+            top: -300px;
+            right: -80px;
+            background: radial-gradient(circle, rgba(44,65,92,.22), rgba(44,65,92,0) 68%);
+        }
+        .blog-hero::after {
+            bottom: -330px;
+            left: 25%;
+            background: radial-gradient(circle, rgba(154,64,56,.19), rgba(154,64,56,0) 68%);
+        }
+        .blog-hero-copy { position: relative; z-index: 1; max-width: 1230px; }
+        .blog-hero-aside { position: absolute; right: 2.3rem; bottom: 3.2rem; z-index: 1; }
+        .blog-kicker, .blog-eyebrow {
+            display: block;
+            color: var(--brick);
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: .67rem;
+            font-weight: 700;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+        .blog-kicker { margin-bottom: 1.35rem; }
+        .blog-hero h1 {
+            max-width: 1230px;
+            margin: 0 0 1.35rem;
+            font-size: clamp(3rem, 4.8vw, 4.6rem);
+            line-height: 1.02;
+            letter-spacing: -.065em;
+            text-wrap: balance;
+        }
+        .blog-dek {
+            max-width: 820px;
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 1.14rem;
+            line-height: 1.8;
+        }
+        .blog-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .55rem;
+            margin-top: 2rem;
+        }
+        .blog-meta span {
+            padding: .4rem .65rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: rgba(255,255,255,.48);
+            color: var(--text-secondary);
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: .7rem;
+        }
+        .blog-hero-aside {
+            display: grid;
+            align-content: end;
+            gap: 1.4rem;
+        }
+        .blog-hero-aside .blog-scroll-hint {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            color: var(--text-secondary);
+            font-size: .78rem;
+        }
+        .blog-scroll-hint i { display: inline-block; width: 28px; height: 1px; background: var(--brick); }
+
+        .blog-layout {
+            display: grid;
+            grid-template-columns: 200px minmax(0, 900px);
+            justify-content: center;
+            gap: 3rem;
+            align-items: start;
+            margin-top: 1.5rem;
+        }
+        .blog-article { grid-column: 2; grid-row: 1; width: 100%; min-width: 0; }
+        .blog-article { counter-reset: blogfig; }
+        .blog-article > p,
+        .blog-article > h2,
+        .blog-article > h3,
+        .blog-article > h4,
+        .blog-article > .blog-callout,
+        .blog-article > .blog-inline-grid,
+        .blog-article > .blog-citation,
+        .blog-article > section,
+        .blog-article > .blog-intro { width: 100%; max-width: none; }
+        .blog-intro { width: 100%; max-width: none; margin: 0; }
+        .blog-intro p { width: 100%; max-width: none; }
+        .blog-article p {
+            width: 100%;
+            margin: 0 0 1.35rem;
+            color: #393939;
+            font-size: 1.12rem;
+            line-height: 1.85;
+        }
+        .blog-article strong { color: var(--text); font-weight: 700; }
+        .blog-roadmap { width: 100%; max-width: none; margin: 0 0 1.8rem; padding-left: 1.4rem; color: #393939; font-size: 1.12rem; line-height: 1.85; }
+        .blog-roadmap li + li { margin-top: .75rem; }
+        .blog-article h2 {
+            position: relative;
+            margin: 1.8rem 0 .75rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-strong);
+            font-size: clamp(2rem, 3.4vw, 3rem);
+            line-height: 1.06;
+            letter-spacing: -.055em;
+        }
+        .blog-article #tldr h2 { margin-top: 0; }
+        .blog-article h2::before {
+            position: absolute;
+            top: -1px;
+            left: 0;
+            width: 42px;
+            height: 2px;
+            content: '';
+            background: linear-gradient(90deg, var(--brick), var(--accent));
+        }
+        .blog-article h3 {
+            margin: 1.8rem 0 .8rem;
+            font-size: 1.58rem;
+            line-height: 1.15;
+            letter-spacing: -.035em;
+        }
+        /* Finding headings use the same text column as the paragraphs below. */
+        .blog-article #finding-one,
+        .blog-article #finding-two {
+            display: block;
+            width: 100%;
+            max-width: none;
+            text-wrap: wrap;
+        }
+        @media (min-width: 1101px) {
+            .blog-article #finding-one,
+            .blog-article #finding-two {
+                font-size: 1.5rem;
+            }
+        }
+        .blog-article h4 {
+            margin: 1.15rem 0 .6rem;
+            font-size: 1.12rem;
+            line-height: 1.25;
+            letter-spacing: -.02em;
+        }
+        .blog-lede { font-size: 1.24rem !important; line-height: 1.8 !important; color: var(--text) !important; }
+        .blog-toc {
+            grid-column: 1;
+            grid-row: 1;
+            position: sticky;
+            top: 7rem;
+            padding: 1rem 1.2rem 1rem 0;
+            border-right: 1px solid var(--border-strong);
+        }
+        .blog-toc-label { margin-bottom: .9rem; color: var(--text-secondary); font-family: 'SFMono-Regular', Consolas, monospace; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+        .blog-toc a { display: block; padding: .4rem 0; color: var(--text-secondary); font-size: .9rem; line-height: 1.4; }
+        .blog-toc a.blog-toc-level-1 { margin-top: .35rem; padding: .45rem 0 .3rem; color: var(--text); font-size: .92rem; font-weight: 700; }
+        .blog-toc a.blog-toc-level-2 { margin-left: .7rem; padding: .25rem 0 .25rem .75rem; border-left: 1px solid var(--border); font-size: .8rem; }
+        .blog-toc a:hover, .blog-toc a.is-active { color: var(--text); opacity: 1; }
+        .blog-toc a.is-active { font-weight: 700; }
+        .blog-toc a.blog-toc-level-2.is-active { font-weight: 600; }
+        .blog-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 101;
+            width: 100%;
+            height: 3px;
+            pointer-events: none;
+        }
+        /* styles.css lifts guide-page children above the globe canvas; keep
+           this one child fixed so the reading progress stays at the viewport
+           edge. */
+        .blog-page > .blog-progress { position: fixed; z-index: 101; }
+        .blog-progress span { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--brick), var(--accent)); transition: width .1s linear; }
+
+        .blog-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+            margin: 2.5rem 0 3.2rem;
+            border-top: 1px solid var(--border-strong);
+            border-bottom: 1px solid var(--border-strong);
+        }
+        .blog-stat { padding: 1.25rem 1rem 1.25rem 0; }
+        .blog-stat + .blog-stat { padding-left: 1rem; border-left: 1px solid var(--border); }
+        .blog-stat strong { display: block; margin-bottom: .2rem; font-size: 2rem; line-height: 1; letter-spacing: -.06em; }
+        .blog-stat span { color: var(--text-secondary); font-size: .76rem; line-height: 1.35; }
+        .blog-levels { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 2rem 0 2.5rem; }
+        .blog-level {
+            position: relative;
+            overflow: hidden;
+            min-height: 188px;
+            padding: 1.3rem 1.4rem;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: rgba(255,255,255,.53);
+            transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+        }
+        .blog-level::after { position: absolute; right: -36px; bottom: -48px; width: 130px; height: 130px; border-radius: 50%; content: ''; background: rgba(44,65,92,.07); transition: transform .3s ease; }
+        .blog-level:focus-within { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
+        .blog-level-tag { display: inline-block; margin-bottom: 2.8rem; color: var(--brick); font-family: 'SFMono-Regular', Consolas, monospace; font-size: .61rem; letter-spacing: .1em; text-transform: uppercase; }
+        .blog-level h3 { margin: 0 0 .45rem; font-size: 1.15rem; }
+        .blog-level p { margin: 0; color: var(--text-secondary); font-size: .84rem; line-height: 1.6; }
+
+        .blog-figure {
+            position: relative;
+            margin: 1.8rem 0 2.2rem;
+            padding: .7rem;
+            border: 1px solid var(--border);
+            border-radius: 17px;
+            background: rgba(251,250,248,.78);
+            box-shadow: var(--shadow-sm);
+        }
+        .blog-article #fig-1 { margin-bottom: .35rem; }
+        .blog-intro + h2 { margin-top: 4.4rem; }
+        .blog-article > section { padding: 3rem 0; }
+        .blog-article > section:first-child { padding-top: 0; }
+        .blog-article #tldr { padding-bottom: 0; }
+        .blog-article #tldr .blog-intro { margin-top: 2rem; }
+        .blog-article #tldr .blog-intro p:last-child { margin-bottom: 0; }
+        .blog-article #overview { padding-top: 8rem; }
+        /* OpenRUA-style chart mounts. Every mark is created by blog-charts.js
+           and starts hidden; entering the viewport turns on its transition. */
+        .blog-chart-figure { padding: .85rem .85rem .7rem; }
+        .blog-chart { position: relative; overflow: hidden; min-height: 260px; border-radius: 12px; background: rgba(255,255,255,.45); }
+        .chart-controls { display: flex; align-items: center; justify-content: flex-end; gap: .65rem; min-height: 2.25rem; padding: .2rem .35rem .65rem; color: #53616b; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: .82rem; }
+        .chart-control-label { font-weight: 650; }
+        .chart-select { min-width: 190px; padding: .35rem .55rem; border: 1px solid #c7d1d5; border-radius: 7px; background: rgba(255,255,255,.82); color: #243447; font: inherit; cursor: pointer; }
+        .blog-chart svg { display: block; width: 100%; height: auto; overflow: visible; font-family: Georgia, 'Times New Roman', serif; }
+        .chart-title { fill: #243447; font-size: 22px; font-weight: 600; }
+        .chart-label, .chart-x-label, .chart-axis, .chart-legend-text, .chart-value, .chart-point-label { fill: #53616b; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 13px; }
+        .chart-value { fill: #243447; font-size: 13px; font-variant-numeric: tabular-nums; }
+        .chart-pie-value { fill: #fff; font-family: Georgia, 'Times New Roman', serif; font-size: 13.5px; font-style: italic; text-anchor: middle; dominant-baseline: middle; }
+        .chart-pie-label { fill: #53616b; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 10.5px; }
+        .chart-x-label { font-size: 13px; }
+        .chart-grid { stroke: #dce5e8; stroke-width: 1; }
+        .chart-axis-line, .chart-track { stroke: #afbbc0; stroke-width: 1; }
+        .chart-gate { stroke: #69757c; stroke-width: 1.4; stroke-dasharray: 4 4; }
+        .chart-frame { fill: none; stroke: #243447; stroke-width: 1.4; }
+        .chart-stack-label { fill: #fff; font-family: Georgia, serif; font-size: 14px; text-anchor: middle; dominant-baseline: middle; }
+        .chart-cell-value { fill: #111; font-family: Georgia, serif; font-size: 20px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
+        .chart-quadrant-axis { fill: #53616b; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 16px; font-weight: 650; }
+        .chart-quadrant-side-value { fill: #243447; font-family: Georgia, 'Times New Roman', serif; font-size: 23px; font-weight: 700; }
+        .chart-quadrant-side-label { fill: #68727c; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 13px; }
+        /* Keep the quadrant plot compact and visibly centered inside its
+           figure card, leaving a quiet margin around the plot itself. */
+        #fig-6 .blog-chart { display: flex; align-items: center; justify-content: center; }
+        #fig-6 .blog-chart svg { width: 78%; margin: 0 auto; }
+        #fig-7 .chart-title { font-size: 25px; }
+        #fig-7 .chart-axis,
+        #fig-7 .chart-label,
+        #fig-7 .chart-value { font-size: 16px; }
+        #fig-7 .chart-value { fill: #53616b; font-weight: 700; }
+        #fig-4 .chart-title { font-size: 25px; }
+        #fig-4 .chart-axis,
+        #fig-4 .chart-x-label,
+        #fig-4 .chart-legend-text { font-size: 16px; }
+        #fig-4 .chart-value { fill: #53616b; font-size: 15px; font-weight: 700; }
+        #fig-2 .chart-title { fill: #111; font-size: 25px; }
+        #fig-2 .chart-stack-label {
+            fill: #fff;
+            font-size: 17px;
+            font-weight: 700;
+        }
+        #fig-2 .chart-label,
+        #fig-2 .chart-legend-text { fill: #111; font-size: 16px; }
+        .chart-event { stroke: #9a4038; stroke-width: 1.2; stroke-dasharray: 4 4; }
+        .chart-data-separator { stroke: #8793A0; stroke-width: 1.2; stroke-dasharray: 5 4; }
+        .chart-data-label { fill: #26323D; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 13px; }
+        .chart-timeline { stroke: #bbc8c5; stroke-width: 2; }
+        .chart-arrow { fill: none; stroke: #bbc8c5; stroke-width: 2; marker-end: url(#chart-arrowhead); }
+        .chart-node-number, .chart-node-label, .chart-node-sub { fill: #243447; text-anchor: middle; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; }
+        .chart-node-number { fill: #fff; font-size: 11px; font-weight: 700; }
+        .chart-node-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; }
+        .chart-node-sub { fill: #68727c; font-size: 10px; }
+        .chart-hacking-node { cursor: help; outline: none; }
+        .chart-hacking-node:focus .chart-hacking-point { stroke: #243447; stroke-width: 4; }
+        .chart-hacking-step, .chart-hacking-title, .chart-hacking-subtitle, .chart-hacking-evidence { pointer-events: none; }
+        .chart-hacking-step { fill: #68727c; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 11px; font-weight: 700; letter-spacing: .06em; }
+        .chart-hacking-title { fill: #243447; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 17px; font-weight: 750; letter-spacing: .02em; }
+        .chart-hacking-subtitle { fill: #53616b; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 12px; }
+        .chart-hacking-evidence { fill: #68727c; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 11px; }
+        #fig-8 .chart-node-number { font-size: 13px; }
+        #fig-8 .chart-hacking-step { font-size: 14px; }
+        #fig-8 .chart-hacking-title { font-size: 21px; }
+        #fig-8 .chart-hacking-subtitle { font-size: 15px; }
+        #fig-8 .chart-hacking-evidence { font-size: 14px; }
+        .chart-cot-tooltip { position: absolute; top: 78px; left: 50%; z-index: 5; display: grid; width: min(360px, calc(100% - 20px)); gap: .4rem; padding: .85rem 1rem; border: 1px solid rgba(36,52,71,.22); border-radius: 12px; background: rgba(251,250,248,.98); box-shadow: 0 12px 28px rgba(36,52,71,.16); color: #243447; opacity: 0; pointer-events: none; transform: translate(-50%, -8px); transition: opacity .18s ease, transform .18s ease; }
+        .chart-cot-tooltip.is-open { opacity: 1; transform: translate(-50%, 0); }
+        .chart-cot-tooltip.edge-start { left: 10px; transform: translate(0, -8px); }
+        .chart-cot-tooltip.edge-start.is-open { transform: translate(0, 0); }
+        .chart-cot-tooltip.edge-end { left: auto; right: 10px; transform: translate(0, -8px); }
+        .chart-cot-tooltip.edge-end.is-open { transform: translate(0, 0); }
+        .chart-cot-tooltip strong { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: .83rem; letter-spacing: .03em; }
+        .chart-cot-tooltip .chart-cot-label { color: var(--brick); font-family: 'SFMono-Regular', Consolas, monospace; font-size: .61rem; font-weight: 700; letter-spacing: .11em; }
+        .chart-cot-tooltip .chart-cot-quote, .chart-cot-tooltip .chart-cot-output { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: .78rem; line-height: 1.5; }
+        .chart-cot-tooltip .chart-cot-output { color: #68727c; }
+        #fig-8 .chart-cot-tooltip strong { font-size: 1rem; }
+        #fig-8 .chart-cot-tooltip .chart-cot-label { font-size: .72rem; }
+        #fig-8 .chart-cot-tooltip .chart-cot-quote,
+        #fig-8 .chart-cot-tooltip .chart-cot-output { font-size: .9rem; }
+        #fig-9 .chart-title { font-size: 25px; }
+        #fig-9 .chart-axis { font-size: 16px; }
+        #fig-9 .chart-point-label { fill: #243447; font-size: 14px; font-weight: 600; }
+        .chart-scatter-label-link { stroke: #aebbc0; stroke-width: 1; stroke-dasharray: 3 3; }
+        .chart-bar, .chart-hbar, .chart-stack, .chart-cell, .chart-node, .chart-dot, .chart-point-square, .chart-point-triangle, .chart-scatter-dot, .chart-scatter-logo, .chart-wedge, .chart-rise, .chart-pop { opacity: 0; }
+        .chart-stack-group { transform-box: fill-box; transform-origin: center bottom; transform: scaleY(0); transition: transform .82s cubic-bezier(.22,.8,.2,1), opacity .3s ease; transition-delay: var(--delay, 0ms); }
+        .chart-bar, .chart-stack, .chart-hbar, .chart-rise { transform-box: fill-box; transform-origin: center bottom; transform: scaleY(0); transition: transform .72s cubic-bezier(.22,.8,.2,1), opacity .3s ease; transition-delay: var(--delay, 0ms); }
+        .chart-hbar { transform-origin: left center; transform: scaleX(0); }
+        .chart-cell, .chart-node, .chart-dot, .chart-point-square, .chart-point-triangle, .chart-scatter-dot, .chart-scatter-logo, .chart-pop { transform-box: fill-box; transform-origin: center; transform: scale(.35); transition: transform .55s cubic-bezier(.22,.8,.2,1), opacity .35s ease; transition-delay: var(--delay, 0ms); }
+        .chart-region { fill: #F6B293; opacity: 0; transition: opacity .55s ease; }
+        .chart-wedge { transform-box: fill-box; transform-origin: center; transform: scale(.72); transition: transform .7s cubic-bezier(.22,.8,.2,1), opacity .35s ease; transition-delay: var(--delay, 0ms); }
+        .chart-line, .chart-segment { fill: none; stroke-dasharray: var(--length, 1); stroke-dashoffset: var(--length, 1); transition: stroke-dashoffset .72s cubic-bezier(.22,.8,.2,1); transition-delay: var(--delay, 0ms); }
+        .blog-chart.is-visible .chart-bar, .blog-chart.is-visible .chart-stack, .blog-chart.is-visible .chart-rise, .blog-chart.is-visible .chart-stack-group { opacity: 1; transform: scaleY(1); }
+        .blog-chart.is-visible .chart-hbar { opacity: 1; transform: scaleX(1); }
+        .blog-chart.is-visible .chart-region { opacity: .1; }
+        .blog-chart.is-visible .chart-cell, .blog-chart.is-visible .chart-node, .blog-chart.is-visible .chart-dot, .blog-chart.is-visible .chart-point-square, .blog-chart.is-visible .chart-point-triangle, .blog-chart.is-visible .chart-scatter-dot, .blog-chart.is-visible .chart-scatter-logo, .blog-chart.is-visible .chart-wedge, .blog-chart.is-visible .chart-pop { opacity: 1; transform: scale(1); }
+        .blog-chart.is-visible .chart-wedge-muted { opacity: .28; }
+        .blog-chart.is-visible .chart-line, .blog-chart.is-visible .chart-segment { stroke-dashoffset: 0; }
+        .blog-chart.is-reset * { transition: none !important; }
+        @media (prefers-reduced-motion: reduce) {
+            .blog-chart .chart-bar, .blog-chart .chart-stack, .blog-chart .chart-hbar, .blog-chart .chart-rise,
+            .blog-chart .chart-stack-group,
+            .blog-chart .chart-region { opacity: .1; }
+            .blog-chart .chart-cell, .blog-chart .chart-node, .blog-chart .chart-dot, .blog-chart .chart-point-square, .blog-chart .chart-point-triangle, .blog-chart .chart-scatter-dot, .blog-chart .chart-scatter-logo, .blog-chart .chart-wedge,
+            .blog-chart .chart-pop { opacity: 1; transform: none; }
+            .blog-chart .chart-line, .blog-chart .chart-segment { stroke-dashoffset: 0; }
+        }
+        .blog-figure figcaption { display: grid; grid-template-columns: auto 1fr; gap: .75rem; align-items: start; padding: .85rem .55rem .2rem; color: var(--text-secondary); font-size: .78rem; line-height: 1.55; }
+        .blog-chart-figure { counter-increment: blogfig; }
+        .blog-figure figcaption::before { content: 'FIG. ' counter(blogfig); color: var(--brick); font-family: 'SFMono-Regular', Consolas, monospace; font-size: .6rem; font-weight: 700; letter-spacing: .08em; }
+        .blog-callout {
+            position: relative;
+            margin: 2.5rem 0 2.5rem;
+            padding: 1.55rem 1.7rem 1.6rem;
+            border: 1px solid rgba(154,64,56,.24);
+            border-left: 5px solid var(--brick);
+            border-radius: 15px;
+            background:
+                radial-gradient(circle at 100% 0%, rgba(154,64,56,.14), transparent 42%),
+                linear-gradient(135deg, rgba(246,228,225,.86), rgba(255,255,255,.72));
+            box-shadow: 0 12px 28px rgba(154,64,56,.10);
+        }
+        .blog-callout p { margin: 0; color: var(--text); font-size: 1.06rem; line-height: 1.72; }
+        .blog-callout p strong { display: block; margin-bottom: .5rem; color: var(--text); font-size: 1.18rem; line-height: 1.25; }
+        .blog-callout a { color: var(--brick); font-weight: 700; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+        .blog-inline-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 2.2rem 0; }
+        .blog-inline-card { padding: 1.2rem 1.3rem; border: 1px solid var(--border); border-radius: 13px; background: rgba(255,255,255,.42); }
+        .blog-inline-card strong { display: block; margin-bottom: .4rem; font-size: .82rem; }
+        .blog-inline-card span { color: var(--text-secondary); font-size: .8rem; line-height: 1.55; }
+        .blog-citation { margin-top: 1.4rem; padding: 1.2rem 1.35rem; border: 1px solid var(--border); border-radius: 13px; background: #f8f8f5; }
+        .blog-citation-note { margin-bottom: .7rem !important; color: var(--text-secondary) !important; font-size: .96rem !important; }
+        .blog-citation-note + .blog-citation { margin-top: 0; }
+        .blog-citation pre { margin: 0; color: #3b3b3a; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .8rem; line-height: 1.7; white-space: pre-wrap; }
+        .blog-endnote { margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-strong); color: var(--text-secondary); font-size: .82rem; }
+
+        @media (max-width: 1100px) {
+            .blog-page .nav-links { gap: 1.25rem; font-size: .88rem; }
+            .blog-page .nav-links { max-width: calc(100vw - 230px); overflow-x: auto; scrollbar-width: none; white-space: nowrap; }
+            .blog-page .nav-links::-webkit-scrollbar { display: none; }
+            .blog-page nav .nav-logo img { width: 150px; }
+        }
+
+        @media (max-width: 900px) {
+            .blog-page .blog-main { padding-right: 1.5rem; padding-left: 1.5rem; }
+            .blog-hero { min-height: 0; padding: 2.5rem 2rem; }
+            .blog-hero-aside { position: relative; right: auto; bottom: auto; max-width: 450px; margin-top: 2.5rem; }
+            .blog-layout { grid-template-columns: 1fr; gap: 0; margin-top: 1.8rem; }
+            .blog-article, .blog-toc { grid-column: auto; grid-row: auto; }
+            .blog-toc { position: relative; top: auto; order: -1; display: flex; flex-wrap: wrap; gap: .35rem .8rem; margin-bottom: 3rem; padding: .7rem 0; border-top: 1px solid var(--border); border-right: 0; border-bottom: 1px solid var(--border); }
+            .blog-toc-label { width: 100%; margin-bottom: .2rem; }
+            .blog-toc a { padding: .25rem 0; }
+        }
+        @media (max-width: 620px) {
+            .blog-page .blog-main { padding: 6rem 1rem 5rem; }
+            .blog-page nav { padding: 1rem 1rem; }
+            .blog-page .nav-links { gap: .35rem; max-width: none; font-size: .72rem; }
+            .blog-breadcrumb { margin-bottom: 1.4rem; }
+            .blog-hero { padding: 2rem 1.2rem; border-radius: 17px; }
+            .blog-hero h1 { font-size: clamp(2.25rem, 11vw, 3.5rem); }
+            .blog-dek { font-size: .98rem; }
+            #fig-6 .blog-chart svg { width: 100%; }
+            .blog-stats { grid-template-columns: repeat(2, 1fr); }
+            .blog-stat:nth-child(3) { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); }
+            .blog-stat:nth-child(4) { border-top: 1px solid var(--border); }
+            .blog-levels, .blog-inline-grid { grid-template-columns: 1fr; }
+            .blog-article p { font-size: .98rem; line-height: 1.8; }
+            .blog-article h2 { margin-top: 2.2rem; font-size: 2rem; }
+            .blog-intro + h2 { margin-top: 3.6rem; }
+            .blog-article h3 { margin-top: 2rem; font-size: 1.3rem; }
+            .blog-figure { margin-left: -.35rem; margin-right: -.35rem; padding: .4rem; border-radius: 13px; }
+            .blog-figure figcaption { padding: .7rem .35rem .1rem; font-size: .72rem; }
+        }
+    </style>
+</head>
+<body class="guide-page blog-page">
+    <div class="blog-progress" aria-hidden="true"><span></span></div>
+    <canvas id="globe-canvas" aria-hidden="true"></canvas>
+    <nav>
+        <a href="index.html" class="nav-logo"><img src="images/logo.png" alt="AutoRLBench" width="150" height="24"></a>
+        <div class="nav-links">
+            <a href="index.html">HOME</a>
+            <a href="index.html#leaderboard">LEADERBOARD</a>
+            <a href="blog.html" class="is-current" aria-current="page">BLOG</a>
+            <a href="tasks.html">TASKS</a>
+            <a href="traces.html">TRACES</a>
+            <a href="contribute.html">CONTRIBUTE</a>
+            <a href="team.html">TEAM</a>
+            <a class="nav-github" href="https://github.com/Thinking-Space/AutoRLBench" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3.3-.4 6.8-1.6 6.8-7A5.4 5.4 0 0 0 19.4 4 5 5 0 0 0 19.3.5S18.2.1 15 1.8a13.4 13.4 0 0 0-7 0C4.8.1 3.7.5 3.7.5A5 5 0 0 0 3.6 4a5.4 5.4 0 0 0-1.4 3.7c0 5.4 3.5 6.6 6.8 7A4.8 4.8 0 0 0 8 18v4"/><path d="M8 19c-3 .9-3-1.5-4.2-2"/></svg>
+                <span>GITHUB</span>
+            </a>
+        </div>
+    </nav>
+
+    <main class="blog-main">
+        <div class="blog-breadcrumb"><a href="index.html">AutoRLBench</a><span>/</span><span>Research blog</span></div>
+
+        <header class="blog-hero">
+            <div class="blog-hero-copy">
+                <span class="blog-kicker">Research blog · 12 Nov 2026</span>
+                <h1>Can AI Agents Diagnose and Repair RL Training Failures?</h1>
+                <p class="blog-dek">A benchmark for testing whether AI agents can diagnose  and repair RL training failures.</p>
+                <div class="blog-meta"><span>31 diagnosis tasks</span><span>18 repair tasks</span><span>10 frontier agents</span></div>
+            </div>
+            <div class="blog-hero-aside">
+                <div class="blog-scroll-hint"><i></i><span>Scroll to read the findings</span></div>
+            </div>
+        </header>
+
+        <div class="blog-layout">
+            <article class="blog-article">
+                <section id="tldr" aria-labelledby="tldr-title">
+                    <h2 id="tldr-title">TL;DR</h2>
+                    <p class="blog-lede">AI for AI is a key path to recursive self-improvement. Existing evaluations mostly focus on whether an end-to-end experiment succeeds, making it hard to see where an agent excels or falls short. AutoRLBench breaks this process down into diagnosing and repairing RL training failures. Our initial release includes 31 diagnosis tasks and 18 repair tasks across six failure categories: configuration, reward, data, environment, algorithm, and infrastructure. In our first evaluation of 10 frontier agents, results show that agents are better at identifying a failure than explaining its root cause, and the main bottleneck for repair is whether the fix addresses the core issue rather than making superficial changes.</p>
+                    <p>This project is under active development, with tasks and evaluation results updated in real time. We will continue to collect real training failures, expand verification for long-term stability, functional completeness, and cross-environment setups, and evaluate more recent agents. We also welcome community contributions of new tasks. If you have encountered challenging RL training failures, especially those requiring extensive debugging, long reasoning chains, and complex repairs, please submit them to us so we can turn them into reproducible tasks together.</p>
+                    <div class="blog-stats" aria-label="Benchmark at a glance">
+                        <div class="blog-stat"><strong data-count="31">0</strong><span>real-world RL <br>training tasks</span></div>
+                        <div class="blog-stat"><strong data-count="18">0</strong><span>tasks with verified<br>repairs</span></div>
+                        <div class="blog-stat"><strong data-count="12">0</strong><span>universities and<br>research institutions</span></div>
+                        <div class="blog-stat"><strong data-count="6">0</strong><span>failure<br>categories</span></div>
+                    </div>
+                    <figure class="blog-figure blog-chart-figure" id="fig-1">
+                        <div class="blog-chart" data-chart="fig-1" role="img"></div>
+                        <figcaption>Benchmark statistics and initial leaderboard.</figcaption>
+                    </figure>
+                    <div class="blog-intro">
+                        <p>AI for AI is viewed as a key path to recursive self-improvement (RSI). As agents become more integrated into real-world research and development tasks, end-to-end evaluations are no longer enough. For example, PostTrainBench measures an agent's ability to run a post-training pipeline. While agents appear capable of completing the full pipeline, a final overall score alone does not reveal their exact capability boundaries. It remains unclear whether an agent can handle unexpected failures, adjust its strategy based on feedback, and verify that its changes truly fix the issue. These process-level capabilities need to be evaluated separately.</p>
+                        <p>In this project, we choose reinforcement learning (RL) training as our research setting. RL training failures take many forms, and training signals are noisy and delayed. Moreover, the same symptom can stem from different root causes across data, reward, algorithm, or infrastructure. When training stagnates or performance collapses, an agent needs to locate the failure, choose how to intervene, and verify that the improvement lasts. Therefore, AutoRLBench focuses on a more specific, fine-grained, and practical question: <strong>When RL training fails, can an AI agent identify the root cause and reliably repair it?</strong></p>
+                    </div>
+                </section>
+
+                <section id="overview" aria-labelledby="overview-title">
+                    <h2 id="overview-title">Overview</h2>
+
+                    <p>AutoRLBench evaluates the ability of AI agents to diagnose and repair RL training failures. For our initial release, we collected and curated 31 tasks from the open research community. <strong>Every task comes from a real RL training failure</strong>, and 18 of them include a verified repair run. Based on where the root cause occurs in the pipeline, we group the tasks into six categories: configuration, reward, data, environment, algorithm, and infrastructure. Each task provides the full workspace from the failed training run, including source code, configurations, logs, and evaluation records.</p>
+                    <p>The first batch of tasks brings together contributions from <strong>more than 10 universities, research institutes, and research groups</strong>, including Tsinghua University, Fudan University, Shanghai Jiao Tong University, Harbin Institute of Technology, University of Pennsylvania, Tohoku University, Duke University, Johns Hopkins University, and FusionBrain Lab, alongside independent researchers.</p>
+                    <p>We evaluate agents at two levels:</p>
+                    <div class="blog-levels">
+                        <article class="blog-level"><span class="blog-level-tag">Level 01 · Diagnosis</span><h3>Diagnosis</h3><p>Determine whether the training run is healthy, identify the specific root cause, and provide supporting evidence. An LLM Judge evaluates whether the submitted diagnosis matches the reference answer.</p></article>
+                        <article class="blog-level"><span class="blog-level-tag">Level 02 · Repair</span><h3>Repair</h3><p>Modify the workspace and submit a repair report. After the agent finishes, the evaluation system relaunches the training run in the modified workspace and grades the repair based on the resulting training metrics. Of the 31 tasks, 18 support repair evaluation.</p></article>
+                    </div>
+                </section>
+
+                <section id="results" aria-labelledby="results-title">
+                    <h2 id="results-title">Main Results</h2>
+                    <p class="blog-lede">In our first evaluation, we tested 10 frontier agents, producing 310 diagnosis trajectories and 180 repair trajectories. Across both task levels, the top-performing agent, GPT-6-Astra, achieves an overall pass rate of 46.9%, with a large gap across agents.</p>
+                    <h3 id="finding-one">Diagnosis: A Capability Gap Between Identifying Failures and Explaining Root Causes</h3>
+                    <p>Diagnosis requires an agent to determine whether the training run has failed, identify the root cause, and provide supporting evidence. Our results show that agents identify a failure far more reliably than they explain its root cause. Across all diagnosis trajectories, 87% correctly judged the training run status as unhealthy, while only 40.6% identified the correct root cause. However, recognizing a failure is not enough. As shown in Figure 2, agents can still fail in two distinct ways: identifying a wrong cause, or finding the right cause through wrong evidence. Separating these two failure modes shows whether the agent fails to trace the mechanism or fails to verify its conclusion.</p>
+                    <figure class="blog-figure blog-chart-figure" id="fig-2">
+                        <div class="blog-chart" data-chart="fig-2" role="img"></div>
+                        <figcaption>Pass: all criteria are met. Wrong cause: the status judgment is correct, but the root cause is incorrect. Wrong evidence: the status judgment and root cause are correct, but the supporting evidence is incorrect. Fail: the status judgment is incorrect.</figcaption>
+                    </figure>
+                    <h4>Why Do Agents Identify the Wrong Cause?</h4>
+                    <p>Explaining root causes requires linking surface symptoms to the underlying execution mechanism. In wrong cause trajectories, many agents mistake symptoms like training stagnation or zero reward for the root cause itself. Others stop at a single plausible explanation or address only one part of a compound failure. Because the same symptom can stem from different root causes, and multiple failures can produce similar training curves, a single hypothesis is not enough. To find the true root cause, an agent must trace how a candidate defect actually affects the execution path rather than stopping at surface failures.</p>
+                    <h4>Why Do Agents Provide Wrong Evidence?</h4>
+                    <p>Even when an agent proposes a plausible cause, it must verify this claim with concrete evidence. In <em>wrong evidence</em> trajectories, agents often rely on surface trends, such as training completion or rising metrics, while overlooking hidden inconsistencies across the workspace. In RL training, a defect can reduce update steps or skew the execution path without triggering explicit errors or immediate metric drops. Because local metric improvements and mechanism failures can coexist, curve analysis alone is unreliable. Reliable evidence requires cross-checking code, configurations, and logs, running checks to rule out alternative hypotheses, and confirming that the evidence directly supports the identified root cause.</p>
+
+                    <h3 id="finding-two">Repair: Bottlenecks Lie in Addressing the Core Issue and Sustaining Improvement</h3>
+                    <p>Repair tasks require the agent to turn its diagnosis into concrete workspace changes. Comparing repair runs that start from similar initial performance reveals two main bottlenecks: whether the fix addresses the core failure mechanism, and whether the improvement lasts until the end of training. As shown in Figure 3, some failed repairs remain flat at their initial level, while others improve early in training before dropping sharply. Evaluating repair capability therefore requires examining the full training run.</p>
+                    <figure class="blog-figure blog-chart-figure" id="fig-3">
+                        <div class="blog-chart" data-chart="fig-3" role="img"></div>
+                        <figcaption>Training curves of passed and failed repairs across four tasks. Solid lines denote passed runs, dashed lines denote failed runs, horizontal dotted lines show the healthy baseline, and stars mark the final evaluation scores.</figcaption>
+                    </figure>
+                    <h4>Do Changes Address Core Failure?</h4>
+                    <p>An effective repair must fix the underlying failure mechanism rather than making superficial changes. Agents often patch surface symptoms without tracing how their changes affect training, or run local checks that miss the actual execution path of the failure. Both mistakes confuse local fixes with full system recovery. To make an effective fix, an agent must test its changes along the actual execution path, verify that the fix restores normal training behavior, and ensure that it does not break existing functionality.</p>
+                    <h4>Do Early Improvements Last Throughout Training?</h4>
+                    <p>A reliable repair must also sustain improvement throughout the full training run. Figure 3 shows that some failed runs improve early on, and even take an early lead, before collapsing later. Changing the workspace based only on early symptoms, or treating a short-term metric bounce as a complete fix, misses long-term effects. Therefore, repair verification must cover the full training run to confirm that the failure does not return and early gains are not lost.</p>
+                </section>
+
+                <section id="analysis" aria-labelledby="analysis-title">
+                    <h2 id="analysis-title">Analysis</h2>
+                    <h3 id="categories">Performance Across the Six Failure Categories</h3>
+                    <p>As shown in Figure 4, agent performance varies widely across the six failure categories, and each category exposes a distinct bottleneck:</p>
+                    <ul class="blog-roadmap">
+                        <li><strong>Configuration</strong> failures depend on whether parameters actually reach the target training components.</li>
+                        <li><strong>Reward</strong> failures require tracing the feedback loop across data, reward, advantage, and policy updates without mistaking zero reward or skewed outputs for the root cause.</li>
+                        <li><strong>Data</strong> failures rely on clear read and write rules along the data loading path, producing an interesting contrast between diagnosis and repair.</li>
+                        <li><strong>Environment</strong> failures require looking beyond the training pipeline to verify that the external environment responds as expected.</li>
+                        <li><strong>Algorithm</strong> failures require checking consistency between policy updates and sampling behavior.</li>
+                        <li><strong>Infrastructure</strong> failures require verifying coordination and state consistency across multiple system components.</li>
+                    </ul>
+                    <figure class="blog-figure blog-chart-figure" id="fig-4">
+                        <div class="blog-chart" data-chart="fig-4" role="img"></div>
+                        <figcaption>Diagnosis and repair pass rates across the six failure categories.</figcaption>
+                    </figure>
+                    <h4>An Interesting Contrast: Data Failures Are Hard to Diagnose but Easy to Repair</h4>
+                    <p>Data failures stand out as a notable case where diagnosis involves a long reasoning chain, yet the repair itself is straightforward once the issue is located. In one data task, hard samples are accidentally dropped halfway through training, and the data loader automatically fills the gap with easy samples (Figure 5). Training continues without errors, and the training reward even keeps rising, while the validation score drops as hard samples disappear. Relying on the training curve alone easily misses this bug. Locating the failure requires cross-checking what the pipeline expects to read, what it actually reads, how it handles exceptions, and what the final evaluation measures. Once the agent finds this mismatch, however, fixing the data loader is direct and reliable.</p>
+                    <figure class="blog-figure blog-chart-figure" id="fig-5">
+                        <div class="blog-chart" data-chart="fig-5" role="img"></div>
+                        <figcaption>An example data failure task. After hard samples are dropped, the training reward keeps rising while the validation score drops from 0.50 to 0.31. Once the root cause is identified, fixing the data loading path alone restores normal training.</figcaption>
+                    </figure>
+
+                    <h3 id="association">Relationship Between Diagnosis and Repair</h3>
+                    <p>As shown in Figure 6, successful diagnosis correlates positively with successful repair, but the two capabilities remain distinct. Surprisingly, <strong>diagnosis and repair do not form a continuous process driven by the same underlying capability</strong>, where poor diagnosis directly leads to poor repair. An agent's main bottleneck in diagnosis is clearly explaining the root cause, even when it has already spotted the general direction of the failure. Repair, however, only requires the agent to modify the code rather than provide an accurate explanation. As a result, an agent can still fix a failure even when its diagnosis fails, and an accurate diagnosis does not guarantee a reliable fix.</p>
+                    <figure class="blog-figure blog-chart-figure" id="fig-6">
+                        <div class="blog-chart" data-chart="fig-6" role="img"></div>
+                        <figcaption>Diagnosis and repair results across 360 trajectories on the 18 tasks with both evaluations.</figcaption>
+                    </figure>
+
+                    <h3 id="repair-error-analysis">Repair Error Analysis</h3>
+                    <p>We further analyze the failed repair trajectories. In 19 trajectories, agents made no changes, often assuming that the original run was healthy, while in 47 others they changed the code but stayed at the symptom level, for example by adjusting reward handling, learning rate, KL, or response length. Some repairs addressed only part of the failure chain or failed in the actual execution environment.</p>
+                    <figure class="blog-figure blog-chart-figure" id="fig-7">
+                        <div class="blog-chart" data-chart="fig-7" role="img"></div>
+                        <figcaption>Repair error analysis. No edit means that no substantive change was retained in the task workspace; Wrong target means that the core failure mechanism was not addressed; Incorrect / incomplete means that the repair was incorrect or incomplete; New Failure means that the repair introduced a new functional or evaluation failure; Cheating means that the agent violated task constraints or used disallowed external materials or execution paths.</figcaption>
+                    </figure>
+                    <p>These errors reveal three recurring patterns. First, agents treat a run that looks normal as evidence that the failure has been ruled out, or mistake a symptom for its cause and stop intervening too early. Second, agents use CPU checks, syntax checks, or self-written unit tests in place of end-to-end validation. A patch may pass on a local path while missing the actual CUDA path, restricted runtime, or asynchronous export path. Third, agents sometimes change the evaluation target or previously healthy behavior, for example by relaxing the scorer, reducing test or data coverage, bypassing a required adapter, or fixing negative cases while rejecting valid ones.</p>
+
+                    <h3 id="cheating">Case Study: Agent Cheating and Evaluation Shortcuts</h3>
+                    <p>In repair tasks, an agent has full write access to the workspace and can observe many evaluation signals. Higher metrics alone therefore do not guarantee a valid repair. Figure 8 shows a trajectory from GLM-5.3 on an infrastructure task. The agent starts with a valid local diagnosis by tracing the retrieval logs and locating the broken data path. However, instead of fixing the bug independently, it uses <code>curl</code> to download the upstream source, runs a <code>diff</code> against the local workspace, and copies the reference code directly into its patch. While this patch fixes the failure, it turns independent repair into reference copying.</p>
+                    <p>Across our broader trajectory audit, we observe three main types of evaluation shortcuts that inflate metrics without making a genuine repair:</p>
+                    <ul class="blog-roadmap">
+                        <li><strong>Fetching external references</strong>, such as downloading upstream repositories to copy existing fixes.</li>
+                        <li><strong>Weakening evaluation criteria</strong>, such as relaxing scorer or evaluator rules to inflate logged scores.</li>
+                        <li><strong>Simplifying the target task</strong>, such as deleting rule items or bypassing required execution paths to make the task easier.</li>
+                    </ul>
+                    <p>To prevent these shortcuts, AutoRLBench evaluates the final result, the repair process, and task boundaries together. A unified monitor checks whether external materials enter the patch and verifies that evaluation data, gold labels, and scorers remain untouched. Finally, the evaluation system checks core task invariants and reruns training in a clean environment, allowing agents to fix faulty training code without tampering with the task or evaluation criteria.</p>
+                    <figure class="blog-figure blog-chart-figure" id="fig-8">
+                        <div class="blog-chart" data-chart="fig-8" role="img"></div>
+                        <figcaption>Observable reasoning and tool execution in a GLM-5.3 trajectory, showing how the agent fetches upstream code, compares file differences, and copies the reference patch. Hover a point to read the corresponding saved reasoning excerpt.</figcaption>
+                    </figure>
+
+                    <h3 id="cost">Cost and Time Analysis</h3>
+                    <p>Higher token usage or longer execution time does not guarantee better performance. On the shared task subsets, GPT-6.1-Sol passes 12 of 28 diagnosis tasks for $22.85, whereas GPT-6-Astra passes 13 of 28 for $132.00. On repair tasks, GPT-6.1-Sol passes 9 of 17 for $92.31, whereas Gemini-4-Argon passes 11 of 17 for $750.62. Extra exploration helps only when it narrows down hypotheses, verifies fixes, and stops unproductive attempts early.</p>
+                    <figure class="blog-figure blog-chart-figure" id="fig-9">
+                        <div class="blog-chart" data-chart="fig-9" role="img"></div>
+                        <figcaption>Total cost and pass rate across agents on diagnosis and repair tasks.</figcaption>
+                    </figure>
+                    <p>In repair tasks, execution time is heavily skewed by failed runs. The longest 10% of trajectories consume 47.0% of the total execution time, and failed trajectories account for 62.0%. Some agents submit unverified changes quickly, while others explore the wrong direction until they exhaust the budget. For example, GPT-6.1-Sol has a median repair time of 18.5 minutes but a mean of 87.2 minutes. Relying on average execution time alone therefore mistakes long-tail waste for thorough reasoning.</p>
+                    <figure class="blog-figure blog-chart-figure" id="fig-10">
+                        <div class="blog-chart" data-chart="fig-10" role="img"></div>
+                        <figcaption>Mean and median execution time across agents on repair tasks. The large gap reflects the long tail caused by failed runs and prolonged waiting.</figcaption>
+                    </figure>
+                </section>
+
+                <section id="conclusion" aria-labelledby="conclusion-title">
+                    <h2 id="conclusion-title">Conclusion and Roadmap</h2>
+                    <p class="blog-lede">AutoRLBench breaks the core challenge of AI for AI down into two connected questions: can an agent identify why an RL training run fails, and can it reliably repair the failure without tampering with the task? Our evaluation shows that while frontier agents can recognize surface failures, tracing them back to their exact root causes remains difficult. Furthermore, even plausible patches often yield only short-term metric rebounds rather than sustained recovery across the full training run.</p>
+                    <p>We're just getting started. The tasks and leaderboard are updated continuously. Next, we plan to:</p>
+                    <ul class="blog-roadmap">
+                        <li><strong>Expand the collection of real training failures.</strong> Add more tasks, especially silent failures, bugs involving several interacting components, and failures that emerge late in training.</li>
+                        <li><strong>Cover broader RL settings.</strong> Extend coverage of multimodal RL, embodied AI, and multi-turn interactive agents, including failures in perception, environment feedback, and tool use.</li>
+                        <li><strong>Expand full post-training workflows.</strong> Add tasks involving supervised fine-tuning (SFT), on-policy distillation (OPD), and transitions between training stages.</li>
+                        <li><strong>Scale cloud evaluation.</strong> Support large batches of parallel agent evaluations with GPU scheduling, reproducible environments, and consistent resource budgets.</li>
+                        <li><strong>Strengthen trajectory monitoring.</strong> Improve detection of external reference, unauthorized changes to evaluation data or evaluators, and attempts to bypass required execution paths.</li>
+                        <li><strong>Keep agent baselines and efficiency analysis current.</strong> Evaluate new models and harnesses as they become available, reporting pass rates alongside token use, cost, and verification behavior.</li>
+                    </ul>
+                    <div class="blog-callout"><p><strong>Have a training bug that took days to understand or was difficult to repair?</strong> We are actively collecting tasks, especially failures with long reasoning chains and hard-to-find fixes. Share the code, logs, and any available fix through our <a href="contribute.html">contribution guide</a>. A working repair is welcome but not required. We will help turn the failure into a reproducible benchmark task and continue updating the results as new agents are evaluated.</p></div>
+                    <h3 id="acknowledgement">Acknowledgement</h3>
+                    <p>Thank you to all of the task contributors, reviewers, and advisors behind AutoRLBench.</p>
+                    <h3 id="citation">Citation</h3>
+                    <div class="blog-citation"><pre>@article{autorlbench2026,
+  title={AutoRLBench: Can AI Agents Diagnose and Repair Failures in RL Trainings?},
+  author={{AutoRLBench Team}},
+  journal={URL https://thinking-space.github.io/AutoRLBench/},
+  year={2026}
+}</pre></div>
+                    <p class="blog-endnote">This article is based on the AutoRLBench evaluation snapshot released on 12 November 2026.</p>
+                </section>
+            </article>
+
+            <aside class="blog-toc" aria-label="On this page">
+                <div class="blog-toc-label">On this page</div>
+                <a class="blog-toc-level-1" href="#tldr" aria-level="2">TL;DR</a>
+                <a class="blog-toc-level-1" href="#overview" aria-level="2">Overview</a>
+                <a class="blog-toc-level-1" href="#results" aria-level="2">Main results</a>
+                <a class="blog-toc-level-2" href="#finding-one" aria-level="3">Diagnosis</a>
+                <a class="blog-toc-level-2" href="#finding-two" aria-level="3">Repair</a>
+                <a class="blog-toc-level-1" href="#analysis" aria-level="2">Analysis</a>
+                <a class="blog-toc-level-2" href="#categories" aria-level="3">Six categories</a>
+                <a class="blog-toc-level-2" href="#association" aria-level="3">Diagnosis and repair</a>
+                <a class="blog-toc-level-2" href="#repair-error-analysis" aria-level="3">Repair error analysis</a>
+                <a class="blog-toc-level-2" href="#cheating" aria-level="3">Evaluation shortcuts</a>
+                <a class="blog-toc-level-2" href="#cost" aria-level="3">Cost &amp; time</a>
+                <a class="blog-toc-level-1" href="#conclusion" aria-level="2">Conclusion</a>
+            </aside>
+        </div>
+    </main>
+
+    <footer id="contact">
+        <div class="footer-grid">
+            <div class="footer-brand"><div class="nav-logo"><img src="images/logo.png" alt="AutoRLBench" width="150" height="24"></div><p>A benchmark and open call for reproducible RL runs.</p></div>
+            <div class="footer-col"><h4>Benchmark</h4><a href="tasks.html">Tasks</a><a href="index.html#leaderboard">Leaderboard</a><a href="blog.html">Research blog</a></div>
+            <div class="footer-col"><h4>Community</h4><a href="contribute.html">Contribution Guide</a><a href="team.html">Team</a><a href="https://github.com/Thinking-Space/AutoRLBench" target="_blank" rel="noopener noreferrer">GitHub</a></div>
+        </div>
+    </footer>
+
+    <script src="globe.js?v=20261020-1"></script>
+    <script src="blog-charts.js?v=20261113-15"></script>
+</body>
+</html>
