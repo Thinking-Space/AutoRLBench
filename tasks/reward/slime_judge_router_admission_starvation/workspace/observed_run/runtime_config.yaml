@@ -1,0 +1,91 @@
+gui_env_master_url: "http://host_6:9900"
+gui_reward_source: "judge"
+gui_actor_train_node_ip: "host_6"
+
+# passive ZeroGUI judge (only when gui_reward_source == zerogui)
+gui_zerogui_base_url: "http://host_0:8030/v1"
+gui_zerogui_model_name: "Qwen3-VL-4B-Thinking"
+gui_zerogui_api_key: "EMPTY"
+gui_zerogui_temperature: 1.0
+gui_zerogui_top_p: 0.95
+gui_zerogui_max_tokens: 8192
+gui_zerogui_enable_thinking: true
+gui_zerogui_request_timeout: 1200
+gui_zerogui_max_screenshots: 15
+
+# frozen judge sampling — aligned to guirl TRAINING (temperature 1.0, 24576 tokens, thinking)
+gui_judge_base_url: "http://host_7:31100/v1"
+gui_judge_model_name: "guirl-judge"
+gui_judge_history_n: 3
+gui_judge_max_tokens: 24576
+gui_judge_temperature: 1.0
+gui_judge_enable_thinking: true
+gui_judge_parse_max_retries: 3
+gui_judge_concurrency: 16
+gui_judge_max_rounds: 3
+
+# holo3 probe (rollout master /run_probe_round); disabled by default on this cluster
+gui_rollout_master_url: "http://host_6:9910"
+gui_probe_enable: true
+gui_probe_agent_type: "Holo3_Probe"
+gui_probe_base_url: "http://host_7:31200/v1"
+gui_probe_model_name: "holo3-1-35b-a3b"
+gui_probe_api_key: "EMPTY"
+gui_probe_max_steps: 15
+gui_probe_max_tokens: 8192
+gui_probe_temperature: 0.0
+gui_probe_enable_thinking: true
+gui_probe_reasoning_effort: "medium"
+gui_probe_history_n: 4
+gui_probe_max_images: 3
+gui_probe_max_trajectory_length: 15
+gui_probe_client_password: "password"
+gui_probe_sleep_after_execution: 2.0
+
+# freeze the ViT blocks / the projector (vision merger + deepstack mergers); read by model_provider.py
+freeze_vision_model: true
+freeze_vision_projection: true
+
+gui_agent_class_path: "gui_actor_rl.agents.qwen3vl_agent.Qwen3VLAgentLocal"
+gui_max_steps: 50
+gui_sleep_after_execution: 1.5
+gui_wait_after_reset: 10.0
+gui_max_image_history_length: 4
+gui_parse_max_retries: 7
+gui_eval_max_steps: 50
+gui_cua_gym_eval_manifest: ""
+gui_eval_sleep_after_execution: 1.5
+gui_eval_wait_after_reset: 10.0
+
+# "text" = only traj.jsonl / result.txt / judge.json per episode; "full" also writes step_N.png and
+# trajectory.json (~100 MB per episode). Nothing in training reads the latter two.
+gui_trajectory_artifacts: "text"
+
+# per-trajectory wall-clock budget (train only); must stay < AGS_SANDBOX_TIMEOUT
+gui_trajectory_timeout_s: 2000.0
+gui_eval_trajectory_timeout_s: 0
+
+dynamic_history: true
+
+# multi-core mm preprocessing (gui_actor_rl/mm_preprocess.py): HF processor on
+# Ray CPU actors, pixel_values as plasma views; per-image cache dedups the
+# sliding-window screenshots. 0 = legacy inline path.
+gui_mm_pool_size: 16
+gui_mm_per_image_cache: true
+# Ship each screenshot's pixel_values as uint8 + decode table (bit-exact, verified per image,
+# falls back to float32 per image): 6.3 MB instead of 50 MB. Float32 made ~370 GB per rollout, overflowed
+# the plasma store into the pod's 100 GiB ephemeral disk and got job 1323642 evicted.
+gui_mm_pixel_u8: true
+
+# gated rollout timing + per-task diagnostics (gui_actor_rl/timing.py)
+gui_timing_log_enable: true
+gui_timing_log_dir: "/workspace/observed_run/logs/rollout_timing"
+
+# mismatch metrics (examples/train_infer_mismatch_helper/mis.py)
+tis_lower_bound: 0.5
+tis_upper_bound: 2.0
+rs_lower_bound: null
+rs_upper_bound: null
+
+# exact (max / quantile / Pearson / per-bucket) diagnostics, gui_actor_rl/mismatch_metrics.py
+gui_mismatch_dump_dir: "/workspace/observed_run/mismatch"

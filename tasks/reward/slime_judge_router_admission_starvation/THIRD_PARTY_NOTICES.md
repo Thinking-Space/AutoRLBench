@@ -1,0 +1,1 @@
+The source snapshot includes code from slime, distributed under Apache-2.0; see LICENSE.slime. Original copyright notices in source files are retained. The Judge-service task also includes the sglang-router 0.3.2 argument parser (Apache-2.0). Task metadata and new packaging material use the repository license.

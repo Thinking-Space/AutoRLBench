@@ -1,0 +1,1 @@
+The source snapshot includes code from slime, distributed under Apache-2.0; see LICENSE.slime. Original copyright notices in source files are retained. Task metadata and new packaging material use the repository license.
