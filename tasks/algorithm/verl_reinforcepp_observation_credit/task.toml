@@ -14,16 +14,25 @@ framework = "verl"
 algo = "REINFORCE++"
 script = "run.sh"
 [environment]
-# Build-recipe exception (see docker/README.md "Exceptions"): the stack
-# captured from the paired Modal runs (Python 3.12, torch 2.11.0, vLLM
-# 0.24.0), so docker/images/tool-rl-vllm024.Dockerfile holds the recipe and
-# must be built and pushed as autorlbench/tool-rl-vllm024:py312-cu130 once;
-# the image pull fails until then. After the push, collapse the Dockerfile
-# to a digest-pinned one-liner.
-# Build recipe not yet built/pushed (see docker/README.md "Exceptions");
-# pin the digest here once the image is pushed.
-image = "autorlbench/tool-rl-vllm024:py312-cu130"
-image_stack = "tool-rl-vllm024"
+# Migrated 2026-11-13 onto the packaged verl-vllm0.24 image (was the unbuilt
+# tool-rl-vllm024 recipe; see docker-build/original-docker/README.md). The
+# compiled layer matches the recorded stack: torch 2.11.0+cu130 (byte-identical
+# libs), vLLM 0.24.0, flashinfer 0.6.12, numpy 1.26.4 (drift from the recorded
+# 2.3.5 — the audit's layer-order reading was wrong; devspace-verified),
+# tokenizers 0.22.2. The
+# native versions the image freezes differently (ray 2.56.1 vs recorded 2.60.0,
+# nccl 2.30.7 vs 2.28.9, pyarrow 25.0.0 vs 26.0.1) are accepted drift — the
+# defective run was pilot-verified on this image (2×H800, 2026-11-13:
+# reference/analyze.py reproduces the recorded signature, 192 traced rows
+# with all earlier-action-token returns zeroed across tool observations);
+# the full reference-evidence re-record on this image is pending. The
+# recorded pure-Python
+# majors the training stack is sensitive to (transformers 5.10.1 · accelerate
+# 1.15.0 · datasets 5.1.0 · peft 0.21.2 · wandb 0.31.0 · huggingface_hub
+# 1.33.0) are shadowed at prepare time into $AUTORLBENCH_PREPARED/pysite —
+# see environment/prepare.sh.
+image = "verlai/verl:vllm024.dev2@sha256:b867883b0dd011363e69ab2ab344922a28c5bd0409e2a324e3ee70fb27ca7543"
+image_stack = "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12"
 
 # 2 GPUs, matching the recorded runs: train.py pins
 # trainer.n_gpus_per_node=2, trainer.nnodes=1. docker exposes them as

@@ -1,5 +1,129 @@
 #!/usr/bin/env bash
+# trl_tool_history_cross_contamination — prepare stage.
+#
+# Runs in the prepare-stage container: root, the verl-vllm0.24 image, the
+# only networked stage, and $AUTORLBENCH_WORKSPACE writable. It shadows the
+# recorded pure-Python pins, fetches the Qwen3-4B weights, rebuilds the py3.9
+# case-venv (the pinned pytest 3.10.1 stack the corpus runner executes
+# thefuck's tests with — the tool-rl image baked it at /opt/case-venv; on
+# this image it lives inside the workspace so it survives the stage
+# handoff), pip-installs the vendored TRL checkout, and fetches the pinned
+# upstream corpus snapshots.
 set -euo pipefail
+: "${AUTORLBENCH_WORKSPACE:?}"
+W="$AUTORLBENCH_WORKSPACE"
+mkdir -p "$W/.tmp" "$W/.home"
+export HOME="$W/.home" TMPDIR="$W/.tmp"
+
+# --- image-level env, seeded here --------------------------------------------
+# The verl-vllm0.24 image bakes no CUDA_DEVICE_ORDER / TOKENIZERS_PARALLELISM
+# defaults; the two entries the recording rig's image carried ride the
+# prepared/env handoff into the agent/rerun/verifier stages via the activate
+# hook. Idempotent.
+for _kv in CUDA_DEVICE_ORDER=PCI_BUS_ID TOKENIZERS_PARALLELISM=false; do
+    if ! grep -qs "^${_kv%%=*}=" "${AUTORLBENCH_PREPARED}/env" 2>/dev/null; then
+        echo "$_kv" >> "${AUTORLBENCH_PREPARED}/env"
+    fi
+done
+
+# --- recorded pure-Python pins, shadowed over the image ----------------------
+# The task runs on the packaged verl-vllm0.24 image (torch 2.11.0+cu130 /
+# vLLM 0.24.0 / flashinfer 0.6.12 / py3.12): the compiled layer matches the
+# recorded tool-rl stack, including the actively-used engine (GRPOTrainer
+# runs use_vllm=True, vllm_mode=server — vLLM 0.24.0 is the recorded
+# version, so the vendored TRL 1.15.0.dev0 talks to the same server API).
+# The image's pure-Python layer is frozen at different versions, so the
+# recorded majors are shadowed from $AUTORLBENCH_PREPARED/pysite;
+# tokenizers (0.22.2) already matches the image. --no-deps: the image
+# carries the transitive closure, and letting pip resolve would float pins
+# the image deliberately holds. Native drift the shadow cannot reach (ray
+# 2.56.1 vs 2.60.0, nccl 2.30.7 vs 2.28.9, pyarrow 25.0.0 vs 26.0.1, numpy
+# 1.26.4 vs 2.3.5) is accepted — the defective run was pilot-verified on
+# this image (2026-11-13); the full reference-evidence re-record on this
+# image is pending.
+site="$AUTORLBENCH_PREPARED/pysite"
+if [ ! -d "$site/transformers" ]; then
+    _pip_args=(--no-cache-dir --no-deps --only-binary :all: --target "$site")
+    if [ -n "${AUTORLBENCH_PIP_INDEX_URL:-}" ]; then
+        _pip_args+=(--index-url "$AUTORLBENCH_PIP_INDEX_URL")
+        if [ -n "${AUTORLBENCH_PIP_TRUSTED_HOST:-}" ]; then
+            _pip_args+=(--trusted-host "$AUTORLBENCH_PIP_TRUSTED_HOST")
+        fi
+    fi
+    python3 -m pip install "${_pip_args[@]}" \
+        transformers==5.10.1 accelerate==1.15.0 datasets==5.1.0 peft==0.21.2 \
+        wandb==0.31.0 huggingface_hub==1.33.0
+fi
+# Shadow for the rest of this script and for the agent/rerun/verifier stages
+# via prepared/env (run.sh re-prefixes it ahead of $PWD/vendor/trl). The
+# vLLM server subprocess inherits PYTHONPATH too, so trainer and server see
+# the same shadowed transformers, as in the recorded environment.
+export PYTHONPATH="$site${PYTHONPATH:+:$PYTHONPATH}"
+if ! grep -qs "^PYTHONPATH=" "${AUTORLBENCH_PREPARED}/env" 2>/dev/null; then
+    echo "PYTHONPATH=$site:$W/vendor/trl:$W" >> "${AUTORLBENCH_PREPARED}/env"
+fi
+PYTHONPATH="$site" python3 - <<'EOF'
+import transformers, accelerate, datasets, peft, wandb, huggingface_hub
+assert transformers.__version__ == "5.10.1", transformers.__version__
+assert accelerate.__version__ == "1.15.0", accelerate.__version__
+assert datasets.__version__ == "5.1.0", datasets.__version__
+assert peft.__version__ == "0.21.2", peft.__version__
+assert wandb.__version__ == "0.31.0", wandb.__version__
+assert huggingface_hub.__version__ == "1.33.0", huggingface_hub.__version__
+EOF
+
+# --- py3.9 case-venv (the corpus runner's test interpreter) ------------------
+# The tool-rl image baked /opt/case-venv: uv-managed CPython 3.9.25 plus the
+# pinned pre-modern test stack thefuck's snapshot tests run under (pytest
+# 3.10.1 era). This image has no such layer and container filesystems do
+# not survive the stage handoff, so the venv is rebuilt inside the
+# workspace — run.sh points --test-python at it. uv's python-build-standalone
+# download needs GitHub access, same as the corpus fetches below.
+if [ ! -x "$W/case-venv/bin/python" ]; then
+    _pip_args=(--no-cache-dir)
+    if [ -n "${AUTORLBENCH_PIP_INDEX_URL:-}" ]; then
+        _pip_args+=(--index-url "$AUTORLBENCH_PIP_INDEX_URL")
+        if [ -n "${AUTORLBENCH_PIP_TRUSTED_HOST:-}" ]; then
+            _pip_args+=(--trusted-host "$AUTORLBENCH_PIP_TRUSTED_HOST")
+        fi
+    fi
+    python3 -m pip install "${_pip_args[@]}" --break-system-packages uv==0.9.9
+    export UV_PYTHON_INSTALL_DIR="$W/legacy-python"
+    uv python install 3.9.25
+    uv venv --python 3.9.25 "$W/case-venv"
+    uv pip install --python "$W/case-venv/bin/python" \
+        atomicwrites==1.4.1 \
+        attrs==23.2.0 \
+        certifi==2026.10.23 \
+        charset-normalizer==3.5.2 \
+        colorama==0.4.6 \
+        decorator==4.4.2 \
+        exceptiongroup==1.3.1 \
+        idna==3.20 \
+        iniconfig==2.1.0 \
+        mock==5.2.0 \
+        more-itertools==10.8.0 \
+        nose==1.3.7 \
+        packaging==26.3 \
+        pexpect==4.9.0 \
+        pluggy==1.6.0 \
+        psutil==7.2.2 \
+        ptyprocess==0.7.0 \
+        py==1.11.0 \
+        pyte==0.8.2 \
+        pytest==3.10.1 \
+        pytest-mock==1.10.4 \
+        requests==2.32.5 \
+        six==1.17.0 \
+        setuptools==58.0.4 \
+        tomli==2.5.0 \
+        tqdm==4.67.1 \
+        typing_extensions==4.16.0 \
+        urllib3==2.6.3 \
+        wcwidth==0.9.4
+fi
+"$W/case-venv/bin/python" --version 2>&1 | grep -q "3\.9\."
+
 autorlbench_fetch_hf \
     --repo Qwen/Qwen3-4B \
     --revision 1cfa9a7208912126459214e8b04321603b3df60c \
@@ -43,8 +167,8 @@ autorlbench_fetch_hf \
     --expect vocab.json=ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910 \
     --expect-size vocab.json=2776833 \
     --dest "$AUTORLBENCH_WORKSPACE/assets/model"
-python -m pip install --no-deps --no-build-isolation -e "$AUTORLBENCH_WORKSPACE/vendor/trl"
-python -m compileall -q "$AUTORLBENCH_WORKSPACE/reproductions"
+python3 -m pip install --no-deps --no-build-isolation --break-system-packages -e "$AUTORLBENCH_WORKSPACE/vendor/trl"
+python3 -m compileall -q "$AUTORLBENCH_WORKSPACE/reproductions"
 
 # Pinned upstream corpus snapshots.
 mkdir -p "$AUTORLBENCH_WORKSPACE/.corpus_archives"
