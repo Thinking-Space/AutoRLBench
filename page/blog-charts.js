@@ -323,10 +323,14 @@
 
     function curves(el) {
         const svg = make(el, 1000, 620, 'Passed and failed repair trajectories from similar starting points');
-        const panels=data.curves, pw=455, ph=225, lefts=[28,515], tops=[36,310];
+        addTitle(svg, 'RL Training Curves for Four Repair Tasks', 500, 22, 'middle');
+        const yAxisLabel = text(svg, 14, 310, 'validation score', 'chart-axis', {'text-anchor':'middle'});
+        yAxisLabel.setAttribute('transform', 'rotate(-90 14 310)');
+        const panels=data.curves, pw=455, ph=225, lefts=[28,515], tops=[52,326];
         panels.forEach((panel,pi)=>{
             const ox=lefts[pi%2], oy=tops[Math.floor(pi/2)], x=ox+44,y=oy+24,w=pw-66,h=ph-58;
-            addTitle(svg,`(${String.fromCharCode(97+pi)}) ${panel.title}`,ox,oy+4);
+            const panelTitle=addTitle(svg,`(${String.fromCharCode(97+pi)}) ${panel.title}`,ox+pw/2,oy+4,'middle');
+            panelTitle.classList.add('chart-panel-title');
             addGrid(svg,x,y,w,h,[0,panel.max/2,panel.max],panel.max,v=>String(Math.round(v)));
             const points=(values)=>values.map((v,i)=>[x+(panel.x[i]-panel.x[0])/(panel.x[panel.x.length-1]-panel.x[0])*w,y+h-v/panel.max*h]);
             const baseY=y+h-panel.gate/panel.max*h; svgEl('line',{x1:x,y1:baseY,x2:x+w,y2:baseY,class:'chart-gate'},svg);
@@ -335,7 +339,7 @@
                 pts.forEach((p,i)=>{ if(i===pts.length-1)return; const path=svgEl('path',{d:linePath([p,pts[i+1]]),stroke:panel.colors[series],class:'chart-segment',fill:'none'} ,svg); animatePath(path,series*80+i*45); });
                 pts.forEach((p,i)=>{const dot=svgEl('circle',{cx:p[0],cy:p[1],r:4,fill:panel.colors[series],class:'chart-dot'},svg); animateMark(dot,series*80+i*45+240,'pop');});
             });
-            text(svg,x+w/2,oy+ph-2,'training step','chart-axis');
+            text(svg,x+w/2,oy+ph-2,'RL Training Step','chart-axis');
             centeredLegend(svg,[{label:panel.aLabel,color:panel.colors[0]},{label:panel.bLabel,color:panel.colors[1]}],x+w/2,oy+ph+22);
         });
     }
@@ -415,7 +419,8 @@
 
     function dataTrajectory(el) {
         const svg=make(el,900,430,'Data failure trajectory: reward rises while validation and hard-sample coverage fall');
-        const x=65,y=30,w=790,h=260; addGrid(svg,x,y,w,h,[0,25,50,75,100],100,v=>(v/100).toFixed(2));
+        addTitle(svg,'An Example of a Data Failure Task',450,22,'middle');
+        const x=65,y=38,w=790,h=260; addGrid(svg,x,y,w,h,[0,25,50,75,100],100,v=>(v/100).toFixed(2));
         const point=(step,value)=>[x+step/7*w,y+h-value/100*h];
         const allPoints=data.dataCurve.x.map((step,i)=>point(step,data.dataCurve.train[i]));
         const validationPoints=data.dataCurve.validationX.map((step,i)=>point(step,data.dataCurve.validation[i]));
@@ -444,9 +449,9 @@
         const firstLine=document.createElementNS(NS,'tspan'); firstLine.setAttribute('x',removalX+18); firstLine.textContent='hard samples removed;'; eventLabel.appendChild(firstLine);
         const secondLine=document.createElementNS(NS,'tspan'); secondLine.setAttribute('x',removalX+18); secondLine.setAttribute('dy','17'); secondLine.textContent='easy samples refill the batch'; eventLabel.appendChild(secondLine);
         data.dataCurve.x.forEach(step=>{const xx=x+step/7*w; svgEl('line',{x1:xx,y1:y+h,x2:xx,y2:y+h+5,class:'chart-axis-line'},svg); text(svg,xx,y+h+22,String(step),'chart-axis',{'text-anchor':'middle'});});
-        text(svg,x+w/2,y+h+56,'Training step','chart-axis',{'text-anchor':'middle'});
+        text(svg,x+w/2,y+h+56,'RL Training Step','chart-axis',{'text-anchor':'middle'});
         const axisLabel=text(svg,x-45,y+h/2,'Accuracy','chart-axis',{'text-anchor':'middle'}); axisLabel.setAttribute('transform',`rotate(-90 ${x-45} ${y+h/2})`);
-        centeredLegend(svg,[{label:'training reward',color:'#104680'},{label:'validation score',color:'#6D011F'},{label:'hard-sample coverage',color:'#F6B293'}],x+w/2,405);
+        centeredLegend(svg,[{label:'training reward',color:'#104680'},{label:'Validation Score',color:'#6D011F'},{label:'hard-sample coverage',color:'#F6B293'}],x+w/2,405);
     }
 
     function hacking(el) {
