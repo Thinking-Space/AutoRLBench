@@ -1,0 +1,36 @@
+title = "Sandbox passes non-assert errors; the policy drops its code fence"
+license = "Apache-2.0"
+created_date = "2026-11-14"
+domain = "environment"
+tags = ["verl", "grpo", "mbpp", "code-sandbox", "reward-hacking", "exception-handling"]
+
+[submitter]
+name = "Shulin Tian"
+affiliation = "Meta"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "MBPP (google-research-datasets/mbpp full): 474 train (train + validation + prompt splits) / 500 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_mbpp.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "reward_hacking_environment_bug"
+failure_reason = "The training exec server in reward/mbpp_reward.py treats only AssertionError as a wrong answer and swallows every other exception, so responses whose code never defines the tested function (NameError), does not parse, or has no ```python block at all are rewarded 1.0: 178 of the 275 rewards at step 1 fail in a fresh interpreter, the policy learns to drop its code fence (no-block rollouts 8 -> 504 of 512 by step 8), the training score is 1.0 from step 11 and the gradient vanishes, while held-out MBPP pass rate, executed in a fresh interpreter, falls from 0.2786 to 0.0 from step 10; the same recipe with every exception counted as a failure reaches 0.3667."
+
+[security]
+requires_isolated_stages = true
