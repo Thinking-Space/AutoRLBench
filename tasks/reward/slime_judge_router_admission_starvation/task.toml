@@ -1,0 +1,23 @@
+title = "Judge service capacity and reward admission disagree in the first GRPO rollout"
+license = "Apache-2.0"
+created_date = "2026-11-12"
+domain = "reward"
+tags = ["slime", "grpo", "hard-candidate", "judge-reward", "router", "dapo", "multi-cause"]
+
+[submitter]
+name = "Zhizhou Wang"
+[model]
+name = "Qwen3-VL-4B-Thinking"
+[dataset]
+name = "CUA-Gym combined 768 tasks"
+[training]
+framework = "slime"
+algo = "grpo"
+script = "src/launch_training.sh"
+[environment]
+image = "slimerl/slime:v0.3.0@sha256:cb669a8f421cc3082d384427dacc8678ec9f836efbf1f17f01ede113e01583dc"
+image_stack = "slime-v0.3.0"
+gpus = 0
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "Training Qwen3-VL-4B-Thinking with GRPO on 768 CUA-Gym tasks starts two Judge replicas but registers one, then rejects 73 of 96 groups by comparing Judge rewards to independent environment scores, accepting only 7 of 32 required groups."
