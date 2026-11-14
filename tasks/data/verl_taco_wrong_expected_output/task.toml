@@ -1,0 +1,36 @@
+title = "Native wrong expected outputs in the training labels silence correct solutions"
+license = "MIT"
+created_date = "2026-11-06"
+domain = "data"
+tags = ["verl", "grpo", "taco", "label-noise", "false-negative", "data-quality"]
+
+[submitter]
+name = "benchmark_evaluation"
+
+[model]
+name = "Qwen3-4B-Instruct-2507"
+
+[dataset]
+name = "TACO train, verified/unverified mix / TACO-verified EASY held-out"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "examples/grpo_trainer/run_qwen3_4b_instruct_2507_taco_fsdp.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+
+# 4 GPUs, matching the sibling task verl_taco_difficulty_mismatch's recorded
+# stack: the launch script's NGPUS_PER_NODE default is 4. docker exposes them
+# as cuda:0..3 via --gpus; harbor synthesizes the compose device reservation
+# from this count.
+gpus = 4
+
+[outcome]
+failure_type = "native_wrong_expected_output"
+failure_reason = "The training parquet mixes TACO problems whose bundled solutions agree with each other yet fail their own tests (the BAAI/TACO minus likaixin/TACO-verified dirty pool, purified to the wrong-expected-output family) with verified-clean problems at ~40%. Under the binary all-tests-pass reward, a rollout that solves such a problem correctly is still scored 0, so GRPO assigns negative or zero advantage to correct algorithms on those problems; the training reward mean is pinned below the clean baseline scaled by the clean fraction and correct-but-zero rollouts persist instead of vanishing."
+
+[security]
+requires_isolated_stages = true

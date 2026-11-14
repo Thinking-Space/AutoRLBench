@@ -24,7 +24,8 @@ const TEAM = [
     { name: 'Pengyi Li', handle: 'lipengyi0829', affiliation: 'FusionBrain Lab'},
     { name: 'Purva Chiniya', handle: 'PurvaChiniya', affiliation: 'Independent Researcher'},
     { name: 'Dengzhe Hou', handle: 'dengzhe-hou', affiliation: 'Tohoku University'},
-    { name: 'Ziqi Zhou', handle: 'ziqi-zhou02', affiliation: 'Duke University'}
+    { name: 'Ziqi Zhou', handle: 'ziqi-zhou02', affiliation: 'Duke University'},
+    { name: 'Kaixiang Zhao', handle: 'kzhao5', affiliation: 'Brigham Young University'}
 ];
 
 /* The institution wall below the team grid is derived from the affiliations

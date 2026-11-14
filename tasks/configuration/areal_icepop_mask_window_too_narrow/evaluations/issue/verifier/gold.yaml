@@ -1,0 +1,14 @@
+category: hyperparameter
+framework: areal
+task: areal_icepop_mask_window_too_narrow
+verdict: unhealthy
+root_cause:
+  - run.sh narrows the IcePop token-mask window (actor.rejection_sampling.lower/upper) from the shipped [0.5, 5] to [0.67, 1.5], so the masked share of tokens grows and runs away
+evidence_metrics:
+  - ppo_actor/update/rs_filtered_fraction 0.0161 at step 0, first above 0.10 at step 43, peak 0.750 at step 73
+  - ppo_actor/update/entropy/avg 0.184 at step 0, peak 5.92 at step 65; ppo_actor/seq_len/avg 284 -> peak 600
+  - eval-rollout/reward 0.6448 / 0.5463 / 0.5777 after epochs 1 / 2 / 3
+  - ktdump step 0 - 1.81% of tokens outside [0.67, 1.5] vs 0.51% outside [0.5, 5]
+fix:
+  must:
+    - restore the IcePop window to [0.5, 5] (drop the lower/upper overrides in run.sh)

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "task_id": "verl_taco_wrong_expected_output",
+  "recorded": "2026-11-10",
+  "description": "GRPO-group analysis of the recorded defective run's dumps 36-40 (the 40-step grading window). A dirty group is a batch of 8 rollouts on the same dirty problem. A correct-but-zero (cbz) row is a rollout the external judge rates correct while the run's reward scored it 0. Negative advantage = some group sibling scored 1 (the cbz rollout is pushed away from correct behavior); zero advantage = the whole group scored 0 (no learning signal on that problem).",
+  "method": "grade_submission.py's execution judge applied per group; advantage inferred from the group's reward vector (GRPO normalizes advantage within each group of 8)",
+  "per_step": {
+    "36": {"dirty_groups": 13, "groups_with_cbz": 7, "cbz_rows": 47, "cbz_negative_advantage": 3, "cbz_zero_advantage": 44},
+    "37": {"dirty_groups": 6, "groups_with_cbz": 4, "cbz_rows": 25, "cbz_negative_advantage": 0, "cbz_zero_advantage": 25},
+    "38": {"dirty_groups": 8, "groups_with_cbz": 6, "cbz_rows": 36, "cbz_negative_advantage": 0, "cbz_zero_advantage": 36},
+    "39": {"dirty_groups": 9, "groups_with_cbz": 6, "cbz_rows": 41, "cbz_negative_advantage": 0, "cbz_zero_advantage": 41},
+    "40": {"dirty_groups": 10, "groups_with_cbz": 4, "cbz_rows": 18, "cbz_negative_advantage": 0, "cbz_zero_advantage": 18}
+  },
+  "summary": "Across dumps 36-40, 27 of 46 dirty groups contained at least one externally-correct-but-scored-0 rollout (167 cbz rows total). 164 of the 167 received zero advantage (their whole group scored 0 -- the dirty problems contribute all-zero GRPO groups even when solved correctly), and 3 received negative advantage (a sibling accidentally satisfied the wrong expected output). Both failure modes remove the correct-algorithm learning signal."
+}

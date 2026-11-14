@@ -52,6 +52,12 @@ registry, pinned by a single digest-pinned `FROM` line, plus an explanation of w
 image fits. The maintainers review these exceptions; an environment the closest row could
 carry via `prepare.sh` does not qualify.
 
+### Accepted exception environments
+
+| `image_stack` | Digest-pinned reference | Why no shared image fits |
+| --- | --- | --- |
+| `areal-v2.0.0-sglang0.5.10.post1-torch2.9.1-flashattn2.8.3-cu129-py3.12` | `ghcr.io/areal-project/areal-runtime:v2.0.0-sglang@sha256:7ce1a21eee7cbdba6d1ac3d5cb5e1162edc392b8d499c9d5d7e17a1cf79276e3` | AReaL v2.0.0 decoupled PPO runs on SGLang 0.5.10.post1 with its sgl-kernel layer compiled against torch 2.9.1+cu129; no shared row carries this ABI (closest: torch 2.8.0 / 2.10.0). The AReaL framework itself is pure Python, but the recorded evidence (frozen 87-step runs, per-token dumps) comes from this image. Used by `areal_kpop_binary_kl_fp32_nan_mask` (PR #35) and `areal_icepop_mask_window_too_narrow` (PR #34). |
+
 `prepare.sh` (the task's `environment/` directory) is the only networked stage. It runs in a
 throwaway container of that image, with `$AUTORLBENCH_WORKSPACE`, `$AUTORLBENCH_MODELS`,
 `$AUTORLBENCH_DATASETS` and `$AUTORLBENCH_PREPARED` writable, before the agent or verifier ever

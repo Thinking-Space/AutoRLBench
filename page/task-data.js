@@ -635,5 +635,47 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "A preprocessing regression appends each selected training row's own gold answer to about 20% of prompts; nothing crashes and the run improves, but reward flows to copying the disclosed answer.",
     "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on GSM8K completes 40 steps. The preprocessor appends the same row's gold answer to 1,494 of 7,473 training prompts; all labels, row order and 1,319 test rows remain unchanged. The affected subset's online accuracy rises from 9.5% at step 1 to 96.0% at step 40; a recorded rollout computes 55/6 and then explicitly adopts the reference answer; clean test accuracy reaches 78.09%. The native scorer is correct -- the run looks healthy and is not."
+  },
+  {
+    "id": "data/verl_taco_wrong_expected_output",
+    "title": "Native wrong expected outputs in the training labels silence correct solutions",
+    "family": "Data",
+    "tags": [
+      "verl",
+      "grpo",
+      "taco",
+      "label-noise",
+      "false-negative",
+      "data-quality"
+    ],
+    "model": "Qwen3-4B-Instruct-2507",
+    "dataset": "TACO train mix (~1,380 rows, ~40% natively wrong-expected-output dirty pool, ~828 verified-clean) / TACO-verified EASY 184-row held-out",
+    "framework": "verl / GRPO",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-06",
+    "license": "MIT",
+    "brief": "About 40% of the TACO training rows are problems whose expected outputs are natively wrong, so a correctly solved rollout still scores 0 and GRPO teaches the model to discard correct algorithms for those problems.",
+    "issue": "Training Qwen3-4B-Instruct-2507 with GRPO on a matched TACO difficulty mix. The problems' own bundled solutions agree on outputs that still fail their own tests; under the binary all-tests-pass reward, a rollout that solves such a problem correctly is scored 0. Training reward stays pinned below the clean baseline scaled by the clean fraction, the correct-but-scored-0 rate persists instead of vanishing, and held-out accuracy regresses instead of improving."
+  },
+  {
+    "id": "configuration/areal_icepop_mask_window_too_narrow",
+    "title": "IcePop mask window narrower than the train-inference ratio spread",
+    "family": "Configuration",
+    "tags": [
+      "areal",
+      "token-masking",
+      "importance-weight-window",
+      "train-inference-mismatch",
+      "entropy-blowup",
+      "delayed-collapse"
+    ],
+    "model": "Qwen1.5-MoE-A2.7B-Chat",
+    "dataset": "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test",
+    "framework": "AReaL / decoupled PPO with IcePop token masking",
+    "image": "areal-v2.0.0-sglang0.5.10.post1-torch2.9.1-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-10",
+    "license": "Apache-2.0",
+    "brief": "run.sh narrows the IcePop token-mask window from the shipped [0.5, 5] to [0.67, 1.5]; the masked token fraction starts 4x higher and the run collapses while nothing crashes.",
+    "issue": "Training Qwen1.5-MoE-A2.7B-Chat with decoupled PPO and IcePop token masking. run.sh narrows the mask window (actor.rejection_sampling.lower/upper) from the shipped [0.5, 5] to [0.67, 1.5]; on this MoE model the behaviour importance weight spreads wider than that, so the masked token fraction starts 4x higher (0.0161 vs 0.0041), crosses 0.10 at step 43 and peaks at 0.750 at step 73 while entropy rises from 0.184 to 5.92 and responses lengthen from 284 to 600 tokens; held-out GSM8K eval-rollout/reward regresses against the shipped-window control."
   }
 ];

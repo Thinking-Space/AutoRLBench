@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "task_id": "verl_taco_wrong_expected_output",
+  "recorded": "2026-11-10",
+  "model": "Qwen/Qwen3-4B-Instruct-2507",
+  "stack": "verl GRPO, FSDP + vLLM colocated, 4xH800, binary all-tests-pass taco.py reward, 16 prompts x 8 rollouts, MAX_RESPONSE_LENGTH=16384, validation every 5 steps",
+  "defective_arm": {
+    "note": "as-shipped train.parquet (~40% natively-wrong expected outputs); recorded through step 49 of 50 -- PREEMPTABLE host reaped during step-50/final validation with a healthy log tail (48/50 at kill time); the 40-step grading window is fully covered",
+    "train_parquet_sha256_linux": "1eaf778569fd1238dd397e61911c5925f105b14e6f5a3e380c2347e270d7724b",
+    "steps_recorded": 49,
+    "train_reward_mean": 0.3704,
+    "train_reward_range": [0.0938, 0.6484],
+    "train_reward_last5": 0.4313,
+    "heldout_acc_by_val_step": {
+      "0": 0.3533, "5": 0.3315, "10": 0.2935, "15": 0.3587, "20": 0.3315,
+      "25": 0.3641, "30": 0.3533, "35": 0.3587, "40": 0.3370, "45": 0.3478
+    },
+    "heldout_summary": "flat at the step-0 level (mean 0.343, no trend)",
+    "correct_but_zero_per_step_dumps_36_40": {
+      "36": 0.3671875, "37": 0.1953125, "38": 0.28125, "39": 0.3203125, "40": 0.140625
+    },
+    "correct_but_zero_headline_max": 0.3671875
+  },
+  "control_arm": {
+    "note": "train.parquet rebuilt from verified-clean rows only (EASY 1100 / MEDIUM 280, seed 20261106); test.parquet byte-identical to the defective arm",
+    "train_parquet_sha256_linux": "887ef2f251dcd2368487c1bac687c4dd7a9f8348ce5d243a28055b07915bd6c1",
+    "steps_recorded": 40,
+    "train_reward_mean": 0.6018,
+    "train_reward_range": [0.375, 0.8594],
+    "train_reward_last5": 0.6266,
+    "heldout_acc_by_val_step": {
+      "0": 0.3207, "5": 0.3207, "10": 0.3804, "15": 0.3315, "20": 0.3641,
+      "25": 0.3370, "30": 0.3370, "35": 0.3533, "40": 0.3587
+    },
+    "heldout_summary": "improves from the step-0 level (0.321 -> 0.359)",
+    "correct_but_zero_per_step_dumps_36_40": {
+      "36": 0.0, "37": 0.0, "38": 0.0, "39": 0.0, "40": 0.0
+    },
+    "correct_but_zero_headline_max": 0.0
+  },
+  "grader_threshold": {
+    "required_final_score_max": 0.02,
+    "margin_to_control_lower_bound": 0.02,
+    "margin_to_defective_upper_bound": 0.3472
+  }
+}
