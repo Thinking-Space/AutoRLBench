@@ -1,0 +1,22 @@
+diff -ruN a/reward/gsm8k_reward.py b/reward/gsm8k_reward.py
+--- a/reward/gsm8k_reward.py
++++ b/reward/gsm8k_reward.py
+@@ -1,16 +1,6 @@
+-"""GSM8K reward: 1.0 when the last number in the response equals the reference answer.
+-
+-Scores are memoized per prompt: validation re-scores the same 1,319 test prompts at every
+-evaluation, and the reward workers are long-lived, so repeated work is skipped.
+-"""
++"""GSM8K reward: 1.0 when the last number in the response equals the reference answer."""
+ from verl.utils.reward_score import gsm8k
+ 
+-_SCORE_CACHE: dict = {}
+-
+ 
+ def compute_score(data_source, solution_str, ground_truth, extra_info=None, **kwargs):
+-    extra_info = extra_info or {}
+-    key = (data_source, extra_info.get("split"), extra_info.get("index"))
+-    if key not in _SCORE_CACHE:
+-        _SCORE_CACHE[key] = gsm8k.compute_score(solution_str, ground_truth, method="flexible")
+-    return _SCORE_CACHE[key]
++    return gsm8k.compute_score(solution_str, ground_truth, method="flexible")
