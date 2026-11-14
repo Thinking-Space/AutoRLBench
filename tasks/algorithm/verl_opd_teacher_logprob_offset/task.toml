@@ -1,0 +1,36 @@
+title = "Teacher log-probs shifted by one token collapse on-policy distillation"
+license = "Apache-2.0"
+created_date = "2026-11-14"
+domain = "algorithm"
+tags = ["verl", "on-policy-distillation", "gsm8k", "logprob-alignment", "off-by-one", "policy-collapse"]
+
+[submitter]
+name = "Shulin Tian"
+affiliation = "Meta"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct (student), Qwen2.5-1.5B-Instruct (teacher)"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train (7,360 after a 500-character question filter) / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "on-policy distillation (per-token reverse KL as advantage)"
+script = "run_opd_gsm8k.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 2
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "extract_prompt_logprobs in verl/workers/rollout/vllm_rollout/utils.py prepends a zero placeholder for the first prompt token and removes the trailing pad, so the teacher log-probs used by on-policy distillation are shifted by one token against the student's; the per-token log-ratio that serves as the advantage is noise from step 1 (actor/distillation/abs_loss 0.72 vs 0.25 for the aligned run, actor/grad_norm 22.8 vs 5.9), entropy climbs to 11.92 (uniform over the 151,936-token vocabulary) by step 60, responses fill the 512-token budget and held-out accuracy falls from 0.4663 to 0.0622 at step 10 and 0.0 from step 20, while the aligned run ends at 0.4981."
+
+[security]
+requires_isolated_stages = true
