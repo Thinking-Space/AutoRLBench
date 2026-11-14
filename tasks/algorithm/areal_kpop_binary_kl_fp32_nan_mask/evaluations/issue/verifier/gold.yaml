@@ -1,0 +1,13 @@
+category: implementation
+framework: areal
+task: areal_kpop_binary_kl_fp32_nan_mask
+verdict: unhealthy
+root_cause:
+  - compute_binary_kl_divergence clamps probabilities in float32 with eps=1e-8; 1.0 - 1e-8 == 1.0 in float32, so tokens with probability exactly 1.0 give a NaN/inf binary KL, which the KPop bounds check (metric <= upper) treats as out of bounds and masks
+evidence_metrics:
+  - ppo_actor/update/rs_filtered_fraction 0.0829 at step 0 (policy unchanged), 0.3438 at step 40, peak 0.449 at step 77
+  - ktdump step 0 - 5.33% of dumped tokens masked, 5.32% NaN metric, 99.8% of masked tokens at probability exactly 1.0; float64 masks 0.008%
+  - eval-rollout/reward 0.6073 / 0.6128 / 0.6021 over epochs 1 / 2 / 3; final greedy GSM8K 0.0205 vs base 0.5550
+fix:
+  must:
+    - compute the binary KL with a clamp representable next to 1.0 (e.g. float64 with eps 1e-7) and map saturated-on-both-sides NaN to 0
