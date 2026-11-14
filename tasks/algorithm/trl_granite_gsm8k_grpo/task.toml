@@ -1,0 +1,33 @@
+title = "Granite GSM8K GRPO run"
+license = "Apache-2.0"
+created_date = "2026-11-14"
+domain = "algorithm"
+tags = ["trl", "grpo", "gsm8k", "granite"]
+
+[submitter]
+name = "Haoyang Su"
+github = "Hoyant-Su"
+affiliation = "Fudan University; Shanghai Innovation Institute"
+
+[model]
+name = "ibm-granite/granite-3.3-2b-instruct"
+
+[dataset]
+name = "GSM8K"
+
+[training]
+framework = "TRL"
+algo = "GRPO"
+script = "run_training.sh"
+
+[environment]
+# Both recorded runs executed inside this shared image on one H100 80 GB.
+# train.py imports the vendored TRL tree from the workspace root; the image
+# supplies torch, transformers, datasets and wandb, and vLLM stays unused.
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+[outcome]
+failure_type = "training data path error"
+failure_reason = "GRPOTrainer._prepare_inputs indexes the buffered generation batch with the optimizer step instead of the micro-step, so every accumulation micro-step reuses the same 4 of 64 scored rollouts; the run still improves, but held-out accuracy ends below the matched control."

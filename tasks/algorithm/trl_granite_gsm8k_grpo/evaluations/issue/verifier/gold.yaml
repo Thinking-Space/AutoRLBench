@@ -1,0 +1,18 @@
+category: implementation
+framework: trl
+task: trl_granite_gsm8k_grpo
+verdict: unhealthy
+root_cause:
+- name: buffered_microbatch_index
+  where: trl/trainer/grpo_trainer.py::GRPOTrainer._prepare_inputs
+  observed: the buffered generation batch is indexed with self.state.global_step, which is constant within an optimizer step, so all 16 accumulation micro-steps train on the same 4 of 64 scored rollouts
+  expected: index with the micro-step counter self._step so each micro-step consumes a distinct micro-batch
+evidence_metrics:
+- held-out accuracy (1319 GSM8K test questions, greedy) 58.7% at step 0, 78.4% at step 20, 79.8% at step 40
+- the matched run differing only in this index reaches 79.0% at step 20 and 82.8% at step 40
+- training reward first five steps 0.631, last five steps 0.859 (matched run 0.713 -> 0.894)
+- logged rollout statistics cover all 64 rollouts per step while only 4 reach the loss; no errors or non-finite values
+fix:
+  must:
+  - target: buffered_microbatch_index
+    direction: repair
