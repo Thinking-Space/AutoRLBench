@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 
 from check_assets import check, verify
 from prepare_models import safe_path
@@ -19,25 +20,16 @@ def download_command(workspace, manifest):
     if not re.fullmatch('[0-9a-f]{40}', dataset['revision']):
         raise ValueError('dataset revision must be a 40-character commit')
     destination = safe_path(workspace, dataset['destination'])
-    command = ['autorlbench_fetch_hf', '--type', 'dataset', '--repo', dataset['repo'],
+    command = [sys.executable, str(ROOT / 'fetch_hf.py'), '--type', 'dataset',
+               '--repo', dataset['repo'],
                '--revision', dataset['revision'], '--dest', str(destination)]
     for pattern in dataset['allow']:
         safe_path(destination, pattern)
         command += ['--allow', pattern]
-    # Keep argv below ARG_MAX for 19k images. Check every parquet and mapped
-    # tool-result JSON at fetch time, then check all image/data bytes below.
-    mappings = dataset.get('file_mappings', {})
-    for entry in manifest['files']:
-        relative = Path(entry['path'])
-        if relative.suffix != '.parquet' and entry['path'] not in mappings:
-            continue
-        remote = mappings.get(entry['path'])
-        if remote is None:
-            remote = str(relative.relative_to(dataset['destination']))
-        safe_path(destination, remote)
-        command += ['--expect', remote + '=' + entry['sha256'],
-                    '--expect-size', remote + '=' + str(entry['bytes'])]
-    if '--expect' not in command:
+    # The 19k image bytes are verified after materialization by check_assets
+    # (manifest['files'] sha256s), not at fetch time: the task-local fetch_hf
+    # helper does not checksum, and argv stays far below ARG_MAX.
+    if not any(entry['path'].endswith('.parquet') for entry in manifest['files']):
         raise ValueError('dataset download needs pinned parquet checksums')
     return command
 

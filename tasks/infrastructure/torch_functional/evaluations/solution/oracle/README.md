@@ -41,16 +41,17 @@
   target state/value:
   `input_ids_rmpad_rolled = torch.roll(input_ids_rmpad, shifts=-1, dims=1)`.
 
-Machine grading reads only the new experiment logs. Scoring is weighted:
+Machine grading reads only the new experiment logs (200-step budget). Scoring:
 
 - validation: a finite `val-core/taco/acc/mean@1` peak of at least `0.10`
-  scores `1`, otherwise `0`. (Healthy reference run: peak `0.125` at step 150,
-  final `0.109`, from a step-0 baseline of `0.054`; the broken run collapses to
-  `0.0`.)
+  scores `1`, otherwise `0`. (Repaired reference run at the 200-step budget:
+  peak `0.114` at step 100, `0.103` at step 200, from a step-0 baseline of
+  `0.049`; the broken run's best is `0.076` at step 50 and `0.0` from step
+  150 on.)
 - training reward: mean `critic/rewards/mean` over training steps must be
-  strictly above `0.10` to score `1`, otherwise `0`. (Healthy reference run:
-  mean ≈ `0.15`–`0.20`; the broken run collapses to ~`0.02`.)
-- final `score = 0.8 * validation + 0.2 * training reward`
-
-Pass requires both components (`score == 1.0`). The framework still records
-the weighted float when only one component passes.
+  strictly above `0.10` to score `1`, otherwise `0`. (Repaired reference
+  run: mean `0.176` over steps 1–200; the broken run: `0.065`.)
+- final score is binary (`1.0` / `0.0`): the validation component decides
+  whenever the fresh run logged any validation points; the training-reward
+  component applies only as a fallback for runs that produced no validation
+  metric at all.

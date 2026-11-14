@@ -13,9 +13,24 @@ def verify_task_completion(initial_db_path: str, final_db_path: str, final_answe
         except Exception:
             return []
 
+    # Fix: the task asks to CREATE a new firmware version (version_code
+    # '2.3.5', release_channel 'stable', compatibility limited to
+    # vm-COOLER-200 / vm-COOLER-300) and then SCHEDULE a new update job for
+    # it. The original accepted the seed's pre-existing firmware row and a
+    # job that already existed in the initial state, so a session that took
+    # no action was rewarded. Only firmware versions and jobs that are new
+    # relative to the initial state can satisfy the request.
+    initial_fw_ids = {
+        row[0] for row in safe_query(initial_db_path, "SELECT id FROM firmware_versions")
+    }
+
     # Step 1: Find firmware_version with version_code='2.3.5' and release_channel='stable'
     fw_query = "SELECT id FROM firmware_versions WHERE version_code = ? AND release_channel = ?"
-    fw_results = safe_query(final_db_path, fw_query, ('2.3.5', 'stable'))
+    fw_results = [
+        (row[0],)
+        for row in safe_query(final_db_path, fw_query, ('2.3.5', 'stable'))
+        if row[0] not in initial_fw_ids
+    ]
 
     if not fw_results:
         return {"result": "others"}
@@ -65,10 +80,7 @@ def verify_task_completion(initial_db_path: str, final_db_path: str, final_answe
     if not job_results:
         return {"result": "others"}
 
-    # Fix: the task is to SCHEDULE a NEW update job. The original accepted a
-    # job that already existed in the initial state with the same parameters,
-    # so a session that took no action was rewarded. Only jobs that are new
-    # relative to the initial state can satisfy the request.
+    # The update job must also be new relative to the initial state.
     for job_row in job_results:
         job_id, job_fw_id, job_channel, job_site_type, job_status, job_model_id, job_start, job_end = job_row
 

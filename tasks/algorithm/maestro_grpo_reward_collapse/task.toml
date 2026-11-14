@@ -19,19 +19,39 @@ algo = "grpo"
 script = "run.py"
 
 [environment]
-# Build recipe not yet built/pushed (see docker/README.md "Exceptions");
-# pin the digest here once the image is pushed.
-image = "autorlbench/maestro-vllm011:torch280-glm016-20261105"
-image_stack = "maestro-vllm011"
+# Runs on the packaged vllm0.11-torch2.8-cu128 image — the same image eight
+# other tasks already use, platform-registered on Cybertron as
+# ptdbench-vllm0.11-torch2.8-cu128. The recorded training stack matches its
+# compiled layer version-for-version (vLLM 0.11.0 / torch 2.8.0 /
+# transformers 4.57.6 / triton 3.4.0 / xformers 0.0.32.post1 / nccl 2.27.3 /
+# cudnn 9.10.2.21, all cu128); the recorded py3.10 becomes the image's py3.12,
+# and prepare.sh shadows the load-bearing pure-Python pins (numpy 1.26.0 +
+# scipy 1.15.3 — the vendored verl pins numpy<2.0.0) into
+# $AUTORLBENCH_PREPARED/pysite. The recorded GLM service stack
+# (vLLM 0.16.0 / torch 2.9.1 / transformers 5.2.0, py3.11) serves only the
+# GLM-4.6V-Flash expert and matches no packaged image, so prepare.sh rebuilds
+# it as a uv-managed CPython 3.11 venv under $AUTORLBENCH_PREPARED/glm and
+# hands GLM_PYTHON to the later stages via prepared/env. The former
+# never-built maestro-vllm011 two-interpreter recipe is retired
+# (docker/images/maestro-vllm011.Dockerfile, deleted in 3a63f1e7; the pin
+# provenance stays in environment_manifest.json).
+image = "ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128@sha256:6f7c302c0161a6c32d978faade165c86c153575baf028e729d7eebe44c06f683"
+image_stack = "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12"
+# The launcher needs all eight cards: model_services.sh pins the six expert
+# services onto physical GPUs 0-3 (two share each of 0 and 3) and
+# train_4_gpus.sh trains on TRAIN_GPUS=4,5,6,7. docker exposes them as
+# cuda:0..7 via --gpus; harbor synthesizes the compose device reservation
+# from this count.
+gpus = 8
 
 [environment.env]
 CUDA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
 NVIDIA_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7"
 TRAIN_GPUS = "4,5,6,7"
-GLM_PYTHON = "/opt/maestro-glm/bin/python"
-PYTHON = "/opt/maestro/bin/python"
-VLLM_PYTHON = "/opt/maestro/bin/python"
 WANDB_MODE = "offline"
+# PYTHON / VLLM_PYTHON / GLM_PYTHON are written to $AUTORLBENCH_PREPARED/env by
+# prepare.sh (the image interpreter for the first two, the prepare-built py3.11
+# venv for GLM), not declared statically here.
 
 [outcome]
 failure_type = "training_collapse"

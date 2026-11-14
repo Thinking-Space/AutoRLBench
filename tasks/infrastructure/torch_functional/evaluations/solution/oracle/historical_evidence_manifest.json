@@ -11,19 +11,19 @@
     "eval_points": [
       {
         "step": 0,
-        "eval_score": 0.07065217391304347,
+        "eval_score": 0.04891304347826087,
         "eval_key": "val-core/taco/acc/mean@1",
         "truncate_ratio": null
       },
       {
         "step": 50,
-        "eval_score": 0.043478260869565216,
+        "eval_score": 0.07608695652173914,
         "eval_key": "val-core/taco/acc/mean@1",
         "truncate_ratio": null
       },
       {
         "step": 100,
-        "eval_score": 0.016304347826086956,
+        "eval_score": 0.032608695869565216,
         "eval_key": "val-core/taco/acc/mean@1",
         "truncate_ratio": null
       },
@@ -38,43 +38,19 @@
         "eval_score": 0.0,
         "eval_key": "val-core/taco/acc/mean@1",
         "truncate_ratio": null
-      },
-      {
-        "step": 250,
-        "eval_score": 0.0,
-        "eval_key": "val-core/taco/acc/mean@1",
-        "truncate_ratio": null
-      },
-      {
-        "step": 300,
-        "eval_score": 0.0,
-        "eval_key": "val-core/taco/acc/mean@1",
-        "truncate_ratio": null
-      },
-      {
-        "step": 350,
-        "eval_score": 0.0,
-        "eval_key": "val-core/taco/acc/mean@1",
-        "truncate_ratio": null
-      },
-      {
-        "step": 400,
-        "eval_score": 0.0,
-        "eval_key": "val-core/taco/acc/mean@1",
-        "truncate_ratio": null
       }
     ],
-    "n_eval_points": 9,
-    "eval_first": 0.07065217391304347,
+    "n_eval_points": 5,
+    "eval_first": 0.04891304347826087,
     "eval_last": 0.0,
     "eval_min": 0.0,
-    "eval_max": 0.07065217391304347,
+    "eval_max": 0.07608695652173914,
     "source_logs": [
       {
-        "path": "logs/qwen2_5_1.5b_instruct_taco_fsdp_20260910_040027.log"
+        "path": "logs/qwen2_5_1.5b_instruct_taco_fsdp_20261104_033744.log"
       },
       {
-        "path": "logs/wandb/offline-run-20260910_040240-xr5gf82b/run-xr5gf82b.wandb"
+        "path": "logs/wandb/offline-run-20261104_034045-j7irbfg1/run-j7irbfg1.wandb"
       }
     ],
     "smoke": {
@@ -92,10 +68,10 @@
       "receipt_path": null
     },
     "collapse_signature": {
-      "rollout_corr/kl": "~20-22 throughout",
-      "critic/rewards/mean": "0.15 -> 0.0",
-      "response_length/mean": "~168 -> ~2400 (balloon)",
-      "note": "genuine 400-step collapse run of the missing-roll defect in prepare_model_inputs; FSDP NO_PADDING path (strategy=fsdp, use_remove_padding=True, _v1=False)"
+      "rollout_corr/kl": "~19-34 throughout",
+      "critic/rewards/mean": "0.13 -> 0.0",
+      "response_length/mean": "~168 -> ~600-800 (balloon)",
+      "note": "genuine 200-step collapse run of the missing-roll defect in prepare_model_inputs (2026-11-04); FSDP NO_PADDING path (strategy=fsdp, use_remove_padding=True, _v1=False). The frozen log is curated: raw executed-code stdout from the reward workers (~838k lines of tower-of-hanoi move lists, bare numbers, and language names) is stripped; every warning, error, traceback, metric, and harness line is kept byte-identical."
     }
   },
   "attempts": {
@@ -117,7 +93,7 @@
         "workspace": 0,
         "oracle_baseline": 0
       },
-      "note": "Re-targeted 2026-10-05. Prior target verl/utils/torch_functional.py::log_probs_from_logits_response was dead code in verl 0.9.0.dev and has been reverted; that baseline copy is now identical to the workspace (idempotent paste). The eval_points above are from the historical source snapshot (20260821, task_function_call) and are not a fresh run of this defect."
+      "note": "Re-targeted 2026-10-05. Prior target verl/utils/torch_functional.py::log_probs_from_logits_response was dead code in verl 0.9.0.dev and has been reverted; that baseline copy is now identical to the workspace (idempotent paste). The eval_points above are a fresh 200-step run (2026-11-04) of this defect at the 200-step evaluation budget."
     }
   ],
   "annotation_cleanup": {
@@ -132,16 +108,16 @@
   },
   "checkpoints": {
     "excluded_from_case": false,
-    "reason": "Historical checkpoints exist in the workspace snapshot but are not required for diagnosis; solution grading uses only new experiment_logs.",
+    "reason": "The collapse run saved its final checkpoint (global_step_200) under checkpoints/verl_grpo_taco, which is not staged and is not required for diagnosis; solution grading uses only new experiment_logs.",
     "source_present": true,
     "top_level_entries": [
-      "verl_grpo_taco"
+      "checkpoints/verl_grpo_taco"
     ]
   },
   "metrics_alignment": {
     "path": "outputs/metrics.json",
     "metric_key": "val-core/taco/acc/mean@1",
     "metric_status": "log_measured",
-    "n_eval_points": 9
+    "n_eval_points": 5
   }
 }

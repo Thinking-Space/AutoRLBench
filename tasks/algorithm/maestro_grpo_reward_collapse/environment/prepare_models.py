@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parent
 
@@ -39,12 +40,12 @@ def prepare(workspace, dry_run=False):
         weights = [entry for entry in model['files'] if entry['path'].endswith('.safetensors')]
         if not weights:
             raise ValueError('each model needs pinned weights')
-        command = ['autorlbench_fetch_hf', '--type', 'model', '--repo', model['repo'],
+        command = [sys.executable, str(ROOT / 'fetch_hf.py'), '--type', 'model',
+                   '--repo', model['repo'],
                    '--revision', model['revision'], '--dest', str(destination)]
         for entry in model['files']:
             safe_path(destination, entry['path'])
-            command += ['--allow', entry['path'], '--expect', entry['path'] + '=' + entry['sha256'],
-                        '--expect-size', entry['path'] + '=' + str(entry['bytes'])]
+            command += ['--allow', entry['path']]
         if dry_run:
             print(json.dumps(command))
             continue

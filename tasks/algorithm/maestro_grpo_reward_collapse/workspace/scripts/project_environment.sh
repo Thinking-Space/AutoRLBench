@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Sourced from the project root by the training entry point.
 export PYTHONNOUSERSITE=1
-export PYTHONPATH="$PWD:$PWD/verl"
+# Keep whatever PYTHONPATH the stage inherited (the benchmark's prepared/env
+# hands the recorded numpy 1.26.0 shadow this way); prepending the project
+# root and the vendored verl must not discard it.
+export PYTHONPATH="$PWD:$PWD/verl${PYTHONPATH:+:$PYTHONPATH}"
 if [[ -z "${PYTHON:-}" ]]; then
     if [[ ! -x runtime/conda-env/bin/python || ! -f runtime/conda-env/.maestro-prefix ]]; then
         echo 'Bundled environment is not ready. Run: bash scripts/restore_environment.sh' >&2

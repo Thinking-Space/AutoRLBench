@@ -9,7 +9,7 @@ The seven defective rules are repaired in
 | `task_management_16_8.py` | task_management_16 : 8 | `SELECT id FROM dashboards WHERE name=?` matches the seed dashboard (id 1, a different user's fully-configured board); the current user's new dashboard is empty | require a **new** dashboard owned by the current user, then run the existing link/widget checks on it |
 | `logistics_and_shipment_tracking_1_0.py` | logistics_and_shipment_tracking_1 : 0 | queries the initial shipments but ignores them (the seed already contains the exact requested shipment) | require the matching shipment to be **new relative to the initial state** |
 | `stock_trading_1_2.py` | stock_trading_1 : 2 | the seed watchlist 1 already holds exactly the requested five symbols | require a **new** watchlist with the requested items |
-| `iot_device_management_3_5.py` | iot_device_management_3 : 5 | the seed already schedules the requested firmware job | require the matching job to be **new relative to the initial state** |
+| `iot_device_management_3_5.py` | iot_device_management_3 : 5 | the seed already contains the requested firmware version and update job | require a **newly created** firmware version (matching version code, channel, and compatibility) and a **new** update job referencing it |
 | `subscription_management_4_2.py` | subscription_management_4 : 2 | the 30-day window is anchored to `MAX(start_time)` (resurrecting stale 2024 sessions) instead of the current date, and the answer check accepts any number token or falls back to unenforced mentions | anchor both window bounds to `now`, then require every stated `N additional devices` claim to equal the computed remaining count (no claims = reject) |
 | `fundraising_donations_5_9.py` | fundraising_donations_5 : 9 | computes per-member donation counts/ranks but only enforces name + amount for 80% of members | require, for every member segment, the stated amount **and** a labeled donation count matching the succeeded-only SQL, plus rank |
 | `discussion_forum_2_0.py` | discussion_forum_2 : 0 | the seed already contains the requested thread, tags, and post | require a **new** thread with the requested tags and a compliant post |
@@ -58,3 +58,10 @@ entry set → exit 2.
 - The leaderboard positive drops the one failed seed donation so the
   succeeded-only SQL and any reasonable tool-side aggregation agree on the
   per-member totals — the correct numbers are unambiguous.
+- The firmware positive creates the requested firmware version (the task
+  asks to *create a new firmware_version … then schedule a job*, and the seed
+  already contains an identical pre-existing row, id 1, so a positive that
+  only added a job referencing it would under-specify the request); the new
+  job references the newly created firmware. The seed's own firmware row and
+  job remain, so the unrepaired rule still reaches the positive via the
+  seed job (issue #39).

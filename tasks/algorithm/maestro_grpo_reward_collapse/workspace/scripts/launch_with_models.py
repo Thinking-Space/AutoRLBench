@@ -19,6 +19,12 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+# Platform containers route http_proxy through a whitelist proxy that returns
+# 502 for localhost; every health check and the training code's OpenAI client
+# talk to 127.0.0.1 services, so exempt them before anything is spawned (the
+# variable propagates to the service and training subprocesses below).
+os.environ['no_proxy'] = (os.environ.get('no_proxy', '')
+                          + ',localhost,127.0.0.1').lstrip(',')
 from tools.service_config import GPU_MEMORY_LIMIT, get_services
 from tools.log_paths import get_run_log_dir
 
@@ -264,6 +270,10 @@ def run(services, command, training_gpus, python, tool_host=None, tool_port=None
             env = dict(os.environ, CUDA_VISIBLE_DEVICES=service.gpu, PYTHONUNBUFFERED='1')
             env.pop('RAY_ADDRESS', None)
             if service.key == 'glm':
+                # The GLM venv is self-contained (uv-managed CPython 3.11). Drop
+                # the inherited PYTHONPATH: it points the cp312-built pysite
+                # shadow at a py3.11 interpreter, where its numpy import fails.
+                env.pop('PYTHONPATH', None)
                 # Do not share compiled artifacts between the two torch stacks.
                 for variable, directory in [('VLLM_CACHE_ROOT', 'vllm-glm'),
                                              ('TORCHINDUCTOR_CACHE_DIR', 'torchinductor-glm'),
