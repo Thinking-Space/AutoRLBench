@@ -1,0 +1,36 @@
+title = "One-sided question filter shifts 96% of GSM8K labels"
+license = "Apache-2.0"
+created_date = "2026-11-14"
+domain = "data"
+tags = ["verl", "grpo", "gsm8k", "label-misalignment", "data-preprocessing", "silent-failure"]
+
+[submitter]
+name = "Shulin Tian"
+affiliation = "Meta"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train (7,360 after a 500-character question filter) / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_gsm8k.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "data_preprocessing_bug"
+failure_reason = "data_prep/gsm8k.py filters questions longer than 500 characters out of the question list but not out of the answer list, and zip() pairs them by position, so from row 175 on 7,101 of 7,360 training rows (96.5%) carry another problem's ground truth: the training score stays at 0.000-0.023 for 60 steps while held-out accuracy on the correctly built test split stays at 0.4488-0.4655 and the same recipe with the filter applied to both lists reaches 0.5580."
+
+[security]
+requires_isolated_stages = true

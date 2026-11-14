@@ -1,0 +1,14 @@
+diff -ruN a/data_prep/gsm8k.py b/data_prep/gsm8k.py
+--- a/data_prep/gsm8k.py
++++ b/data_prep/gsm8k.py
+@@ -50,7 +50,9 @@
+         questions = df["question"].tolist()
+         answers = df["answer"].tolist()
+         if split == "train":
+-            questions = [q for q in questions if len(q) <= MAX_QUESTION_CHARS]
++            keep = [i for i, q in enumerate(questions) if len(q) <= MAX_QUESTION_CHARS]
++            questions = [questions[i] for i in keep]
++            answers = [answers[i] for i in keep]
+         rows = build_rows(questions, answers, split)
+         rows.to_parquet(os.path.join(args.out, f"{split}.parquet"))
+         print(f"{split}: {len(rows)} rows")
