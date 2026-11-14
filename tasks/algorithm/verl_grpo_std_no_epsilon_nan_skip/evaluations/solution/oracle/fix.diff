@@ -1,0 +1,12 @@
+diff -ruN a/verl/trainer/ppo/core_algos.py b/verl/trainer/ppo/core_algos.py
+--- a/verl/trainer/ppo/core_algos.py
++++ b/verl/trainer/ppo/core_algos.py
+@@ -323,7 +323,7 @@
+                 raise ValueError(f"no score in prompt index: {idx}")
+         for i in range(bsz):
+             if norm_adv_by_std_in_grpo:
+-                scores[i] = (scores[i] - id2mean[index[i]]) / id2std[index[i]]
++                scores[i] = (scores[i] - id2mean[index[i]]) / (id2std[index[i]] + epsilon)
+             else:
+                 scores[i] = scores[i] - id2mean[index[i]]
+         scores = scores.unsqueeze(-1) * response_mask

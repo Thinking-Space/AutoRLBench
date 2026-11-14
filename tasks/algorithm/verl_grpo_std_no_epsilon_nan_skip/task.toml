@@ -1,0 +1,36 @@
+title = "GRPO std without epsilon: every step NaN and skipped"
+license = "Apache-2.0"
+created_date = "2026-11-14"
+domain = "algorithm"
+tags = ["verl", "grpo", "gsm8k", "nan-advantage", "skipped-update", "silent-failure"]
+
+[submitter]
+name = "Shulin Tian"
+affiliation = "Meta"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train (7,360 after a 500-character question filter) / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_gsm8k.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "compute_grpo_outcome_advantage divides (score - mean) by the group std without epsilon, so the 18-21 of 64 groups per step whose eight rewards are identical get 0/0 = NaN advantages, actor/pg_loss and actor/grad_norm are NaN at every step, the FSDP engine skips all 120 optimizer steps ('grad_norm is not finite'), actor/kl_loss stays 0 and held-out accuracy stays at 0.4617-0.4723 while the recipe with epsilon reaches 0.5580."
+
+[security]
+requires_isolated_stages = true
