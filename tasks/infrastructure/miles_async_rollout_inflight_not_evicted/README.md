@@ -24,18 +24,12 @@ during evaluation. The agent sees only `workspace/` and the one evaluation's
 under `evaluations/`, which it cannot read.
 
 Only the defective side is published. The fix is a single hunk in
-`miles/backends/megatron_utils/update_weight/update_weight_from_distributed/mixin.py`;
-applying `evaluations/solution/oracle/abort_mode.patch` to `workspace/` yields
-the control side the measured runs were produced from. (Provenance: the base is
-an internal snapshot of the `miles` tree — the commits pinned in
-`evaluations/solution/oracle/task.yaml` are not reachable on the public
-`radixark/miles` repo as of 2026-11-03, and public `main` has since been
-restructured, so the control side is reproduced by patching the shipped
-workspace rather than by cloning upstream.)
-
-```console
-$ bash evaluations/solution/oracle/apply.sh workspace   # one hunk in mixin.py
-```
+`miles/backends/megatron_utils/update_weight/update_weight_from_distributed/mixin.py`
+(restoring the configured `abort`). (Provenance: the base is an internal
+snapshot of the `miles` tree — the pinned commits are not reachable on the
+public `radixark/miles` repo as of 2026-11-03, and public `main` has since
+been restructured, so the control side was reproduced by patching the
+shipped workspace rather than by cloning upstream.)
 
 ## Difficulty
 
@@ -79,26 +73,8 @@ didn't learn" is wrong: both arms learn per step; the defect costs throughput.
   step throughput, and reject "collapsed / didn't learn" and "config says abort
   so it's fine". Must not blame benign settings (`kl_loss_coef=0.00`,
   `max_weight_staleness=0`, the 4-GPU split).
-- **solution**: remove the override so the configured `abort` is honored
-  (`abort_mode.patch`, one hunk). Over the fixed 8h budget the repaired run
-  completes 148 steps and ends at 0.539 solve rate.
 
 ## Verification
 
 - **issue**: an LLM judge compares `agent_answer.md` with the hidden oracle on
   verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2. Passing requires verdict_score 1.0 with root_cause_score and evidence_score each above 0.8.
-- **solution**: two signals from the fresh `experiment_logs`, both required.
-  Primary — train-step throughput (largest `rollout N:` index + 1): threshold
-  **120** (defective 92, control 148; ±28 either side). Secondary —
-  last-10%-step mean solve rate from `dump/rollout_data/*.pt`: threshold **0.48**
-  (defective 0.460, control 0.539; +0.059 clear of control, +0.020 above
-  defective — thin and noisy, hence secondary). Two machine-checked guards back
-  them: the fixed launch recipe (the six config knobs, checked from the fresh
-  run's own entrypoint line and config echo) and the training-window span cap
-  (32400 s), so relaxing `--max-weight-staleness`, switching the pause mode, or
-  stretching the budget restores no score. Both thresholds are calibrated on
-  one run per side, so margins are reported without a variance estimate. The
-  primary threshold is a wall-clock absolute at 4×H800 for the full 8h budget and
-  scales with grading-hardware speed; the invariant is the ratio (defective ≈
-  0.62× control), not the absolute counts. The threshold sits above the control's
-  early-step throughput, so a run cut short of the 8h budget fails it.

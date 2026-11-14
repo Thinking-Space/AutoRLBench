@@ -331,7 +331,8 @@ window.AUTORLBENCH_TASKS = [
       "grpo",
       "async-rollout",
       "weight-sync",
-      "throughput"
+      "throughput",
+      "issue-only"
     ],
     "model": "Qwen3-1.7B",
     "dataset": "DAPO-Math-17k (dedup, 17917 prompts)",
@@ -587,7 +588,8 @@ window.AUTORLBENCH_TASKS = [
       "grpo",
       "multimodal",
       "tool-use",
-      "token-truncation"
+      "token-truncation",
+      "issue-only"
     ],
     "model": "Qwen/Qwen3-VL-4B-Thinking (+ six staged tool-service models)",
     "dataset": "locaszzz/maestro_data: 9,200 train / 100 held-out",

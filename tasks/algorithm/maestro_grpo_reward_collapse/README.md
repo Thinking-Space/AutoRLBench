@@ -11,7 +11,7 @@ Training Qwen/Qwen3-VL-4B-Thinking with GRPO on locaszzz/maestro_data (9200 trai
 | **Dataset** | locaszzz/maestro_data |
 | **Framework** | verl + verl_tool (Maestro), `run.py` → `scripts/train_4_gpus.sh` |
 | **Environment** | `maestro-vllm011` · 8 GPUs: 4 tool-service + 4 training · image not yet built |
-| **Evaluations** | issue · solution |
+| **Evaluations** | issue |
 | **Recorded runs** | 1 defective + 1 control; 200 steps each; training progress timers 33:43:44 / 25:51:05; lossless gzip logs restored before use |
 
 ## Difficulty
@@ -28,9 +28,7 @@ In `verl_tool/agent_loop/verltool_agent_loop.py`, `VerlToolAgentLoop.run()` reco
 ## Reference solution
 
 - **issue**: identify the reconstruction line and its interaction with the subsequent last-token substitution. Link corrupted delimiters to malformed trajectories and eventual collapse. General claims about bad data, insufficient model size, broken infrastructure, or no learning are insufficient; the defective run reaches positive training reward before collapsing.
-- **solution**: append `"<|im_end|>"` to `prefix_text + search_content`, preserving the closing search tag when the final token is replaced. The hidden oracle contains only this one-line substantive patch and the control evidence. The historical native training script is retained byte-for-byte at its 200-step version; the later 5000-step commit is excluded.
 
 ## Verification
 
 - **issue**: the standard LLM judge compares `agent_answer.md` with the hidden oracle on verdict / root cause / evidence. Passing requires all three: verdict exactly matching the oracle, root-cause score above 0.8, and evidence score above 0.8; a fully wrong verdict cannot pass on the other two alone.
-- **solution**: training-collapse regression scoring reads `critic/score/mean` at **step 200** from fresh `experiment_logs`, requiring ≥ **0.5**, with maximum 1.0. The value is anchored four ways: strict single-line console extraction with at least 95% of the training steps 1..200 present in the supplying log; corroboration at step 200 from the same file (`verl_tool/is_traj_finished/mean` ≥ 0.9, `response_length/clip_ratio` ≤ 0.05 — the recorded collapse ends at 0.0 / 0.5625, the control at 1.0 / 0.0); the staged configuration anchors (datasets, model, GRPO group size, tool services, launcher wiring) visible in the judged log; and live sha256 pinning of the launch/logging chain, so editing the runner, launcher or console logger fails while the repair itself stays unpinned. The recorded defective/control finals are -1.0 / 0.6796875, giving margins 1.5 / 0.1796875. Each arm has one run; these are margins, not variance estimates. There is no recorded step-0 training score, so an initial-score margin is unverified. Grader replay (fabricated single-line, cross-line concatenation, appended-file and truncated-run cheat paths all rejected; tampered launch chain rejected under the stage environment) and structural checks are done; full image build, all-asset network prepare and a new GPU training run have not been verified. All 19608 data/tool-result files have been verified against the recorded manifest and pinned to an uploaded HF dataset commit (see `environment/data_manifest.json`).

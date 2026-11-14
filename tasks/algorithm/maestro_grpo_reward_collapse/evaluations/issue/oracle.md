@@ -49,7 +49,7 @@ The one-line Git diff establishes the root cause; reward anomalies, malformed ro
 Author-side reference, not agent-derivable and not part of the evidence
 denominator: in the original full step-1 batch 124/128 outputs have unequal
 opening/closing search-tag counts against the hidden control's 7/128
-(preserved in the solution oracle's `rollout_full_batch_summary.json`; the
+(preserved in the retired solution oracle's `rollout_full_batch_summary.json`; the
 shipped `rollouts/1.jsonl` carries only three sampled rows), all 128
 defective step-200 trajectories stop at the response-length limit, and the
 control run has mean training score 0.6796875 with no clipped responses,
