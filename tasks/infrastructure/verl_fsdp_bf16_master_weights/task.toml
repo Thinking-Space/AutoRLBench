@@ -1,0 +1,36 @@
+title = "bf16 master weights round away AdamW updates"
+license = "Apache-2.0"
+created_date = "2026-11-14"
+domain = "infrastructure"
+tags = ["verl", "grpo", "gsm8k", "mixed-precision", "bf16", "update-underflow", "slow-learning"]
+
+[submitter]
+name = "Shulin Tian"
+affiliation = "Meta"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train (7,360 after a 500-character question filter) / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_gsm8k.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "mixed_precision_misconfiguration"
+failure_reason = "run_grpo_gsm8k.sh sets actor_rollout_ref.actor.fsdp_config.model_dtype=bf16, so the FSDP actor stores its parameters in bf16 instead of fp32 master weights; AdamW steps of about 2e-6 are below half the bf16 spacing of any weight larger than about 1e-3 and round to nothing, so the policy drifts only slowly (actor/kl_loss 0.0016 at step 10 and 0.014 at step 60 vs 0.021 and 0.070 in the control) and held-out accuracy ends at 0.4655 (best 0.4761) against 0.5580 with fp32 master weights."
+
+[security]
+requires_isolated_stages = true
