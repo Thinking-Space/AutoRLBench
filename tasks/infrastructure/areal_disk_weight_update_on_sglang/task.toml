@@ -1,0 +1,31 @@
+title = "Disk weight sync inherited from a vLLM workaround stalls an SGLang run"
+license = "Apache-2.0"
+created_date = "2026-11-10"
+domain = "infrastructure"
+tags = ["areal", "decoupled-ppo", "gsm8k", "weight-sync", "throughput", "config-drift", "moe", "issue-only"]
+
+[submitter]
+name = "Kaixiang Zhao"
+affiliation = "Brigham Young University"
+
+[model]
+name = "Qwen1.5-MoE-A2.7B-Chat"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test"
+
+[training]
+framework = "AReaL"
+algo = "decoupled PPO with truncated importance sampling (TIS)"
+script = "run.sh"
+
+[environment]
+image = "ghcr.io/areal-project/areal-runtime:v2.0.0-sglang@sha256:7ce1a21eee7cbdba6d1ac3d5cb5e1162edc392b8d499c9d5d7e17a1cf79276e3"
+image_stack = "areal-v2.0.0-sglang0.5.10.post1-torch2.9.1-flashattn2.8.3-cu129-py3.12"
+# One 8-GPU node: 4 SGLang rollout servers (sglang:d4p1t1) + 4 FSDP actor ranks (fsdp:d4p1t1),
+# recorded on 8 x A100-SXM4 80 GB.
+gpus = 8
+
+[outcome]
+failure_type = "throughput_regression"
+failure_reason = "examples/math/gsm8k_icepop.yaml sets actor.weight_update_mode: disk as a workaround for a vLLM xccl hang, and run.sh does not override it on this SGLang run, so after every step the full ~28 GB model is written to disk and reloaded by four SGLang servers: timeperf/update_weights has median 144.4 s (all 65 logged steps above 100 s) against timeperf/train_step 20.3 s, the median step takes 172.5 s against 35.0 s with xccl (update 3.6 s), and the 87-step run is cut off by its 4-hour limit after 65 steps while held-out eval-rollout/reward (0.6304, 0.6734) tracks the xccl control (0.6674, 0.6721)."

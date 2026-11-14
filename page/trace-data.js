@@ -473,6 +473,29 @@
  * clean of network access. The solution-record reconciliation count
  * below moves 180 -> 200 with this round, and the published
  * issue-judgment total moves 320 -> 340.
+ * The ten areal_disk_weight_update_on_sglang issue records were
+ * published on 14 Nov 2026 from the local cybertron-evaluate sweep
+ * -- the first round recorded through that pipeline (cctl devspace +
+ * tsh driver, local gpt-5.6-terra judge, issue diagnosis on the
+ * verl-vllm017 substitute image). No judgment passes: the task is a
+ * config-drift healthy trap -- the shared example YAML switches
+ * weight sync to disk to work around a vLLM xccl hang, run.sh does
+ * not override it on this SGLang run, and the run learns and tracks
+ * the xccl control on held-out accuracy while every step writes and
+ * reloads the full ~28 GB model (update_weights median 144.4 s
+ * against 3.6 s with xccl) and the 87-step run is cut off by its
+ * 4-hour limit after 65 steps. Claude-Fable-5.1 (0.92),
+ * Kimi-K3.1-Pro (0.9) and Qwen3.8-Max (0.9) return the correct
+ * unhealthy verdict with the correct root cause but miss the
+ * evidence bar (0.5-0.6 < 0.8); GLM-5.3 scores 0.7 (correct root
+ * cause, wrong verdict); the remaining five sit at 0.0-0.32. The
+ * six claude-code trajectories were rebuilt from the pulled session
+ * stores; the codex, grok and qwen scratch homes were wiped on the
+ * devspaces, so those four were rebuilt from the tee'd agent streams
+ * (the qwen one is a minimal instruction-plus-answer recovery --
+ * only its final answer was streamed). All ten trajectories were
+ * audited clean of network access. The published issue-judgment
+ * total below moves 340 -> 350 with this round.
  * The 200 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -8806,6 +8829,146 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "6f13372e-032a-40af-bfa4-e13fa2b0ed5e",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "b23d37b2dff2564095bcea2f3668409443e94c9a505bb5acf1d8960e89954fb9"
+  },
+  {
+    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "slug": "gpt6astra-disk-weight",
+    "file": "agent-trace/gpt6astra-disk-weight.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.24,
+    "durationMs": 69000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "slug": "gpt61sol-disk-weight",
+    "file": "agent-trace/gpt61sol-disk-weight.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.32,
+    "durationMs": 60000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "slug": "fable51-disk-weight",
+    "file": "agent-trace/fable51-disk-weight.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.92,
+    "durationMs": 3026000,
+    "steps": 36,
+    "costUsd": 25.4535
+  },
+  {
+    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "slug": "glm53-disk-weight",
+    "file": "agent-trace/glm53-disk-weight.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.7,
+    "durationMs": 701000,
+    "steps": 63,
+    "costUsd": 13.6666
+  },
+  {
+    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "slug": "kimi-disk-weight",
+    "file": "agent-trace/kimi-disk-weight.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.28,
+    "durationMs": 393000,
+    "steps": 31,
+    "costUsd": 5.4976
+  },
+  {
+    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "slug": "kimi31-disk-weight",
+    "file": "agent-trace/kimi31-disk-weight.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 527000,
+    "steps": 19,
+    "costUsd": 4.5953
+  },
+  {
+    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "slug": "dsv4-disk-weight",
+    "file": "agent-trace/dsv4-disk-weight.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 674000,
+    "steps": 44,
+    "costUsd": 13.3934
+  },
+  {
+    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "slug": "gemini4-disk-weight",
+    "file": "agent-trace/gemini4-disk-weight.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 182000,
+    "steps": 20,
+    "costUsd": 1.6209
+  },
+  {
+    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "slug": "qwen38-disk-weight",
+    "file": "agent-trace/qwen38-disk-weight.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 2525000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "slug": "grok47-disk-weight",
+    "file": "agent-trace/grok47-disk-weight.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.275,
+    "durationMs": 1361000,
+    "steps": 144,
+    "costUsd": null
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

@@ -679,5 +679,28 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "run.sh narrows the IcePop token-mask window from the shipped [0.5, 5] to [0.67, 1.5]; the masked token fraction starts 4x higher and the run collapses while nothing crashes.",
     "issue": "Training Qwen1.5-MoE-A2.7B-Chat with decoupled PPO and IcePop token masking. run.sh narrows the mask window (actor.rejection_sampling.lower/upper) from the shipped [0.5, 5] to [0.67, 1.5]; on this MoE model the behaviour importance weight spreads wider than that, so the masked token fraction starts 4x higher (0.0161 vs 0.0041), crosses 0.10 at step 43 and peaks at 0.750 at step 73 while entropy rises from 0.184 to 5.92 and responses lengthen from 284 to 600 tokens; held-out GSM8K eval-rollout/reward regresses against the shipped-window control."
+  },
+  {
+    "id": "infrastructure/areal_disk_weight_update_on_sglang",
+    "title": "Disk weight sync inherited from a vLLM workaround stalls an SGLang run",
+    "family": "Infrastructure",
+    "tags": [
+      "areal",
+      "decoupled-ppo",
+      "gsm8k",
+      "weight-sync",
+      "throughput",
+      "config-drift",
+      "moe",
+      "issue-only"
+    ],
+    "model": "Qwen1.5-MoE-A2.7B-Chat",
+    "dataset": "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test",
+    "framework": "AReaL / decoupled PPO with truncated importance sampling (TIS)",
+    "image": "areal-v2.0.0-sglang0.5.10.post1-torch2.9.1-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-10",
+    "license": "Apache-2.0",
+    "brief": "The shared example YAML switches weight sync to disk to work around a vLLM hang; on this SGLang run every step writes and reloads the full ~28 GB model, and the run is cut off by its 4-hour limit after 65 of 87 steps while still learning.",
+    "issue": "Training Qwen1.5-MoE-A2.7B-Chat on GSM8K with asynchronous decoupled PPO (TIS) in AReaL with SGLang rollouts. The shared YAML switched weight sync to disk to work around a vLLM hang, so every step writes and reloads the full ~28 GB model: median update_weights is 144.4 s against 3.6 s with NCCL (xccl), each step takes 172.5 s instead of 35.0 s, and the 87-step run is cut off by its 4-hour limit after 65 steps. Held-out eval-rollout/reward (0.6304, 0.6734) tracks the xccl control (0.6674, 0.6721) -- the run looks healthy and is not."
   }
 ];

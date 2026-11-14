@@ -1,0 +1,13 @@
+category: hyperparameter
+framework: areal
+task: areal_disk_weight_update_on_sglang
+verdict: unhealthy
+root_cause:
+  - examples/math/gsm8k_icepop.yaml sets actor.weight_update_mode disk (a vLLM-hang workaround) and run.sh does not override it on this SGLang run, so every step serializes the full ~28 GB model to disk and reloads it on four SGLang servers
+evidence_metrics:
+  - timeperf/update_weights median 144.4 s (139.0-290.0 s, all 65 steps above 100 s) vs timeperf/train_step median 20.3 s
+  - median step 172.5 s; 65 of 87 steps in 3.90 h before the 4-hour limit
+  - eval-rollout/reward 0.6304 / 0.6734 after epochs 1 / 2 (learning is healthy)
+fix:
+  must:
+    - use actor.weight_update_mode xccl for the SGLang rollout backend (moving the disk files to /dev/shm is not sufficient)
