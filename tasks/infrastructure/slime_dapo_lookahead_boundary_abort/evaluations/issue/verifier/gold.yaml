@@ -1,0 +1,17 @@
+category: infrastructure
+framework: slime
+task: slime_dapo_lookahead_boundary_abort
+verdict: unhealthy
+root_cause:
+  - dapo_http.py::record_boundary_failure appends unowned human-readable strings to the global _gui_dapo_boundary_errors list, so a surplus lookahead candidate's cleanup failure is indistinguishable from a failure inside the consumed prefix
+  - dapo_scheduler.py checks that unowned shared list both in the acceptance loop (around lines 161-162) and again after batch selection in the finally cleanup path (around lines 218-219); the post-selection check discards the already-complete 32-group batch
+  - env_client.py::close_session's fenced cancel_remaining() loop times out after 120 s, so the return True on the happy path is unreachable on the timeout path; the TimeoutError propagates through generate_with_gui.py, which records the shared boundary failure and raises
+evidence_metrics:
+  - rollouts 0-4 each accepted 32 groups with cleanup_ok=1; rollout 5 also accepted 32 groups but ended cleanup_ok=0
+  - rollout 5 submitted 56 groups, consumed a 39-group prefix, examined 53; prefix_acceptance_rate 0.8205 (32/39) versus submitted_utilization 0.5714 (32/56)
+  - batch_ready_s 1630.0474, cleanup_s 145.3386, total_s 1775.3861
+  - trainer excerpt records GUI rollout start sample=2889 group=361 followed by the rethrown RuntimeError 'GUI lookahead boundary failed' carrying 'Environment cleanup failed for sample 2889'
+  - rollout 5 audit covers group indices 306-358 and contains no 361, placing the failing candidate outside the consumed audit prefix
+fix:
+  must:
+    - record boundary failures with candidate/prefix ownership and decide fatality from that ownership instead of the existence of any string in the shared list, so a surplus cleanup failure cannot discard a complete batch

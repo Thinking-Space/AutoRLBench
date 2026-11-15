@@ -1,0 +1,18 @@
+category: reward
+framework: slime
+task: slime_judge_router_admission_starvation
+verdict: unhealthy
+root_cause:
+  - start_reward_services.sh appends the store-action --worker-urls option once per replica, so the router registers only the last worker URL (http://host_0:31102) and the first Judge replica stays idle
+  - dapo.py::episode_rewards rejects a trajectory as inconsistent_reward when the Judge reward is not exactly equal to the independent metadata['gui_score'] (abs(score - env_score) > 1e-6), an invalid invariant for Judge mode
+  - generate_with_gui.py stores eval_score in sample.metadata["gui_score"] first and only later assigns the _judge_reward verdict to sample.reward["score"], with no admission-time alignment handoff between the independent sources
+evidence_metrics:
+  - judge-router.log registers exactly one worker URL (http://host_0:31102); judge-0.log has only its startup self-check while judge-1.log carries the workload
+  - rollout_0000_dapo.json examined and submitted 96 groups, accepted 7 of 32; 73 inconsistent_reward, 13 invalid_episode, 3 zero_or_low_std; acceptance rate and submitted utilization both 0.0729, batch_ready_s = -1
+  - task_history.jsonl records 768 trajectories with separate env_score, judge_status and reward_score fields, including valid trajectories whose Judge reward differs from the environment score
+  - train.log ends with the rethrown RuntimeError 'DAPO exhausted 96 candidate groups' reporting accepted 7/32 and refusing a partial update, with no optimizer update after the failed audit
+  - runtime_config.yaml selects gui_reward_source "judge"
+fix:
+  must:
+    - pass both worker URLs in a single --worker-urls option (or otherwise register both Judge replicas)
+    - admit groups on the configured reward's own validity and internal consistency instead of equality with the independent environment score, and align or bridge the two reward sources at admission time

@@ -515,6 +515,33 @@
  * list and every message are complete). The ten trajectories were
  * audited clean of network access. The published issue-judgment
  * total below moves 350 -> 360 with this round.
+ * The twenty PR #38 slime issue records (ten per task) were
+ * published on 15 Nov 2026 from the local cybertron-evaluate sweeps
+ * (verl-vllm017 substitute image; the slime-v0.3.0 recorded runtime
+ * is the frozen evidence stack). No judgment passes on either task.
+ * dapo_lookahead_boundary_abort: training Qwen3-VL-4B-Thinking with
+ * GRPO on CUA-Gym combined 768 tasks loses a complete DAPO update
+ * when cleanup of a lookahead candidate outside the consumed prefix
+ * raises a shared boundary error; the best judgment (Qwen3.8-Max
+ * 0.77) holds the correct verdict with two of three root-cause
+ * items and six of seven evidence items.
+ * judge_router_admission_starvation: the run starts two Judge
+ * replicas but registers one, then rejects 73 of 96 groups by
+ * comparing Judge rewards to independent environment scores,
+ * accepting only 7 of 32 required groups; the best judgment
+ * (GLM-5.3 0.73) holds the correct verdict with partial root cause
+ * and evidence, and the Gemini run is a no-answer structural zero
+ * (three full analyses burned the re-run quota without writing the
+ * deliverable -- its run-dir report stays unjudged, the ledger row
+ * is the recorded no-answer zero). The rounds' rubric scores the
+ * root-cause and evidence items fractionally (2/3, 6/7 counts). The
+ * claude-code trajectories were rebuilt from the pulled session
+ * stores; the codex, grok and qwen scratch homes were wiped on the
+ * devspaces, so those runs were rebuilt from the tee'd agent streams
+ * (the two qwen ones minimal instruction-plus-answer recoveries).
+ * All twenty trajectories were audited clean of network access. The
+ * published issue-judgment total below moves 360 -> 380 with this
+ * round.
  * The 200 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -9127,6 +9154,286 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.276923,
     "durationMs": 1975873,
     "steps": 33,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "slug": "gpt6astra-dapo-lookahead",
+    "file": "agent-trace/gpt6astra-dapo-lookahead.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.514286,
+    "durationMs": 86000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "slug": "gpt61sol-dapo-lookahead",
+    "file": "agent-trace/gpt61sol-dapo-lookahead.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.257143,
+    "durationMs": 99000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "slug": "fable51-dapo-lookahead",
+    "file": "agent-trace/fable51-dapo-lookahead.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.485714,
+    "durationMs": 333000,
+    "steps": 12,
+    "costUsd": 2.7169
+  },
+  {
+    "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "slug": "glm53-dapo-lookahead",
+    "file": "agent-trace/glm53-dapo-lookahead.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.485714,
+    "durationMs": 708000,
+    "steps": 23,
+    "costUsd": 6.0942
+  },
+  {
+    "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "slug": "kimi-dapo-lookahead",
+    "file": "agent-trace/kimi-dapo-lookahead.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.457143,
+    "durationMs": 303000,
+    "steps": 20,
+    "costUsd": 4.1236
+  },
+  {
+    "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "slug": "kimi31-dapo-lookahead",
+    "file": "agent-trace/kimi31-dapo-lookahead.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.4,
+    "durationMs": 168000,
+    "steps": 11,
+    "costUsd": 0.6368
+  },
+  {
+    "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "slug": "dsv4-dapo-lookahead",
+    "file": "agent-trace/dsv4-dapo-lookahead.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.657143,
+    "durationMs": 2405000,
+    "steps": 25,
+    "costUsd": 8.7953
+  },
+  {
+    "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "slug": "gemini4-dapo-lookahead",
+    "file": "agent-trace/gemini4-dapo-lookahead.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.485714,
+    "durationMs": 1478000,
+    "steps": 20,
+    "costUsd": 4.2521
+  },
+  {
+    "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "slug": "qwen38-dapo-lookahead",
+    "file": "agent-trace/qwen38-dapo-lookahead.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.771429,
+    "durationMs": 1244000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "slug": "grok47-dapo-lookahead",
+    "file": "agent-trace/grok47-dapo-lookahead.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.314286,
+    "durationMs": 159000,
+    "steps": 53,
+    "costUsd": null
+  },
+  {
+    "task": "reward/slime_judge_router_admission_starvation",
+    "slug": "gpt6astra-judge-router",
+    "file": "agent-trace/gpt6astra-judge-router.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.333333,
+    "durationMs": 81000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "reward/slime_judge_router_admission_starvation",
+    "slug": "gpt61sol-judge-router",
+    "file": "agent-trace/gpt61sol-judge-router.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.7,
+    "durationMs": 105000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "reward/slime_judge_router_admission_starvation",
+    "slug": "fable51-judge-router",
+    "file": "agent-trace/fable51-judge-router.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.533333,
+    "durationMs": 234000,
+    "steps": 13,
+    "costUsd": 2.8394
+  },
+  {
+    "task": "reward/slime_judge_router_admission_starvation",
+    "slug": "glm53-judge-router",
+    "file": "agent-trace/glm53-judge-router.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.73336,
+    "durationMs": 414000,
+    "steps": 52,
+    "costUsd": 8.8974
+  },
+  {
+    "task": "reward/slime_judge_router_admission_starvation",
+    "slug": "kimi-judge-router",
+    "file": "agent-trace/kimi-judge-router.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.5,
+    "durationMs": 877000,
+    "steps": 33,
+    "costUsd": 9.7415
+  },
+  {
+    "task": "reward/slime_judge_router_admission_starvation",
+    "slug": "kimi31-judge-router",
+    "file": "agent-trace/kimi31-judge-router.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.533333,
+    "durationMs": 283000,
+    "steps": 23,
+    "costUsd": 2.3484
+  },
+  {
+    "task": "reward/slime_judge_router_admission_starvation",
+    "slug": "dsv4-judge-router",
+    "file": "agent-trace/dsv4-judge-router.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.5,
+    "durationMs": 1342000,
+    "steps": 27,
+    "costUsd": 8.6613
+  },
+  {
+    "task": "reward/slime_judge_router_admission_starvation",
+    "slug": "gemini4-judge-router",
+    "file": "agent-trace/gemini4-judge-router.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 378000,
+    "steps": 16,
+    "costUsd": 0.7659
+  },
+  {
+    "task": "reward/slime_judge_router_admission_starvation",
+    "slug": "qwen38-judge-router",
+    "file": "agent-trace/qwen38-judge-router.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.7,
+    "durationMs": 1278000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "reward/slime_judge_router_admission_starvation",
+    "slug": "grok47-judge-router",
+    "file": "agent-trace/grok47-judge-router.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.466667,
+    "durationMs": 178000,
+    "steps": 59,
     "costUsd": null
   }
 ];

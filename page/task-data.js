@@ -725,5 +725,51 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The binary-KL metric clamps probabilities to 1.0 - 1e-8, which is exactly 1.0 in float32 -- every saturated token gets a NaN metric and is silently masked, rising to 0.449 of tokens while held-out accuracy stays flat.",
     "issue": "Training Qwen1.5-MoE-A2.7B-Chat on GSM8K with asynchronous decoupled PPO and KPop token masking in AReaL. The binary-KL metric clamps probabilities to 1.0 - 1e-8, which is exactly 1.0 in float32, so every sampled token of probability 1.0 gets a NaN metric and is masked: 0.0829 of tokens at step 0, rising to 0.449. Held-out GSM8K stays flat (0.6073 -> 0.6021) and greedy decoding of the final policy collapses (GSM8K 0.0205)."
+  },
+  {
+    "id": "infrastructure/slime_dapo_lookahead_boundary_abort",
+    "title": "DAPO lookahead aborts a complete batch on a surplus cleanup failure",
+    "family": "Infrastructure",
+    "tags": [
+      "slime",
+      "grpo",
+      "dapo",
+      "async",
+      "lookahead",
+      "cleanup",
+      "boundary",
+      "issue-only"
+    ],
+    "model": "Qwen3-VL-4B-Thinking",
+    "dataset": "CUA-Gym combined 768 tasks",
+    "framework": "slime / GRPO with DAPO lookahead",
+    "image": "slime-v0.3.0",
+    "created": "2026-11-12",
+    "license": "Apache-2.0",
+    "brief": "Cleanup of a lookahead candidate outside the consumed prefix raises a shared boundary error, and the whole DAPO update is lost.",
+    "issue": "Training Qwen3-VL-4B-Thinking with GRPO on CUA-Gym combined 768 tasks loses a complete DAPO update when cleanup of a lookahead candidate outside the consumed prefix raises a shared boundary error."
+  },
+  {
+    "id": "reward/slime_judge_router_admission_starvation",
+    "title": "Judge service capacity and reward admission disagree in the first GRPO rollout",
+    "family": "Reward",
+    "tags": [
+      "slime",
+      "grpo",
+      "hard-candidate",
+      "judge-reward",
+      "router",
+      "dapo",
+      "multi-cause",
+      "issue-only"
+    ],
+    "model": "Qwen3-VL-4B-Thinking",
+    "dataset": "CUA-Gym combined 768 tasks",
+    "framework": "slime / GRPO with a Judge service",
+    "image": "slime-v0.3.0",
+    "created": "2026-11-12",
+    "license": "Apache-2.0",
+    "brief": "Two Judge replicas start but only one is registered; admission then compares Judge rewards to independent environment scores and starves the run.",
+    "issue": "Training Qwen3-VL-4B-Thinking with GRPO on 768 CUA-Gym tasks starts two Judge replicas but registers one, then rejects 73 of 96 groups by comparing Judge rewards to independent environment scores, accepting only 7 of 32 required groups."
   }
 ];
