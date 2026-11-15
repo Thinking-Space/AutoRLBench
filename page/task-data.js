@@ -681,9 +681,9 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen1.5-MoE-A2.7B-Chat with decoupled PPO and IcePop token masking. run.sh narrows the mask window (actor.rejection_sampling.lower/upper) from the shipped [0.5, 5] to [0.67, 1.5]; on this MoE model the behaviour importance weight spreads wider than that, so the masked token fraction starts 4x higher (0.0161 vs 0.0041), crosses 0.10 at step 43 and peaks at 0.750 at step 73 while entropy rises from 0.184 to 5.92 and responses lengthen from 284 to 600 tokens; held-out GSM8K eval-rollout/reward regresses against the shipped-window control."
   },
   {
-    "id": "infrastructure/areal_disk_weight_update_on_sglang",
+    "id": "configuration/areal_disk_weight_update_on_sglang",
     "title": "Disk weight sync inherited from a vLLM workaround stalls an SGLang run",
-    "family": "Infrastructure",
+    "family": "Configuration",
     "tags": [
       "areal",
       "decoupled-ppo",

@@ -8831,7 +8831,7 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "b23d37b2dff2564095bcea2f3668409443e94c9a505bb5acf1d8960e89954fb9"
   },
   {
-    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "task": "configuration/areal_disk_weight_update_on_sglang",
     "slug": "gpt6astra-disk-weight",
     "file": "agent-trace/gpt6astra-disk-weight.json",
     "model": "GPT-6-Astra",
@@ -8845,7 +8845,7 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": null
   },
   {
-    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "task": "configuration/areal_disk_weight_update_on_sglang",
     "slug": "gpt61sol-disk-weight",
     "file": "agent-trace/gpt61sol-disk-weight.json",
     "model": "GPT-6.1-Sol",
@@ -8859,7 +8859,7 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": null
   },
   {
-    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "task": "configuration/areal_disk_weight_update_on_sglang",
     "slug": "fable51-disk-weight",
     "file": "agent-trace/fable51-disk-weight.json",
     "model": "Claude-Fable-5.1",
@@ -8873,7 +8873,7 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 25.4535
   },
   {
-    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "task": "configuration/areal_disk_weight_update_on_sglang",
     "slug": "glm53-disk-weight",
     "file": "agent-trace/glm53-disk-weight.json",
     "model": "GLM-5.3",
@@ -8887,7 +8887,7 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 13.6666
   },
   {
-    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "task": "configuration/areal_disk_weight_update_on_sglang",
     "slug": "kimi-disk-weight",
     "file": "agent-trace/kimi-disk-weight.json",
     "model": "Kimi-K3",
@@ -8901,7 +8901,7 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 5.4976
   },
   {
-    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "task": "configuration/areal_disk_weight_update_on_sglang",
     "slug": "kimi31-disk-weight",
     "file": "agent-trace/kimi31-disk-weight.json",
     "model": "Kimi-K3.1-Pro",
@@ -8915,7 +8915,7 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 4.5953
   },
   {
-    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "task": "configuration/areal_disk_weight_update_on_sglang",
     "slug": "dsv4-disk-weight",
     "file": "agent-trace/dsv4-disk-weight.json",
     "model": "DeepSeek-V4-Pro",
@@ -8929,7 +8929,7 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 13.3934
   },
   {
-    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "task": "configuration/areal_disk_weight_update_on_sglang",
     "slug": "gemini4-disk-weight",
     "file": "agent-trace/gemini4-disk-weight.json",
     "model": "Gemini-4-Argon",
@@ -8943,7 +8943,7 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 1.6209
   },
   {
-    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "task": "configuration/areal_disk_weight_update_on_sglang",
     "slug": "qwen38-disk-weight",
     "file": "agent-trace/qwen38-disk-weight.json",
     "model": "Qwen3.8-Max",
@@ -8957,7 +8957,7 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": null
   },
   {
-    "task": "infrastructure/areal_disk_weight_update_on_sglang",
+    "task": "configuration/areal_disk_weight_update_on_sglang",
     "slug": "grok47-disk-weight",
     "file": "agent-trace/grok47-disk-weight.json",
     "model": "Grok-4.7",
