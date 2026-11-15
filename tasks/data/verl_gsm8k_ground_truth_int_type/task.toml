@@ -1,0 +1,36 @@
+title = "Integer ground truth never matches the string scorer: zero reward"
+license = "Apache-2.0"
+created_date = "2026-11-14"
+domain = "data"
+tags = ["verl", "grpo", "gsm8k", "type-mismatch", "zero-reward", "data-preprocessing", "silent-failure"]
+
+[submitter]
+name = "Shulin Tian"
+affiliation = "NTU"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train (7,360 after a 500-character question filter) / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_gsm8k.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "data_type_mismatch"
+failure_reason = "data_prep/gsm8k.py stores reward_model.ground_truth as int(float(answer)), while verl's gsm8k.compute_score compares the extracted answer string with ground_truth using ==, so every training and validation reward is 0.0 (648 of 1,536 sampled rollouts end with the right number), all GRPO advantages and gradients are exactly 0, the logged val-core accuracy is 0.0 at every evaluation and re-scored held-out accuracy stays at 0.4602-0.4701 while the recipe with string labels reaches 0.5580."
+
+[security]
+requires_isolated_stages = true
