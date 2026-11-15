@@ -1,0 +1,36 @@
+title = "Reward memo keyed by prompt: identical scores per GRPO group"
+license = "Apache-2.0"
+created_date = "2026-11-14"
+domain = "reward"
+tags = ["verl", "grpo", "gsm8k", "reward-cache", "zero-advantage", "frozen-validation", "silent-failure"]
+
+[submitter]
+name = "Shulin Tian"
+affiliation = "NTU"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train (7,360 after a 500-character question filter) / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_gsm8k.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "reward/gsm8k_reward.py memoizes scores under (data_source, split, prompt index), so all 8 rollouts of a prompt get the first one's score: all 192 sampled groups have zero score variance, GRPO advantages, pg_loss, grad_norm and kl_loss are exactly 0 at every step, the logged validation accuracy is the cached step-0 value 0.4337 at every evaluation, and re-scored held-out accuracy stays 0.45-0.47 while the same recipe without the cache reaches 0.5580."
+
+[security]
+requires_isolated_stages = true
