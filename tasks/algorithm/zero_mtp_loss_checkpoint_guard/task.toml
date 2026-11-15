@@ -1,0 +1,28 @@
+title = "Unlabeled RL forward enters the auxiliary MTP path"
+license = "Apache-2.0"
+created_date = "2026-11-11"
+domain = "algorithm"
+tags = ["mtp", "zero-loss", "nullable-input", "rl-training"]
+
+[submitter]
+name = "Jialin Ren"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "Mixed code-repair corpus (sanitized)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/train_reproduction.py"
+
+[environment]
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+[outcome]
+failure_type = "unlabeled_rl_mtp_postprocess_bug"
+failure_reason = "Miles requests unlabeled RL logits with position_ids=None; Megatron enters the retained MTP path despite zero auxiliary scaling and rolls the absent position IDs, failing at None.clone before an optimizer update."

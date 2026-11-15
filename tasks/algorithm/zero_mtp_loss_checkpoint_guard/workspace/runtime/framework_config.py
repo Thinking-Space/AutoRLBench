@@ -1,0 +1,6 @@
+"""Historical identities are separate from the new reduced model probe."""
+HISTORICAL_FAILURE = "historical failure"
+HISTORICAL_FIX_SMOKE = "corrected smoke"
+HISTORICAL_MILES_VERSION = "0.2.1.dev1609+g48f39cb4"
+HISTORICAL_MILES_WHEEL_SHA256 = "7cfeb6e21c3b028d1bf471e11fe10389045b405cdd217a30b5fad31d6ed94171"
+PROBE_SCOPE = "new random tiny GPTModel; real MTP1/forward/backward/AdamW; not a historical RL rerun"

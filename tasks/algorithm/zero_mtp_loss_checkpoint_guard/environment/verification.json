@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "scope": "new reduced-size real-framework validation; not a replay of private historical data",
+  "backend": "autorlbench local backend inside the platform mirror of the declared public Slime image",
+  "target_image": "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c",
+  "mirror_stack": {
+    "torch": "2.11.0+cu129",
+    "transformer_engine": "2.16.1",
+    "sglang": "0.5.15.post1"
+  },
+  "gpu_count": 1,
+  "buggy": {
+    "command": "python3 -m autorlbench rerun --backend local --timeout-s 400 tasks/algorithm/zero_mtp_loss_checkpoint_guard",
+    "prepare_succeeded": true,
+    "phase": "real_model_forward",
+    "exception_type": "AttributeError",
+    "error": "'NoneType' object has no attribute 'clone'",
+    "optimizer_steps": 0
+  },
+  "reference": {
+    "optimizer_steps": 2,
+    "checkpoint_roundtrip": true,
+    "base_parameters_updated": true,
+    "mtp_weights_preserved": true,
+    "config_restored": true
+  },
+  "limits": [
+    "The public image digest was not executed through Docker locally; the available platform mirror was used.",
+    "No full-size historical replay, private initialization, private data, or trained checkpoint was required."
+  ],
+  "publication_validation": "Final post-exclusion source snapshot rerun: failure/reference pair passed; probe source hashes match the published files."
+}
