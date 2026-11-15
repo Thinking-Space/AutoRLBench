@@ -1,0 +1,20 @@
+category: implementation
+framework: miles
+task: retry_retains_rendered_prompt
+verdict: unhealthy
+root_cause:
+  - name: rendered_prompt_survives_retry_reset
+    where: historical generation_contract.txt excerpt; runtime/public_generate.py::generate; vendor/miles/utils/types.py::Sample.reset_for_retry; runtime/fully_async.py::_clone_group_for_retry and _reset_source_group_for_recycle
+    observed: generation stores rendered text in prompt, reset retains it, and both replay paths fail the native-message check before service generation
+    expected: generation reconstructs native messages from frozen task fields at each entry while retaining aligned training text, tokens, masks and logprobs
+evidence_metrics:
+  - historical_failure completed 20 rollouts and 160 training steps before the abort loop
+  - all 76899 master and 275 worker training-pod API records retain their positions after redaction
+  - the historical collector terminated after 128 consecutive aborted groups
+  - normalization-bearing raw records include traceback duplicates rather than independent failure counts
+  - new public smoke training results must be measured separately from the historical archive
+fix:
+  must:
+    - reconstruct native messages before generation for both same-prompt retries and recycled source groups
+    - retain real Sample state and aligned training payloads
+    - preserve the complete framework async and native GRPO training paths

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "scope": "new reduced native GRPO failure/reference validation, distinct from original private training",
+  "backend": "autorlbench local backend inside the platform mirror of the declared public Slime image",
+  "target_image": "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c",
+  "gpu_count": 1,
+  "generation_backend": "hf-cpu",
+  "public_model": {
+    "architecture": "Qwen2ForCausalLM",
+    "initialization": "random",
+    "parameters": 361600,
+    "seed": 20261115,
+    "dtype": "bfloat16"
+  },
+  "buggy": {
+    "command": "python3 -m autorlbench rerun --backend local --timeout-s 900 tasks/infrastructure/retry_retains_rendered_prompt",
+    "prepare_succeeded": true,
+    "optimizer_updates": 1,
+    "exit_code": 1,
+    "expected_abort_guard": true,
+    "evidence": "workspace/logs/validation/observations.json"
+  },
+  "reference": {
+    "optimizer_updates": 3,
+    "exit_code": 0,
+    "same_prompt_retry_passed": true,
+    "source_group_recycle_passed": true,
+    "evidence": "evaluations/issue/reference/validation/observations.json"
+  },
+  "limits": [
+    "Platform mirror tested; public digest not executed directly through Docker.",
+    "No private model, prompts, reward design or dataset was required.",
+    "Reduced public workload does not reproduce the original private training curve; no calibrated solution-level score."
+  ]
+}
