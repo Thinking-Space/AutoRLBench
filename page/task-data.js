@@ -702,5 +702,28 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The shared example YAML switches weight sync to disk to work around a vLLM hang; on this SGLang run every step writes and reloads the full ~28 GB model, and the run is cut off by its 4-hour limit after 65 of 87 steps while still learning.",
     "issue": "Training Qwen1.5-MoE-A2.7B-Chat on GSM8K with asynchronous decoupled PPO (TIS) in AReaL with SGLang rollouts. The shared YAML switched weight sync to disk to work around a vLLM hang, so every step writes and reloads the full ~28 GB model: median update_weights is 144.4 s against 3.6 s with NCCL (xccl), each step takes 172.5 s instead of 35.0 s, and the 87-step run is cut off by its 4-hour limit after 65 steps. Held-out eval-rollout/reward (0.6304, 0.6734) tracks the xccl control (0.6674, 0.6721) -- the run looks healthy and is not."
+  },
+  {
+    "id": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "title": "KPop binary-KL filter masks every saturated token in float32",
+    "family": "Algorithm",
+    "tags": [
+      "areal",
+      "decoupled-ppo",
+      "gsm8k",
+      "kpop",
+      "token-masking",
+      "numerical-precision",
+      "moe",
+      "issue-only"
+    ],
+    "model": "Qwen1.5-MoE-A2.7B-Chat",
+    "dataset": "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test",
+    "framework": "AReaL / decoupled PPO with KPop token masking",
+    "image": "areal-v2.0.0-sglang0.5.10.post1-torch2.9.1-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-10",
+    "license": "Apache-2.0",
+    "brief": "The binary-KL metric clamps probabilities to 1.0 - 1e-8, which is exactly 1.0 in float32 -- every saturated token gets a NaN metric and is silently masked, rising to 0.449 of tokens while held-out accuracy stays flat.",
+    "issue": "Training Qwen1.5-MoE-A2.7B-Chat on GSM8K with asynchronous decoupled PPO and KPop token masking in AReaL. The binary-KL metric clamps probabilities to 1.0 - 1e-8, which is exactly 1.0 in float32, so every sampled token of probability 1.0 gets a NaN metric and is masked: 0.0829 of tokens at step 0, rising to 0.449. Held-out GSM8K stays flat (0.6073 -> 0.6021) and greedy decoding of the final policy collapses (GSM8K 0.0205)."
   }
 ];

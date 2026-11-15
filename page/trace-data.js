@@ -496,6 +496,25 @@
  * only its final answer was streamed). All ten trajectories were
  * audited clean of network access. The published issue-judgment
  * total below moves 340 -> 350 with this round.
+ * The ten areal_kpop_binary_kl_fp32_nan_mask issue records were
+ * published on 15 Nov 2026 from the 13-14 Nov harbor issue round
+ * (verl-vllm017 substitute image). No judgment passes: the task's
+ * binary-KL metric clamps probabilities to 1.0 - 1e-8 -- exactly
+ * 1.0 in float32 -- so every sampled token of probability 1.0
+ * gets a NaN metric and is silently masked (0.0829 of tokens at
+ * step 0 rising to 0.449), held-out accuracy stays flat and greedy
+ * decoding collapses (0.0205). Qwen3.8-Max (0.92) and GPT-6.1-Sol
+ * (0.886) hold the correct verdict and root cause but partial
+ * evidence; seven more return the correct verdict without the root
+ * cause; GPT-6-Astra is a no-answer structural zero -- a 25h40m
+ * codex context-compaction death spiral (6,248 commands, mostly
+ * re-runs of the same analysis after each compaction) terminated
+ * by user decision with the verifier never run; its trajectory was
+ * recovered from the 272 MB remote stream with each observation
+ * capped at its first 4096 bytes (explicitly marked; the command
+ * list and every message are complete). The ten trajectories were
+ * audited clean of network access. The published issue-judgment
+ * total below moves 350 -> 360 with this round.
  * The 200 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -8968,6 +8987,146 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.275,
     "durationMs": 1361000,
     "steps": 144,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "slug": "gpt6astra-kpop-nan-mask",
+    "file": "agent-trace/gpt6astra-kpop-nan-mask.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 92340292,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "slug": "gpt61sol-kpop-nan-mask",
+    "file": "agent-trace/gpt61sol-kpop-nan-mask.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.886364,
+    "durationMs": 757944,
+    "steps": 28,
+    "costUsd": 0.8062
+  },
+  {
+    "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "slug": "fable51-kpop-nan-mask",
+    "file": "agent-trace/fable51-kpop-nan-mask.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.28,
+    "durationMs": 7380001,
+    "steps": 49,
+    "costUsd": 64.1017
+  },
+  {
+    "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "slug": "glm53-kpop-nan-mask",
+    "file": "agent-trace/glm53-kpop-nan-mask.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.28,
+    "durationMs": 1584540,
+    "steps": 90,
+    "costUsd": 18.9974
+  },
+  {
+    "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "slug": "kimi-kpop-nan-mask",
+    "file": "agent-trace/kimi-kpop-nan-mask.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25714,
+    "durationMs": 555369,
+    "steps": 53,
+    "costUsd": 3.2439
+  },
+  {
+    "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "slug": "kimi31-kpop-nan-mask",
+    "file": "agent-trace/kimi31-kpop-nan-mask.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.26,
+    "durationMs": 2844059,
+    "steps": 45,
+    "costUsd": 5.1313
+  },
+  {
+    "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "slug": "dsv4-kpop-nan-mask",
+    "file": "agent-trace/dsv4-kpop-nan-mask.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.28,
+    "durationMs": 3228013,
+    "steps": 60,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "slug": "gemini4-kpop-nan-mask",
+    "file": "agent-trace/gemini4-kpop-nan-mask.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.225,
+    "durationMs": 273444,
+    "steps": 9,
+    "costUsd": 0.5731
+  },
+  {
+    "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "slug": "qwen38-kpop-nan-mask",
+    "file": "agent-trace/qwen38-kpop-nan-mask.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.92,
+    "durationMs": 1509691,
+    "steps": 25,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
+    "slug": "grok47-kpop-nan-mask",
+    "file": "agent-trace/grok47-kpop-nan-mask.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.276923,
+    "durationMs": 1975873,
+    "steps": 33,
     "costUsd": null
   }
 ];
