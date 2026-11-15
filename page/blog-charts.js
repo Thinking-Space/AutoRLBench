@@ -15,12 +15,12 @@
 
     const data = {
         profile: {
-            affiliations: [['THUNLP', 11], ['Tsinghua', 5], ['FusionBrain', 3], ['Johns Hopkins', 2], ['Tohoku', 2], ['UPenn', 2], ['Independent', 2], ['Fudan', 1], ['SII', 1], ['Duke', 1], ['SJTU', 1], ['HIT Shenzhen', 1]],
-            errors: [['Infrastructure', 12], ['Algorithm', 8], ['Configuration', 4], ['Reward', 4], ['Data', 2], ['Environment', 1]],
-            difficulty: [['Very hard', 6], ['Hard', 12], ['Medium', 8], ['Easy', 5]]
+            affiliations: [['THUNLP', 13], ['Tsinghua', 5], ['FusionBrain', 3], ['Brigham Young', 3], ['Johns Hopkins', 2], ['Tohoku', 2], ['UPenn', 2], ['Independent', 2], ['Fudan', 2], ['SII', 2], ['SW Jiaotong', 2], ['Duke', 1], ['SJTU', 1], ['HIT Shenzhen', 1]],
+            errors: [['Infrastructure', 13], ['Algorithm', 11], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 1]],
+            difficulty: [['Very hard', 12], ['Hard', 14], ['Medium', 8], ['Easy', 5]]
         },
-        models: [['GPT-6-Astra', 46.9], ['GPT-6.1-Sol', 44.9], ['Gemini-4-Argon', 40.8], ['GLM-5.3', 36.7], ['Kimi-K3.1-Pro', 34.7], ['Fable-5.1', 30.6], ['Qwen3.8-Max', 30.6], ['Grok-4.7', 24.5], ['DeepSeek-V4-Pro', 6.1], ['Kimi-K3', 4.1]],
-        averageLevels: [25.5, 37.8],
+        models: [['GPT-6-Astra', 39.0], ['GPT-6.1-Sol', 37.3], ['GLM-5.3', 33.9], ['Gemini-4-Argon', 33.9], ['Fable-5.1', 28.8], ['Kimi-K3.1-Pro', 28.8], ['Qwen3.8-Max', 25.4], ['Grok-4.7', 22.0], ['DeepSeek-V4-Pro', 5.1], ['Kimi-K3', 5.1]],
+        averageLevels: [21.0, 35.5],
         modelHarness: ['Codex', 'Codex', 'Claude Code', 'Claude Code', 'Claude Code', 'Claude Code', 'Qwen Code', 'Grok Build', 'Claude Code', 'Claude Code'],
         modelDisplayNames: {
             Fable: 'Fable-5.1',
@@ -36,15 +36,15 @@
         // Figure 2 uses the same four-step blue-to-red palette as the
         // four-stage trajectory in Figure 8: two blue outcomes followed by
         // two red outcomes.
-        outcomes: [['Pass', 79, '#174f86'], ['Wrong cause', 146, '#3d82b7'], ['Wrong evidence', 43, '#d86f58'], ['Fail', 40, '#bf2536']],
+        outcomes: [['Pass', 82, '#174f86'], ['Wrong cause', 194, '#3d82b7'], ['Wrong evidence', 51, '#d86f58'], ['Fail', 59, '#bf2536']],
         // Failed repair trajectories grouped by the primary error mode. The
-        // values are percentages of the 112 failed repair trajectories and
+        // values are percentages of the 129 failed repair trajectories and
         // are rendered as animated marks in Figure 7.
         repairErrors: [
-            ['No edit', 19, '#104680'],
-            ['Wrong target', 47, '#6DADD1'],
-            ['Incorrect / incomplete', 26, '#DC6D57'],
-            ['New Failure', 6, '#B72230'],
+            ['No edit', 22, '#104680'],
+            ['Wrong target', 52, '#6DADD1'],
+            ['Incorrect / incomplete', 34, '#DC6D57'],
+            ['New Failure', 7, '#B72230'],
             ['Cheating', 14, '#6D011F']
         ],
         // Per-task counts use the same mutually exclusive outcome categories
@@ -57,7 +57,7 @@
             ['Rollout top-p', 1, 7, 1, 1],
             ['Critic head', 5, 5, 0, 0],
             ['PPO minibatch', 1, 7, 2, 0],
-            ['Token alignment', 3, 2, 5, 0],
+            ['Token alignment', 1, 2, 3, 4],
             ['PiSSA adapter', 1, 6, 3, 0],
             ['DAPO normalization', 1, 5, 3, 1]
         ],
@@ -67,18 +67,23 @@
             { title: 'GRPO broadcast', x: [0,50,100,150,200,250,300,350,400], a: [5.435,7.065,8.696,10.326,9.783,11.957,10.87,11.957,11.413], b: [5.978,0,0,0,0,0,0,0,0], aLabel: 'Fable', bLabel: 'Kimi K3', gate: 10, max: 15, colors: [C.blue, C.peach] },
             { title: 'AdamW epsilon', x: [0,10,20,30,40,50,60,70,80,90,100], a: [.076,48.749,52.464,55.648,58.074,56.027,57.165,58.302,56.861,59.136,58.378], b: [.076,.455,10.69,27.521,40.561,47.309,48.976,48.446,48.749,48.976,49.431], aLabel: 'Astra', bLabel: 'Kimi K3', gate: 53, max: 65, colors: [C.navy, C.peach] }
         ],
-        categories: [['Configuration', 20, 50], ['Reward', 20, 23.3], ['Data', 10, 60], ['Environment', 80, 70], ['Algorithm', 27.5, 36.7], ['Infrastructure', 25.8, 31.4]],
+        categories: [['Configuration', 16, 45], ['Reward', 16, 23.3], ['Data', 10, 30], ['Environment', 80, 70], ['Algorithm', 20.9, 36.7], ['Infrastructure', 23.8, 31.4]],
+        // Per model and category: [diagnosis, repair, combined] pass rates
+        // over that category's published runs. The combined value keeps the
+        // fig-1 category drill-down on the same metric as the overall
+        // leaderboard (issue + solution passes over all runs); fig-4 reads
+        // the first two entries for its paired bars.
         categoryByModel: {
-            'GPT-6-Astra': [[25, 33.3], [75, 66.7], [0, 100], [100, 100], [37.5, 0], [58.3, 42.9]],
-            'GPT-6.1-Sol': [[50, 33.3], [25, 33.3], [0, 100], [100, 100], [25, 0], [58.3, 71.4]],
-            'Gemini-4-Argon': [[25, 100], [25, 33.3], [0, 100], [100, 100], [25, 66.7], [25, 57.1]],
-            'GLM-5.3': [[25, 66.7], [25, 0], [0, 100], [100, 0], [25, 66.7], [41.7, 42.9]],
-            'Kimi-K3.1-Pro': [[25, 66.7], [25, 33.3], [0, 100], [100, 100], [37.5, 33.3], [16.7, 42.9]],
-            'Fable-5.1': [[25, 66.7], [0, 0], [0, 0], [100, 100], [37.5, 66.7], [25, 28.6]],
-            'Qwen3.8-Max': [[0, 100], [25, 33.3], [0, 100], [100, 0], [50, 33.3], [25, 0]],
-            'Grok-4.7': [[25, 0], [0, 33.3], [100, 0], [100, 100], [37.5, 66.7], [8.3, 0]],
-            'DeepSeek-V4-Pro': [[0, 0], [0, 0], [0, 0], [100, 100], [0, 33.3], [0, 14.3]],
-            'Kimi-K3': [[0, 33.3], [0, 0], [0, 0], [0, 0], [0, 0], [0, 14.3]]
+            'GPT-6-Astra': [[20, 25, 22.2], [60, 66.7, 62.5], [0, 50, 16.7], [100, 100, 100], [27.3, 0, 21.4], [53.8, 42.9, 50]],
+            'GPT-6.1-Sol': [[40, 25, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [18.2, 0, 14.3], [53.8, 71.4, 60]],
+            'Gemini-4-Argon': [[20, 75, 44.4], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [18.2, 66.7, 28.6], [23.1, 57.1, 35]],
+            'GLM-5.3': [[20, 50, 33.3], [20, 0, 12.5], [25, 50, 33.3], [100, 0, 50], [27.3, 66.7, 35.7], [38.5, 42.9, 40]],
+            'Kimi-K3.1-Pro': [[20, 50, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [27.3, 33.3, 28.6], [15.4, 42.9, 25]],
+            'Fable-5.1': [[20, 75, 44.4], [0, 0, 0], [25, 0, 16.7], [100, 100, 100], [27.3, 66.7, 35.7], [23.1, 28.6, 25]],
+            'Qwen3.8-Max': [[0, 75, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 0, 50], [36.4, 33.3, 35.7], [23.1, 0, 15]],
+            'Grok-4.7': [[20, 25, 22.2], [0, 33.3, 12.5], [50, 0, 33.3], [100, 100, 100], [27.3, 66.7, 35.7], [7.7, 0, 5]],
+            'DeepSeek-V4-Pro': [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 100, 50], [0, 33.3, 7.1], [0, 14.3, 5]],
+            'Kimi-K3': [[0, 50, 22.2], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 14.3, 5]]
         },
         dataCurve: { x: [0,1,2,3,4,5,6,7], train: [37.5,43.8,37.5,43.8,75,81.3,62.5,62.5], validationX: [0,3,7], validation: [50,37.5,31.25], hard: [50,50,50,50,0,0,0,0] },
         hacking: [
@@ -104,16 +109,16 @@
             }
         ],
         costs: {
-            issue: [['Fable', 9.79, 28.6], ['DeepSeek', 14.39, 0], ['GLM', 18.28, 35.7], ['Astra', 4.73, 46.4], ['Sol', .82, 42.9], ['Gemini', 15.67, 28.6], ['Kimi K3', 3.74, 0], ['Kimi 3.1', 6.9, 28.6]],
-            solution: [['Fable', 31.04, 35.3], ['DeepSeek', 32.35, 11.8], ['GLM', 44.23, 41.2], ['Astra', 24.45, 47.1], ['Sol', 5.43, 52.9], ['Gemini', 44.15, 64.7], ['Kimi K3', 12.36, 11.8], ['Kimi 3.1', 4.22, 47.1]]
+            issue: [['Fable', 13.46, 23.1], ['DeepSeek', 14.08, 0], ['GLM', 17.74, 30.8], ['Astra', 4.61, 44.1], ['Sol', .84, 38.2], ['Gemini', 13.49, 21.1], ['Kimi K3', 4.25, 0], ['Kimi 3.1', 6.11, 21.1]],
+            solution: [['Fable', 34.02, 40], ['DeepSeek', 37.76, 15], ['GLM', 43.43, 40], ['Astra', 40.52, 40], ['Sol', 5.26, 45], ['Gemini', 42.43, 57.9], ['Kimi K3', 14.22, 15], ['Kimi 3.1', 4.42, 45]]
         },
         modelLogos: {
             Fable: 'anthropic.png', DeepSeek: 'deepseek.png', GLM: 'glm.png', Astra: 'openai.png',
             Sol: 'openai.png', Gemini: 'googlegemini.png', 'Kimi K3': 'kimi.png', 'Kimi 3.1': 'kimi.png'
         },
         times: {
-            issue: [['Fable',22.08,11.78],['DeepSeek',41.29,38.36],['GLM',28.27,18.36],['Astra',22.25,11.54],['Sol',19.93,14.09],['Gemini',25.05,18.83],['Grok',13.57,13.11],['Kimi K3',47.08,23.27],['Kimi 3.1',29.95,19.79],['Qwen',30.3,28.46]],
-            solution: [['Fable',39.9,10.66],['DeepSeek',57.84,46.45],['GLM',56.47,47.06],['Astra',61,20.22],['Sol',87.15,18.48],['Gemini',105.72,77.3],['Grok',18.27,10.32],['Kimi K3',75.84,30.91],['Kimi 3.1',19.41,20.07],['Qwen',41.66,36.57]]
+            issue: [['Fable',29.08,11.81],['DeepSeek',39.8,37.32],['GLM',26.23,18.36],['Astra',58.63,11.54],['Sol',19.5,13.69],['Gemini',23.24,17.77],['Grok',14.27,11.1],['Kimi K3',41.21,17.85],['Kimi 3.1',27.72,19.79],['Qwen',29.84,27.42]],
+            solution: [['Fable',45.72,12.39],['DeepSeek',76.64,49.89],['GLM',56.83,47.06],['Astra',105.19,25.39],['Sol',90.93,18.48],['Gemini',104.19,77.3],['Grok',18.33,12.09],['Kimi K3',71.78,30.91],['Kimi 3.1',20.67,20.07],['Qwen',43.44,37.72]]
         }
     };
 
@@ -270,15 +275,14 @@
         const selectedCategoryData = data.profile.errors.find(item => item[0] === selectedCategory);
         const categoryIndex = selectedCategoryData ? data.categories.findIndex(item => item[0] === selectedCategory) : -1;
         const leaderboard = categoryIndex >= 0
-            ? data.models.map(item => [item[0], data.categoryByModel[item[0]][categoryIndex][0]])
+            ? data.models.map(item => [item[0], data.categoryByModel[item[0]][categoryIndex][2]])
                 .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
             : data.models;
         addTitle(svg, selectedCategoryData ? `(d) Leaderboard · ${selectedCategory}` : '(d) Leaderboard · Overall', 500, 365, 'middle');
-        const detail = selectedCategoryData
-            ? `${selectedCategoryData[0]} · diagnosis pass rate by model`
-            : '';
-        if (detail) text(svg, 500, 386, detail, 'chart-axis', {'text-anchor': 'middle'});
-        const x = 70, y = 400, w = 875, h = 260, max = selectedCategoryData ? 100 : 60;
+        // Keep a gap between the (d) title and the bar-top value labels:
+        // in a category view every bar can reach 100%, and the labels sit
+        // just above the plot's top edge.
+        const x = 70, y = 420, w = 875, h = 260, max = selectedCategoryData ? 100 : 60;
         addGrid(svg, x, y, w, h, selectedCategoryData ? [0, 25, 50, 75, 100] : [0, 10, 20, 30, 40, 50, 60], max, value => `${value}%`);
         const step = w / leaderboard.length;
         const barWidth = step * .62;
@@ -289,19 +293,24 @@
             const modelIndex = data.models.findIndex(model => model[0] === item[0]);
             const bar = svgEl('rect', { x: bx, y: by, width: barWidth, height: bh, rx: 2, fill: data.leaderboardColors[i], class: 'chart-bar' }, svg);
             animateMark(bar, 560 + i * 85, 'rise');
-            text(svg, bx + barWidth / 2, by - 8, pct(item[1]), 'chart-value');
-            const label = svgEl('text', { x: bx + barWidth / 2, y: y + h + 26, class: 'chart-x-label', 'text-anchor': 'middle' }, svg);
+            text(svg, bx + barWidth / 2, by - 8, pct(item[1]), 'chart-value', {'text-anchor': 'middle'});
+            // Model names are wider than one bar step, so the labels rotate.
+            // Each label is centred on its own bar; the anchor sits far
+            // enough below the axis that the raised end of the longest name
+            // still stays clear of the plot area.
+            const anchorX = bx + barWidth / 2, anchorY = y + h + 30;
+            const label = svgEl('text', { x: anchorX, y: anchorY, class: 'chart-x-label', 'text-anchor': 'middle', transform: `rotate(-35 ${anchorX} ${anchorY})` }, svg);
             const modelLine = document.createElementNS(NS, 'tspan');
-            modelLine.setAttribute('x', bx + barWidth / 2); modelLine.textContent = item[0]; label.appendChild(modelLine);
+            modelLine.setAttribute('x', anchorX); modelLine.textContent = item[0]; label.appendChild(modelLine);
             const harnessLine = document.createElementNS(NS, 'tspan');
-            harnessLine.setAttribute('x', bx + barWidth / 2); harnessLine.setAttribute('dy', '13'); harnessLine.textContent = data.modelHarness[modelIndex]; label.appendChild(harnessLine);
+            harnessLine.setAttribute('x', anchorX); harnessLine.setAttribute('dy', '13'); harnessLine.textContent = data.modelHarness[modelIndex]; label.appendChild(harnessLine);
         });
     }
 
     function outcomeBars(el) {
         const svg = make(el, 1000, 500, 'Diagnosis outcomes and selected failure patterns');
         addTitle(svg,'Overall failure modes of diagnosis tasks',500,23,'middle');
-        const total=308, x=30,y=34,w=940,h=34; let cursor=x; const stack=group(svg,'chart-stack-group');
+        const total=386, x=30,y=34,w=940,h=34; let cursor=x; const stack=group(svg,'chart-stack-group');
         data.outcomes.forEach((item,i)=>{ const bw=w*item[1]/total; svgEl('rect',{x:cursor,y,width:bw,height:h,fill:item[2],class:'chart-stack'},stack); text(stack,cursor+bw/2,y+h/2,pct(item[1]/total*100),'chart-stack-label'); cursor+=bw; }); animateMark(stack,0,'rise');
         addTitle(svg,'Examples of failure modes by task',500,120,'middle');
         const left=190,right=950,row=29, top=141,max=10;
@@ -347,8 +356,8 @@
     function quadrants(el) {
         const svg=make(el,800,410,'Diagnosis and repair outcomes across shared tasks');
         const x=170,y=35,size=300,half=size/2; const cells=[
-            [0,0,'Diagnosis fails','Repair fails',55.6,C.navy], [1,0,'Diagnosis fails','Repair passes',23.9,C.paleBlue],
-            [0,1,'Diagnosis passes','Repair fails',6.7,'#e9f0f3'], [1,1,'Diagnosis passes','Repair passes',13.9,'#c8dce8']
+            [0,0,'Diagnosis fails','Repair fails',58.5,C.navy], [1,0,'Diagnosis fails','Repair passes',23,C.paleBlue],
+            [0,1,'Diagnosis passes','Repair fails',6,'#e9f0f3'], [1,1,'Diagnosis passes','Repair passes',12.5,'#c8dce8']
         ];
         cells.forEach((cell,i)=>{
             const [cx,cy,_,__,v,color]=cell;
@@ -365,10 +374,10 @@
         text(svg,x-18,y+half+half/2,'Diagnosis passes','chart-quadrant-axis',{'text-anchor':'end','dominant-baseline':'middle'});
 
         const sideX=535;
-        text(svg,sideX,151,'180 trajectories','chart-quadrant-side-value');
+        text(svg,sideX,151,'400 trajectories','chart-quadrant-side-value');
         text(svg,sideX,211,'37','chart-quadrant-side-value');
         text(svg,sideX,231,'diagnosis passes','chart-quadrant-side-label');
-        text(svg,sideX,271,'68','chart-quadrant-side-value');
+        text(svg,sideX,271,'71','chart-quadrant-side-value');
         text(svg,sideX,291,'repair passes','chart-quadrant-side-label');
     }
 
@@ -386,7 +395,7 @@
         data.repairErrors.forEach((item, i) => {
             const [label, count, color] = item;
             const yy = y + i * row + 7;
-            const value = count / 112 * 100;
+            const value = count / 129 * 100;
             text(svg, x - 14, yy + 18, label, 'chart-label', { 'text-anchor': 'end' });
             const bar = svgEl('rect', { x, y: yy, width: w * value / max, height: 28, rx: 3, fill: color, class: 'chart-hbar' }, svg);
             // Keep the horizontal scale animation so each row grows from the
@@ -544,7 +553,7 @@
     }
 
     function scatter(el) {
-        const svg=make(el,1000,520,'Reported cost and pass rate split by diagnosis and repair tasks');
+        const svg=make(el,1000,520,'Cost and pass rate split by diagnosis and repair tasks');
         const maxY=70,panelW=390,panelH=300,panelY=62;
         [['Diagnosis',data.costs.issue,55,25],['Repair',data.costs.solution,555,50]].forEach((panel,pi)=>{
             const [label, rows, x, maxX] = panel;
@@ -552,38 +561,65 @@
             addGrid(svg,x,panelY,panelW,panelH,[0,20,40,60],maxY,v=>`${v}%`);
             const xTicks = maxX === 25 ? [0,5,10,15,20,25] : [0,10,20,30,40,50];
             xTicks.forEach(t=>{const xx=x+t/maxX*panelW; svgEl('line',{x1:xx,y1:panelY+panelH,x2:xx,y2:panelY+panelH+5,class:'chart-axis-line'},svg); text(svg,xx,panelY+panelH+22,`$${t}`,'chart-axis',{'text-anchor':'middle'});});
-            const points=rows.map((item,i)=>{
-                const cx=x+item[1]/maxX*panelW,cy=panelY+panelH-item[2]/maxY*panelH;
-                const fullName=data.modelDisplayNames[item[0]] || item[0];
-                const logo=svgEl('image',{x:cx-13,y:cy-13,width:26,height:26,href:`images/logos/${data.modelLogos[item[0]]}`,'preserveAspectRatio':'xMidYMid meet',class:'chart-scatter-logo'},svg);
-                logo.setAttribute('aria-label', `${fullName} · ${label}`);
-                animateMark(logo,pi*180+i*70,'pop');
-                const estimatedWidth=fullName.length*7.2;
-                const rightSpace=x+panelW-cx-18;
-                const leftSpace=cx-x-18;
-                const anchor=rightSpace >= estimatedWidth || rightSpace >= leftSpace ? 'start' : 'end';
-                return { cx, cy, fullName, anchor, labelX:anchor==='start' ? cx+18 : cx-18 };
-            });
-            const layoutLabels=items=>{
-                const top=panelY+12,bottom=panelY+panelH-6,minGap=21;
-                const ordered=[...items].sort((a,b)=>a.cy-b.cy);
-                if (!ordered.length) return;
-                let cursor=top;
-                ordered.forEach(item=>{ item.labelY=Math.max(item.cy-4,cursor); cursor=item.labelY+minGap; });
-                const overflow=cursor-minGap-bottom;
-                if(overflow>0) ordered.forEach(item=>{ item.labelY-=overflow; });
-                const underflow=top-ordered[0].labelY;
-                if(underflow>0) ordered.forEach(item=>{ item.labelY+=underflow; });
-            };
-            layoutLabels(points.filter(point=>point.anchor==='start'));
-            layoutLabels(points.filter(point=>point.anchor==='end'));
-            points.forEach(point=>{
-                if(Math.abs(point.labelY-(point.cy-4))>1){
-                    svgEl('line',{x1:point.cx,y1:point.cy,x2:point.labelX,y2:point.labelY,class:'chart-scatter-label-link'},svg);
+            // Each logo sits at its (cost, pass rate) point; the few logos
+            // that share a spot are nudged apart by the minimum displacement,
+            // and every name is hugged to its own logo -- right, left, below
+            // or above, whichever is free first. No leader lines.
+            const points=rows.map((item,i)=>({
+                cx:x+item[1]/maxX*panelW,
+                cy:panelY+panelH-item[2]/maxY*panelH,
+                short:item[0],
+                fullName:data.modelDisplayNames[item[0]] || item[0],
+                delay:pi*180+i*70
+            }));
+            const size=28, margin=15;
+            for (let round=0; round<24; round++) {
+                let moved=false;
+                for (let a=0;a<points.length;a++) for (let b=a+1;b<points.length;b++) {
+                    const p=points[a], q=points[b];
+                    const dx=q.cx-p.cx, dy=q.cy-p.cy;
+                    if (Math.abs(dx)>=size || Math.abs(dy)>=size) continue;
+                    const gapX=(size-Math.abs(dx))/2, gapY=(size-Math.abs(dy))/2;
+                    if (gapX<=gapY) { const s=dx>=0?1:-1; p.cx-=s*gapX; q.cx+=s*gapX; }
+                    else { const s=dy>=0?1:-1; p.cy-=s*gapY; q.cy+=s*gapY; }
+                    moved=true;
                 }
-                text(svg,point.labelX,point.labelY,point.fullName,'chart-point-label',{'text-anchor':point.anchor,'dominant-baseline':'middle'});
+                points.forEach(p=>{
+                    p.cx=Math.max(x+margin,Math.min(x+panelW-margin,p.cx));
+                    p.cy=Math.max(panelY+margin,Math.min(panelY+panelH-margin,p.cy));
+                });
+                if (!moved) break;
+            }
+            const boxes=points.map(p=>({x:p.cx-13,y:p.cy-13,w:26,h:26}));
+            const intersects=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+            const placed=[];
+            // Labels may reach a little into the gutter between the two
+            // panels; they must stay inside the plot vertically.
+            const outOfPanel=box=>box.x<x-30||box.x+box.w>x+panelW+30||box.y<panelY-10||box.y+box.h>panelY+panelH+16;
+            const hits=box=>boxes.filter(o=>intersects(box,o)).length+placed.filter(o=>intersects(box,o)).length;
+            const blocked=box=>outOfPanel(box)||hits(box)>0;
+            [...points].sort((a,b)=>b.cx-a.cx).forEach(p=>{
+                const w=p.fullName.length*7.8+4;
+                const cands=[
+                    {lx:p.cx+17,ly:p.cy,anchor:'start',box:{x:p.cx+14,y:p.cy-8,w,h:16}},
+                    {lx:p.cx-17,ly:p.cy,anchor:'end',box:{x:p.cx-14-w,y:p.cy-8,w,h:16}},
+                    {lx:p.cx,ly:p.cy+27,anchor:'middle',box:{x:p.cx-w/2,y:p.cy+19,w,h:15}},
+                    {lx:p.cx,ly:p.cy-27,anchor:'middle',box:{x:p.cx-w/2,y:p.cy-34,w,h:15}}
+                ];
+                // Prefer the first collision-free side; when every side is
+                // taken, fall back to the least-colliding one.
+                const spot=cands.find(c=>!blocked(c.box))
+                    ||cands.slice().sort((a,b)=>hits(a.box)-hits(b.box))[0];
+                placed.push(spot.box);
+                p.labelX=spot.lx; p.labelY=spot.ly; p.anchor=spot.anchor;
             });
-            text(svg,x+panelW/2,panelY+panelH+52,'reported cost (USD)','chart-axis',{'text-anchor':'middle'});
+            points.forEach(p=>{
+                const logo=svgEl('image',{x:p.cx-13,y:p.cy-13,width:26,height:26,href:`images/logos/${data.modelLogos[p.short]}`,'preserveAspectRatio':'xMidYMid meet',class:'chart-scatter-logo'},svg);
+                logo.setAttribute('aria-label', `${p.fullName} · ${label}`);
+                animateMark(logo,p.delay,'pop');
+                text(svg,p.labelX,p.labelY,p.fullName,'chart-point-label',{'text-anchor':p.anchor,'dominant-baseline':'middle'});
+            });
+            text(svg,x+panelW/2,panelY+panelH+52,'cost (USD)','chart-axis',{'text-anchor':'middle'});
         });
     }
 
