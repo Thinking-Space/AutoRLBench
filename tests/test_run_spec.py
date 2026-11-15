@@ -12,6 +12,7 @@ things are watched here:
 from __future__ import annotations
 
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -412,6 +413,50 @@ class RerunCommandTests(unittest.TestCase):
         self.assertFalse((run_dir / "workspace").exists())
         self.assertTrue((run_dir / "results").is_dir())
         self.assertEqual(list(self.root.glob("work/autorlbench-run-*")), [])
+
+    def test_issue_only_task_reruns_on_the_local_backend(self) -> None:
+        # The submitter command defaults to solution, but a task package may only ship
+        # an issue evaluation. Its level-neutral run_spec must still execute, and local
+        # prepare must use the staged environment path rather than Docker's mount path.
+        from autorlbench.core.types import EvaluationConfig
+        from autorlbench.evaluation.evaluator import TaskEvaluator
+        from tests.test_harbor_evaluator import create_task
+
+        task_root = create_task(self.root, "issue_only_fixture")
+        shutil.rmtree(task_root / "evaluations" / "solution")
+        (task_root / "workspace" / "train.sh").write_text(
+            "#!/usr/bin/env bash\necho packaged-rerun-ran\n",
+            encoding="utf-8",
+        )
+        write_spec(
+            task_root,
+            {
+                **VALID,
+                "command": "bash train.sh",
+                "env": {},
+                "timeout_s": 60,
+            },
+        )
+        work_dir = self.root / "work"
+
+        result = TaskEvaluator("local").rerun(
+            task_root,
+            EvaluationConfig(
+                backend="local",
+                work_dir=work_dir,
+                models_dir=self.root / "models",
+                datasets_dir=self.root / "datasets",
+            ),
+        )
+
+        run_dir = next((work_dir / "issue_only_fixture").glob("*"))
+        self.assertTrue(result.passed)
+        self.assertEqual(result.evaluation_level, "issue")
+        self.assertEqual(result.metrics["exit_code"], 0)
+        self.assertIn(
+            "packaged-rerun-ran",
+            (run_dir / "rerun.log").read_text(encoding="utf-8"),
+        )
 
 
 class ShippedRunSpecTests(unittest.TestCase):

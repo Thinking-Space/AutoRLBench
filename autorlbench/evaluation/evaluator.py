@@ -138,8 +138,15 @@ class TaskEvaluator:
                 "to rerun and nothing for this command to check"
             )
         # run_spec.json is level-neutral, but _prepare_run stages an instruction.md, so a
-        # level still has to be picked; the default is fine.
-        evaluation = select_evaluation(package, config.evaluation_level)
+        # level still has to be picked. The CLI has no level flag and defaults to solution;
+        # issue-only tasks are valid submitter checks, so use their issue instruction when
+        # no solution level exists. An explicitly requested missing issue level still fails.
+        try:
+            evaluation = select_evaluation(package, config.evaluation_level)
+        except SchemaError:
+            if config.evaluation_level != "solution" or "issue" not in package.paths.evaluations:
+                raise
+            evaluation = select_evaluation(package, "issue")
 
         output_root = (
             config.work_dir if config.work_dir is not None else DEFAULT_OUTPUT_DIR / "rerun"
@@ -297,12 +304,16 @@ class TaskEvaluator:
         return f"autorlbench-run-{digest}-{evaluation_level}-{timestamp}-"
 
     @staticmethod
-    def _prepare_script(package: TaskPackage) -> Optional[str]:
-        """Container path of prepare.sh, or None if the task has no such script.
+    def _prepare_script(
+        package: TaskPackage,
+        environment_root: str | Path = AUTORLBENCH_ENVIRONMENT_DIR,
+    ) -> Optional[str]:
+        """Runtime path of prepare.sh, or None if the task has no such script.
 
         The script must live in the task's `environment/` directory, since that is the only copy mounted into the container.
         A path outside it would become "file not found" in the container, far from the real cause, so
-        it is rejected here.
+        it is rejected here. Docker passes the container mount root; the local backend
+        passes the host staging directory, where the same environment tree lives.
         """
         prepare = package.environment.prepare
         if prepare is None:
@@ -320,7 +331,7 @@ class TaskEvaluator:
                 f"{package.paths.environment}; only that directory is mounted into the "
                 f"prepare container"
             ) from exc
-        return f"{AUTORLBENCH_ENVIRONMENT_DIR}/{relative.as_posix()}"
+        return str(Path(environment_root) / relative)
 
     def _run_prepare(
         self,
@@ -341,8 +352,7 @@ class TaskEvaluator:
         file as prepare runs -- the harbor path points it at the run's persistent prepare.log,
         which outlives the deleted staging.
         """
-        script = self._prepare_script(package)
-        if script is None:
+        if package.environment.prepare is None:
             return None
         request = SandboxRequest(
             stage="prepare",
@@ -366,6 +376,11 @@ class TaskEvaluator:
             # mirrors the task's declaration, and the backend decides which stages get devices.
             gpus=package.environment.gpus,
         )
+        script = self._prepare_script(
+            package, environment_root=self.runtime.path(request, "environment")
+        )
+        if script is None:
+            return None
         if artifact is None:
             if self.runtime.needs_environment_image:
                 raise ValueError("prepare runtime needs a built environment artifact")
