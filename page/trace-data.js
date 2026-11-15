@@ -542,6 +542,27 @@
  * All twenty trajectories were audited clean of network access. The
  * published issue-judgment total below moves 360 -> 380 with this
  * round.
+ * The ten trl_granite_gsm8k_grpo issue records were published on
+ * 15 Nov 2026 from the local cybertron-evaluate sweep (the task's
+ * own shared verl-vllm017 image -- no substitution). One judgment
+ * passes: the task is a silent-failure trap where every
+ * gradient-accumulation micro-step reuses the same 4 of the 64
+ * scored rollouts, collapsing the effective batch from 64
+ * completions per optimizer step to 4 -- the run still improves
+ * (held-out 58.7% -> 79.8%) and ends 3 points below the recorded
+ * control (82.8%). GLM-5.3 (0.972) is the only pass: verdict, root
+ * cause and 0.86 evidence, naming the constant global_step counter
+ * across the 16 micro-batches against self._step. Eight of the
+ * other nine judge the improving run healthy -- the trap;
+ * Claude-Fable-5.1 returns the correct verdict with the wrong root
+ * cause.
+ * The six claude-code trajectories were rebuilt from the pulled
+ * session stores; the codex, grok and qwen scratch homes were wiped
+ * on the devspaces, so those four were rebuilt from the tee'd agent
+ * streams (the qwen one a minimal instruction-plus-answer
+ * recovery). All ten trajectories were audited clean of network
+ * access. The published issue-judgment total below moves 380 -> 390
+ * with this round.
  * The 200 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -8877,146 +8898,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "b23d37b2dff2564095bcea2f3668409443e94c9a505bb5acf1d8960e89954fb9"
   },
   {
-    "task": "configuration/areal_disk_weight_update_on_sglang",
-    "slug": "gpt6astra-disk-weight",
-    "file": "agent-trace/gpt6astra-disk-weight.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.24,
-    "durationMs": 69000,
-    "steps": 2,
-    "costUsd": null
-  },
-  {
-    "task": "configuration/areal_disk_weight_update_on_sglang",
-    "slug": "gpt61sol-disk-weight",
-    "file": "agent-trace/gpt61sol-disk-weight.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.32,
-    "durationMs": 60000,
-    "steps": 2,
-    "costUsd": null
-  },
-  {
-    "task": "configuration/areal_disk_weight_update_on_sglang",
-    "slug": "fable51-disk-weight",
-    "file": "agent-trace/fable51-disk-weight.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.92,
-    "durationMs": 3026000,
-    "steps": 36,
-    "costUsd": 25.4535
-  },
-  {
-    "task": "configuration/areal_disk_weight_update_on_sglang",
-    "slug": "glm53-disk-weight",
-    "file": "agent-trace/glm53-disk-weight.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.7,
-    "durationMs": 701000,
-    "steps": 63,
-    "costUsd": 13.6666
-  },
-  {
-    "task": "configuration/areal_disk_weight_update_on_sglang",
-    "slug": "kimi-disk-weight",
-    "file": "agent-trace/kimi-disk-weight.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.28,
-    "durationMs": 393000,
-    "steps": 31,
-    "costUsd": 5.4976
-  },
-  {
-    "task": "configuration/areal_disk_weight_update_on_sglang",
-    "slug": "kimi31-disk-weight",
-    "file": "agent-trace/kimi31-disk-weight.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.9,
-    "durationMs": 527000,
-    "steps": 19,
-    "costUsd": 4.5953
-  },
-  {
-    "task": "configuration/areal_disk_weight_update_on_sglang",
-    "slug": "dsv4-disk-weight",
-    "file": "agent-trace/dsv4-disk-weight.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.25,
-    "durationMs": 674000,
-    "steps": 44,
-    "costUsd": 13.3934
-  },
-  {
-    "task": "configuration/areal_disk_weight_update_on_sglang",
-    "slug": "gemini4-disk-weight",
-    "file": "agent-trace/gemini4-disk-weight.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 182000,
-    "steps": 20,
-    "costUsd": 1.6209
-  },
-  {
-    "task": "configuration/areal_disk_weight_update_on_sglang",
-    "slug": "qwen38-disk-weight",
-    "file": "agent-trace/qwen38-disk-weight.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.9,
-    "durationMs": 2525000,
-    "steps": 2,
-    "costUsd": null
-  },
-  {
-    "task": "configuration/areal_disk_weight_update_on_sglang",
-    "slug": "grok47-disk-weight",
-    "file": "agent-trace/grok47-disk-weight.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.275,
-    "durationMs": 1361000,
-    "steps": 144,
-    "costUsd": null
-  },
-  {
     "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
     "slug": "gpt6astra-kpop-nan-mask",
     "file": "agent-trace/gpt6astra-kpop-nan-mask.json",
@@ -9434,6 +9315,286 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.466667,
     "durationMs": 178000,
     "steps": 59,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/areal_disk_weight_update_on_sglang",
+    "slug": "gpt6astra-disk-weight",
+    "file": "agent-trace/gpt6astra-disk-weight.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.24,
+    "durationMs": 69000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/areal_disk_weight_update_on_sglang",
+    "slug": "gpt61sol-disk-weight",
+    "file": "agent-trace/gpt61sol-disk-weight.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.32,
+    "durationMs": 60000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/areal_disk_weight_update_on_sglang",
+    "slug": "fable51-disk-weight",
+    "file": "agent-trace/fable51-disk-weight.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.92,
+    "durationMs": 3026000,
+    "steps": 36,
+    "costUsd": 25.4535
+  },
+  {
+    "task": "configuration/areal_disk_weight_update_on_sglang",
+    "slug": "glm53-disk-weight",
+    "file": "agent-trace/glm53-disk-weight.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.7,
+    "durationMs": 701000,
+    "steps": 63,
+    "costUsd": 13.6666
+  },
+  {
+    "task": "configuration/areal_disk_weight_update_on_sglang",
+    "slug": "kimi-disk-weight",
+    "file": "agent-trace/kimi-disk-weight.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.28,
+    "durationMs": 393000,
+    "steps": 31,
+    "costUsd": 5.4976
+  },
+  {
+    "task": "configuration/areal_disk_weight_update_on_sglang",
+    "slug": "kimi31-disk-weight",
+    "file": "agent-trace/kimi31-disk-weight.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 527000,
+    "steps": 19,
+    "costUsd": 4.5953
+  },
+  {
+    "task": "configuration/areal_disk_weight_update_on_sglang",
+    "slug": "dsv4-disk-weight",
+    "file": "agent-trace/dsv4-disk-weight.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 674000,
+    "steps": 44,
+    "costUsd": 13.3934
+  },
+  {
+    "task": "configuration/areal_disk_weight_update_on_sglang",
+    "slug": "gemini4-disk-weight",
+    "file": "agent-trace/gemini4-disk-weight.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 182000,
+    "steps": 20,
+    "costUsd": 1.6209
+  },
+  {
+    "task": "configuration/areal_disk_weight_update_on_sglang",
+    "slug": "qwen38-disk-weight",
+    "file": "agent-trace/qwen38-disk-weight.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 2525000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/areal_disk_weight_update_on_sglang",
+    "slug": "grok47-disk-weight",
+    "file": "agent-trace/grok47-disk-weight.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.275,
+    "durationMs": 1361000,
+    "steps": 144,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/trl_granite_gsm8k_grpo",
+    "slug": "gpt6astra-granite-gsm8k",
+    "file": "agent-trace/gpt6astra-granite-gsm8k.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.05,
+    "durationMs": 56000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/trl_granite_gsm8k_grpo",
+    "slug": "gpt61sol-granite-gsm8k",
+    "file": "agent-trace/gpt61sol-granite-gsm8k.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.057143,
+    "durationMs": 55000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/trl_granite_gsm8k_grpo",
+    "slug": "fable51-granite-gsm8k",
+    "file": "agent-trace/fable51-granite-gsm8k.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.228571,
+    "durationMs": 421000,
+    "steps": 12,
+    "costUsd": 9.1669
+  },
+  {
+    "task": "algorithm/trl_granite_gsm8k_grpo",
+    "slug": "glm53-granite-gsm8k",
+    "file": "agent-trace/glm53-granite-gsm8k.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.972,
+    "durationMs": 1438000,
+    "steps": 80,
+    "costUsd": 26.5018
+  },
+  {
+    "task": "algorithm/trl_granite_gsm8k_grpo",
+    "slug": "kimi-granite-gsm8k",
+    "file": "agent-trace/kimi-granite-gsm8k.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 209000,
+    "steps": 21,
+    "costUsd": 4.0674
+  },
+  {
+    "task": "algorithm/trl_granite_gsm8k_grpo",
+    "slug": "kimi31-granite-gsm8k",
+    "file": "agent-trace/kimi31-granite-gsm8k.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.066667,
+    "durationMs": 467000,
+    "steps": 17,
+    "costUsd": 3.4087
+  },
+  {
+    "task": "algorithm/trl_granite_gsm8k_grpo",
+    "slug": "dsv4-granite-gsm8k",
+    "file": "agent-trace/dsv4-granite-gsm8k.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.04,
+    "durationMs": 1980000,
+    "steps": 47,
+    "costUsd": 17.5585
+  },
+  {
+    "task": "algorithm/trl_granite_gsm8k_grpo",
+    "slug": "gemini4-granite-gsm8k",
+    "file": "agent-trace/gemini4-granite-gsm8k.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.06,
+    "durationMs": 168000,
+    "steps": 14,
+    "costUsd": 1.2483
+  },
+  {
+    "task": "algorithm/trl_granite_gsm8k_grpo",
+    "slug": "qwen38-granite-gsm8k",
+    "file": "agent-trace/qwen38-granite-gsm8k.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 897000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/trl_granite_gsm8k_grpo",
+    "slug": "grok47-granite-gsm8k",
+    "file": "agent-trace/grok47-granite-gsm8k.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.03334,
+    "durationMs": 608000,
+    "steps": 75,
     "costUsd": null
   }
 ];
