@@ -588,6 +588,21 @@
  * trajectories were audited clean of network access. The published
  * issue-judgment total below moves 340 -> 350, and the
  * solution-record reconciliation anchor 170 -> 180.
+ * The ten verl_mbpp_sandbox_errors_pass issue records were published
+ * on 17 Nov 2026 from the local cybertron-evaluate sweep. No pass:
+ * the task is a reward-hacking trap where the training sandbox
+ * marks a sample wrong only on AssertionError, so a response with no
+ * runnable code (tests raise NameError) earns full reward -- the
+ * policy stops writing its fenced Python block, the training score
+ * hits 1.0 by step 11, and held-out pass rate falls from 0.2786 to
+ * 0.0 against the strict-sandbox control at 0.3667. GLM-5.3,
+ * Kimi-K3 and Grok-4.7 (0.96 each) hold the correct verdict and
+ * root cause with evidence at exactly 0.8 on the gate boundary;
+ * three more reach 0.92; Gemini is a no-answer structural zero
+ * (normal exit without a deliverable under the new rule). The
+ * trajectories were rebuilt per agent type and audited clean of
+ * network access. The published issue-judgment total below moves
+ * 350 -> 360 with this round.
  * The 180 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -8410,7 +8425,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 207000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "sourceRunId": "20261116-204434",
+    "sessionId": "01a1e463-9534-7152-91de-93f9f056fbc3",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "898e5b7298cd774640b9873410f9e5f98b1f6586f9800c08eddfe8d70482b06f"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -8438,7 +8457,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 0,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "sourceRunId": "20261116-200356-sol-rescue",
+    "sessionId": "01a1e422-42fc-7d81-a9c2-12616b9f762f",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "204b6f2379d1a80b50e40403164282b0dac4298a3a046eb47e466cf13843968a"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -8466,7 +8489,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 1942000,
     "steps": 9,
-    "costUsd": 2.2411
+    "costUsd": 2.2411,
+    "sourceRunId": "20261116-201931",
+    "sessionId": "8ca60576-28ab-4e16-8198-eafeff9a762e",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "7e328440a09d070fabe08349e6686a0be4b8d7202db1e2480b2535dd127d94f7"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -8494,7 +8521,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 0,
     "steps": 102,
-    "costUsd": 21.31
+    "costUsd": 21.31,
+    "sourceRunId": "20261116-170000-rescue",
+    "sessionId": "a51bd75a-7980-4501-b55e-57b0b8ba0cbd",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "9896fb25b88a0baa1f744ab746ebe3b5aa99dbf247e7695ca028447da13ae4a9"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -8522,7 +8553,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 0,
     "steps": 58,
-    "costUsd": 9.5352
+    "costUsd": 9.5352,
+    "sourceRunId": "20261116-200646-kimi-rescue",
+    "sessionId": "f4048a18-4e6c-4f03-a974-3448aa1f0c32",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "ce1f761abcdf67f76ba3ff90c6a084bb25e190b75b97bc12dd128266dabb8f70"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -8550,7 +8585,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 878000,
     "steps": 34,
-    "costUsd": 9.3376
+    "costUsd": 9.3376,
+    "sourceRunId": "20261116-200422",
+    "sessionId": "7fa5b70d-a48c-4773-bf23-82af58926279",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "98b998b69fde9100bfe6eb8afdebe73c34211208abb3ed5dae5f07d83a1eb60a"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -8578,7 +8617,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 0,
     "steps": 77,
-    "costUsd": 23.4868
+    "costUsd": 23.4868,
+    "sourceRunId": "20261116-200700-deepseek-rescue",
+    "sessionId": "08164913-3638-4b79-a8fc-53c35b201b6d",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "b0c2f1069ba8d701455d49873b74da215f1055f4bf9438b7264041712ee9b0b0"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -8606,7 +8649,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 2443000,
     "steps": 153,
-    "costUsd": 8.9507
+    "costUsd": 8.9507,
+    "sourceRunId": "20261116-200318",
+    "sessionId": "f68ddfbb-420a-421f-a610-60f3cfa5f344",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "19595706f7af7ce4d2328f953c01a22ad9b9d3d5fdaa0e217fefc230fba96fbf"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -8634,7 +8681,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 0,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "sourceRunId": "20261116-200340-qwen-rescue",
+    "sessionId": "recovered-from-stream",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "82891bce272c3402cc1aa7b1cfe6b7c2d9d9f11abf55f874c84343c9d817cbf8"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -8662,6 +8713,150 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 1428000,
     "steps": 170,
+    "costUsd": null,
+    "sourceRunId": "20261116-193603",
+    "sessionId": "unknown",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "09bfe3c2095d7b950c4920125dac8fd9b1430d2d2c66561faf3c917c276e3332"
+  },
+  {
+    "task": "environment/verl_mbpp_sandbox_errors_pass",
+    "slug": "gpt6astra-mbpp-sandbox",
+    "file": "agent-trace/gpt6astra-mbpp-sandbox.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.88,
+    "durationMs": 219000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/verl_mbpp_sandbox_errors_pass",
+    "slug": "gpt61sol-mbpp-sandbox",
+    "file": "agent-trace/gpt61sol-mbpp-sandbox.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.88,
+    "durationMs": 365000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/verl_mbpp_sandbox_errors_pass",
+    "slug": "fable51-mbpp-sandbox",
+    "file": "agent-trace/fable51-mbpp-sandbox.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.88,
+    "durationMs": 2051000,
+    "steps": 15,
+    "costUsd": 9.5135
+  },
+  {
+    "task": "environment/verl_mbpp_sandbox_errors_pass",
+    "slug": "glm53-mbpp-sandbox",
+    "file": "agent-trace/glm53-mbpp-sandbox.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 383000,
+    "steps": 22,
+    "costUsd": 2.7314
+  },
+  {
+    "task": "environment/verl_mbpp_sandbox_errors_pass",
+    "slug": "kimi-mbpp-sandbox",
+    "file": "agent-trace/kimi-mbpp-sandbox.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 2255000,
+    "steps": 13,
+    "costUsd": 1.1369
+  },
+  {
+    "task": "environment/verl_mbpp_sandbox_errors_pass",
+    "slug": "kimi31-mbpp-sandbox",
+    "file": "agent-trace/kimi31-mbpp-sandbox.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.92,
+    "durationMs": 719000,
+    "steps": 24,
+    "costUsd": 5.4001
+  },
+  {
+    "task": "environment/verl_mbpp_sandbox_errors_pass",
+    "slug": "dsv4-mbpp-sandbox",
+    "file": "agent-trace/dsv4-mbpp-sandbox.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.92,
+    "durationMs": 784000,
+    "steps": 36,
+    "costUsd": 6.829
+  },
+  {
+    "task": "environment/verl_mbpp_sandbox_errors_pass",
+    "slug": "gemini4-mbpp-sandbox",
+    "file": "agent-trace/gemini4-mbpp-sandbox.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 138000,
+    "steps": 13,
+    "costUsd": 0.7307
+  },
+  {
+    "task": "environment/verl_mbpp_sandbox_errors_pass",
+    "slug": "qwen38-mbpp-sandbox",
+    "file": "agent-trace/qwen38-mbpp-sandbox.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.92,
+    "durationMs": 763000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/verl_mbpp_sandbox_errors_pass",
+    "slug": "grok47-mbpp-sandbox",
+    "file": "agent-trace/grok47-mbpp-sandbox.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 14437000,
+    "steps": 67,
     "costUsd": null
   }
 ];

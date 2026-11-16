@@ -16,10 +16,10 @@
     const data = {
         profile: {
             affiliations: [['THUNLP', 12], ['Tsinghua', 4], ['FusionBrain', 2], ['Brigham Young', 3], ['Johns Hopkins', 1], ['Tohoku', 2], ['UPenn', 1], ['Independent', 2], ['Fudan', 2], ['SII', 2], ['SW Jiaotong', 2], ['Duke', 1], ['SJTU', 1]],
-            errors: [['Infrastructure', 12], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 0]],
-            difficulty: [['Very hard', 13], ['Hard', 12], ['Medium', 6], ['Easy', 3]]
+            errors: [['Infrastructure', 12], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 1]],
+            difficulty: [['Very hard', 13], ['Hard', 13], ['Medium', 6], ['Easy', 3]]
         },
-        models: [['GPT-6-Astra', 35.8], ['GPT-6.1-Sol', 34.0], ['Gemini-4-Argon', 30.2], ['GLM-5.3', 26.4], ['Kimi-K3.1-Pro', 24.5], ['Fable-5.1', 20.8], ['Qwen3.8-Max', 18.9], ['Grok-4.7', 17.0], ['Kimi-K3', 5.7], ['DeepSeek-V4-Pro', 1.9]],
+        models: [['GPT-6-Astra', 35.2], ['GPT-6.1-Sol', 33.3], ['Gemini-4-Argon', 29.6], ['GLM-5.3', 25.9], ['Kimi-K3.1-Pro', 24.1], ['Fable-5.1', 20.4], ['Qwen3.8-Max', 18.5], ['Grok-4.7', 16.7], ['Kimi-K3', 5.6], ['DeepSeek-V4-Pro', 1.9]],
         // Per-model [issue, solution] pass rates behind the overall bars;
         // the leaderboard tooltip reads these in the overall view and the
         // categoryByModel entries in a category view.
@@ -35,7 +35,7 @@
             'Kimi-K3': [0, 16.7],
             'DeepSeek-V4-Pro': [0, 5.6]
         },
-        averageLevels: [17.1, 30.0],
+        averageLevels: [16.7, 30.0],
         modelHarness: ['Codex', 'Codex', 'Claude Code', 'Claude Code', 'Claude Code', 'Claude Code', 'Qwen Code', 'Grok Build', 'Claude Code', 'Claude Code'],
         modelDisplayNames: {
             Fable: 'Fable-5.1',

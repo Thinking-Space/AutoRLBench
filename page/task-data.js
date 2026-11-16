@@ -715,5 +715,27 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The launcher sets the FSDP actor to bf16, so parameters and AdamW state round away lr-sized updates; learning is 5-13x slower on KL and ends 9 points below the fp32 control.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, the launcher sets the FSDP actor's model_dtype to bf16, so parameters and AdamW state are bf16 and lr-sized updates round away for most weights. The KL to the reference grows 5-13x more slowly and held-out accuracy ends at 0.4655 against 0.5580."
+  },
+  {
+    "id": "environment/verl_mbpp_sandbox_errors_pass",
+    "title": "Sandbox passes non-assert errors; the policy drops its code fence",
+    "family": "Environment",
+    "tags": [
+      "verl",
+      "grpo",
+      "mbpp",
+      "code-sandbox",
+      "reward-hacking",
+      "exception-handling",
+      "issue-only"
+    ],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "MBPP",
+    "framework": "verl / GRPO with code sandbox",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-14",
+    "license": "Apache-2.0",
+    "brief": "The training sandbox only catches AssertionError, so code with NameError passes and the policy stops writing its fenced Python block entirely.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on MBPP, the training sandbox marks a sample wrong only on AssertionError, so a response with no runnable code (the tests raise NameError) earns full reward. The policy stops writing its fenced Python block, the training score hits 1.0 by step 11, and held-out pass rate falls from 0.2786 to 0.0; the strict-sandbox control reaches 0.3667."
   }
 ];
