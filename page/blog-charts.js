@@ -20,6 +20,21 @@
             difficulty: [['Very hard', 13], ['Hard', 12], ['Medium', 6], ['Easy', 3]]
         },
         models: [['GPT-6-Astra', 35.8], ['GPT-6.1-Sol', 34.0], ['Gemini-4-Argon', 30.2], ['GLM-5.3', 26.4], ['Kimi-K3.1-Pro', 24.5], ['Fable-5.1', 20.8], ['Qwen3.8-Max', 18.9], ['Grok-4.7', 17.0], ['Kimi-K3', 5.7], ['DeepSeek-V4-Pro', 1.9]],
+        // Per-model [issue, solution] pass rates behind the overall bars;
+        // the leaderboard tooltip reads these in the overall view and the
+        // categoryByModel entries in a category view.
+        modelLevels: {
+            'GPT-6-Astra': [34.3, 38.9],
+            'GPT-6.1-Sol': [31.4, 38.9],
+            'Gemini-4-Argon': [17.1, 55.6],
+            'GLM-5.3': [22.9, 33.3],
+            'Kimi-K3.1-Pro': [17.1, 38.9],
+            'Fable-5.1': [17.1, 27.8],
+            'Qwen3.8-Max': [14.3, 27.8],
+            'Grok-4.7': [17.1, 16.7],
+            'Kimi-K3': [0, 16.7],
+            'DeepSeek-V4-Pro': [0, 5.6]
+        },
         averageLevels: [17.1, 30.0],
         modelHarness: ['Codex', 'Codex', 'Claude Code', 'Claude Code', 'Claude Code', 'Claude Code', 'Qwen Code', 'Grok Build', 'Claude Code', 'Claude Code'],
         modelDisplayNames: {
@@ -271,6 +286,35 @@
         pieLegend(root, legendItems, panel.legendX, panel.legendY, panel.legendCols, panel.legendRow);
     };
 
+    function barTip(el, name, issue, solution, ev) {
+        let tip = el.querySelector('.chart-bar-tip');
+        if (!tip) {
+            tip = document.createElement('div');
+            tip.className = 'chart-bar-tip';
+            tip.setAttribute('role', 'tooltip');
+            el.appendChild(tip);
+        }
+        tip.innerHTML = '';
+        const title = document.createElement('strong');
+        title.textContent = name;
+        const l1 = document.createElement('span');
+        l1.textContent = `Issue ${issue}%`;
+        const l2 = document.createElement('span');
+        l2.textContent = `Solution ${solution}%`;
+        tip.append(title, l1, l2);
+        tip.setAttribute('aria-hidden', 'false');
+        tip.classList.add('is-open');
+        const box = el.getBoundingClientRect();
+        const tx = ev.clientX - box.left, ty = ev.clientY - box.top;
+        tip.style.left = Math.min(Math.max(tx + 14, 6), box.width - tip.offsetWidth - 8) + 'px';
+        tip.style.top = Math.max(ty - tip.offsetHeight - 12, 4) + 'px';
+    }
+
+    function barTipHide(el) {
+        const tip = el.querySelector('.chart-bar-tip');
+        if (tip) { tip.classList.remove('is-open'); tip.setAttribute('aria-hidden', 'true'); }
+    }
+
     function combinedProfile(el, selectedCategory = 'all') {
         const svg = make(el, 1000, 790, 'Benchmark profile and leaderboard: affiliations, categories, difficulty, and model pass rates');
         chartSelect(el, '', categoryOptions(), selectedCategory, value => combinedProfile(el, value));
@@ -291,8 +335,8 @@
         // Keep a gap between the (d) title and the bar-top value labels:
         // in a category view every bar can reach 100%, and the labels sit
         // just above the plot's top edge.
-        const x = 70, y = 420, w = 875, h = 260, max = selectedCategoryData ? 100 : 60;
-        addGrid(svg, x, y, w, h, selectedCategoryData ? [0, 25, 50, 75, 100] : [0, 10, 20, 30, 40, 50, 60], max, value => `${value}%`);
+        const x = 70, y = 420, w = 875, h = 260, max = selectedCategoryData ? 100 : 45;
+        addGrid(svg, x, y, w, h, selectedCategoryData ? [0, 25, 50, 75, 100] : [0, 10, 20, 30, 40], max, value => `${value}%`);
         const step = w / leaderboard.length;
         const barWidth = step * .62;
         leaderboard.forEach((item, i) => {
@@ -302,6 +346,16 @@
             const modelIndex = data.models.findIndex(model => model[0] === item[0]);
             const bar = svgEl('rect', { x: bx, y: by, width: barWidth, height: bh, rx: 2, fill: data.leaderboardColors[i], class: 'chart-bar' }, svg);
             animateMark(bar, 560 + i * 85, 'rise');
+            // Hovering a bar splits its overall score into the two levels:
+            // issue + solution in the overall view, or that category's
+            // diagnosis + repair rates in a category view.
+            const levels = selectedCategoryData
+                ? data.categoryByModel[item[0]][categoryIndex]
+                : data.modelLevels[item[0]];
+            const showTip = ev => barTip(el, item[0], levels[0], levels[1], ev);
+            bar.addEventListener('mouseenter', showTip);
+            bar.addEventListener('mousemove', showTip);
+            bar.addEventListener('mouseleave', () => barTipHide(el));
             text(svg, bx + barWidth / 2, by - 8, pct(item[1]), 'chart-value', {'text-anchor': 'middle'});
             // Model names are wider than one bar step, so the labels rotate.
             // Each label is centred on its own bar; the anchor sits far
