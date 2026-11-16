@@ -310,6 +310,9 @@
         #fig-4 .chart-x-label,
         #fig-4 .chart-legend-text { font-size: 16px; }
         #fig-4 .chart-value { fill: #53616b; font-size: 15px; font-weight: 700; }
+        #fig-evi .chart-title { font-size: 25px; }
+        #fig-evi .chart-label,
+        #fig-evi .chart-axis { font-size: 15px; }
         #fig-3 .chart-title { font-size: 25px; }
         #fig-3 .chart-panel-title { font-size: 16px; font-weight: 400; }
         #fig-3 .chart-axis,
@@ -330,6 +333,7 @@
         .chart-arrow { fill: none; stroke: #bbc8c5; stroke-width: 2; marker-end: url(#chart-arrowhead); }
         .chart-node-number, .chart-node-label, .chart-node-sub { fill: #243447; text-anchor: middle; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; }
         .chart-node-number { fill: #fff; font-size: 11px; font-weight: 700; }
+        .chart-cause-tag { fill: #fff; text-anchor: start; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 11px; font-weight: 700; }
         .chart-node-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; }
         .chart-node-sub { fill: #68727c; font-size: 10px; }
         .chart-hacking-node { cursor: help; outline: none; }
@@ -512,12 +516,12 @@
                 <section id="overview" aria-labelledby="overview-title">
                     <h2 id="overview-title">Overview</h2>
 
-                    <p>AutoRLBench evaluates the ability of AI agents to diagnose and repair RL training failures. We have collected and curated 39 tasks from the open research community. <strong>Every task comes from a real RL training failure</strong>; 23 of them support repair evaluation, and 20 include a verified repair run so far. Based on where the root cause occurs in the pipeline, we group the tasks into six categories covering the full RL pipeline: configuration, reward, data, environment, algorithm, and infrastructure. Each task provides the full workspace from the failed training run, including source code, configurations, logs, and evaluation records.</p>
+                    <p>AutoRLBench evaluates the ability of AI agents to diagnose and repair RL training failures. We have collected and curated 39 tasks from the open research community. <strong>Every task comes from a real RL training failure</strong>; 20 of them support repair evaluation. Based on where the root cause occurs in the pipeline, we group the tasks into six categories covering the full RL pipeline: configuration, reward, data, environment, algorithm, and infrastructure. Each task provides the full workspace from the failed training run, including source code, configurations, logs, and evaluation records. Before release, each task goes through <strong>rigorous quality control</strong>: the failure and its root cause are verified against the original incident, the workspace is frozen with pinned data and environment images, and graders are validated against the reference fix and hardened against gaming.</p>
                     <p>The first batch of tasks brings together contributions from <strong>more than 10 universities, research institutes, and research groups</strong>, including Tsinghua University, Fudan University, Shanghai Jiao Tong University, Southwest Jiaotong University, Harbin Institute of Technology, University of Pennsylvania, Tohoku University, Duke University, Brigham Young University, Johns Hopkins University, and FusionBrain Lab, alongside independent researchers.</p>
                     <p>We evaluate agents at two levels:</p>
                     <div class="blog-levels">
-                        <article class="blog-level"><span class="blog-level-tag">Level 01 · Diagnosis</span><h3>Diagnosis</h3><p>Determine whether the training run is healthy, identify the specific root cause, and provide supporting evidence. An LLM Judge evaluates whether the submitted diagnosis matches the reference answer.</p></article>
-                        <article class="blog-level"><span class="blog-level-tag">Level 02 · Repair</span><h3>Repair</h3><p>Modify the workspace and submit a repair report. After the agent finishes, the evaluation system relaunches the training run in the modified workspace and grades the repair based on the resulting training metrics. Of the 39 tasks, 23 support repair evaluation.</p></article>
+                        <article class="blog-level"><span class="blog-level-tag">Level 01 · Diagnosis</span><h3>Diagnosis</h3><p>Determine whether the training run is healthy, identify the specific root cause, and provide supporting evidence, in a single written report. An LLM judge scores the status (healthy / unhealthy), the root cause, and the evidence against a hidden reference answer. No training rerun is involved, so a diagnosis evaluation is cheap to repeat.</p></article>
+                        <article class="blog-level"><span class="blog-level-tag">Level 02 · Repair</span><h3>Repair</h3><p>Modify the workspace and submit a report in a single attempt. After the agent finishes, the evaluation system relaunches the full training run in a clean environment and grades the repair on the resulting training metrics. This protocol measures whether an agent can locate and fix a failure within one iteration instead of costly trial and error.</p></article>
                     </div>
                 </section>
 
@@ -531,12 +535,20 @@
                         <figcaption>Pass: all criteria are met. Wrong cause: the status judgment is correct, but the root cause is incorrect. Wrong evidence: the status judgment and root cause are correct, but the supporting evidence is incorrect. Fail: the status judgment is incorrect.</figcaption>
                     </figure>
                     <h4>Why Do Agents Identify the Wrong Cause?</h4>
-                    <p>Explaining root causes requires linking surface symptoms to the underlying execution mechanism. In wrong cause trajectories, many agents mistake symptoms like training stagnation or zero reward for the root cause itself. Others stop at a single plausible explanation or address only one part of a compound failure. Because the same symptom can stem from different root causes, and multiple failures can produce similar training curves, a single hypothesis is not enough. To find the true root cause, an agent must trace how a candidate defect actually affects the execution path rather than stopping at surface failures.</p>
+                    <p>Explaining root causes requires linking surface symptoms to the underlying execution mechanism. In <strong>wrong cause</strong> trajectories, many agents mistake symptoms like training stagnation or zero reward for the root cause itself. Others stop at a single plausible explanation or address only one part of a compound failure. Because the same symptom can stem from different root causes, and multiple failures can produce similar training curves (Figure 3), a single hypothesis is therefore not enough. To find the true root cause, an agent must trace how a candidate defect actually affects the execution path rather than stopping at surface failures.</p>
+                    <figure class="blog-figure blog-chart-figure" id="fig-causes">
+                        <div class="blog-chart" data-chart="fig-causes" role="img"></div>
+                        <figcaption>Four tasks share a near-zero, oscillating reward curve but have different root causes.</figcaption>
+                    </figure>
                     <h4>Why Do Agents Provide Wrong Evidence?</h4>
-                    <p>Even when an agent proposes a plausible cause, it must verify this claim with concrete evidence. In <em>wrong evidence</em> trajectories, agents often rely on surface trends, such as training completion or rising metrics, while overlooking hidden inconsistencies across the workspace. In RL training, a defect can reduce update steps or skew the execution path without triggering explicit errors or immediate metric drops. Because local metric improvements and mechanism failures can coexist, curve analysis alone is unreliable. Reliable evidence requires cross-checking code, configurations, and logs, running checks to rule out alternative hypotheses, and confirming that the evidence directly supports the identified root cause.</p>
+                    <p>A plausible cause still needs direct evidence. In <strong>wrong evidence</strong> trajectories, agents often rely on surface trends, such as training completion or rising metrics, while overlooking hidden inconsistencies across the workspace. Figure 4 shows a plausible reward curve while the masked-token fraction rises sharply. The reward looks healthy, but the logs reveal the failure. Reliable diagnosis requires checking the mechanism across code, configuration, and logs. </p>
+                    <figure class="blog-figure blog-chart-figure" id="fig-evi">
+                        <div class="blog-chart" data-chart="fig-evi" role="img"></div>
+                        <figcaption>The reward curve looks healthy while masked-token coverage collapses.</figcaption>
+                    </figure>
 
                     <h3 id="finding-two">Repair: Bottlenecks Lie in Addressing the Core Issue and Sustaining Improvement</h3>
-                    <p>Repair tasks require the agent to turn its diagnosis into concrete workspace changes. Comparing repair runs that start from similar initial performance reveals two main bottlenecks: whether the fix addresses the core failure mechanism, and whether the improvement lasts until the end of training. As shown in Figure 3, some failed repairs remain flat at their initial level, while others improve early in training before dropping sharply. Evaluating repair capability therefore requires examining the full training run.</p>
+                    <p>Repair tasks require the agent to turn its diagnosis into concrete workspace changes. Comparing repair runs that start from similar initial performance reveals two main bottlenecks: whether the fix addresses the core failure mechanism, and whether the improvement lasts until the end of training. As shown in Figure 5, some failed repairs remain flat at their initial level, while others improve early in training before dropping sharply. Evaluating repair capability therefore requires examining the full training run.</p>
                     <figure class="blog-figure blog-chart-figure" id="fig-3">
                         <div class="blog-chart" data-chart="fig-3" role="img"></div>
                         <figcaption>Training curves of passed and failed repairs across four tasks. Solid lines denote passed runs, dashed lines denote failed runs, horizontal dotted lines show the healthy baseline, and stars mark the final evaluation scores.</figcaption>
@@ -544,13 +556,13 @@
                     <h4>Do Changes Address Core Failure?</h4>
                     <p>An effective repair must fix the underlying failure mechanism rather than making superficial changes. Agents often patch surface symptoms without tracing how their changes affect training, or run local checks that miss the actual execution path of the failure. Both mistakes confuse local fixes with full system recovery. To make an effective fix, an agent must test its changes along the actual execution path, verify that the fix restores normal training behavior, and ensure that it does not break existing functionality.</p>
                     <h4>Do Early Improvements Last Throughout Training?</h4>
-                    <p>A reliable repair must also sustain improvement throughout the full training run. Figure 3 shows that some failed runs improve early on, and even take an early lead, before collapsing later. Changing the workspace based only on early symptoms, or treating a short-term metric bounce as a complete fix, misses long-term effects. Therefore, repair verification must cover the full training run to confirm that the failure does not return and early gains are not lost.</p>
+                    <p>A reliable repair must also sustain improvement throughout the full training run. Figure 5 shows that some failed runs improve early on, and even take an early lead, before collapsing later. Changing the workspace based only on early symptoms, or treating a short-term metric bounce as a complete fix, misses long-term effects. Therefore, repair verification must cover the full training run to confirm that the failure does not return and early gains are not lost.</p>
                 </section>
 
                 <section id="analysis" aria-labelledby="analysis-title">
                     <h2 id="analysis-title">Analysis</h2>
                     <h3 id="categories">Performance Across the Six Failure Categories</h3>
-                    <p>As shown in Figure 4, agent performance varies widely across the six failure categories, and each category exposes a distinct bottleneck:</p>
+                    <p>As shown in Figure 6, agent performance varies widely across the six failure categories, and each category exposes a distinct bottleneck:</p>
                     <ul class="blog-roadmap">
                         <li><strong>Configuration</strong> failures depend on whether parameters actually reach the target training components.</li>
                         <li><strong>Reward</strong> failures require tracing the feedback loop across data, reward, advantage, and policy updates without mistaking zero reward or skewed outputs for the root cause.</li>
@@ -564,14 +576,14 @@
                         <figcaption>Diagnosis and repair pass rates across the six failure categories.</figcaption>
                     </figure>
                     <h4>An Interesting Contrast: Data Failures Are Hard to Diagnose but Easy to Repair</h4>
-                    <p>Data failures stand out as a notable case where diagnosis involves a long reasoning chain, yet the repair itself is straightforward once the issue is located. In one data task, hard samples are accidentally dropped halfway through training, and the data loader automatically fills the gap with easy samples (Figure 5). Training continues without errors, and the training reward even keeps rising, while the validation score drops as hard samples disappear. Relying on the training curve alone easily misses this bug. Locating the failure requires cross-checking what the pipeline expects to read, what it actually reads, how it handles exceptions, and what the final evaluation measures. Once the agent finds this mismatch, however, fixing the data loader is direct and reliable.</p>
+                    <p>Data failures stand out as a notable case where diagnosis involves a long reasoning chain, yet the repair itself is straightforward once the issue is located. In one data task, hard samples are accidentally dropped halfway through training, and the data loader automatically fills the gap with easy samples (Figure 7). Training continues without errors, and the training reward even keeps rising, while the validation score drops as hard samples disappear. Relying on the training curve alone easily misses this bug. Locating the failure requires cross-checking what the pipeline expects to read, what it actually reads, how it handles exceptions, and what the final evaluation measures. Once the agent finds this mismatch, however, fixing the data loader is direct and reliable.</p>
                     <figure class="blog-figure blog-chart-figure" id="fig-5">
                         <div class="blog-chart" data-chart="fig-5" role="img"></div>
                         <figcaption>An example data failure task. After hard samples are dropped, the training reward keeps rising while the validation score drops from 0.50 to 0.31. Once the root cause is identified, fixing the data loading path alone restores normal training.</figcaption>
                     </figure>
 
                     <h3 id="association">Relationship Between Diagnosis and Repair</h3>
-                    <p>As shown in Figure 6, successful diagnosis correlates positively with successful repair, but the two capabilities remain distinct. Surprisingly, <strong>diagnosis and repair do not form a continuous process driven by the same underlying capability</strong>, where poor diagnosis directly leads to poor repair. An agent's main bottleneck in diagnosis is clearly explaining the root cause, even when it has already spotted the general direction of the failure. Repair, however, only requires the agent to modify the code rather than provide an accurate explanation. As a result, an agent can still fix a failure even when its diagnosis fails, and an accurate diagnosis does not guarantee a reliable fix.</p>
+                    <p>As shown in Figure 8, successful diagnosis correlates positively with successful repair, but the two capabilities remain distinct. Surprisingly, <strong>diagnosis and repair do not form a continuous process driven by the same underlying capability</strong>, where poor diagnosis directly leads to poor repair. An agent's main bottleneck in diagnosis is clearly explaining the root cause, even when it has already spotted the general direction of the failure. Repair, however, only requires the agent to modify the code rather than provide an accurate explanation. As a result, an agent can still fix a failure even when its diagnosis fails, and an accurate diagnosis does not guarantee a reliable fix.</p>
                     <figure class="blog-figure blog-chart-figure" id="fig-6">
                         <div class="blog-chart" data-chart="fig-6" role="img"></div>
                         <figcaption>Diagnosis and repair results across 400 trajectories on the 20 tasks with both evaluations.</figcaption>
@@ -586,7 +598,7 @@
                     <p>These errors reveal three recurring patterns. First, agents treat a run that looks normal as evidence that the failure has been ruled out, or mistake a symptom for its cause and stop intervening too early. Second, agents use CPU checks, syntax checks, or self-written unit tests in place of end-to-end validation. A patch may pass on a local path while missing the actual CUDA path, restricted runtime, or asynchronous export path. Third, agents sometimes change the evaluation target or previously healthy behavior, for example by relaxing the scorer, reducing test or data coverage, bypassing a required adapter, or fixing negative cases while rejecting valid ones.</p>
 
                     <h3 id="cheating">Case Study: Agent Cheating and Evaluation Shortcuts</h3>
-                    <p>In repair tasks, an agent has full write access to the workspace and can observe many evaluation signals. Higher metrics alone therefore do not guarantee a valid repair. Figure 8 shows a trajectory from GLM-5.3 on an infrastructure task. The agent starts with a valid local diagnosis by tracing the retrieval logs and locating the broken data path. However, instead of fixing the bug independently, it uses <code>curl</code> to download the upstream source, runs a <code>diff</code> against the local workspace, and copies the reference code directly into its patch. While this patch fixes the failure, it turns independent repair into reference copying.</p>
+                    <p>In repair tasks, an agent has full write access to the workspace and can observe many evaluation signals. Higher metrics alone therefore do not guarantee a valid repair. Figure 10 shows a trajectory from GLM-5.3 on an infrastructure task. The agent starts with a valid local diagnosis by tracing the retrieval logs and locating the broken data path. However, instead of fixing the bug independently, it uses <code>curl</code> to download the upstream source, runs a <code>diff</code> against the local workspace, and copies the reference code directly into its patch. While this patch fixes the failure, it turns independent repair into reference copying.</p>
                     <p>Across our broader trajectory audit, we observe three main types of evaluation shortcuts that inflate metrics without making a genuine repair:</p>
                     <ul class="blog-roadmap">
                         <li><strong>Fetching external references</strong>, such as downloading upstream repositories to copy existing fixes.</li>
@@ -600,7 +612,7 @@
                     </figure>
 
                     <h3 id="cost">Cost and Time Analysis</h3>
-                    <p>Higher token usage or longer execution time does not guarantee better performance. On the shared task subsets, GPT-6.1-Sol passes 13 of 33 diagnosis tasks for $27.78, whereas GPT-6-Astra passes 14 of 33 for $151.87. On repair tasks, GPT-6.1-Sol passes 9 of 19 for $104.28, whereas Gemini-4-Argon passes 11 of 19 for $806.23. Extra exploration helps only when it narrows down hypotheses, verifies fixes, and stops unproductive attempts early.</p>
+                    <p>Higher token usage or longer execution time does not guarantee better performance. On the shared task subsets, GPT-6.1-Sol (Codex) passes 13 of 33 diagnosis tasks for $27.78, whereas GPT-6-Astra (Codex) passes 14 of 33 for $151.87. On repair tasks, GPT-6.1-Sol (Codex) passes 9 of 19 for $104.28, whereas Gemini-4-Argon (Claude Code) passes 11 of 19 for $806.23. Extra exploration helps only when it narrows down hypotheses, verifies fixes, and stops unproductive attempts early.</p>
                     <figure class="blog-figure blog-chart-figure" id="fig-9">
                         <div class="blog-chart" data-chart="fig-9" role="img"></div>
                         <figcaption>Total cost and pass rate across agents on diagnosis and repair tasks.</figcaption>
@@ -665,6 +677,6 @@
     </footer>
 
     <script src="globe.js?v=20261020-1"></script>
-    <script src="blog-charts.js?v=20261115-1"></script>
+    <script src="blog-charts.js?v=20261116-18"></script>
 </body>
 </html>

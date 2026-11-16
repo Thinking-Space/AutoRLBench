@@ -86,6 +86,15 @@
             'Kimi-K3': [[0, 50, 22.2], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 14.3, 5]]
         },
         dataCurve: { x: [0,1,2,3,4,5,6,7], train: [37.5,43.8,37.5,43.8,75,81.3,62.5,62.5], validationX: [0,3,7], validation: [50,37.5,31.25], hard: [50,50,50,50,0,0,0,0] },
+        // Issue-level mask-window task: the reward curve reads healthy while
+        // the logged masked-token fraction explodes. Steps 1-87 of the frozen
+        // run, sampled every third step plus the 75% peak at step 74
+        // (rs_filtered_fraction / task_reward from the run's main.log).
+        evidence: {
+            x: [1,4,7,10,13,16,19,22,25,28,31,34,37,40,43,46,49,52,55,58,61,64,67,70,73,74,76,79,82,85,87],
+            mask: [0.0161,0.0224,0.0298,0.0374,0.0395,0.0438,0.0474,0.0527,0.0549,0.0578,0.0627,0.0639,0.0643,0.0711,0.0902,0.1538,0.2982,0.335,0.4669,0.3949,0.1241,0.7143,0.6877,0.6904,0.6759,0.75,0.1784,0.039,0.0253,0.5986,0.6724],
+            reward: [0.7363,0.7256,0.7227,0.752,0.7529,0.7812,0.7617,0.7793,0.7656,0.7891,0.7998,0.7881,0.7852,0.7764,0.7148,0.5537,0.4932,0.6328,0.6484,0.6133,0.6846,0.6318,0.6367,0.5889,0.6504,0.6143,0.6016,0.6465,0.6435,0.6846,0.7022]
+        },
         hacking: [
             {
                 step: 'STEP 35', title: 'GET SOURCE', subtitle: 'Obtain a reference', color: C.navy,
@@ -463,6 +472,115 @@
         centeredLegend(svg,[{label:'training reward',color:'#104680'},{label:'Validation Score',color:'#6D011F'},{label:'hard-sample coverage',color:'#F6B293'}],x+w/2,405);
     }
 
+    function causeFan(el) {
+        const svg=make(el,900,410,'A near-zero oscillating reward curve with four possible root causes');
+        addTitle(svg,'One Symptom, Four Causes',450,24,'middle');
+        const x=120,y=60,w=660,h=82;
+        const domainTop=0.006, domainBottom=-0.01;
+        const valueY=value=>y+(domainTop-value)/(domainTop-domainBottom)*h;
+        [-0.01,0].forEach(value=>{
+            const yy=valueY(value);
+            svgEl('line',{x1:x,y1:yy,x2:x+w,y2:yy,class:'chart-grid'},svg);
+            text(svg,x-10,yy+4,value.toFixed(2),'chart-axis chart-axis-y',{'text-anchor':'end'});
+        });
+        svgEl('line',{x1:x,y1:y,x2:x,y2:y+h,class:'chart-axis-line'},svg);
+        svgEl('line',{x1:x,y1:y+h,x2:x+w,y2:y+h,class:'chart-axis-line'},svg);
+        // Use one continuous jagged path. Turning points stay on a fixed grid so
+        // the signal feels like a coherent training trace rather than random
+        // spikes with uneven spacing.
+        const steps=Array.from({length:241},(_,i)=>i);
+        let seed=9173;
+        const random=()=>{
+            seed=(seed*1664525+1013904223)>>>0;
+            return seed/4294967296;
+        };
+        const turnSpacing=8;
+        const turningValues=steps.filter(i=>i%turnSpacing===0 || i===steps.length-1).map((step,index)=>{
+            const magnitude=0.0007+random()*0.0034;
+            const sign=index%2===0?1:-1;
+            return {step,value:sign*magnitude};
+        });
+        const values=steps.map(i=>{
+            const leftIndex=Math.min(Math.floor(i/turnSpacing),turningValues.length-2);
+            const left=turningValues[leftIndex];
+            const right=turningValues[leftIndex+1];
+            const span=right.step-left.step;
+            const t=span?((i-left.step)/span):0;
+            return left.value+(right.value-left.value)*t;
+        });
+        const point=(step,value)=>[x+step/(steps.length-1)*w,valueY(value)];
+        const rewardPoints=steps.map((step,i)=>point(step,values[i]));
+        const curve=svgEl('path',{d:linePath(rewardPoints),stroke:C.navy,'stroke-width':2.4,class:'chart-segment',fill:'none'},svg);
+        animatePath(curve,120);
+        [0,20,40,60,80,100].forEach(step=>{
+            const xx=x+step/100*w;
+            svgEl('line',{x1:xx,y1:y+h,x2:xx,y2:y+h+5,class:'chart-axis-line'},svg);
+            text(svg,xx,y+h+21,String(step),'chart-axis',{'text-anchor':'middle'});
+        });
+        text(svg,x+w/2,y+h+43,'training step','chart-axis',{'text-anchor':'middle'});
+        const axisLabel=text(svg,x-50,y+h/2,'reward','chart-axis',{'text-anchor':'middle'});
+        axisLabel.setAttribute('transform',`rotate(-90 ${x-50} ${y+h/2})`);
+        const causes=[
+            {tag:'DATA',color:'#6DADD1',lines:['the model cannot solve the','training problems, so the','all-tests-pass reward never fires'],task:'TACO difficulty mismatch'},
+            {tag:'DATA',color:'#6DADD1',lines:['the training labels are wrong,','so correctly solved rollouts','still score zero'],task:'TACO wrong expected outputs'},
+            {tag:'REWARD',color:'#DC6D57',lines:['the parser reads a key the','template never emits, so the','rewarded behavior never runs'],task:'ReTool parser mismatch'},
+            {tag:'REWARD',color:'#DC6D57',lines:['a reward-worker thread fails','silently, and every answer is','scored 0.0 by default'],task:'math-verify zero reward'}
+        ];
+        causes.forEach((cause,i)=>{
+            const cardX=32+i*215, cardY=220, cardW=191, cardH=138;
+            const card=svgEl('rect',{x:cardX,y:cardY,width:cardW,height:cardH,rx:12,fill:'rgba(255,255,255,.55)',stroke:cause.color,'stroke-width':1.4,class:'chart-cell'},svg);
+            animateMark(card,160+i*160,'pop');
+            const chipWidth=Math.min(cause.tag.length*8+20,cardW-28);
+            const chip=svgEl('rect',{x:cardX+14,y:cardY+16,width:chipWidth,height:17,rx:4,fill:cause.color,class:'chart-pop'},svg);
+            animateMark(chip,200+i*160,'pop');
+            const chipText=text(svg,cardX+22,cardY+28,cause.tag,'chart-cause-tag',{'text-anchor':'start'});
+            animateMark(chipText,220+i*160,'pop');
+            cause.lines.forEach((line,j)=>text(svg,cardX+14,cardY+62+j*15,line,'chart-hacking-evidence'));
+            text(svg,cardX+14,cardY+122,`· ${cause.task}`,'chart-hacking-evidence');
+        });
+    }
+
+    function evidenceCurve(el) {
+        const svg=make(el,900,350,'Two continuous curves: training reward and masked-token fraction');
+        addTitle(svg,'Healthy Curve, Hidden Failure',450,24,'middle');
+        // The reward stays in a plausible, high band throughout this example;
+        // the hidden failure is exposed by the separate masked-token trace.
+        const healthyReward=data.evidence.x.map((_,index)=>{
+            const progress=index/(data.evidence.x.length-1);
+            return 0.765+0.035*progress+0.009*Math.sin(index*0.42)+0.004*Math.sin(index*1.15+0.4);
+        });
+        const panels=[
+            {x:68,y:62,w:350,h:190,title:'Training reward',axis:'reward',color:'#104680',min:.68,max:.86,ticks:[.7,.78,.86],format:value=>value.toFixed(2)},
+            {x:482,y:62,w:350,h:190,title:'Masked-token fraction',axis:'masked-token fraction',color:'#6D011F',min:0,max:.8,ticks:[0,.4,.8],format:value=>`${Math.round(value*100)}%`}
+        ];
+        const xTicks=[1,29,58,87];
+        panels.forEach((panel,panelIndex)=>{
+            text(svg,panel.x+panel.w/2,panel.y-22,panel.title,'chart-label',{'text-anchor':'middle'});
+            panel.ticks.forEach(tick=>{
+                const yy=panel.y+panel.h-(tick-panel.min)/(panel.max-panel.min)*panel.h;
+                svgEl('line',{x1:panel.x,y1:yy,x2:panel.x+panel.w,y2:yy,class:'chart-grid'},svg);
+                text(svg,panel.x-10,yy+4,panel.format(tick),'chart-axis chart-axis-y',{'text-anchor':'end'});
+            });
+            svgEl('line',{x1:panel.x,y1:panel.y,x2:panel.x,y2:panel.y+panel.h,class:'chart-axis-line'},svg);
+            svgEl('line',{x1:panel.x,y1:panel.y+panel.h,x2:panel.x+panel.w,y2:panel.y+panel.h,class:'chart-axis-line'},svg);
+            const raw=panelIndex===0?healthyReward:data.evidence.mask;
+            const points=data.evidence.x.map((step,index)=>[
+                panel.x+(step-1)/86*panel.w,
+                panel.y+panel.h-(raw[index]-panel.min)/(panel.max-panel.min)*panel.h
+            ]);
+            const curve=svgEl('path',{d:linePath(points),stroke:panel.color,class:'chart-line',fill:'none','stroke-width':2.8},svg);
+            animatePath(curve,panelIndex*180);
+            xTicks.forEach(step=>{
+                const xx=panel.x+(step-1)/86*panel.w;
+                svgEl('line',{x1:xx,y1:panel.y+panel.h,x2:xx,y2:panel.y+panel.h+5,class:'chart-axis-line'},svg);
+                text(svg,xx,panel.y+panel.h+22,String(step),'chart-axis',{'text-anchor':'middle'});
+            });
+            text(svg,panel.x+panel.w/2,panel.y+panel.h+49,'RL training step','chart-axis',{'text-anchor':'middle'});
+            const axisLabel=text(svg,panel.x-43,panel.y+panel.h/2,panel.axis,'chart-axis',{'text-anchor':'middle'});
+            axisLabel.setAttribute('transform',`rotate(-90 ${panel.x-43} ${panel.y+panel.h/2})`);
+        });
+    }
+
     function hacking(el) {
         const svg=make(el,1000,420,'Observable reasoning trace from a Search-R1 repair trajectory');
         const defs=svgEl('defs',{},svg);
@@ -645,7 +763,7 @@
 
     const renderers={
         'fig-1':combinedProfile,'fig-2':outcomeBars,'fig-3':curves,'fig-4':categoryBars,
-        'fig-5':dataTrajectory,'fig-6':quadrants,'fig-7':repairErrors,'fig-8':hacking,'fig-9':scatter,'fig-10':timeBars
+        'fig-5':dataTrajectory,'fig-causes':causeFan,'fig-evi':evidenceCurve,'fig-6':quadrants,'fig-7':repairErrors,'fig-8':hacking,'fig-9':scatter,'fig-10':timeBars
     };
 
     function animateChart(el, on) {
