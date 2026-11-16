@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "status": "rerun_verified",
+  "command": "python3 -m autorlbench rerun tasks/infrastructure/sandbox_admission_starvation --backend local --models-dir <local model cache>",
+  "environment": {
+    "image": "cluster mirror of slimerl/slime:v0.3.2-cu129 (same digest as task.toml)",
+    "gpus": "8 x H800 (80 GB), one node",
+    "network_note": "prepare installed the pinned wheels from a local wheel directory (bytes verified against dependencies.json) because the cluster pod cannot reach PyPI; the model came from a local cache directory whose files match model_manifest.json"
+  },
+  "prepare": {
+    "exit_code": 0,
+    "model": "Qwen/Qwen3.5-9B@c202236235762e1c871ad0ccb60c8ee5ba337b9a, 13 pinned files verified",
+    "workload_sha256": "9a5e4e87b67a53807b0e47eb1019692adf806559f4348281e037a3a387a83c40"
+  },
+  "rerun": {
+    "exit_code": 0,
+    "duration_s": 987.1,
+    "rollouts": [
+      {
+        "rollout_id": 0,
+        "wall_s": 234.845,
+        "groups": 16,
+        "samples": 128,
+        "status": {
+          "completed": 126,
+          "truncated": 2
+        },
+        "reward_mean": 0.921875,
+        "prefix_cache_hit_rate": 0.6616782407541077
+      },
+      {
+        "rollout_id": 1,
+        "wall_s": 76.805,
+        "groups": 16,
+        "samples": 128,
+        "status": {
+          "completed": 123,
+          "truncated": 5
+        },
+        "reward_mean": 0.8125,
+        "prefix_cache_hit_rate": 0.6126535681223331
+      },
+      {
+        "rollout_id": 2,
+        "wall_s": 3.214,
+        "groups": 16,
+        "samples": 128,
+        "status": {
+          "completed": 123,
+          "truncated": 5
+        },
+        "reward_mean": 0.8984375,
+        "prefix_cache_hit_rate": 0.6543805651606692
+      }
+    ],
+    "optimizer_updates_rank0": [
+      {
+        "rollout_id": 0,
+        "step_id": 0,
+        "update_successful": true,
+        "grad_norm": 1.0908677577972412,
+        "sampled_parameter_delta_l2": 0.0034945575461702585,
+        "called_from": "miles.backends.megatron_utils.model.train_one_step",
+        "called_from_trainer": true,
+        "optimizer_class": "megatron.core.optimizer.optimizer.ChainedOptimizer",
+        "trainer_source_sha256": "33eb67a6fb3d9480bb4da7e15cb4c05901689da5352891fa2e0d6a706ef66e7d"
+      },
+      {
+        "rollout_id": 1,
+        "step_id": 0,
+        "update_successful": true,
+        "grad_norm": 1.3441543579101562,
+        "sampled_parameter_delta_l2": 0.0049648009774042635,
+        "called_from": "miles.backends.megatron_utils.model.train_one_step",
+        "called_from_trainer": true,
+        "optimizer_class": "megatron.core.optimizer.optimizer.ChainedOptimizer",
+        "trainer_source_sha256": "33eb67a6fb3d9480bb4da7e15cb4c05901689da5352891fa2e0d6a706ef66e7d"
+      },
+      {
+        "rollout_id": 2,
+        "step_id": 0,
+        "update_successful": true,
+        "grad_norm": 0.978240966796875,
+        "sampled_parameter_delta_l2": 0.005314023813978431,
+        "called_from": "miles.backends.megatron_utils.model.train_one_step",
+        "called_from_trainer": true,
+        "optimizer_class": "megatron.core.optimizer.optimizer.ChainedOptimizer",
+        "trainer_source_sha256": "33eb67a6fb3d9480bb4da7e15cb4c05901689da5352891fa2e0d6a706ef66e7d"
+      }
+    ],
+    "sandbox_setup": {
+      "setups": 662,
+      "waited_at_least_5s": 629,
+      "semaphore_wait_p50_s": 35.4,
+      "semaphore_wait_p90_s": 114.5,
+      "semaphore_wait_max_s": 160.0,
+      "create_p50_s": 18.8,
+      "tool_setup_p50_s": 3.9
+    },
+    "turn_depth_p50": 5,
+    "turn_depth_max": 8,
+    "engine_aborted_trajectories": {
+      "count": 29,
+      "note": "aborted by SGLang during weight updates and marked ABORTED by the generate function; none of their groups was consumed before the run ended, so the producer's recycle counter stayed 0 (the recycle path was not exercised)"
+    },
+    "producer_progress": "rollout 0 reported valid=0/16 groups after 30, 60 and 90 s and completed after 235 s"
+  },
+  "evidence_in_workspace": "workspace/logs/public_rerun/"
+}

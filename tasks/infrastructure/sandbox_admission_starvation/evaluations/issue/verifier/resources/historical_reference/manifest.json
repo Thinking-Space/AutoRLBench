@@ -1,0 +1,107 @@
+{
+ "format": {
+  "container": "gzip-compressed JSON Lines, one object per console line, UTF-8",
+  "record": {
+   "t": "ISO-8601 UTC capture time (string) for lines from the in-process console capture; null for lines from the pod-log archive",
+   "pod": "\"master\" or \"worker\"",
+   "msg": "sanitized console line (ANSI colour codes stripped; Ray actor prefix and \"[repeated Nx across cluster]\" dedup markers preserved)"
+  },
+  "sanitization_marker": "a record whose msg is \"[sanitized: N line(s) removed]\" stands for N consecutive source lines that were dropped by the sanitizer (its t is the t of the first dropped line)",
+  "log_clock": "timestamps embedded in msg (e.g. \"[2026-09-28 14:39:14]\") are the cluster-local clock (UTC+8); they are what derive_metrics.py uses"
+ },
+ "sanitization_summary": "Allowlist-based: a line is kept only if it matches a known generic framework pattern (SGLang scheduler/server lines, Miles/Megatron logger lines from an allowlisted set of framework source files, uvicorn access lines, Ray/raylet lines, Python warnings and tracebacks from public packages, progress bars, the sandbox semaphore-wait warning, the slow-generate timing line, and the fully-async producer status/dropped-group lines). Kept lines are then scrubbed: IPv4 addresses -> <node-a>/<node-b>/... (per-run labels, consistent between the two pods of a run, not across runs) or localhost; ports bound to hosts -> <port>; absolute filesystem paths -> <path>, <site-packages>/, <python-stdlib>/; non-IP URL hosts -> <host>; UUIDs -> <uuid>; long hex ids -> <id>; short hex strings that look like commit SHAs -> <hex>; floats with >=7 fractional digits rounded to 6 decimals (or 6 significant digits in exponent form); integers with >=7 digits written with _ separators. Frames of tracebacks inside non-public modules are replaced by \"File \\\"<private-module>\\\", line ?, in <redacted>\" and their source lines dropped. A kept line that still matches a private-term/identifier pattern after scrubbing is dropped. Two message rewrites keep numeric content while removing private wording: \"slow agentic <private word> generate: turn=T elapsed=Es\" -> \"slow agentic generate: turn=T elapsed=Es\", and the producer tag \"[<name>-fully-async]\" -> \"[fully-async]\"; one actor class name was renamed to _AgenticGenerateWorker.",
+ "archives": {
+  "run-a/master.log.gz": {
+   "records": 1711,
+   "records_kept_lines": 1636,
+   "records_sanitization_markers": 75,
+   "source_lines": 2000,
+   "source_lines_dropped": 364,
+   "records_with_capture_time": 0,
+   "log_clock_first_last": [
+    "2026-09-28 17:17:48",
+    "2026-09-28 17:40:53"
+   ],
+   "bytes": 23659,
+   "sha256": "cd6c7cc457c21c2377b2e2eb5c4bfbfa182da719cfdd40f6497e1899bc67b43f",
+   "sha256_uncompressed": "0cb1d83846f8a595ee50f4b0af8fb035c3350f08dac670bfa88fd118f142e2e6",
+   "source": "Master pod console: the platform's archived pod log, which only serves the last 2000 lines per pod; earlier output (startup and the first part of the run) is no longer retrievable and no in-process console capture exists for this run. All records have t=null.",
+   "truncation": "last 2000 pod-console lines only (see source)"
+  },
+  "run-a/worker.log.gz": {
+   "records": 16,
+   "records_kept_lines": 11,
+   "records_sanitization_markers": 5,
+   "source_lines": 270,
+   "source_lines_dropped": 259,
+   "records_with_capture_time": 0,
+   "log_clock_first_last": null,
+   "bytes": 627,
+   "sha256": "e32bd187bd3f5728bc7766fc4aa6faf5875aaf3d1ae1a7f46afbb27a4a14869f",
+   "sha256_uncompressed": "2b9dc19b578b22d7956a6b6c3aed6d853df3551c34d370374addc7f00d162523",
+   "source": "Worker pod console from the platform's archived pod log (complete: 270 source lines, below the 2000-line limit). This pod only runs the Ray worker daemon; output of actors placed on this node is forwarded to and printed by the driver on the master pod (Ray prefix 'ip=<node-x>'), so it appears in master.log.gz. All records have t=null.",
+   "truncation": "complete"
+  },
+  "run-b/master.log.gz": {
+   "records": 4524,
+   "records_kept_lines": 3830,
+   "records_sanitization_markers": 694,
+   "source_lines": 6052,
+   "source_lines_dropped": 2222,
+   "records_with_capture_time": 3583,
+   "log_clock_first_last": [
+    "2026-09-28 17:55:25",
+    "2026-09-28 18:53:20"
+   ],
+   "bytes": 75597,
+   "sha256": "345524cc7a2916354ad8ca2ddf283dcbd66c5939a9c8e6ba2db5824eab7d00ea",
+   "sha256_uncompressed": "6a99517a5c151fced6f628401c47666e323bc8763162f3cf019b3a43585b813f",
+   "source": "Master pod console. The first 4756 source lines come from the in-process console capture written by the experiment tracker (it starts when the training driver initialises, so launcher/Ray-start output that precedes it is absent); each has a capture timestamp in field t (UTC). The remaining 1296 source lines are the tail of the platform's archived pod log (the archive only serves the last 2000 lines per pod), appended after removing the 704 lines that overlap the capture; these have t=null.",
+   "truncation": "complete console from tracker initialisation to job end"
+  },
+  "run-b/worker.log.gz": {
+   "records": 16,
+   "records_kept_lines": 11,
+   "records_sanitization_markers": 5,
+   "source_lines": 270,
+   "source_lines_dropped": 259,
+   "records_with_capture_time": 0,
+   "log_clock_first_last": null,
+   "bytes": 625,
+   "sha256": "c93f47c836b1cc7bd0e7c1724f273633971f7d35fa1a0a24fe0d72525c61d7fd",
+   "sha256_uncompressed": "772f48997d509b860af35b69498c7aea27650eb2d356b1dd8db2affa5c846110",
+   "source": "Worker pod console from the platform's archived pod log (complete: 270 source lines, below the 2000-line limit). This pod only runs the Ray worker daemon; output of actors placed on this node is forwarded to and printed by the driver on the master pod (Ray prefix 'ip=<node-x>'), so it appears in master.log.gz. All records have t=null.",
+   "truncation": "complete"
+  }
+ },
+ "other_files": {
+  "run_comparison.json": {
+   "bytes": 2522,
+   "sha256": "1cb7e3d6039cb3c4ffb007a49cec42ecd379b6b9cf9796e4d5f459ef720a855d"
+  },
+  "reference_windows.json": {
+   "bytes": 603,
+   "sha256": "d6ba93255d763e8a1c27fef313b042bd2447fa1ce00c3ad3e3be750bf5be8957"
+  },
+  "derive_metrics.py": {
+   "bytes": 13222,
+   "sha256": "b03410b8616305c164154deff83b32734554216e0ff15cc4ba04fc01589cc796"
+  },
+  "metrics_summary.json": {
+   "bytes": 7972,
+   "sha256": "ef38be0a4e8e9be6b052c05affd12a0ebcefa85e6533a1bce1649543025447cb"
+  },
+  "metrics_windows_5min.json": {
+   "bytes": 21631,
+   "sha256": "45b60c561a0ab79eb224bcc6e8bb0541d74b61956ace0322309bf08016f9c763"
+  },
+  "metrics_windows_5min.csv": {
+   "bytes": 2599,
+   "sha256": "b4519f3543a4b6b2b36e2e1736e86e50dafc72d42488a4e2359cee0a56e4e4f0"
+  },
+  "derivation.md": {
+   "bytes": 11912,
+   "sha256": "7607d1873bc87f4691b9cc5aebd60cb1921fdbb95ce3e50850086bae3d5de5bc"
+  }
+ }
+}

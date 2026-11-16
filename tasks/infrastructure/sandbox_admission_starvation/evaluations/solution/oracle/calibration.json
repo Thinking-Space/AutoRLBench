@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "metric_key": "rollout_0_plus_1_wall_s",
+  "threshold": 200.0,
+  "direction": "lower is better",
+  "runs_per_arm": 1,
+  "hardware": "8 x H800 (80 GB), one node, Qwen3.5-9B",
+  "arms": {
+    "unrepaired": {
+      "value": 311.65,
+      "rollout_wall_s": {
+        "0": 234.845,
+        "1": 76.805
+      },
+      "config": "shipped defaults (gate 32, pool 20)",
+      "passes": false
+    },
+    "gate_only": {
+      "value": 366.676,
+      "rollout_wall_s": {
+        "0": 244.8,
+        "1": 121.8
+      },
+      "config": "MAX_CONCURRENT_SANDBOX_SETUP=8192 only",
+      "passes": false,
+      "note": "the repair the logged warning points at. It removes the semaphore wait and does not help: the queueing relocates into the shared 20-connection pool, where more concurrent setups now also compete with running trajectories' tool calls."
+    },
+    "pool_only": {
+      "value": 177.825,
+      "rollout_wall_s": {
+        "0": 116.0,
+        "1": 61.8
+      },
+      "config": "SANDBOX_MAX_CONNECTIONS=2048, SANDBOX_MAX_KEEPALIVE_CONNECTIONS=2000 only",
+      "passes": true,
+      "note": "the unlogged limit is the binding one; lifting it alone clears the threshold with 22 s of margin."
+    },
+    "both": {
+      "value": 137.445,
+      "rollout_wall_s": {
+        "0": 98.888,
+        "1": 38.557
+      },
+      "config": "gate and pool lifted (canonical repair)",
+      "passes": true
+    }
+  },
+  "cpu_calibration": {
+    "note": "256 trajectories against the same sandbox service on CPU, no GPU, same ordering",
+    "total_wall_s": {
+      "unrepaired": 223.4,
+      "gate_only": 215.1,
+      "pool_only": 157.9,
+      "both": 109.2
+    }
+  },
+  "caveats": [
+    "one run per arm; the spread between the unrepaired and gate_only arms (55 s) bounds the run-to-run noise, so the threshold is placed 40 s below the weakest passing arm and 134 s above the strongest failing one",
+    "the arms differ only in the sandbox client's environment; model, topology, training, rollout and the sandbox service are identical"
+  ]
+}

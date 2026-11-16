@@ -1,0 +1,28 @@
+title = 'Sandbox admission gate starves asynchronous rollouts'
+license = "Apache-2.0"
+created_date = "2026-11-16"
+domain = "infrastructure"
+tags = ['sandbox-admission', 'connection-pool', 'async-rollout', 'throughput']
+
+[submitter]
+name = "Jialin Ren"
+
+[model]
+name = "Qwen/Qwen3.5-9B (public replacement; original run used MiniCPM5 MoE)"
+
+[dataset]
+name = "Public synthetic repository-debugging tasks (512, seed 20261116)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/train_reproduction.py"
+
+[environment]
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+gpus = 8
+
+[outcome]
+failure_type = "sandbox_admission_and_connection_pool_bug"
+failure_reason = "The sandbox setup semaphore admits only 32 of 256 in-flight trajectories and holds each slot through several HTTP setup calls backed by a small connection pool."
