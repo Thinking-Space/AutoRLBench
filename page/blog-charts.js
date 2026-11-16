@@ -17,7 +17,7 @@
         profile: {
             affiliations: [['THUNLP', 12], ['Tsinghua', 4], ['FusionBrain', 2], ['Brigham Young', 3], ['Johns Hopkins', 1], ['Tohoku', 2], ['UPenn', 1], ['Independent', 2], ['Fudan', 2], ['SII', 2], ['SW Jiaotong', 2], ['Duke', 1], ['SJTU', 1]],
             errors: [['Infrastructure', 12], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 1]],
-            difficulty: [['Very hard', 13], ['Hard', 13], ['Medium', 6], ['Easy', 3]]
+            difficulty: [['Very hard', 14], ['Hard', 12], ['Medium', 7], ['Easy', 3]]
         },
         models: [['GPT-6-Astra', 35.2], ['GPT-6.1-Sol', 33.3], ['Gemini-4-Argon', 29.6], ['GLM-5.3', 25.9], ['Kimi-K3.1-Pro', 24.1], ['Fable-5.1', 20.4], ['Qwen3.8-Max', 18.5], ['Grok-4.7', 16.7], ['Kimi-K3', 5.6], ['DeepSeek-V4-Pro', 1.9]],
         // Per-model [issue, solution] pass rates behind the overall bars;
@@ -51,7 +51,7 @@
         // Figure 2 uses the same four-step blue-to-red palette as the
         // four-stage trajectory in Figure 8: two blue outcomes followed by
         // two red outcomes.
-        outcomes: [['Pass', 60, '#174f86'], ['Wrong cause', 193, '#3d82b7'], ['Wrong evidence', 33, '#d86f58'], ['Fail', 59, '#bf2536']],
+        outcomes: [['Pass', 60, '#174f86'], ['Wrong cause', 193, '#3d82b7'], ['Wrong evidence', 42, '#d86f58'], ['Fail', 59, '#bf2536']],
         // Failed repair trajectories grouped by the primary error mode. The
         // values are percentages of the 119 failed repair trajectories and
         // are rendered as animated marks in Figure 7.
@@ -133,7 +133,7 @@
             }
         ],
         costs: {
-            issue: [['Astra', 5.03, 34.3], ['Sol', 0.79, 31.4], ['Gemini', 13.01, 17.1], ['GLM', 17.77, 22.9], ['Kimi 3.1', 5.42, 17.1], ['Fable', 14.47, 17.1], ['Qwen', 0.97, 14.3], ['Grok', 2.96, 17.1], ['DeepSeek', 13.31, 0.0], ['Kimi K3', 4.34, 0.0]],
+            issue: [['Astra', 5.03, 33.3], ['Sol', 0.79, 30.6], ['Gemini', 12.66, 16.7], ['GLM', 17.35, 22.2], ['Kimi 3.1', 5.42, 16.7], ['Fable', 14.33, 16.7], ['Qwen', 0.97, 13.9], ['Grok', 2.96, 16.7], ['DeepSeek', 13.12, 0.0], ['Kimi K3', 4.26, 0.0]],
             solution: [['Astra', 47.0, 38.9], ['Sol', 6.04, 38.9], ['Gemini', 43.42, 55.6], ['GLM', 45.48, 33.3], ['Kimi 3.1', 4.82, 38.9], ['Fable', 34.69, 27.8], ['DeepSeek', 38.76, 5.6], ['Kimi K3', 13.16, 16.7]]
         },
         modelLogos: {
@@ -141,7 +141,7 @@
             Sol: 'openai.png', Gemini: 'googlegemini.png', 'Kimi K3': 'kimi.png', 'Kimi 3.1': 'kimi.png'
         },
         times: {
-            issue: [['Astra',64.13,11.68], ['Sol',17.82,13.38], ['Gemini',23.64,19.29], ['GLM',24.95,17.71], ['Kimi 3.1',27.14,20.77], ['Fable',31.19,16.65], ['Qwen',30.23,28.46], ['Grok',15.06,13.11], ['DeepSeek',37.73,33.52], ['Kimi K3',42.16,17.16]],
+            issue: [['Astra',62.45,11.61], ['Sol',17.5,13.11], ['Gemini',23.04,19.06], ['GLM',24.43,17.65], ['Kimi 3.1',26.72,20.28], ['Fable',31.27,17.03], ['Qwen',29.74,27.73], ['Grok',21.33,13.14], ['DeepSeek',37.05,33.26], ['Kimi K3',42.04,17.23]],
             solution: [['Astra',114.3,34.07], ['Sol',105.0,25.36], ['Gemini',100.83,77.3], ['GLM',60.66,52.23], ['Kimi 3.1',21.42,20.07], ['Fable',47.97,10.66], ['Qwen',43.36,37.37], ['Grok',20.71,16.65], ['DeepSeek',83.03,52.69], ['Kimi K3',48.62,27.7]]
         }
     };
@@ -480,10 +480,10 @@
         categories.forEach((item,i)=>{
             const cx=x+i*step+step/2;
             [item[1],item[2]].forEach((v,j)=>{
-                const bh=v/max*h,bx=cx-groupWidth/2+j*(bw+gap),by=y+h-bh;
+                const bh=Math.max(v/max*h,3),bx=cx-groupWidth/2+j*(bw+gap),by=y+h-bh;
                 const bar=svgEl('rect',{x:bx,y:by,width:bw,height:bh,rx:2,fill:j?C.red:C.navy,class:'chart-bar'},svg);
                 animateMark(bar,i*100+j*70,'rise');
-                if (v > 0) text(svg,bx+bw/2,by-8,pct(v),'chart-value',{'text-anchor':'middle'});
+                text(svg,bx+bw/2,by-8,pct(v),'chart-value',{'text-anchor':'middle'});
             });
             text(svg,cx,y+h+32,item[0],'chart-x-label',{'text-anchor':'middle'});
         });
