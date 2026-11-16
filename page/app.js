@@ -121,27 +121,50 @@ function startCategoryScroll(track) {
 function renderTaskCatalog() {
     const mount = document.getElementById('sample-cards');
     if (!mount) return;
+    // Archived showcase entries for families that no longer have live tasks.
+    // They keep the homepage grid visually complete without linking anywhere.
+    const ARCHIVED = {
+        'Environment': {
+            title: 'Zero query vector in retrieval',
+            brief: "The retriever's query vector is all zeros, so every query gets the same documents."
+        }
+    };
     mount.innerHTML = TASK_CATEGORIES.map(family => {
+        const img = `images/task-${family.toLowerCase()}.jpeg`;
         const task = tasksForFamily(family)[0];
-        if (!task) {
+        if (task) {
             return `
-                <div class="task-card is-empty">
-                    <span class="task-tag">${family}</span>
-                    <h3>Sample coming soon</h3>
+                <div class="task-card">
+                    <div class="task-card-image">
+                        <img src="${img}" alt="${family} task illustration" loading="lazy">
+                    </div>
+                    <div class="task-card-body">
+                        <h3>${task.title}</h3>
+                        <span class="task-tag">${family}</span>
+                        <p>${task.brief || task.issue}</p>
+                    </div>
                 </div>
             `;
         }
-        const img = `images/task-${task.family.toLowerCase()}.jpeg`;
+        const archived = ARCHIVED[family];
+        if (archived) {
+            return `
+                <div class="task-card">
+                    <div class="task-card-image">
+                        <img src="${img}" alt="${family} task illustration" loading="lazy">
+                    </div>
+                    <div class="task-card-body">
+                        <h3>${archived.title}</h3>
+                        <span class="task-tag">${family}</span>
+                        <p>${archived.brief}</p>
+                    </div>
+                </div>
+            `;
+        }
         return `
-            <div class="task-card">
-                <div class="task-card-image">
-                    <img src="${img}" alt="${task.family} task illustration" loading="lazy">
-                </div>
-                <div class="task-card-body">
-                    <h3>${task.title}</h3>
-                    <span class="task-tag">${task.family}</span>
-                    <p>${task.brief || task.issue}</p>
-                </div>
+            <div class="task-card is-empty">
+                <span class="task-tag">${family}</span>
+                <h3>Sample coming soon</h3>
             </div>
         `;
     }).join('');
