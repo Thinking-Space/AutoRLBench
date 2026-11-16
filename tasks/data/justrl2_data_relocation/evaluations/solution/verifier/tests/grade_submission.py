@@ -59,9 +59,9 @@ def assess_resolver_contract(prepared, workspace):
     """
     assessment = {'contract_valid': False, 'probes': [], 'errors': []}
 
-    def run_probe(name, record):
+    def run_probe(name, record, dataset_root=None):
         call = subprocess.run([sys.executable, '-I', '-S', str(worker), str(loader)],
-                              input=json.dumps({'root': root, 'record': record}), text=True,
+                              input=json.dumps({'root': dataset_root or root, 'record': record}), text=True,
                               capture_output=True, timeout=30,
                               env={'PATH': os.defpath, 'LANG': 'C.UTF-8'}, cwd='/')
         if call.returncode:
@@ -90,6 +90,18 @@ def assess_resolver_contract(prepared, workspace):
         run_probe('unknown', {**hard, 'id': 'zz-' + hard['id'], 'sha256': '0' * 64,
                               'path': 'live/hard/zz-' + hard['id'] + '.json'})
         run_probe('content', {**hard, 'sha256': '1' * 64})
+        easy = next((row for row in rows if row.get('difficulty') == 'easy'), None)
+        if easy is None:
+            raise ValueError('Scene manifest has no easy training rows')
+        # Existing files must not short-circuit logical identity/content checks.
+        run_probe('unknown_existing', {**easy, 'id': 'zz-' + easy['id']})
+        run_probe('content_existing', {**easy, 'sha256': '1' * 64})
+        # Preserve valid metadata but omit payloads in an isolated probe dataset.
+        # Never delete or change files in the pinned training scene.
+        with tempfile.TemporaryDirectory(prefix='resolver-missing-') as directory:
+            for name in ('manifest.json', 'catalog.json'):
+                (Path(directory) / name).write_bytes((scene / 'dataset' / name).read_bytes())
+            run_probe('missing_current_file', hard, directory)
     except (OSError, ValueError, TypeError, KeyError, IndexError, subprocess.SubprocessError) as error:
         assessment['errors'].append('Resolver contract: ' + str(error))
         return assessment

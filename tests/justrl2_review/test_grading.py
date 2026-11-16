@@ -14,6 +14,9 @@ def test_starting_verdict_and_continuation_joint_score(tmp_path, expected, repor
     result, code = run.run()
     assert result['score'] == int(accepted) and result['passed'] is accepted
     assert result['metrics']['score'] is True and result['metrics']['admitted_count'] == 64
+    assert result['resolver_contract']['contract_valid'] is True
+    assert {probe['probe'] for probe in result['resolver_contract']['probes']} == {
+        'unknown', 'content', 'unknown_existing', 'content_existing', 'missing_current_file'}
     assert (run.loader.read_bytes() != run.initial_loader) is repair
 
 
