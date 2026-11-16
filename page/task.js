@@ -93,10 +93,6 @@
             file: 'infrastructure-qwen3vl_geo3k',
             alt: 'Held-out geometry3k accuracy, recorded run vs control'
         },
-        'infrastructure/torch_functional': {
-            file: 'infrastructure-torch_functional',
-            alt: 'Training reward per step for the issue run'
-        },
         'infrastructure/verl_qwen3_vl_grpo_training_case_v8k2': {
             file: 'infrastructure-verl_qwen3_vl_grpo_training_case_v8k2',
             alt: 'Held-out ScienceQA accuracy, defective vs repaired run'

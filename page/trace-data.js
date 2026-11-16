@@ -563,7 +563,7 @@
  * recovery). All ten trajectories were audited clean of network
  * access. The published issue-judgment total below moves 380 -> 390
  * with this round.
- * The 200 solution records are reconciled against AutoRLBench validation-first
+ * The 190 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -1325,20 +1325,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 5.8977
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "fable51-torch-fn",
-    "file": "agent-trace/fable51-torch-fn.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 0.966667,
-    "durationMs": 675066,
-    "steps": 35,
-    "costUsd": 2.4799
-  },
-  {
     "task": "configuration/trl_gsm8k_eos_mismatch",
     "slug": "fable51-trl-eos",
     "file": "agent-trace/fable51-trl-eos.json",
@@ -1521,20 +1507,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 20.1001
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "glm53-torch-fn",
-    "file": "agent-trace/glm53-torch-fn.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.96,
-    "durationMs": 3772771,
-    "steps": 110,
-    "costUsd": 22.3387
-  },
-  {
     "task": "configuration/trl_gsm8k_eos_mismatch",
     "slug": "glm53-trl-eos",
     "file": "agent-trace/glm53-trl-eos.json",
@@ -1631,20 +1603,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2347607,
     "steps": 63,
     "costUsd": 27.3357
-  },
-  {
-    "task": "infrastructure/torch_functional",
-    "slug": "gemini4-torch-fn",
-    "file": "agent-trace/gemini4-torch-fn.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.942857,
-    "durationMs": 1061288,
-    "steps": 47,
-    "costUsd": 21.359
   },
   {
     "task": "configuration/trl_gsm8k_eos_mismatch",
@@ -1745,20 +1703,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 2.0703
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "gpt6astra-torch-fn",
-    "file": "agent-trace/gpt6astra-torch-fn.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 863997,
-    "steps": 18,
-    "costUsd": 2.1968
-  },
-  {
     "task": "configuration/trl_gsm8k_eos_mismatch",
     "slug": "gpt6astra-trl-eos",
     "file": "agent-trace/gpt6astra-trl-eos.json",
@@ -1841,20 +1785,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 845644,
     "steps": 26,
     "costUsd": 0.5822
-  },
-  {
-    "task": "infrastructure/torch_functional",
-    "slug": "gpt61sol-torch-fn",
-    "file": "agent-trace/gpt61sol-torch-fn.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.942857,
-    "durationMs": 1201894,
-    "steps": 27,
-    "costUsd": 0.6624
   },
   {
     "task": "configuration/trl_gsm8k_eos_mismatch",
@@ -1952,20 +1882,6 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.98,
     "durationMs": 1385269,
     "steps": 17,
-    "costUsd": null
-  },
-  {
-    "task": "infrastructure/torch_functional",
-    "slug": "grok47-torch-fn",
-    "file": "agent-trace/grok47-torch-fn.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.95,
-    "durationMs": 622118,
-    "steps": 31,
     "costUsd": null
   },
   {
@@ -2067,20 +1983,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 8.9881
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "kimi-torch-fn",
-    "file": "agent-trace/kimi-torch-fn.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.3,
-    "durationMs": 1417195,
-    "steps": 18,
-    "costUsd": 3.0394
-  },
-  {
     "task": "configuration/trl_gsm8k_eos_mismatch",
     "slug": "kimi-trl-eos",
     "file": "agent-trace/kimi-trl-eos.json",
@@ -2179,20 +2081,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 8.1583
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "kimi31-torch-fn",
-    "file": "agent-trace/kimi31-torch-fn.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.92728,
-    "durationMs": 4404644,
-    "steps": 77,
-    "costUsd": 30.0161
-  },
-  {
     "task": "configuration/trl_gsm8k_eos_mismatch",
     "slug": "kimi31-trl-eos",
     "file": "agent-trace/kimi31-trl-eos.json",
@@ -2277,20 +2165,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": null
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "qwen38-torch-fn",
-    "file": "agent-trace/qwen38-torch-fn.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1337076,
-    "steps": 26,
-    "costUsd": null
-  },
-  {
     "task": "configuration/trl_gsm8k_eos_mismatch",
     "slug": "qwen38-trl-eos",
     "file": "agent-trace/qwen38-trl-eos.json",
@@ -2333,24 +2207,6 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": null
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "fable51-torch-fn-sol",
-    "file": "agent-trace/fable51-torch-fn-sol.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 1678516,
-    "steps": 79,
-    "costUsd": 7.4495,
-    "sourceRunId": "autorlbench-20261028-145740-11811fe3",
-    "sessionId": "aac42629-f4d2-4705-a3db-37459dc3bda2",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "4ae31b480875e7a4a14b081e0ce1f554df6edb5cbcf2a232ef12a0f058bd2407"
-  },
-  {
     "task": "infrastructure/verl_moe_token_normalization",
     "slug": "fable51-moe-token-sol",
     "file": "agent-trace/fable51-moe-token-sol.json",
@@ -2367,24 +2223,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "65bce2e4-046d-4dbf-866f-ffe89a7da8a7",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "524b0025c0666cc5e004338f0d31cf777c90d7239cc4b4a1334998d00c15d297"
-  },
-  {
-    "task": "infrastructure/torch_functional",
-    "slug": "dsv4-torch-fn-sol",
-    "file": "agent-trace/dsv4-torch-fn-sol.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 3232911,
-    "steps": 71,
-    "costUsd": 33.878,
-    "sourceRunId": "autorlbench-20261028-101249-c0b5c84e",
-    "sessionId": "9e578767-0e8d-47ed-a12e-a379e4eb6fc8",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "70fe4f71a90c9bbe8efb29df00cd3ac999b18369221a9e2a5e1c755af648ceb3"
   },
   {
     "task": "infrastructure/verl_moe_token_normalization",
@@ -2424,24 +2262,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "7d8f3819ac10060459b7b63778fcdd2eb0f6fb5721202421b90ef731ed4b66ca"
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "gemini4-torch-fn-sol",
-    "file": "agent-trace/gemini4-torch-fn-sol.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 1106180,
-    "steps": 56,
-    "costUsd": 24.5113,
-    "sourceRunId": "autorlbench-20261029-003730-f778e330",
-    "sessionId": "4634a0cd-9b75-4019-a2b6-1d6175f8461c",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "b867ff494c265a47f40cb2e9105fa0517422941720a377eaefba35078b9a5e95"
-  },
-  {
     "task": "infrastructure/verl_moe_token_normalization",
     "slug": "gemini4-moe-token-sol",
     "file": "agent-trace/gemini4-moe-token-sol.json",
@@ -2458,24 +2278,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "5780512c-ac6c-4fbc-9787-ca61f9a73a96",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "586934d1c2fb16349a8189b80a5ce30e3a58596b6082ed90e686535bb00a2928"
-  },
-  {
-    "task": "infrastructure/torch_functional",
-    "slug": "gpt6astra-torch-fn-sol",
-    "file": "agent-trace/gpt6astra-torch-fn-sol.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 1063606,
-    "steps": 29,
-    "costUsd": 4.0616,
-    "sourceRunId": "autorlbench-20261028-210418-b26abeb4",
-    "sessionId": "01a1829e-680a-7640-9dfe-f9546893e277",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c664d6172a85dc6b0c1ca28a3a17c2d9c3b42c079c1cbd5284eee5e5e2f4354a"
   },
   {
     "task": "infrastructure/verl_moe_token_normalization",
@@ -2497,24 +2299,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "a2fa618fdb6bb1ba4fffc820c3ea617df9116db07cbf4527f612dfb8aa38a3d1"
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "gpt61sol-torch-fn-sol",
-    "file": "agent-trace/gpt61sol-torch-fn-sol.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 629545,
-    "steps": 27,
-    "costUsd": 0.9622,
-    "sourceRunId": "autorlbench-20261029-030745-d7225233",
-    "sessionId": "01a183ea-b138-73f2-b04e-c3b2fd96b6bf",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c81ad7869db7df0385463367a2b8ffbe17971b7200beafca0e386ec5e3f54c6c"
-  },
-  {
     "task": "infrastructure/verl_moe_token_normalization",
     "slug": "gpt61sol-moe-token-sol",
     "file": "agent-trace/gpt61sol-moe-token-sol.json",
@@ -2533,24 +2317,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "5ba21722899958249e518fdc11d34a832a360a69c415212e809c04bac17b7697"
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "grok47-torch-fn-sol",
-    "file": "agent-trace/grok47-torch-fn-sol.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 372050,
-    "steps": 28,
-    "costUsd": null,
-    "sourceRunId": "autorlbench-20261029-083218-3bb7b06e",
-    "sessionId": "09b81b4d-55e7-4288-9bc9-3260a601a652",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "85e3fd8ff713a1a1f6894dc328f3c7156cd01548fa50998fde53c0d61a51fed5"
-  },
-  {
     "task": "infrastructure/verl_moe_token_normalization",
     "slug": "grok47-moe-token-sol",
     "file": "agent-trace/grok47-moe-token-sol.json",
@@ -2567,24 +2333,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "00aa2c5c-42c3-4da3-827b-15284e4654ce",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "7d0db449bd97fb15e7fec2a460bc8b13a00642e06bd6eb7d5a12d0a08ed96e39"
-  },
-  {
-    "task": "infrastructure/torch_functional",
-    "slug": "kimi-torch-fn-sol",
-    "file": "agent-trace/kimi-torch-fn-sol.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 10282877,
-    "steps": 94,
-    "costUsd": 25.1447,
-    "sourceRunId": "autorlbench-20261028-234128-e5e57e25",
-    "sessionId": "8102e7e8-9edd-49c4-b15c-83a77bb36b43",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "d52797c95ce056936a49dcaf3b1b495d741020392649631e80321b3e2f2490bd"
   },
   {
     "task": "infrastructure/verl_moe_token_normalization",
@@ -2623,24 +2371,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "4ae85f224b8c8d93e5ea1e1a4346f3d3060165492e9d2c964e23ff08b47e8a35"
   },
   {
-    "task": "infrastructure/torch_functional",
-    "slug": "qwen38-torch-fn-sol",
-    "file": "agent-trace/qwen38-torch-fn-sol.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 855722,
-    "steps": 36,
-    "costUsd": null,
-    "sourceRunId": "autorlbench-20261029-062507-82f368da",
-    "sessionId": "e5e4c6c2-1ac9-4bbd-9555-0069c2af5e19",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c1f3c02489f4873b8698c7f10317c39e981f4327bd0a97b1e20be563fff5eddd"
-  },
-  {
     "task": "infrastructure/verl_moe_token_normalization",
     "slug": "qwen38-moe-token-sol",
     "file": "agent-trace/qwen38-moe-token-sol.json",
@@ -2657,56 +2387,6 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "549f6d4d-f056-433f-9efb-84c0dc66aa3b",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "054313ed8ce751f884718ad8ee2dc2199902fe3e7261ea7dc35abf946fe31e32"
-  },
-  {
-    "task": "infrastructure/torch_functional",
-    "slug": "glm53-torch-fn-sol",
-    "file": "agent-trace/glm53-torch-fn-sol.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": true,
-    "score": 1.0,
-    "durationMs": 2181629,
-    "steps": 106,
-    "costUsd": 19.1911,
-    "sourceRunId": "autorlbench-20261027-090714-fd18d176",
-    "sessionId": "ce9dd0ce-9aca-4407-a0da-c854f458019c",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "bf1383017184ec845c9b93528aa35b3f79e2d7c6a5e11ec8ccf74332644b5e4c"
-  },
-  {
-    "task": "infrastructure/torch_functional",
-    "slug": "kimi31-torch-fn-sol",
-    "file": "agent-trace/kimi31-torch-fn-sol.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 615306,
-    "steps": 26,
-    "costUsd": 2.9009,
-    "sourceRunId": "autorlbench-20261027-090349-fce88e91",
-    "sessionId": "7c1d14a1-ae6a-4443-a53a-6eebe0bac972",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "65fe84a34de5777dc25d2ea828c9e43dfbd2ca280a20dcc5a306e4b1a82b1cbf"
-  },
-  {
-    "task": "infrastructure/torch_functional",
-    "slug": "dsv4-torch-fn",
-    "file": "agent-trace/dsv4-torch-fn.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "issue",
-    "passed": false,
-    "score": 0.4,
-    "durationMs": 1251040,
-    "steps": 34,
-    "costUsd": 13.0687
   },
   {
     "task": "reward/idea_awm_reward_diagnosis",

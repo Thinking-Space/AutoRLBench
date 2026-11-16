@@ -163,25 +163,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen3-VL-8B-Instruct with GRPO on geometry3k. A raw AutoProcessor is used instead of the model's preprocessor, so image position ids come out flat and the KL against the reference model is an order of magnitude too high."
   },
   {
-    "id": "infrastructure/torch_functional",
-    "title": "Missing torch.roll in rm-pad log-prob computation",
-    "family": "Infrastructure",
-    "tags": [
-      "verl",
-      "grpo",
-      "log-prob",
-      "rm-pad"
-    ],
-    "model": "Qwen/Qwen2.5-1.5B-Instruct",
-    "dataset": "TACO EASY (8368 train / 184 test)",
-    "framework": "verl",
-    "image": "verl",
-    "created": "2026-09-09",
-    "license": "MIT",
-    "brief": "Log-probs are computed one token off after rm-pad.",
-    "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO EASY. input_ids_rmpad_rolled is assigned as input_ids_rmpad instead of torch.roll(..., shifts=-1, dims=1), so old log-probs are shifted one token and dominate the surrogate loss."
-  },
-  {
     "id": "infrastructure/verl_qwen3_vl_grpo_training_case_v8k2",
     "title": "Qwen3-VL GRPO training case v8k2",
     "family": "Infrastructure",

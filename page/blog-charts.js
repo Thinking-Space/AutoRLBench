@@ -15,12 +15,12 @@
 
     const data = {
         profile: {
-            affiliations: [['THUNLP', 13], ['Tsinghua', 5], ['FusionBrain', 3], ['Brigham Young', 3], ['Johns Hopkins', 2], ['Tohoku', 2], ['UPenn', 2], ['Independent', 2], ['Fudan', 2], ['SII', 2], ['SW Jiaotong', 2], ['Duke', 1], ['SJTU', 1], ['HIT Shenzhen', 1]],
-            errors: [['Infrastructure', 13], ['Algorithm', 11], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 1]],
-            difficulty: [['Very hard', 12], ['Hard', 14], ['Medium', 8], ['Easy', 5]]
+            affiliations: [['THUNLP', 12], ['Tsinghua', 5], ['FusionBrain', 3], ['Brigham Young', 3], ['Johns Hopkins', 2], ['Tohoku', 2], ['UPenn', 2], ['Independent', 2], ['Fudan', 2], ['SII', 2], ['SW Jiaotong', 2], ['Duke', 1], ['SJTU', 1], ['HIT Shenzhen', 1]],
+            errors: [['Infrastructure', 12], ['Algorithm', 11], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 1]],
+            difficulty: [['Very hard', 12], ['Hard', 14], ['Medium', 7], ['Easy', 5]]
         },
-        models: [['GPT-6-Astra', 39.0], ['GPT-6.1-Sol', 37.3], ['GLM-5.3', 33.9], ['Gemini-4-Argon', 33.9], ['Fable-5.1', 28.8], ['Kimi-K3.1-Pro', 28.8], ['Qwen3.8-Max', 25.4], ['Grok-4.7', 22.0], ['DeepSeek-V4-Pro', 5.1], ['Kimi-K3', 5.1]],
-        averageLevels: [21.0, 35.5],
+        models: [['GPT-6-Astra', 38.6], ['GPT-6.1-Sol', 36.8], ['Gemini-4-Argon', 35.1], ['GLM-5.3', 33.3], ['Kimi-K3.1-Pro', 29.8], ['Fable-5.1', 26.3], ['Qwen3.8-Max', 24.6], ['Grok-4.7', 22.8], ['DeepSeek-V4-Pro', 5.3], ['Kimi-K3', 5.3]],
+        averageLevels: [20.8, 35.8],
         modelHarness: ['Codex', 'Codex', 'Claude Code', 'Claude Code', 'Claude Code', 'Claude Code', 'Qwen Code', 'Grok Build', 'Claude Code', 'Claude Code'],
         modelDisplayNames: {
             Fable: 'Fable-5.1',
@@ -36,15 +36,15 @@
         // Figure 2 uses the same four-step blue-to-red palette as the
         // four-stage trajectory in Figure 8: two blue outcomes followed by
         // two red outcomes.
-        outcomes: [['Pass', 82, '#174f86'], ['Wrong cause', 194, '#3d82b7'], ['Wrong evidence', 51, '#d86f58'], ['Fail', 59, '#bf2536']],
+        outcomes: [['Pass', 79, '#174f86'], ['Wrong cause', 192, '#3d82b7'], ['Wrong evidence', 46, '#d86f58'], ['Fail', 59, '#bf2536']],
         // Failed repair trajectories grouped by the primary error mode. The
-        // values are percentages of the 129 failed repair trajectories and
+        // values are percentages of the 122 failed repair trajectories and
         // are rendered as animated marks in Figure 7.
         repairErrors: [
             ['No edit', 22, '#104680'],
-            ['Wrong target', 52, '#6DADD1'],
-            ['Incorrect / incomplete', 34, '#DC6D57'],
-            ['New Failure', 7, '#B72230'],
+            ['Wrong target', 49, '#6DADD1'],
+            ['Incorrect / incomplete', 31, '#DC6D57'],
+            ['New Failure', 6, '#B72230'],
             ['Cheating', 14, '#6D011F']
         ],
         // Per-task counts use the same mutually exclusive outcome categories
@@ -67,23 +67,23 @@
             { title: 'GRPO broadcast', x: [0,50,100,150,200,250,300,350,400], a: [5.435,7.065,8.696,10.326,9.783,11.957,10.87,11.957,11.413], b: [5.978,0,0,0,0,0,0,0,0], aLabel: 'Fable', bLabel: 'Kimi K3', gate: 10, max: 15, colors: [C.blue, C.peach] },
             { title: 'AdamW epsilon', x: [0,10,20,30,40,50,60,70,80,90,100], a: [.076,48.749,52.464,55.648,58.074,56.027,57.165,58.302,56.861,59.136,58.378], b: [.076,.455,10.69,27.521,40.561,47.309,48.976,48.446,48.749,48.976,49.431], aLabel: 'Astra', bLabel: 'Kimi K3', gate: 53, max: 65, colors: [C.navy, C.peach] }
         ],
-        categories: [['Configuration', 16, 45], ['Reward', 16, 23.3], ['Data', 10, 30], ['Environment', 80, 70], ['Algorithm', 20.9, 36.7], ['Infrastructure', 23.8, 31.4]],
+        categories: [['Configuration', 16, 45], ['Reward', 16, 23.3], ['Data', 10, 30], ['Environment', 80, 70], ['Algorithm', 20.9, 36.7], ['Infrastructure', 23.3, 31.7]],
         // Per model and category: [diagnosis, repair, combined] pass rates
         // over that category's published runs. The combined value keeps the
         // fig-1 category drill-down on the same metric as the overall
         // leaderboard (issue + solution passes over all runs); fig-4 reads
         // the first two entries for its paired bars.
         categoryByModel: {
-            'GPT-6-Astra': [[20, 25, 22.2], [60, 66.7, 62.5], [0, 50, 16.7], [100, 100, 100], [27.3, 0, 21.4], [53.8, 42.9, 50]],
-            'GPT-6.1-Sol': [[40, 25, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [18.2, 0, 14.3], [53.8, 71.4, 60]],
-            'Gemini-4-Argon': [[20, 75, 44.4], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [18.2, 66.7, 28.6], [23.1, 57.1, 35]],
-            'GLM-5.3': [[20, 50, 33.3], [20, 0, 12.5], [25, 50, 33.3], [100, 0, 50], [27.3, 66.7, 35.7], [38.5, 42.9, 40]],
-            'Kimi-K3.1-Pro': [[20, 50, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [27.3, 33.3, 28.6], [15.4, 42.9, 25]],
-            'Fable-5.1': [[20, 75, 44.4], [0, 0, 0], [25, 0, 16.7], [100, 100, 100], [27.3, 66.7, 35.7], [23.1, 28.6, 25]],
-            'Qwen3.8-Max': [[0, 75, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 0, 50], [36.4, 33.3, 35.7], [23.1, 0, 15]],
-            'Grok-4.7': [[20, 25, 22.2], [0, 33.3, 12.5], [50, 0, 33.3], [100, 100, 100], [27.3, 66.7, 35.7], [7.7, 0, 5]],
-            'DeepSeek-V4-Pro': [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 100, 50], [0, 33.3, 7.1], [0, 14.3, 5]],
-            'Kimi-K3': [[0, 50, 22.2], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 14.3, 5]]
+            'GPT-6-Astra': [[20, 25, 22.2], [60, 66.7, 62.5], [0, 50, 16.7], [100, 100, 100], [27.3, 0, 21.4], [50, 50, 50]],
+            'GPT-6.1-Sol': [[40, 25, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [18.2, 0, 14.3], [58.3, 66.7, 61.1]],
+            'Gemini-4-Argon': [[20, 75, 44.4], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [18.2, 66.7, 28.6], [25, 66.7, 38.9]],
+            'GLM-5.3': [[20, 50, 33.3], [20, 0, 12.5], [25, 50, 33.3], [100, 0, 50], [27.3, 66.7, 35.7], [41.7, 33.3, 38.9]],
+            'Kimi-K3.1-Pro': [[20, 50, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [27.3, 33.3, 28.6], [16.7, 50, 27.8]],
+            'Fable-5.1': [[20, 75, 44.4], [0, 0, 0], [25, 0, 16.7], [100, 100, 100], [27.3, 66.7, 35.7], [16.7, 16.7, 16.7]],
+            'Qwen3.8-Max': [[0, 75, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 0, 50], [36.4, 33.3, 35.7], [16.7, 0, 11.1]],
+            'Grok-4.7': [[20, 25, 22.2], [0, 33.3, 12.5], [50, 0, 33.3], [100, 100, 100], [27.3, 66.7, 35.7], [8.3, 0, 5.6]],
+            'DeepSeek-V4-Pro': [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 100, 50], [0, 33.3, 7.1], [0, 16.7, 5.6]],
+            'Kimi-K3': [[0, 50, 22.2], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 16.7, 5.6]]
         },
         dataCurve: { x: [0,1,2,3,4,5,6,7], train: [37.5,43.8,37.5,43.8,75,81.3,62.5,62.5], validationX: [0,3,7], validation: [50,37.5,31.25], hard: [50,50,50,50,0,0,0,0] },
         // Issue-level mask-window task: the reward curve reads healthy while
@@ -118,16 +118,16 @@
             }
         ],
         costs: {
-            issue: [['Fable', 13.46, 23.1], ['DeepSeek', 14.08, 0], ['GLM', 17.74, 30.8], ['Astra', 4.61, 44.1], ['Sol', .84, 38.2], ['Gemini', 13.49, 21.1], ['Kimi K3', 4.25, 0], ['Kimi 3.1', 6.11, 21.1]],
-            solution: [['Fable', 34.02, 40], ['DeepSeek', 37.76, 15], ['GLM', 43.43, 40], ['Astra', 40.52, 40], ['Sol', 5.26, 45], ['Gemini', 42.43, 57.9], ['Kimi K3', 14.22, 15], ['Kimi 3.1', 4.42, 45]]
+            issue: [['Fable', 13.75, 21.1], ['DeepSeek', 14.11, 0], ['GLM', 17.62, 31.6], ['Astra', 4.69, 36.8], ['Sol', .85, 34.2], ['Gemini', 13.28, 21.1], ['Kimi K3', 4.29, 0], ['Kimi 3.1', 5.46, 21.1]],
+            solution: [['Fable', 35.41, 36.8], ['DeepSeek', 37.97, 15.8], ['GLM', 44.7, 36.8], ['Astra', 42.44, 42.1], ['Sol', 5.48, 42.1], ['Gemini', 43.43, 63.2], ['Kimi K3', 13.64, 15.8], ['Kimi 3.1', 4.5, 47.4]]
         },
         modelLogos: {
             Fable: 'anthropic.png', DeepSeek: 'deepseek.png', GLM: 'glm.png', Astra: 'openai.png',
             Sol: 'openai.png', Gemini: 'googlegemini.png', 'Kimi K3': 'kimi.png', 'Kimi 3.1': 'kimi.png'
         },
         times: {
-            issue: [['Fable',29.08,11.81],['DeepSeek',39.8,37.32],['GLM',26.23,18.36],['Astra',58.63,11.54],['Sol',19.5,13.69],['Gemini',23.24,17.77],['Grok',14.27,11.1],['Kimi K3',41.21,17.85],['Kimi 3.1',27.72,19.79],['Qwen',29.84,27.42]],
-            solution: [['Fable',45.72,12.39],['DeepSeek',76.64,49.89],['GLM',56.83,47.06],['Astra',105.19,25.39],['Sol',90.93,18.48],['Gemini',104.19,77.3],['Grok',18.33,12.09],['Kimi K3',71.78,30.91],['Kimi 3.1',20.67,20.07],['Qwen',43.44,37.72]]
+            issue: [['Fable',29.55,13.36],['DeepSeek',40.29,37.84],['GLM',25.26,18.29],['Astra',59.79,11.41],['Sol',19.48,13.53],['Gemini',23.39,18.3],['Grok',14.38,12.11],['Kimi K3',41.68,17.58],['Kimi 3.1',26.51,19.28],['Qwen',30.03,27.94]],
+            solution: [['Fable',46.65,11.47],['DeepSeek',77.84,47.09],['GLM',57.91,51.18],['Astra',109.79,28.08],['Sol',95.16,19.19],['Gemini',108.71,82.85],['Grok',18.97,13.75],['Kimi K3',66.53,28.6],['Kimi 3.1',21.22,20.54],['Qwen',44.98,38.07]]
         }
     };
 
@@ -365,8 +365,8 @@
     function quadrants(el) {
         const svg=make(el,800,410,'Diagnosis and repair outcomes across shared tasks');
         const x=170,y=35,size=300,half=size/2; const cells=[
-            [0,0,'Diagnosis fails','Repair fails',58.5,C.navy], [1,0,'Diagnosis fails','Repair passes',23,C.paleBlue],
-            [0,1,'Diagnosis passes','Repair fails',6,'#e9f0f3'], [1,1,'Diagnosis passes','Repair passes',12.5,'#c8dce8']
+            [0,0,'Diagnosis fails','Repair fails',58.9,C.navy], [1,0,'Diagnosis fails','Repair passes',23.2,C.paleBlue],
+            [0,1,'Diagnosis passes','Repair fails',5.3,'#e9f0f3'], [1,1,'Diagnosis passes','Repair passes',12.6,'#c8dce8']
         ];
         cells.forEach((cell,i)=>{
             const [cx,cy,_,__,v,color]=cell;
@@ -383,10 +383,10 @@
         text(svg,x-18,y+half+half/2,'Diagnosis passes','chart-quadrant-axis',{'text-anchor':'end','dominant-baseline':'middle'});
 
         const sideX=535;
-        text(svg,sideX,151,'400 trajectories','chart-quadrant-side-value');
-        text(svg,sideX,211,'37','chart-quadrant-side-value');
+        text(svg,sideX,151,'380 trajectories','chart-quadrant-side-value');
+        text(svg,sideX,211,'34','chart-quadrant-side-value');
         text(svg,sideX,231,'diagnosis passes','chart-quadrant-side-label');
-        text(svg,sideX,271,'71','chart-quadrant-side-value');
+        text(svg,sideX,271,'68','chart-quadrant-side-value');
         text(svg,sideX,291,'repair passes','chart-quadrant-side-label');
     }
 
