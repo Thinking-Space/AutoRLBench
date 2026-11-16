@@ -383,26 +383,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. run_gsm8k_grpo.sh sets PPO_MINI_BATCH_SIZE=4 ('smaller mini-batches to fit memory') against TRAIN_BATCH_SIZE=128 and ROLLOUT_N=8; verl multiplies ppo_mini_batch_size by rollout.n, so each 1,024-sample rollout batch is consumed in 32 optimizer updates of 32 samples instead of the recipe's 4 updates of 256. The later updates of every step are computed on a policy that has already moved: actor/ppo_kl stays 0.003-0.004 instead of settling near zero, entropy rises 0.35 -> 0.73 instead of decaying, responses lengthen and truncate (clip ratio 0.07 -> 0.37), the training score peaks at 0.62 (step 30) and falls back to 0.48 (control 0.75), and held-out accuracy peaks at 0.494 (step 20) and ends at 0.361 under the grader's boxed rule (0.387 by Math-Verify), below its own step 0; with ppo_mini_batch_size=32 the same workspace reaches 0.565, with 8 it reaches 0.541. No crash, no NaN, RUN_EXIT 0."
   },
   {
-    "id": "algorithm/verl_pissa_residual_base_reference",
-    "title": "PiSSA residual base used as the KL reference",
-    "family": "Algorithm",
-    "tags": [
-      "verl",
-      "grpo",
-      "pissa",
-      "lora",
-      "kl-reference"
-    ],
-    "model": "Qwen/Qwen2.5-0.5B-Instruct + PiSSA rank 8",
-    "dataset": "openai/gsm8k deterministic calibration subset (16 train, 8 validation)",
-    "framework": "verl / GRPO",
-    "image": "verl-vllm011",
-    "created": "2026-11-01",
-    "license": "Apache-2.0",
-    "brief": "PiSSA initialization rewrites each adapted layer to W_residual = W_pretrained - A0*B0, so disabling the adapter exposes the residual weights — and the KL reference is computed against the wrong base.",
-    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO and a rank-8 PiSSA adapter. For a PiSSA residual-base checkpoint, disabling the adapter exposes W_residual rather than the original pretrained weights; the defective base-reference path therefore computes KL against the residual checkpoint. Final base-reference consistency is 0.04578 where the repaired path reaches 1.0, and the natural symptom is visible in the metrics: actor/kl_loss runs 0.76-0.98 across all four updates where a correct run logs near zero at step 1 (actor/base_model_kl around -4.6)."
-  },
-  {
     "id": "infrastructure/verl_pissa_vllm_adapter_request",
     "title": "PiSSA adapter omitted from vLLM rollout requests",
     "family": "Infrastructure",
@@ -459,25 +439,6 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "A custom GRPO objective sums masked token losses per response and averages over responses — a coherent, correctly masked objective, but not the standard token-mean target this benchmark declares.",
     "issue": "Training Qwen3-1.7B with GRPO on DAPO-Math-17k (150 steps, batch 512, mini 32, rollout 8). The registered luspo_token loss computes loss = (per_token_loss * mask).sum(-1).mean() — sequence-sum-then-average instead of token-mean aggregation — and omits native dual clipping; recorded_config.yaml also sets use_remove_padding: false where the shared repaired reference runs true. Training reward still rises (0.095 at step 1, peak 0.328 at step 46, 0.247 at step 150) but actor/grad_norm reaches 1.5e8 and AIME24/25 mean@32 at step 150 is 0.057 versus 0.144 for the repaired reference."
-  },
-  {
-    "id": "infrastructure/verl_rollout_weight_overwrite",
-    "title": "Initial checkpoint overwrites synchronized rollout weights",
-    "family": "Infrastructure",
-    "tags": [
-      "verl",
-      "grpo",
-      "recorded-run",
-      "container-validation-pending"
-    ],
-    "model": "Qwen/Qwen3-1.7B",
-    "dataset": "DAPO-Math-17k original 1,791,700 rows (no dedup); AIME24/25 30 questions each",
-    "framework": "verl v0.6.1 / GRPO",
-    "image": "verl-v061-grpo",
-    "created": "2026-11-02",
-    "license": "Apache-2.0",
-    "brief": "After each actor-to-vLLM weight sync, a post-sync hook reloads the initial checkpoint into the rollout engine — generation never uses the updated policy.",
-    "issue": "Training Qwen3-1.7B with GRPO on DAPO-Math-17k (150 steps, batch 512, mini 32, rollout 8). case/sync.py finalize_weights reloads the initial safetensors checkpoint into the vLLM engine after Actor weights have been synchronized, so rollout generation repeatedly uses the initial weights while the Actor trains against its own updates. sync_trace.jsonl shows after_sync_max_abs_delta up to 4.9e-4 with changed_parameters rising to 154-156 of 226 sampled; actor/grad_norm grows 0.24 to 83.7 and actor/ppo_kl to 1.38 while critic/score/mean stays flat around 0.08-0.12; val-core/aime24/acc/mean@32 is exactly equal at step 0 and step 150 (0.0229) — held-out accuracy frozen at the step-0 level."
   },
   {
     "id": "algorithm/verl_reinforcepp_observation_credit",

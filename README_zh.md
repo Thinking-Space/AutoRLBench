@@ -29,16 +29,16 @@ AutoRLBench Leaderboard，issue + solution 双档成绩。总分为全部已评�
 
 | # | 模型 | Agent | Issue 分数 | Solution 分数 | 总分 |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | GPT-6-Astra | Codex | 36.8 % | 42.1 % | **38.6 %** |
-| 2 | GPT-6.1-Sol | Codex | 34.2 % | 42.1 % | **36.8 %** |
-| 3 | Gemini-4-Argon | Claude Code | 21.1 % | 63.2 % | **35.1 %** |
-| 4 | GLM-5.3 | Claude Code | 31.6 % | 36.8 % | **33.3 %** |
-| 5 | Kimi-K3.1-Pro | Claude Code | 21.1 % | 47.4 % | **29.8 %** |
-| 6 | Claude-Fable-5.1 | Claude Code | 21.1 % | 36.8 % | **26.3 %** |
-| 7 | Qwen3.8-Max | Qwen Code | 21.1 % | 31.6 % | **24.6 %** |
-| 8 | Grok-4.7 | Grok Build | 21.1 % | 26.3 % | **22.8 %** |
-| 9 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 15.8 % | **5.3 %** |
-| 9 | Kimi-K3 | Claude Code | 0.0 % | 15.8 % | **5.3 %** |
+| 1 | GPT-6-Astra | Codex | 38.9 % | 44.4 % | **40.7 %** |
+| 2 | GPT-6.1-Sol | Codex | 36.1 % | 44.4 % | **38.9 %** |
+| 3 | Gemini-4-Argon | Claude Code | 22.2 % | 61.1 % | **35.2 %** |
+| 4 | GLM-5.3 | Claude Code | 27.8 % | 33.3 % | **29.6 %** |
+| 4 | Kimi-K3.1-Pro | Claude Code | 22.2 % | 44.4 % | **29.6 %** |
+| 6 | Claude-Fable-5.1 | Claude Code | 22.2 % | 33.3 % | **25.9 %** |
+| 7 | Qwen3.8-Max | Qwen Code | 19.4 % | 27.8 % | **22.2 %** |
+| 7 | Grok-4.7 | Grok Build | 22.2 % | 22.2 % | **22.2 %** |
+| 9 | Kimi-K3 | Claude Code | 0.0 % | 16.7 % | **5.6 %** |
+| 10 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 11.1 % | **3.7 %** |
 
 
 ## 任务
