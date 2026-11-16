@@ -323,6 +323,9 @@ class ReviewRun:
         self.workspace, self.results, self.prepared = (root / name for name in ('workspace','results','prepared'))
         self.workspace.mkdir(parents=True)
         self.prepared.mkdir()
+        engine = self.prepared / 'incident_engine'
+        engine.mkdir()
+        shutil.copyfile(SOURCE / 'resolve_worker.py', engine / 'resolve_worker.py')
         (self.results / 'experiment_logs').mkdir(parents=True)
         (self.prepared / 'incident').symlink_to(case.scene, target_is_directory=True)
         (self.results / 'experiment_logs/run-home').symlink_to(case.home, target_is_directory=True)

@@ -1,4 +1,4 @@
-"""Thirteen security and compatibility regressions; temporary markers only, no model runs."""
+"""Security and compatibility regressions; temporary markers only, no model runs."""
 import json
 from pathlib import Path
 from types import SimpleNamespace
