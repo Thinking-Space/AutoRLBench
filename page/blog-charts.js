@@ -255,7 +255,7 @@
             const end = angle + (value / total) * Math.PI * 2;
             const isSelected = panel.selected && panel.selected !== 'all';
             const active = !isSelected || panel.selected === item[0];
-            const wedge = svgEl('path', { d: sectorPath(cx, cy, radius, angle, end), fill: panel.colors[i % panel.colors.length], stroke: active && isSelected ? C.ink : C.white, 'stroke-width': active && isSelected ? 4 : 2, class: 'chart-wedge' }, root);
+            const wedge = svgEl('path', { d: sectorPath(cx, cy, radius, angle, end), fill: panel.colors[i % panel.colors.length], stroke: C.white, 'stroke-width': 2, class: 'chart-wedge' }, root);
             if (isSelected && !active) wedge.classList.add('chart-wedge-muted');
             wedge.style.setProperty('--delay', `${index * 160 + i * 55}ms`);
             const share = value / total;
@@ -583,14 +583,14 @@
     }
 
     function hacking(el) {
-        const svg=make(el,1000,420,'Observable reasoning trace from a Search-R1 repair trajectory');
+        const svg=make(el,1000,200,'Observable reasoning trace from a Search-R1 repair trajectory');
         const defs=svgEl('defs',{},svg);
         const marker=svgEl('marker',{id:'hacking-arrowhead',viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'},defs);
         svgEl('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:C.red},marker);
 
         const stages=data.hacking;
         const points=[150,383,616,849];
-        const timelineY=218;
+        const timelineY=92;
         svgEl('line',{x1:100,y1:timelineY,x2:900,y2:timelineY,class:'chart-timeline'},svg);
         stages.forEach((stage,i)=>{
             const x=points[i];
@@ -672,8 +672,8 @@
     }
 
     function scatter(el) {
-        const svg=make(el,1000,520,'Cost and pass rate split by diagnosis and repair tasks');
-        const panelW=390,panelH=300,panelY=62;
+        const svg=make(el,1000,410,'Cost and pass rate split by diagnosis and repair tasks');
+        const panelW=390,panelH=300,panelY=48;
         [['Diagnosis',data.costs.issue,55,20,40,[0,10,20,30,40],[0,5,10,15,20]],['Repair',data.costs.solution,555,50,70,[0,20,40,60],[0,10,20,30,40,50]]].forEach((panel,pi)=>{
             const [label, rows, x, maxX, maxY, yTicks, xTicks] = panel;
             addTitle(svg,label,x,panelY-25);
@@ -742,13 +742,13 @@
     }
 
     function timeBars(el) {
-        const svg=make(el,1000,600,'Mean and median execution time for diagnosis and repair tasks');
-        const panels=[['Diagnosis',data.times.issue,22,30],['Repair',data.times.solution,515,30]];
+        const svg=make(el,1000,512,'Mean and median execution time for diagnosis and repair tasks');
+        const panels=[['Diagnosis',data.times.issue,22,18],['Repair',data.times.solution,515,18]];
         panels.forEach((panel,pi)=>{
-            const title=panel[0],rows=panel[1],ox=panel[2],oy=panel[3],max=110,w=420;
+            const title=panel[0],rows=panel[1],ox=panel[2],oy=panel[3],max=130,w=420;
             addTitle(svg,title,ox,oy);
             rows.forEach((item,i)=>{
-                const yy=oy+24+i*51;
+                const yy=oy+22+i*46;
                 const fullName=data.modelDisplayNames[item[0]] || item[0];
                 text(svg,ox+94,yy+13,fullName,'chart-label',{'text-anchor':'end'});
                 [item[1],item[2]].forEach((v,j)=>{
@@ -758,7 +758,7 @@
                 });
             });
         });
-        centeredLegend(svg,[{label:'mean',color:C.navy},{label:'median',color:C.red}],500,580);
+        centeredLegend(svg,[{label:'mean',color:C.navy},{label:'median',color:C.red}],500,498);
     }
 
     const renderers={
