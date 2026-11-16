@@ -514,7 +514,7 @@
  * capped at its first 4096 bytes (explicitly marked; the command
  * list and every message are complete). The ten trajectories were
  * audited clean of network access. The published issue-judgment
- * total below moves 350 -> 360 with this round.
+ * total below moves 340 -> 350 with this round.
  * The twenty PR #38 slime issue records (ten per task) were
  * published on 15 Nov 2026 from the local cybertron-evaluate sweeps
  * (verl-vllm017 substitute image; the slime-v0.3.0 recorded runtime
@@ -563,7 +563,32 @@
  * recovery). All ten trajectories were audited clean of network
  * access. The published issue-judgment total below moves 380 -> 390
  * with this round.
- * The 170 solution records are reconciled against AutoRLBench validation-first
+ * The ten verl_fsdp_bf16_master_weights issue records and ten
+ * solution records were published on 16 Nov 2026 from the local
+ * cybertron-evaluate sweeps. No pass on either level: the task is a
+ * mixed-precision defect -- model_dtype=bf16 makes parameters and
+ * AdamW state bf16, so lr-sized updates round away for most
+ * weights (KL grows 5-13x more slowly, held-out 0.4655 vs 0.5580).
+ * On the issue round GLM-5.3 (0.343) is the best with the correct
+ * verdict but zero root-cause credit. On the solution round
+ * Astra's 4-minute repair reaches held-out 0.4792 (the sweep's
+ * highest) but the grader's pin-integrity gate fires for
+ * evaluation-data tampering (test.parquet and gsm8k.py sha256
+ * mismatch); the most common misdiagnosis rewrites the reward
+ * scoring rule and leaves model_dtype=bf16 untouched (the best of
+ * that family, Qwen at 0.4716, still falls short of the 0.51
+ * gate). Eight solution verdicts were rescued from beijing 1xH800
+ * BATCH replays over in-trial false zeros from an old GPU-check
+ * script (workspace.tgz overlay; the fixed script was verified in
+ * production on the grok and kimi31pro trials). The ten solution
+ * trajectories were rebuilt: six claude-code from pulled session
+ * stores (five via pre-rescue agent-stage dirs), two codex from
+ * streams, grok from its event stream, and the two qwen ones as
+ * minimal instruction-plus-report recoveries. All twenty
+ * trajectories were audited clean of network access. The published
+ * issue-judgment total below moves 340 -> 350, and the
+ * solution-record reconciliation anchor 170 -> 180.
+ * The 180 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -8357,6 +8382,286 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.03334,
     "durationMs": 608000,
     "steps": 75,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "gpt6astra-bf16-master",
+    "file": "agent-trace/gpt6astra-bf16-master.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 101000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "gpt6astra-bf16-master-sol",
+    "file": "agent-trace/gpt6astra-bf16-master-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 207000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "gpt61sol-bf16-master",
+    "file": "agent-trace/gpt61sol-bf16-master.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 93000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "gpt61sol-bf16-master-sol",
+    "file": "agent-trace/gpt61sol-bf16-master-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 0,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "fable51-bf16-master",
+    "file": "agent-trace/fable51-bf16-master.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.285714,
+    "durationMs": 999000,
+    "steps": 16,
+    "costUsd": 11.8655
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "fable51-bf16-master-sol",
+    "file": "agent-trace/fable51-bf16-master-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1942000,
+    "steps": 9,
+    "costUsd": 2.2411
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "glm53-bf16-master",
+    "file": "agent-trace/glm53-bf16-master.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.342857,
+    "durationMs": 617000,
+    "steps": 82,
+    "costUsd": 16.2971
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "glm53-bf16-master-sol",
+    "file": "agent-trace/glm53-bf16-master-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 0,
+    "steps": 102,
+    "costUsd": 21.31
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "kimi-bf16-master",
+    "file": "agent-trace/kimi-bf16-master.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.13334,
+    "durationMs": 208000,
+    "steps": 21,
+    "costUsd": 2.8559
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "kimi-bf16-master-sol",
+    "file": "agent-trace/kimi-bf16-master-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 0,
+    "steps": 58,
+    "costUsd": 9.5352
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "kimi31-bf16-master",
+    "file": "agent-trace/kimi31-bf16-master.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.05,
+    "durationMs": 447000,
+    "steps": 13,
+    "costUsd": 2.0717
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "kimi31-bf16-master-sol",
+    "file": "agent-trace/kimi31-bf16-master-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 878000,
+    "steps": 34,
+    "costUsd": 9.3376
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "dsv4-bf16-master",
+    "file": "agent-trace/dsv4-bf16-master.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3334,
+    "durationMs": 2011000,
+    "steps": 55,
+    "costUsd": 15.8769
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "dsv4-bf16-master-sol",
+    "file": "agent-trace/dsv4-bf16-master-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 0,
+    "steps": 77,
+    "costUsd": 23.4868
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "gemini4-bf16-master",
+    "file": "agent-trace/gemini4-bf16-master.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 77000,
+    "steps": 12,
+    "costUsd": 0.8804
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "gemini4-bf16-master-sol",
+    "file": "agent-trace/gemini4-bf16-master-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2443000,
+    "steps": 153,
+    "costUsd": 8.9507
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "qwen38-bf16-master",
+    "file": "agent-trace/qwen38-bf16-master.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 1247000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "qwen38-bf16-master-sol",
+    "file": "agent-trace/qwen38-bf16-master-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 0,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "grok47-bf16-master",
+    "file": "agent-trace/grok47-bf16-master.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.15,
+    "durationMs": 782000,
+    "steps": 60,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bf16_master_weights",
+    "slug": "grok47-bf16-master-sol",
+    "file": "agent-trace/grok47-bf16-master-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1428000,
+    "steps": 170,
     "costUsd": null
   }
 ];

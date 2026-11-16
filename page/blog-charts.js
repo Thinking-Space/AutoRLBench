@@ -16,11 +16,11 @@
     const data = {
         profile: {
             affiliations: [['THUNLP', 12], ['Tsinghua', 4], ['FusionBrain', 2], ['Brigham Young', 3], ['Johns Hopkins', 1], ['Tohoku', 2], ['UPenn', 1], ['Independent', 2], ['Fudan', 2], ['SII', 2], ['SW Jiaotong', 2], ['Duke', 1], ['SJTU', 1]],
-            errors: [['Infrastructure', 11], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 0]],
-            difficulty: [['Very hard', 12], ['Hard', 12], ['Medium', 7], ['Easy', 3]]
+            errors: [['Infrastructure', 12], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 0]],
+            difficulty: [['Very hard', 13], ['Hard', 12], ['Medium', 6], ['Easy', 3]]
         },
-        models: [['GPT-6-Astra', 37.3], ['GPT-6.1-Sol', 35.3], ['Gemini-4-Argon', 31.4], ['GLM-5.3', 27.5], ['Kimi-K3.1-Pro', 25.5], ['Fable-5.1', 21.6], ['Qwen3.8-Max', 19.6], ['Grok-4.7', 17.6], ['Kimi-K3', 5.9], ['DeepSeek-V4-Pro', 2]],
-        averageLevels: [17.6, 31.8],
+        models: [['GPT-6-Astra', 35.8], ['GPT-6.1-Sol', 34.0], ['Gemini-4-Argon', 30.2], ['GLM-5.3', 26.4], ['Kimi-K3.1-Pro', 24.5], ['Fable-5.1', 20.8], ['Qwen3.8-Max', 18.9], ['Grok-4.7', 17.0], ['Kimi-K3', 5.7], ['DeepSeek-V4-Pro', 1.9]],
+        averageLevels: [17.1, 30.0],
         modelHarness: ['Codex', 'Codex', 'Claude Code', 'Claude Code', 'Claude Code', 'Claude Code', 'Qwen Code', 'Grok Build', 'Claude Code', 'Claude Code'],
         modelDisplayNames: {
             Fable: 'Fable-5.1',
@@ -36,7 +36,7 @@
         // Figure 2 uses the same four-step blue-to-red palette as the
         // four-stage trajectory in Figure 8: two blue outcomes followed by
         // two red outcomes.
-        outcomes: [['Pass', 60, '#174f86'], ['Wrong cause', 188, '#3d82b7'], ['Wrong evidence', 32, '#d86f58'], ['Fail', 55, '#bf2536']],
+        outcomes: [['Pass', 60, '#174f86'], ['Wrong cause', 193, '#3d82b7'], ['Wrong evidence', 33, '#d86f58'], ['Fail', 59, '#bf2536']],
         // Failed repair trajectories grouped by the primary error mode. The
         // values are percentages of the 119 failed repair trajectories and
         // are rendered as animated marks in Figure 7.
@@ -67,7 +67,7 @@
             { title: 'GRPO broadcast', x: [0,50,100,150,200,250,300,350,400], a: [5.435,7.065,8.696,10.326,9.783,11.957,10.87,11.957,11.413], b: [5.978,0,0,0,0,0,0,0,0], aLabel: 'Fable', bLabel: 'Kimi K3', gate: 10, max: 15, colors: [C.blue, C.peach] },
             { title: 'AdamW epsilon', x: [0,10,20,30,40,50,60,70,80,90,100], a: [.076,48.749,52.464,55.648,58.074,56.027,57.165,58.302,56.861,59.136,58.378], b: [.076,.455,10.69,27.521,40.561,47.309,48.976,48.446,48.749,48.976,49.431], aLabel: 'Astra', bLabel: 'Kimi K3', gate: 53, max: 65, colors: [C.navy, C.peach] }
         ],
-        categories: [['Configuration', 16, 45], ['Reward', 16, 23.3], ['Data', 10, 30], ['Environment', 0, 0], ['Algorithm', 14.4, 20], ['Infrastructure', 24.5, 31.7]],
+        categories: [['Configuration', 16.0, 45.0], ['Reward', 16.0, 23.3], ['Data', 10.0, 30.0], ['Environment', 0, 0], ['Algorithm', 14.4, 20.0], ['Infrastructure', 22.5, 27.1]],
         // Per model and category: [diagnosis, repair, combined] pass rates
         // over that category's published runs. The combined value keeps the
         // fig-1 category drill-down on the same metric as the overall
@@ -118,16 +118,16 @@
             }
         ],
         costs: {
-            issue: [['Fable', 14.54, 17.6], ['DeepSeek', 13.23, 0], ['GLM', 17.81, 23.5], ['Astra', 5.03, 35.3], ['Sol', .79, 32.4], ['Gemini', 13.37, 17.6], ['Kimi K3', 4.39, 0], ['Kimi 3.1', 5.52, 17.6]],
-            solution: [['Fable', 36.6, 29.4], ['DeepSeek', 39.66, 5.9], ['GLM', 46.9, 35.3], ['Astra', 47.0, 41.2], ['Sol', 6.04, 41.2], ['Gemini', 45.45, 58.8], ['Kimi K3', 13.37, 17.6], ['Kimi 3.1', 4.56, 41.2]]
+            issue: [['Astra', 5.03, 34.3], ['Sol', 0.79, 31.4], ['Gemini', 13.01, 17.1], ['GLM', 17.77, 22.9], ['Kimi 3.1', 5.42, 17.1], ['Fable', 14.47, 17.1], ['Qwen', 0.97, 14.3], ['Grok', 2.96, 17.1], ['DeepSeek', 13.31, 0.0], ['Kimi K3', 4.34, 0.0]],
+            solution: [['Astra', 47.0, 38.9], ['Sol', 6.04, 38.9], ['Gemini', 43.42, 55.6], ['GLM', 45.48, 33.3], ['Kimi 3.1', 4.82, 38.9], ['Fable', 34.69, 27.8], ['DeepSeek', 38.76, 5.6], ['Kimi K3', 13.16, 16.7]]
         },
         modelLogos: {
             Fable: 'anthropic.png', DeepSeek: 'deepseek.png', GLM: 'glm.png', Astra: 'openai.png',
             Sol: 'openai.png', Gemini: 'googlegemini.png', 'Kimi K3': 'kimi.png', 'Kimi 3.1': 'kimi.png'
         },
         times: {
-            issue: [['Fable',31.62,17.03],['DeepSeek',37.86,34.31],['GLM',25.38,17.97],['Astra',65.96,11.77],['Sol',18.3,13.53],['Gemini',24.3,20.27],['Grok',15.12,13.14],['Kimi K3',43.3,17.23],['Kimi 3.1',27.72,20.82],['Qwen',30.51,28.51]],
-            solution: [['Fable',48.89,9.85],['DeepSeek',83.03,52.69],['GLM',60.66,52.23],['Astra',120.82,40.07],['Sol',105.0,25.36],['Gemini',104.37,82.85],['Grok',20.53,15.12],['Kimi K3',48.62,27.7],['Kimi 3.1',21.82,20.54],['Qwen',43.36,37.37]]
+            issue: [['Astra',64.13,11.68], ['Sol',17.82,13.38], ['Gemini',23.64,19.29], ['GLM',24.95,17.71], ['Kimi 3.1',27.14,20.77], ['Fable',31.19,16.65], ['Qwen',30.23,28.46], ['Grok',15.06,13.11], ['DeepSeek',37.73,33.52], ['Kimi K3',42.16,17.16]],
+            solution: [['Astra',114.3,34.07], ['Sol',105.0,25.36], ['Gemini',100.83,77.3], ['GLM',60.66,52.23], ['Kimi 3.1',21.42,20.07], ['Fable',47.97,10.66], ['Qwen',43.36,37.37], ['Grok',20.71,16.65], ['DeepSeek',83.03,52.69], ['Kimi K3',48.62,27.7]]
         }
     };
 
@@ -365,8 +365,8 @@
     function quadrants(el) {
         const svg=make(el,800,410,'Diagnosis and repair outcomes across shared tasks');
         const x=170,y=35,size=300,half=size/2; const cells=[
-            [0,0,'Diagnosis fails','Repair fails',63.5,C.navy], [1,0,'Diagnosis fails','Repair passes',22.4,C.paleBlue],
-            [0,1,'Diagnosis passes','Repair fails',4.7,'#e9f0f3'], [1,1,'Diagnosis passes','Repair passes',9.4,'#c8dce8']
+            [0,0,'Diagnosis fails','Repair fails',65.6,C.navy], [1,0,'Diagnosis fails','Repair passes',21.1,C.paleBlue],
+            [0,1,'Diagnosis passes','Repair fails',4.4,'#e9f0f3'], [1,1,'Diagnosis passes','Repair passes',8.9,'#c8dce8']
         ];
         cells.forEach((cell,i)=>{
             const [cx,cy,_,__,v,color]=cell;
@@ -383,7 +383,7 @@
         text(svg,x-18,y+half+half/2,'Diagnosis passes','chart-quadrant-axis',{'text-anchor':'end','dominant-baseline':'middle'});
 
         const sideX=535;
-        text(svg,sideX,151,'340 trajectories','chart-quadrant-side-value');
+        text(svg,sideX,151,'360 trajectories','chart-quadrant-side-value');
         text(svg,sideX,211,'24','chart-quadrant-side-value');
         text(svg,sideX,231,'diagnosis passes','chart-quadrant-side-label');
         text(svg,sideX,271,'54','chart-quadrant-side-value');

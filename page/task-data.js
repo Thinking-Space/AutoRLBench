@@ -693,5 +693,27 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "Every gradient-accumulation micro-step reuses the same 4 of the 64 scored rollouts; the run still improves but ends 3 points below the control.",
     "issue": "Granite-3.3-2B-Instruct is trained with GRPO on the full GSM8K training set. Every gradient-accumulation micro-step reuses the same 4 of the 64 scored rollouts, so the effective batch collapses from 64 completions per optimizer step to 4; the run still improves (held-out 58.7% -> 79.8%) and ends at 79.8% against the recorded control 82.8%."
+  },
+  {
+    "id": "infrastructure/verl_fsdp_bf16_master_weights",
+    "title": "bf16 master weights round away AdamW updates",
+    "family": "Infrastructure",
+    "tags": [
+      "verl",
+      "grpo",
+      "gsm8k",
+      "mixed-precision",
+      "bf16",
+      "update-underflow",
+      "slow-learning"
+    ],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "GSM8K",
+    "framework": "verl / GRPO with FSDP",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-14",
+    "license": "Apache-2.0",
+    "brief": "The launcher sets the FSDP actor to bf16, so parameters and AdamW state round away lr-sized updates; learning is 5-13x slower on KL and ends 9 points below the fp32 control.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, the launcher sets the FSDP actor's model_dtype to bf16, so parameters and AdamW state are bf16 and lr-sized updates round away for most weights. The KL to the reference grows 5-13x more slowly and held-out accuracy ends at 0.4655 against 0.5580."
   }
 ];
