@@ -70,10 +70,13 @@ are `import json` and `from pathlib import Path`. You may use local assignments,
 boolean/equality tests and `return`. Supported path methods are `is_file`,
 `exists`, `read_text`, `joinpath` and `relative_to`; `json.loads`, dictionary
 `get/items/keys/values`, and string `startswith/endswith/replace` are available.
-A record pins the content it needs by `sha256`. When no matching content can
-be located, the record is unavailable and you must
+A record is available only when its requested `id` and its pinned `sha256`
+both match the same current catalog row and that row's backing file exists.
+Otherwise the record is unavailable and you must
 raise `FileNotFoundError` or `ValueError` rather than return any path. The
-verifier probes unavailability handling with synthetic records.
+verifier probes unavailability handling with synthetic records, including
+records whose claimed path exists but whose id or hash does not match, and
+matched records whose backing file is missing.
 
 Reads stay under the dataset root. Other imports, writes, networking, subprocesses,
 reflection, decorators and unbounded loops are unsupported. Source, metadata

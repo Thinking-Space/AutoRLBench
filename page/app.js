@@ -133,7 +133,7 @@ function renderTaskCatalog() {
         }
         const img = `images/task-${task.family.toLowerCase()}.jpeg`;
         return `
-            <a href="task.html?id=${encodeURIComponent(task.id)}" class="task-card">
+            <div class="task-card">
                 <div class="task-card-image">
                     <img src="${img}" alt="${task.family} task illustration" loading="lazy">
                 </div>
@@ -142,7 +142,7 @@ function renderTaskCatalog() {
                     <span class="task-tag">${task.family}</span>
                     <p>${task.brief || task.issue}</p>
                 </div>
-            </a>
+            </div>
         `;
     }).join('');
 }

@@ -16,11 +16,11 @@
     const data = {
         profile: {
             affiliations: [['THUNLP', 12], ['Tsinghua', 5], ['FusionBrain', 2], ['Brigham Young', 3], ['Johns Hopkins', 1], ['Tohoku', 2], ['UPenn', 2], ['Independent', 2], ['Fudan', 2], ['SII', 2], ['SW Jiaotong', 2], ['Duke', 1], ['SJTU', 1], ['HIT Shenzhen', 1]],
-            errors: [['Infrastructure', 11], ['Algorithm', 10], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 1]],
+            errors: [['Infrastructure', 11], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4]],
             difficulty: [['Very hard', 12], ['Hard', 12], ['Medium', 7], ['Easy', 5]]
         },
-        models: [['GPT-6-Astra', 40.7], ['GPT-6.1-Sol', 38.9], ['Gemini-4-Argon', 35.2], ['GLM-5.3', 29.6], ['Kimi-K3.1-Pro', 29.6], ['Fable-5.1', 25.9], ['Qwen3.8-Max', 22.2], ['Grok-4.7', 22.2], ['Kimi-K3', 5.6], ['DeepSeek-V4-Pro', 3.7]],
-        averageLevels: [21.1, 33.9],
+        models: [['GPT-6-Astra', 37.3], ['GPT-6.1-Sol', 35.3], ['Gemini-4-Argon', 31.4], ['GLM-5.3', 27.5], ['Kimi-K3.1-Pro', 25.5], ['Fable-5.1', 21.6], ['Qwen3.8-Max', 19.6], ['Grok-4.7', 17.6], ['Kimi-K3', 5.9], ['DeepSeek-V4-Pro', 2]],
+        averageLevels: [17.6, 31.8],
         modelHarness: ['Codex', 'Codex', 'Claude Code', 'Claude Code', 'Claude Code', 'Claude Code', 'Qwen Code', 'Grok Build', 'Claude Code', 'Claude Code'],
         modelDisplayNames: {
             Fable: 'Fable-5.1',
@@ -36,7 +36,7 @@
         // Figure 2 uses the same four-step blue-to-red palette as the
         // four-stage trajectory in Figure 8: two blue outcomes followed by
         // two red outcomes.
-        outcomes: [['Pass', 76, '#174f86'], ['Wrong cause', 189, '#3d82b7'], ['Wrong evidence', 32, '#d86f58'], ['Fail', 59, '#bf2536']],
+        outcomes: [['Pass', 60, '#174f86'], ['Wrong cause', 180, '#3d82b7'], ['Wrong evidence', 30, '#d86f58'], ['Fail', 59, '#bf2536']],
         // Failed repair trajectories grouped by the primary error mode. The
         // values are percentages of the 119 failed repair trajectories and
         // are rendered as animated marks in Figure 7.
@@ -384,9 +384,9 @@
 
         const sideX=535;
         text(svg,sideX,151,'360 trajectories','chart-quadrant-side-value');
-        text(svg,sideX,211,'32','chart-quadrant-side-value');
+        text(svg,sideX,211,'28','chart-quadrant-side-value');
         text(svg,sideX,231,'diagnosis passes','chart-quadrant-side-label');
-        text(svg,sideX,271,'61','chart-quadrant-side-value');
+        text(svg,sideX,271,'54','chart-quadrant-side-value');
         text(svg,sideX,291,'repair passes','chart-quadrant-side-label');
     }
 

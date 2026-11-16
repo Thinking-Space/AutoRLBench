@@ -29,16 +29,16 @@ AutoRLBench Leaderboard，issue + solution 双档成绩。总分为全部已评�
 
 | # | 模型 | Agent | Issue 分数 | Solution 分数 | 总分 |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | GPT-6-Astra | Codex | 38.9 % | 44.4 % | **40.7 %** |
-| 2 | GPT-6.1-Sol | Codex | 36.1 % | 44.4 % | **38.9 %** |
-| 3 | Gemini-4-Argon | Claude Code | 22.2 % | 61.1 % | **35.2 %** |
-| 4 | GLM-5.3 | Claude Code | 27.8 % | 33.3 % | **29.6 %** |
-| 4 | Kimi-K3.1-Pro | Claude Code | 22.2 % | 44.4 % | **29.6 %** |
-| 6 | Claude-Fable-5.1 | Claude Code | 22.2 % | 33.3 % | **25.9 %** |
-| 7 | Qwen3.8-Max | Qwen Code | 19.4 % | 27.8 % | **22.2 %** |
-| 7 | Grok-4.7 | Grok Build | 22.2 % | 22.2 % | **22.2 %** |
-| 9 | Kimi-K3 | Claude Code | 0.0 % | 16.7 % | **5.6 %** |
-| 10 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 11.1 % | **3.7 %** |
+| 1 | GPT-6-Astra | Codex | 35.3 % | 41.2 % | **37.3 %** |
+| 2 | GPT-6.1-Sol | Codex | 32.4 % | 41.2 % | **35.3 %** |
+| 3 | Gemini-4-Argon | Claude Code | 17.6 % | 58.8 % | **31.4 %** |
+| 4 | GLM-5.3 | Claude Code | 23.5 % | 35.3 % | **27.5 %** |
+| 5 | Kimi-K3.1-Pro | Claude Code | 17.6 % | 41.2 % | **25.5 %** |
+| 6 | Claude-Fable-5.1 | Claude Code | 17.6 % | 29.4 % | **21.6 %** |
+| 7 | Qwen3.8-Max | Qwen Code | 14.7 % | 29.4 % | **19.6 %** |
+| 8 | Grok-4.7 | Grok Build | 17.6 % | 17.6 % | **17.6 %** |
+| 9 | Kimi-K3 | Claude Code | 0.0 % | 17.6 % | **5.9 %** |
+| 10 | DeepSeek-V4-Pro | Claude Code | 0.0 % | 5.9 % | **2.0 %** |
 
 
 ## 任务
@@ -74,22 +74,22 @@ AutoRLBench Leaderboard，issue + solution 双档成绩。总分为全部已评�
 训练集是 TACO <code>VERY_HARD</code>、验证集是 <code>EASY</code>，held-out 准确率跌回起点以下。
 </td>
 <td width="50%" valign="top">
-<a href="tasks/environment/search_r1_zero_query_embedding/">
-<img src="assets/task-environment.jpeg" alt="Environment" width="100%">
+<a href="tasks/algorithm/verl_grpo_advantage_broadcast/">
+<img src="assets/task-algorithm.jpeg" alt="Algorithm" width="100%">
 </a>
-<strong>Environment</strong> · issue · solution<br>
-<a href="tasks/environment/search_r1_zero_query_embedding/"><b>检索查询向量全零</b></a><br>
-检索器的 query 向量全是零，任何问题都返回同一批文档。
+<strong>Algorithm</strong> · issue<br>
+<a href="tasks/algorithm/verl_grpo_advantage_broadcast/"><b>GRPO advantage 广播</b></a><br>
+advantage 广播替换了逐样本 advantage，导致策略崩溃。
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
-<a href="tasks/algorithm/verl_grpo_uid_after_repeat/">
-<img src="assets/task-algorithm.jpeg" alt="Algorithm" width="100%">
+<a href="tasks/data/verl_taco_difficulty_mismatch/">
+<img src="assets/task-data.jpeg" alt="Data" width="100%">
 </a>
-<strong>Algorithm</strong> · issue<br>
-<a href="tasks/algorithm/verl_grpo_uid_after_repeat/"><b>GRPO uid 被移到 repeat 之后</b></a><br>
-uid 赋值被挪到 rollout repeat 之后，每个 GRPO 组退化为单元素，训练静默降级为无基线的 REINFORCE。
+<strong>Data</strong> · issue<br>
+<a href="tasks/data/verl_taco_difficulty_mismatch/"><b>训练数据太难</b></a><br>
+训练集是 TACO <code>VERY_HARD</code>、验证集是 <code>EASY</code>，held-out 准确率跌回起点以下。
 </td>
 <td width="50%" valign="top">
 <a href="tasks/infrastructure/verl_moe_token_normalization/">

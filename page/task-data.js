@@ -67,45 +67,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on TACO. The training problems are too hard for the model under the all-tests-pass reward, so training never learns and held-out accuracy stays flat."
   },
   {
-    "id": "environment/search_r1_zero_query_embedding",
-    "title": "Zero query vector in retrieval",
-    "family": "Environment",
-    "tags": [
-      "verl",
-      "grpo",
-      "hotpotqa",
-      "query_vector"
-    ],
-    "model": "Qwen2.5-1.5B-Instruct",
-    "dataset": "HotpotQA distractor (1024 train / 128 held-out)",
-    "framework": "verl",
-    "image": "search-r1-verl",
-    "created": "2026-10-16",
-    "license": "Apache-2.0",
-    "brief": "Query vector stays all zeros, retrieves same documents.",
-    "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on HotpotQA. The query vector stays all zeros, so every query retrieves the same documents."
-  },
-  {
-    "id": "algorithm/verl_grpo_uid_after_repeat",
-    "title": "GRPO uid assigned after rollout repeat",
-    "family": "Algorithm",
-    "tags": [
-      "verl",
-      "grpo",
-      "advantage",
-      "uid",
-      "issue-only"
-    ],
-    "model": "Llama-3.2-1B-Instruct",
-    "dataset": "DAPO-Math-17k",
-    "framework": "verl",
-    "image": "verl:vllm017.latest",
-    "created": "2026-10-17",
-    "license": "Apache-2.0",
-    "brief": "GRPO silently degraded to baseline-free REINFORCE.",
-    "issue": "Training Llama-3.2-1B-Instruct with GRPO on DAPO-Math-17k. The uid assignment was moved after the rollout repeat step, making every GRPO group a singleton and silently degrading training to baseline-free REINFORCE."
-  },
-  {
     "id": "infrastructure/verl_moe_token_normalization",
     "title": "MoE auxiliary gradients miss token normalization",
     "family": "Infrastructure",

@@ -1,6 +1,32 @@
 # Missing difficult examples inflate training reward
 
+## 中文背景与验收
+
+本题模拟应用代码的数据读取事故。JustRL-II 使用 PPO 训练数学模型，代码通过
+样本 ID 查找文件；困难样本文件迁移后，旧映射未更新，读取失败被容错重采样
+吞掉，训练继续却只保留容易样本，训练奖励因样本分布变化而升高。模型仍然
+学习解数学题，不学习文件路径映射。这是人为注入的事故，不是未修复的上游缺陷。
+
+Agent 收到中性审查题面，须判断当前实现是否有问题。历史日志只是线索；健康
+实现可以不改代码直接提交。通过须同时满足初始判定正确、报告有解释、不可用
+记录契约检查通过，以及从 step 3 完成 steps 4–7 的真实续训验收。验收固定样本
+ID/内容、每步 8 easy + 8 hard、模型/Adam/调度器/RNG 恢复、四次更新、最终
+检查点和固定评估，不以奖励上涨为通过条件。解法评分不语义评审报告正文；
+issue 模式另有诊断 judge。
+
+完整场景约 66.74 GB，安装和双文件摘要见[交付说明](provenance/DELIVERY.md)。
+同一文件还提供健康对照生成命令；对照复用当前运行时，不维护另一份引擎代码。
+[安全说明](provenance/SECURITY.md)列出已覆盖的绕过和剩余限制。历史 GPU 收据
+早于安全加固；本次不声称新的 GPU 端到端验收或 LLM 盲测结果。
+
+## English background and acceptance
+
 Training JustRL-II-base-model with PPO on an UltraData-RL-2609 math selection with a fixed easy/hard mixture. At the midpoint the hard backing directory is relocated but the sample manifest still points at the old paths, so every hard example fails its file read and is silently resampled away — training reward rises on the surviving easy-only population while the fixed held-out evaluation does not move.
+
+The sample-ID-to-file-path mapping belongs to application code; the model learns
+to solve math. See [delivery instructions](provenance/DELIVERY.md) for verified
+artifact hashes, installation and standalone healthy-control generation, and
+[security limits](provenance/SECURITY.md) for the remaining bypass assumptions.
 
 | | |
 | --- | --- |
@@ -30,7 +56,7 @@ Unlike most tasks, the instruction does not announce a defect: the agent must fi
 ## Reference solution
 
 - **issue**: a passing diagnosis returns `Verdict: unhealthy` and names both halves — the stale manifest still mapping hard sample IDs to `live/hard` after the relocation to `archive/hard`, and the recovery path that turns persistent missing data into a recoverable per-sample failure (caught `FileNotFoundError` → ABORTED → `check_no_aborted` group rejection → resampling until the batch fills with easy survivors) — connected to the survivor-biased reward. Attributions that must fail: the model's task being to learn a mapping, a reward bonus or fabricated reward, optimizer divergence as the primary event, SGLang scheduler cancellations counted as missing data, cached in-memory prompts disappearing when their source JSONL moves, and "training reward improved, therefore healthy".
-- **solution**: keep the migration event and the original sample IDs, and make `resolve` consult the current storage state (the manifest updated to the new paths), so hard examples are admitted again. This preserves backing-file hashes, the intended easy/hard mixture, reward function, model and budget; a persistent-missing-data alarm or retry budget is also defensible, but hiding abort metrics or averaging over a different denominator does not restore training coverage. A healthy reference resolver is kept maintainer-side at `evaluations/solution/oracle/reference_loader.py`.
+- **solution**: keep the migration event and the original sample IDs, and make `resolve` consult the current storage catalog, matching the requested ID and content hash and checking that the selected file exists, so hard examples are admitted again. This preserves backing-file hashes, the intended easy/hard mixture, reward function, model and budget; a persistent-missing-data alarm or retry budget is also defensible, but hiding abort metrics or averaging over a different denominator does not restore training coverage. A healthy reference resolver is kept maintainer-side at `evaluations/solution/oracle/reference_loader.py`.
 
 ## Verification
 
