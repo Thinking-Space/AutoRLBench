@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "status": "rerun_verified",
+  "command": "python3 -m autorlbench rerun tasks/infrastructure/multi_engine_prefix_affinity_collapse --backend local --models-dir <local model cache>",
+  "environment": {
+    "image": "cluster mirror of slimerl/slime:v0.3.2-cu129 (same digest as task.toml)",
+    "gpus": "8 x H800 (80 GB), one node: 4 train (EP4) + 2 SGLang engines (TP2)",
+    "network_note": "prepare installed the pinned wheels from a local wheel directory (bytes verified against dependencies.json) because the cluster pod cannot reach PyPI; the model came from a local cache directory whose files match model_manifest.json"
+  },
+  "prepare": {
+    "exit_code": 0,
+    "model": "Qwen/Qwen3.5-35B-A3B@59d61f3ce65a6d9863b86d2e96597125219dc754, 24 pinned files verified",
+    "workload_sha256": "9a5e4e87b67a53807b0e47eb1019692adf806559f4348281e037a3a387a83c40"
+  },
+  "rerun": {
+    "exit_code": 0,
+    "duration_s": 1044.2,
+    "rollouts": [
+      {
+        "rollout_id": 0,
+        "wall_s": 78.145,
+        "groups": 16,
+        "samples": 64,
+        "status": {
+          "completed": 64
+        },
+        "reward_mean": 0.921875,
+        "prefix_cache_hit_rate": 0.4633319926846111
+      },
+      {
+        "rollout_id": 1,
+        "wall_s": 10.09,
+        "groups": 16,
+        "samples": 64,
+        "status": {
+          "completed": 64
+        },
+        "reward_mean": 0.9109375,
+        "prefix_cache_hit_rate": 0.49937139714128564
+      },
+      {
+        "rollout_id": 2,
+        "wall_s": 0.037,
+        "groups": 16,
+        "samples": 64,
+        "status": {
+          "completed": 64
+        },
+        "reward_mean": 0.90703125,
+        "prefix_cache_hit_rate": 0.5189800480402094
+      }
+    ],
+    "optimizer_updates_rank0": [
+      {
+        "rollout_id": 0,
+        "step_id": 0,
+        "update_successful": true,
+        "grad_norm": 0.7009131908416748,
+        "sampled_parameter_delta_l2": 0.005137138944230065,
+        "called_from": "miles.backends.megatron_utils.model.train_one_step",
+        "called_from_trainer": true,
+        "optimizer_class": "megatron.core.optimizer.optimizer.ChainedOptimizer",
+        "trainer_source_sha256": "33eb67a6fb3d9480bb4da7e15cb4c05901689da5352891fa2e0d6a706ef66e7d"
+      },
+      {
+        "rollout_id": 1,
+        "step_id": 0,
+        "update_successful": true,
+        "grad_norm": 0.7766873836517334,
+        "sampled_parameter_delta_l2": 0.007508778804538726,
+        "called_from": "miles.backends.megatron_utils.model.train_one_step",
+        "called_from_trainer": true,
+        "optimizer_class": "megatron.core.optimizer.optimizer.ChainedOptimizer",
+        "trainer_source_sha256": "33eb67a6fb3d9480bb4da7e15cb4c05901689da5352891fa2e0d6a706ef66e7d"
+      },
+      {
+        "rollout_id": 2,
+        "step_id": 0,
+        "update_successful": true,
+        "grad_norm": 0.7972840666770935,
+        "sampled_parameter_delta_l2": 0.009704809897804003,
+        "called_from": "miles.backends.megatron_utils.model.train_one_step",
+        "called_from_trainer": true,
+        "optimizer_class": "megatron.core.optimizer.optimizer.ChainedOptimizer",
+        "trainer_source_sha256": "33eb67a6fb3d9480bb4da7e15cb4c05901689da5352891fa2e0d6a706ef66e7d"
+      }
+    ],
+    "engine_affinity": {
+      "sessions": 636,
+      "follow_up_turns": 1823,
+      "follow_up_turns_reusing_previous_prompt": 1115,
+      "share_reusing_previous_prompt": 0.6116,
+      "follow_up_token_weighted_hit_rate": 0.4796
+    }
+  },
+  "evidence_in_workspace": "workspace/logs/public_rerun/"
+}

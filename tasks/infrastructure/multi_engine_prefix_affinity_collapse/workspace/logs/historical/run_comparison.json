@@ -1,0 +1,43 @@
+{
+ "workload": "Fully-asynchronous multi-turn agentic GRPO on a 16A3B-class MoE policy (Miles + SGLang + Megatron), 16 GPUs split 8 train / 8 rollout across two pods. Each trajectory is a multi-turn tool-using episode in a remote sandbox; conversation history grows past 10k tokens.",
+ "runs": {
+  "run-a": {
+   "description": "Earlier launcher (separate generate-worker actors).",
+   "config": {
+    "rollout_engines": 8,
+    "rollout_tp_per_engine": 1,
+    "rollout_batch_groups": 64,
+    "samples_per_group": 8,
+    "max_inflight_groups": 16
+   },
+   "log_coverage": "pod-console tail only (last 2000 master lines, ~40 min, 1292 worker lines); no in-process console capture exists for this run"
+  },
+  "run-b": {
+   "description": "Current launcher.",
+   "config": {
+    "rollout_engines": 4,
+    "rollout_tp_per_engine": 2,
+    "rollout_batch_groups": 32,
+    "samples_per_group": 8,
+    "max_inflight_groups": 32
+   },
+   "log_coverage": "in-process console capture (start to ~14:17) + pod-console tail to job end (~14:33)"
+  },
+  "run-c": {
+   "description": "Current launcher.",
+   "config": {
+    "rollout_engines": 8,
+    "rollout_tp_per_engine": 1,
+    "rollout_batch_groups": 32,
+    "samples_per_group": 8,
+    "max_inflight_groups": 32
+   },
+   "log_coverage": "in-process console capture (~2 h) + pod-console tail to job end"
+  }
+ },
+ "notes": [
+  "In-flight trajectories = max_inflight_groups x samples_per_group.",
+  "Labels are neutral; they do not encode any external identifier.",
+  "Each run's console log is in run-*/master.log.gz and run-*/worker.log.gz (JSONL: t, pod, msg)."
+ ]
+}
