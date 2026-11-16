@@ -371,7 +371,8 @@ window.AUTORLBENCH_TASKS = [
       "verl",
       "grpo",
       "recorded-run",
-      "container-validation-pending"
+      "container-validation-pending",
+      "issue-only"
     ],
     "model": "Qwen/Qwen3-1.7B",
     "dataset": "DAPO-Math-17k original 1,791,700 rows (no dedup); AIME24/25 30 questions each",
@@ -390,7 +391,8 @@ window.AUTORLBENCH_TASKS = [
       "verl",
       "grpo",
       "recorded-run",
-      "container-validation-pending"
+      "container-validation-pending",
+      "issue-only"
     ],
     "model": "Qwen/Qwen3-1.7B",
     "dataset": "DAPO-Math-17k original 1,791,700 rows (no dedup); AIME24/25 30 questions each",

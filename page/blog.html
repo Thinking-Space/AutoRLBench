@@ -484,7 +484,7 @@
                 <span class="blog-kicker">Research blog · 15 Nov 2026</span>
                 <h1>Can AI Agents Diagnose and Repair RL Training Failures?</h1>
                 <p class="blog-dek">A benchmark for testing whether AI agents can diagnose  and repair RL training failures.</p>
-                <div class="blog-meta"><span>34 diagnosis tasks</span><span>20 repair tasks</span><span>10 frontier models</span></div>
+                <div class="blog-meta"><span>34 diagnosis tasks</span><span>17 repair tasks</span><span>10 frontier models</span></div>
             </div>
             <div class="blog-hero-aside">
                 <div class="blog-scroll-hint"><i></i><span>Scroll to read the findings</span></div>
@@ -495,11 +495,11 @@
             <article class="blog-article">
                 <section id="tldr" aria-labelledby="tldr-title">
                     <h2 id="tldr-title">TL;DR</h2>
-                    <p class="blog-lede">AI for AI is a key path to recursive self-improvement. Existing evaluations mostly focus on whether an end-to-end experiment succeeds, making it hard to see where an agent excels or falls short. AutoRLBench breaks this process down into diagnosing and repairing RL training failures. Our current release includes 34 diagnosis tasks and 20 repair tasks across six failure categories: configuration, reward, data, environment, algorithm, and infrastructure, covering the full RL pipeline. In our first evaluation of 10 frontier models, results show that agents are better at identifying a failure than explaining its root cause, and the main bottleneck for repair is whether the fix addresses the core issue rather than making superficial changes.</p>
-                    <p>This project is under active development, with tasks and evaluation results updated in real time. We will continue to collect real training failures, expand verification for long-term stability, functional completeness, and cross-environment setups, and evaluate more recent agents. We also welcome community contributions of new tasks. If you have encountered challenging RL training failures, especially those requiring extensive debugging, long reasoning chains, and complex repairs, please submit them to us so we can turn them into reproducible tasks together.</p>
+                    <p class="blog-lede">AI for AI is a key path to recursive self-improvement. Existing evaluations mostly focus on whether an end-to-end experiment succeeds, making it hard to see where an agent excels or falls short. AutoRLBench breaks this process down into diagnosing and repairing RL training failures. Our current release includes 34 diagnosis tasks and 17 repair tasks across six failure categories: configuration, reward, data, environment, algorithm, and infrastructure, covering the full RL pipeline. In our first evaluation of 10 frontier models, results show that agents are better at identifying a failure than explaining its root cause, and the main bottleneck for repair is whether the fix addresses the core issue rather than making superficial changes.</p>
+                    <div class="blog-callout"><p><strong>Under active development.</strong> Tasks and evaluation results are updated in real time. We will continue to collect real training failures, expand verification for long-term stability, functional completeness, and cross-environment setups, and evaluate more recent agents. We also welcome community contributions of new tasks. If you have encountered challenging RL training failures, especially those requiring extensive debugging, long reasoning chains, and complex repairs, please submit them to us so we can turn them into reproducible tasks together.</p></div>
                     <div class="blog-stats" aria-label="Benchmark at a glance">
-                        <div class="blog-stat"><strong data-count="39">0</strong><span>real-world RL <br>training tasks</span></div>
-                        <div class="blog-stat"><strong data-count="20">0</strong><span>tasks with verified<br>repairs</span></div>
+                        <div class="blog-stat"><strong data-count="34">0</strong><span>real-world RL <br>training tasks</span></div>
+                        <div class="blog-stat"><strong data-count="17">0</strong><span>tasks with verified<br>repairs</span></div>
                         <div class="blog-stat"><strong data-count="14">0</strong><span>universities and<br>research institutions</span></div>
                         <div class="blog-stat"><strong data-count="6">0</strong><span>failure<br>categories</span></div>
                     </div>
@@ -529,7 +529,7 @@
                     <h2 id="results-title">Main Results</h2>
                     <p class="blog-lede">In our first evaluation, we tested 10 frontier models, producing 340 diagnosis trajectories and 170 repair trajectories. Across both task levels, the top-performing agent, GPT-6-Astra, achieves an overall pass rate of 37.3%, with a large gap across agents.</p>
                     <h3 id="finding-one">Diagnosis: A Capability Gap Between Identifying Failures and Explaining Root Causes</h3>
-                    <p>Diagnosis requires an agent to determine whether the training run has failed, identify the root cause, and provide supporting evidence. Our results show that agents identify a failure far more reliably than they explain its root cause. Across all diagnosis trajectories, 83.2% correctly judged the training run status as unhealthy, while only 30.1% identified the correct root cause. However, recognizing a failure is not enough. As shown in Figure 2, agents can still fail in two distinct ways: identifying a wrong cause, or finding the right cause through wrong evidence. Separating these two failure modes shows whether the agent fails to trace the mechanism or fails to verify its conclusion.</p>
+                    <p>Diagnosis requires an agent to determine whether the training run has failed, identify the root cause, and provide supporting evidence. Our results show that agents identify a failure far more reliably than they explain its root cause. Across all diagnosis trajectories, 83.6% correctly judged the training run status as unhealthy, while only 27.5% identified the correct root cause. However, recognizing a failure is not enough. As shown in Figure 2, agents can still fail in two distinct ways: identifying a wrong cause, or finding the right cause through wrong evidence. Separating these two failure modes shows whether the agent fails to trace the mechanism or fails to verify its conclusion.</p>
                     <figure class="blog-figure blog-chart-figure" id="fig-2">
                         <div class="blog-chart" data-chart="fig-2" role="img"></div>
                         <figcaption>Pass: all criteria are met. Wrong cause: the status judgment is correct, but the root cause is incorrect. Wrong evidence: the status judgment and root cause are correct, but the supporting evidence is incorrect. Fail: the status judgment is incorrect.</figcaption>
@@ -567,6 +567,7 @@
                         <li><strong>Configuration</strong> failures depend on whether parameters actually reach the target training components.</li>
                         <li><strong>Reward</strong> failures require tracing the feedback loop across data, reward, advantage, and policy updates without mistaking zero reward or skewed outputs for the root cause.</li>
                         <li><strong>Data</strong> failures rely on clear read and write rules along the data loading path, producing an interesting contrast between diagnosis and repair.</li>
+                        
                         <li><strong>Environment</strong> failures require looking beyond the training pipeline to verify that the external environment responds as expected.</li>
                         <li><strong>Algorithm</strong> failures require checking consistency between policy updates and sampling behavior.</li>
                         <li><strong>Infrastructure</strong> failures require verifying coordination and state consistency across multiple system components.</li>
@@ -590,7 +591,7 @@
                     </figure>
 
                     <h3 id="repair-error-analysis">Repair Error Analysis</h3>
-                    <p>We further analyze the failed repair trajectories. In 22 trajectories, agents made no changes, often assuming that the original run was healthy, while in 48 others they changed the code but stayed at the symptom level, for example by adjusting reward handling, learning rate, KL, or response length. Some repairs addressed only part of the failure chain or failed in the actual execution environment.</p>
+                    <p>We further analyze the failed repair trajectories. In 21 trajectories, agents made no changes, often assuming that the original run was healthy, while in 48 others they changed the code but stayed at the symptom level, for example by adjusting reward handling, learning rate, KL, or response length. Some repairs addressed only part of the failure chain or failed in the actual execution environment.</p>
                     <figure class="blog-figure blog-chart-figure" id="fig-7">
                         <div class="blog-chart" data-chart="fig-7" role="img"></div>
                         <figcaption>Repair error analysis. No edit means that no substantive change was retained in the task workspace; Wrong target means that the core failure mechanism was not addressed; Incorrect / incomplete means that the repair was incorrect or incomplete; New Failure means that the repair introduced a new functional or evaluation failure; Cheating means that the agent violated task constraints or used disallowed external materials or execution paths.</figcaption>
@@ -612,12 +613,12 @@
                     </figure>
 
                     <h3 id="cost">Cost and Time Analysis</h3>
-                    <p>Higher token usage or longer execution time does not guarantee better performance. On the shared task subsets, GPT-6.1-Sol (Codex) passes 13 of 31 diagnosis tasks for $23.68, whereas GPT-6-Astra (Codex) passes 14 of 31 for $149.87. On repair tasks, GPT-6.1-Sol (Codex) passes 8 of 18 for $103.32, whereas Gemini-4-Argon (Claude Code) passes 11 of 18 for $781.72. Extra exploration helps only when it narrows down hypotheses, verifies fixes, and stops unproductive attempts early.</p>
+                    <p>Higher token usage or longer execution time does not guarantee better performance. On the shared task subsets, GPT-6.1-Sol (Codex) passes 11 of 29 diagnosis tasks for $22.81, whereas GPT-6-Astra (Codex) passes 12 of 29 for $145.96. On repair tasks, GPT-6.1-Sol (Codex) passes 7 of 17 for $102.71, whereas Gemini-4-Argon (Claude Code) passes 10 of 17 for $772.61. Extra exploration helps only when it narrows down hypotheses, verifies fixes, and stops unproductive attempts early.</p>
                     <figure class="blog-figure blog-chart-figure" id="fig-9">
                         <div class="blog-chart" data-chart="fig-9" role="img"></div>
                         <figcaption>Total cost and pass rate across agents on diagnosis and repair tasks.</figcaption>
                     </figure>
-                    <p>In repair tasks, execution time is heavily skewed by failed runs. The longest 10% of trajectories consume 48.0% of the total execution time, and failed trajectories account for 70.1%. Some agents submit unverified changes quickly, while others explore the wrong direction until they exhaust the budget. For example, GPT-6.1-Sol has a median repair time of 21.6 minutes but a mean of 99.4 minutes. Relying on average execution time alone therefore mistakes long-tail waste for thorough reasoning.</p>
+                    <p>In repair tasks, execution time is heavily skewed by failed runs. The longest 10% of trajectories consume 47.7% of the total execution time, and failed trajectories account for 70.1%. Some agents submit unverified changes quickly, while others explore the wrong direction until they exhaust the budget. For example, GPT-6.1-Sol has a median repair time of 25.4 minutes but a mean of 105.0 minutes. Relying on average execution time alone therefore mistakes long-tail waste for thorough reasoning.</p>
                     <figure class="blog-figure blog-chart-figure" id="fig-10">
                         <div class="blog-chart" data-chart="fig-10" role="img"></div>
                         <figcaption>Mean and median execution time across agents on repair tasks. The large gap reflects the long tail caused by failed runs and prolonged waiting.</figcaption>
@@ -677,6 +678,6 @@
     </footer>
 
     <script src="globe.js?v=20261020-1"></script>
-    <script src="blog-charts.js?v=20261116-21"></script>
+    <script src="blog-charts.js?v=20261116-23"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # verl_policy_loss_padded_mask_only
 
-Recorded veRL GRPO case, with a SHA-pinned reproducible data preparation stage and issue/solution evaluation protocol. Source readiness: validated; container build and GPU acceptance remain deferred at the user's request.
+Recorded veRL GRPO case, with a SHA-pinned reproducible data preparation stage and issue evaluation protocol. Source readiness: validated; container build and GPU acceptance remain deferred at the user's request.
 
 | | |
 | --- | --- |
@@ -19,11 +19,9 @@ The staged workspace includes a declared benchmark target contract, added during
 
 ## Reference solution
 - **issue**: the expected verdict is unhealthy, and the root cause is composite — the custom `luspo_token` policy loss with `seq-mean-token-sum` aggregation in `workspace/case/loss.py` (summing valid token losses per response instead of the declared standard token-mean aggregation, and omitting native dual clipping), together with `use_remove_padding: false` in `workspace/case/recorded_config.yaml`. Naming only the custom loss or only the disabled unpadding is partial attribution; naming both with their correct causal roles is complete.
-- **solution**: the filtered code/config repair is in evaluations/solution/oracle/fix.patch, and the restored effective recipe is in restored_config.yaml. Native unpadding interpolation is preserved. All proposed patches apply cleanly. task2 repaired run sbr1bh7d is the unique shared reference; it lives outside agent-visible workspaces under shared_baselines/task2_repaired_grpo. Task4 has no independently recorded repaired synchronization trace. The three non-configuration source mechanisms are controlled ports/injections, not claims of native upstream veRL defects.
 
 ## Verification
 - **issue**: the official issue scaffold is copied byte-for-byte from upstream259ebf12c2f2b78c60f7500e124115c0aaeae4a5. The agent writes a diagnosis without launching training, and `agent_answer.md` is graded against the hidden oracle with an LLM judge scoring verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2; passing requires verdict score exactly 1.0 and both root-cause and evidence scores above 0.8.
-- **solution**: the solution agent edits code and submits /workspace/report.md without training. The harness clears experiment_logs and runs bash run.sh. Budget, protocol and output roots are identical in instruction.md/run_spec.json.
 
 Score metric: aime24_25_mean32_average. Candidate=0.057291666667; shared reference=0.143750000000; threshold=0.1. Observed margins: candidate-to-threshold=0.042708333333; reference-to-threshold=0.043750000000. Calibration uses ONE run per side and reports margins, not variance. The step150 requirement prevents a step0-only submission. Scoring uses complete ordered metrics, all16 scheduled evals, independent final answer rescoring, immutable data hashes, the declared recipe, and final checkpoint archive/header checks. Task1 also independently re-scores all training rollouts121..150. No historical logs are graded during the normal protocol.
 

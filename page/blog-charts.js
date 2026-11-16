@@ -15,9 +15,9 @@
 
     const data = {
         profile: {
-            affiliations: [['THUNLP', 12], ['Tsinghua', 5], ['FusionBrain', 2], ['Brigham Young', 3], ['Johns Hopkins', 1], ['Tohoku', 2], ['UPenn', 2], ['Independent', 2], ['Fudan', 2], ['SII', 2], ['SW Jiaotong', 2], ['Duke', 1], ['SJTU', 1], ['HIT Shenzhen', 1]],
-            errors: [['Infrastructure', 11], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4]],
-            difficulty: [['Very hard', 12], ['Hard', 12], ['Medium', 7], ['Easy', 5]]
+            affiliations: [['THUNLP', 12], ['Tsinghua', 4], ['FusionBrain', 2], ['Brigham Young', 3], ['Johns Hopkins', 1], ['Tohoku', 2], ['UPenn', 1], ['Independent', 2], ['Fudan', 2], ['SII', 2], ['SW Jiaotong', 2], ['Duke', 1], ['SJTU', 1]],
+            errors: [['Infrastructure', 11], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 0]],
+            difficulty: [['Very hard', 12], ['Hard', 12], ['Medium', 7], ['Easy', 3]]
         },
         models: [['GPT-6-Astra', 37.3], ['GPT-6.1-Sol', 35.3], ['Gemini-4-Argon', 31.4], ['GLM-5.3', 27.5], ['Kimi-K3.1-Pro', 25.5], ['Fable-5.1', 21.6], ['Qwen3.8-Max', 19.6], ['Grok-4.7', 17.6], ['Kimi-K3', 5.9], ['DeepSeek-V4-Pro', 2]],
         averageLevels: [17.6, 31.8],
@@ -36,16 +36,16 @@
         // Figure 2 uses the same four-step blue-to-red palette as the
         // four-stage trajectory in Figure 8: two blue outcomes followed by
         // two red outcomes.
-        outcomes: [['Pass', 60, '#174f86'], ['Wrong cause', 180, '#3d82b7'], ['Wrong evidence', 30, '#d86f58'], ['Fail', 59, '#bf2536']],
+        outcomes: [['Pass', 60, '#174f86'], ['Wrong cause', 188, '#3d82b7'], ['Wrong evidence', 32, '#d86f58'], ['Fail', 55, '#bf2536']],
         // Failed repair trajectories grouped by the primary error mode. The
         // values are percentages of the 119 failed repair trajectories and
         // are rendered as animated marks in Figure 7.
         repairErrors: [
-            ['No edit', 22, '#104680'],
+            ['No edit', 21, '#104680'],
             ['Wrong target', 48, '#6DADD1'],
-            ['Incorrect / incomplete', 31, '#DC6D57'],
+            ['Incorrect / incomplete', 30, '#DC6D57'],
             ['New Failure', 6, '#B72230'],
-            ['Cheating', 12, '#6D011F']
+            ['Cheating', 11, '#6D011F']
         ],
         // Per-task counts use the same mutually exclusive outcome categories
         // as the summary bar above: Pass, Wrong cause, Wrong evidence, Fail.
@@ -67,22 +67,22 @@
             { title: 'GRPO broadcast', x: [0,50,100,150,200,250,300,350,400], a: [5.435,7.065,8.696,10.326,9.783,11.957,10.87,11.957,11.413], b: [5.978,0,0,0,0,0,0,0,0], aLabel: 'Fable', bLabel: 'Kimi K3', gate: 10, max: 15, colors: [C.blue, C.peach] },
             { title: 'AdamW epsilon', x: [0,10,20,30,40,50,60,70,80,90,100], a: [.076,48.749,52.464,55.648,58.074,56.027,57.165,58.302,56.861,59.136,58.378], b: [.076,.455,10.69,27.521,40.561,47.309,48.976,48.446,48.749,48.976,49.431], aLabel: 'Astra', bLabel: 'Kimi K3', gate: 53, max: 65, colors: [C.navy, C.peach] }
         ],
-        categories: [['Configuration', 16, 45], ['Reward', 16, 23.3], ['Data', 10, 30], ['Environment', 80, 70], ['Algorithm', 21, 20], ['Infrastructure', 24.5, 31.7]],
+        categories: [['Configuration', 16, 45], ['Reward', 16, 23.3], ['Data', 10, 30], ['Environment', 0, 0], ['Algorithm', 14.4, 20], ['Infrastructure', 24.5, 31.7]],
         // Per model and category: [diagnosis, repair, combined] pass rates
         // over that category's published runs. The combined value keeps the
         // fig-1 category drill-down on the same metric as the overall
         // leaderboard (issue + solution passes over all runs); fig-4 reads
         // the first two entries for its paired bars.
         categoryByModel: {
-            'GPT-6-Astra': [[20, 25, 22.2], [60, 66.7, 62.5], [0, 50, 16.7], [100, 100, 100], [30, 0, 25], [54.5, 50, 52.9]],
-            'GPT-6.1-Sol': [[40, 25, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [20, 0, 16.7], [63.6, 66.7, 64.7]],
-            'Gemini-4-Argon': [[20, 75, 44.4], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [20, 50, 25], [27.3, 66.7, 41.2]],
-            'GLM-5.3': [[20, 50, 33.3], [20, 0, 12.5], [25, 50, 33.3], [100, 0, 50], [20, 50, 25], [36.4, 33.3, 35.3]],
-            'Kimi-K3.1-Pro': [[20, 50, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 100, 100], [30, 0, 25], [18.2, 50, 29.4]],
-            'Fable-5.1': [[20, 75, 44.4], [0, 0, 0], [25, 0, 16.7], [100, 100, 100], [30, 50, 33.3], [18.2, 16.7, 17.6]],
-            'Qwen3.8-Max': [[0, 75, 33.3], [20, 33.3, 25], [0, 50, 16.7], [100, 0, 50], [30, 0, 25], [18.2, 0, 11.8]],
-            'Grok-4.7': [[20, 25, 22.2], [0, 33.3, 12.5], [50, 0, 33.3], [100, 100, 100], [30, 50, 33.3], [9.1, 0, 5.9]],
-            'DeepSeek-V4-Pro': [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 100, 50], [0, 0, 0], [0, 16.7, 5.9]],
+            'GPT-6-Astra': [[20, 25, 22.2], [60, 66.7, 62.5], [0, 50, 16.7], [0, 0, 0], [22.2, 0, 18.2], [54.5, 50, 52.9]],
+            'GPT-6.1-Sol': [[40, 25, 33.3], [20, 33.3, 25], [0, 50, 16.7], [0, 0, 0], [11.1, 0, 9.1], [63.6, 66.7, 64.7]],
+            'Gemini-4-Argon': [[20, 75, 44.4], [20, 33.3, 25], [0, 50, 16.7], [0, 0, 0], [11.1, 50, 18.2], [27.3, 66.7, 41.2]],
+            'GLM-5.3': [[20, 50, 33.3], [20, 0, 12.5], [25, 50, 33.3], [0, 0, 0], [11.1, 50, 18.2], [36.4, 33.3, 35.3]],
+            'Kimi-K3.1-Pro': [[20, 50, 33.3], [20, 33.3, 25], [0, 50, 16.7], [0, 0, 0], [22.2, 0, 18.2], [18.2, 50, 29.4]],
+            'Fable-5.1': [[20, 75, 44.4], [0, 0, 0], [25, 0, 16.7], [0, 0, 0], [22.2, 50, 27.3], [18.2, 16.7, 17.6]],
+            'Qwen3.8-Max': [[0, 75, 33.3], [20, 33.3, 25], [0, 50, 16.7], [0, 0, 0], [22.2, 0, 18.2], [18.2, 0, 11.8]],
+            'Grok-4.7': [[20, 25, 22.2], [0, 33.3, 12.5], [50, 0, 33.3], [0, 0, 0], [22.2, 50, 27.3], [9.1, 0, 5.9]],
+            'DeepSeek-V4-Pro': [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 16.7, 5.9]],
             'Kimi-K3': [[0, 50, 22.2], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 16.7, 5.9]]
         },
         dataCurve: { x: [0,1,2,3,4,5,6,7], train: [37.5,43.8,37.5,43.8,75,81.3,62.5,62.5], validationX: [0,3,7], validation: [50,37.5,31.25], hard: [50,50,50,50,0,0,0,0] },
@@ -118,16 +118,16 @@
             }
         ],
         costs: {
-            issue: [['Fable', 13.98, 22.2], ['DeepSeek', 13.85, 0], ['GLM', 17.55, 27.8], ['Astra', 4.83, 38.9], ['Sol', .76, 36.1], ['Gemini', 13.54, 22.2], ['Kimi K3', 4.32, 0], ['Kimi 3.1', 5.42, 22.2]],
-            solution: [['Fable', 34.9, 33.3], ['DeepSeek', 38.81, 11.1], ['GLM', 45.05, 33.3], ['Astra', 44.55, 44.4], ['Sol', 5.74, 44.4], ['Gemini', 43.43, 61.1], ['Kimi K3', 13.34, 16.7], ['Kimi 3.1', 4.43, 44.4]]
+            issue: [['Fable', 14.54, 17.6], ['DeepSeek', 13.23, 0], ['GLM', 17.81, 23.5], ['Astra', 5.03, 35.3], ['Sol', .79, 32.4], ['Gemini', 13.37, 17.6], ['Kimi K3', 4.39, 0], ['Kimi 3.1', 5.52, 17.6]],
+            solution: [['Fable', 36.6, 29.4], ['DeepSeek', 39.66, 5.9], ['GLM', 46.9, 35.3], ['Astra', 47.0, 41.2], ['Sol', 6.04, 41.2], ['Gemini', 45.45, 58.8], ['Kimi K3', 13.37, 17.6], ['Kimi 3.1', 4.56, 41.2]]
         },
         modelLogos: {
             Fable: 'anthropic.png', DeepSeek: 'deepseek.png', GLM: 'glm.png', Astra: 'openai.png',
             Sol: 'openai.png', Gemini: 'googlegemini.png', 'Kimi K3': 'kimi.png', 'Kimi 3.1': 'kimi.png'
         },
         times: {
-            issue: [['Fable',30.45,14.22],['DeepSeek',39.98,36.48],['GLM',25.09,17.97],['Astra',62.58,11.61],['Sol',17.6,13.11],['Gemini',23.73,19.06],['Grok',14.48,12.11],['Kimi K3',41.73,17.23],['Kimi 3.1',26.98,20.28],['Qwen',30.05,27.94]],
-            solution: [['Fable',46.92,10.66],['DeepSeek',80.44,49.89],['GLM',58.79,51.71],['Astra',114.63,34.07],['Sol',99.38,21.57],['Gemini',98.97,77.3],['Grok',19.63,14.43],['Kimi K3',51.95,28.15],['Kimi 3.1',21.16,20.07],['Qwen',43.16,37.72]]
+            issue: [['Fable',31.62,17.03],['DeepSeek',37.86,34.31],['GLM',25.38,17.97],['Astra',65.96,11.77],['Sol',18.3,13.53],['Gemini',24.3,20.27],['Grok',15.12,13.14],['Kimi K3',43.3,17.23],['Kimi 3.1',27.72,20.82],['Qwen',30.51,28.51]],
+            solution: [['Fable',48.89,9.85],['DeepSeek',83.03,52.69],['GLM',60.66,52.23],['Astra',120.82,40.07],['Sol',105.0,25.36],['Gemini',104.37,82.85],['Grok',20.53,15.12],['Kimi K3',48.62,27.7],['Kimi 3.1',21.82,20.54],['Qwen',43.36,37.37]]
         }
     };
 
@@ -319,8 +319,8 @@
     function outcomeBars(el) {
         const svg = make(el, 1000, 500, 'Diagnosis outcomes and selected failure patterns');
         addTitle(svg,'Overall failure modes of diagnosis tasks',500,23,'middle');
-        const total=386, x=30,y=34,w=940,h=34; let cursor=x; const stack=group(svg,'chart-stack-group');
-        data.outcomes.forEach((item,i)=>{ const bw=w*item[1]/total; svgEl('rect',{x:cursor,y,width:bw,height:h,fill:item[2],class:'chart-stack'},stack); text(stack,cursor+bw/2,y+h/2,pct(item[1]/total*100),'chart-stack-label'); cursor+=bw; }); animateMark(stack,0,'rise');
+        const total=data.outcomes.reduce((sum,item)=>sum+item[1],0), x=30,y=34,w=940,h=34; let cursor=x; const stack=group(svg,'chart-stack-group');
+        data.outcomes.forEach((item,i)=>{ const bw=w*item[1]/total; svgEl('rect',{x:cursor,y,width:bw,height:h,fill:item[2],class:'chart-stack'},stack); text(stack,cursor+bw/2,y+h/2,pct(item[1]/total*100),'chart-stack-label',{'text-anchor':'middle','dominant-baseline':'middle'}); cursor+=bw; }); animateMark(stack,0,'rise');
         addTitle(svg,'Examples of failure modes by task',500,120,'middle');
         const left=190,right=950,row=29, top=141,max=10;
         data.outcomeTasks.forEach((item,i)=>{
@@ -357,7 +357,7 @@
                 pts.forEach((p,i)=>{ if(i===pts.length-1)return; const path=svgEl('path',{d:linePath([p,pts[i+1]]),stroke:panel.colors[series],class:'chart-segment',fill:'none'} ,svg); animatePath(path,series*80+i*45); });
                 pts.forEach((p,i)=>{const dot=svgEl('circle',{cx:p[0],cy:p[1],r:4,fill:panel.colors[series],class:'chart-dot'},svg); animateMark(dot,series*80+i*45+240,'pop');});
             });
-            text(svg,x+w/2,oy+ph-2,'RL Training Step','chart-axis');
+            text(svg,x+w/2,oy+ph-2,'RL Training Step','chart-axis',{'text-anchor':'middle'});
             centeredLegend(svg,[{label:panel.aLabel,color:panel.colors[0]},{label:panel.bLabel,color:panel.colors[1]}],x+w/2,oy+ph+22);
         });
     }
@@ -365,8 +365,8 @@
     function quadrants(el) {
         const svg=make(el,800,410,'Diagnosis and repair outcomes across shared tasks');
         const x=170,y=35,size=300,half=size/2; const cells=[
-            [0,0,'Diagnosis fails','Repair fails',60.6,C.navy], [1,0,'Diagnosis fails','Repair passes',21.7,C.paleBlue],
-            [0,1,'Diagnosis passes','Repair fails',5.6,'#e9f0f3'], [1,1,'Diagnosis passes','Repair passes',12.2,'#c8dce8']
+            [0,0,'Diagnosis fails','Repair fails',63.5,C.navy], [1,0,'Diagnosis fails','Repair passes',22.4,C.paleBlue],
+            [0,1,'Diagnosis passes','Repair fails',4.7,'#e9f0f3'], [1,1,'Diagnosis passes','Repair passes',9.4,'#c8dce8']
         ];
         cells.forEach((cell,i)=>{
             const [cx,cy,_,__,v,color]=cell;
@@ -383,8 +383,8 @@
         text(svg,x-18,y+half+half/2,'Diagnosis passes','chart-quadrant-axis',{'text-anchor':'end','dominant-baseline':'middle'});
 
         const sideX=535;
-        text(svg,sideX,151,'360 trajectories','chart-quadrant-side-value');
-        text(svg,sideX,211,'28','chart-quadrant-side-value');
+        text(svg,sideX,151,'340 trajectories','chart-quadrant-side-value');
+        text(svg,sideX,211,'24','chart-quadrant-side-value');
         text(svg,sideX,231,'diagnosis passes','chart-quadrant-side-label');
         text(svg,sideX,271,'54','chart-quadrant-side-value');
         text(svg,sideX,291,'repair passes','chart-quadrant-side-label');
@@ -394,6 +394,7 @@
         const svg = make(el, 900, 380, 'Repair error analysis across failed repair trajectories');
         addTitle(svg, 'Error Analysis of Repair Trajectories', 450, 28, 'middle');
         const x = 235, y = 61, w = 575, row = 56, max = 50;
+        const failed = data.repairErrors.reduce((sum, item) => sum + item[1], 0);
         const plotHeight = row * data.repairErrors.length - 12;
         [0, 10, 20, 30, 40, 50].forEach(tick => {
             const xx = x + w * tick / max;
@@ -404,7 +405,7 @@
         data.repairErrors.forEach((item, i) => {
             const [label, count, color] = item;
             const yy = y + i * row + 7;
-            const value = count / 129 * 100;
+            const value = count / failed * 100;
             text(svg, x - 14, yy + 18, label, 'chart-label', { 'text-anchor': 'end' });
             const bar = svgEl('rect', { x, y: yy, width: w * value / max, height: 28, rx: 3, fill: color, class: 'chart-hbar' }, svg);
             // Keep the horizontal scale animation so each row grows from the
@@ -672,12 +673,11 @@
 
     function scatter(el) {
         const svg=make(el,1000,520,'Cost and pass rate split by diagnosis and repair tasks');
-        const maxY=70,panelW=390,panelH=300,panelY=62;
-        [['Diagnosis',data.costs.issue,55,25],['Repair',data.costs.solution,555,50]].forEach((panel,pi)=>{
-            const [label, rows, x, maxX] = panel;
+        const panelW=390,panelH=300,panelY=62;
+        [['Diagnosis',data.costs.issue,55,20,40,[0,10,20,30,40],[0,5,10,15,20]],['Repair',data.costs.solution,555,50,70,[0,20,40,60],[0,10,20,30,40,50]]].forEach((panel,pi)=>{
+            const [label, rows, x, maxX, maxY, yTicks, xTicks] = panel;
             addTitle(svg,label,x,panelY-25);
-            addGrid(svg,x,panelY,panelW,panelH,[0,20,40,60],maxY,v=>`${v}%`);
-            const xTicks = maxX === 25 ? [0,5,10,15,20,25] : [0,10,20,30,40,50];
+            addGrid(svg,x,panelY,panelW,panelH,yTicks,maxY,v=>`${v}%`);
             xTicks.forEach(t=>{const xx=x+t/maxX*panelW; svgEl('line',{x1:xx,y1:panelY+panelH,x2:xx,y2:panelY+panelH+5,class:'chart-axis-line'},svg); text(svg,xx,panelY+panelH+22,`$${t}`,'chart-axis',{'text-anchor':'middle'});});
             // Each logo sits at its (cost, pass rate) point; the few logos
             // that share a spot are nudged apart by the minimum displacement,
