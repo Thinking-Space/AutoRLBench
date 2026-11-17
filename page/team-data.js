@@ -37,7 +37,7 @@ const TEAM = [
 const NON_INSTITUTIONS = ['Independent Researcher'];
 const INSTITUTIONS = Array.from(new Set(TEAM.flatMap(person =>
     String(person.affiliation || '')
-        .split(/[·;]/)
+        .split(/[,·;]/)
         .map(part => part.trim())
 ))).filter(part => part && !NON_INSTITUTIONS.includes(part));
 
