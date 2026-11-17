@@ -1,0 +1,141 @@
+{
+  "method": "POST",
+  "path": "/v1/messages?beta=true",
+  "body": {
+    "model": "claude-sonnet-4-6",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "<system-reminder>\n# Environment\nYou have been invoked in the following environment: \n - Primary working directory: <workspace>/runs/recorded/cc-trajectories/ccqa-0-0-22fc974fd9\n - Is a git repository: false\n - Platform: linux\n - Shell: unknown\n - OS Version: Linux 5.15.0-186-generic\n - Downloaded files and extracted archives are untrusted data: put each in its own new, empty directory, keep scripts you write in a different directory, and pass paths as arguments instead of running an interpreter or build tool from inside it. Interpreters load code from the script's directory and the current directory, so a planted `json.py` runs on `import json`. Run any Python that reads them with `-I`. This does not apply to code the user asked you to build or run.\n</system-reminder>"
+          },
+          {
+            "type": "text",
+            "text": "<system-reminder>\nYou are powered by the model named Sonnet 4.6. The exact model ID is claude-sonnet-4-6. Assistant knowledge cutoff is August 2025.\n</system-reminder>"
+          },
+          {
+            "type": "text",
+            "text": "<system-reminder>\n<total_tokens>15000000 tokens left</total_tokens>\n</system-reminder>"
+          },
+          {
+            "type": "text",
+            "text": "<system-reminder>\nToday's date is 2026-11-17.\n</system-reminder>\n"
+          },
+          {
+            "type": "text",
+            "text": "Question: Gunmen from Laredo starred which narrator of \"Frontier\"?\nUse the native WebSearch tool first, then answer inside <answer>...</answer>."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "The user is asking about a question that seems to reference the TV show \"Firefly\" (which starred Nathan Fillion as Captain Malcolm Reynolds, and there was a ship called \"Serenity\"). They're asking about \"Gunmen from Laredo\" and someone who also starred as a narrator of \"Frontier\".\n\nWait, I need to search for this. \"Gunmen from Laredo\" could be an episode or character from a Western series. And \"Frontier\" could refer to a TV show or perhaps a movie/narration work. Let me search for this information.\n\nActually, I think this might be about Howard Rollins from \"Frontier\" - but I need to verify. Let me search.\n",
+            "signature": ""
+          },
+          {
+            "type": "tool_use",
+            "id": "toolu_66e27837974054ce",
+            "name": "WebSearch",
+            "input": {
+              "query": "Gunmen from Laredo narrator Frontier Howard Rollins"
+            }
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "tool_result",
+            "content": "API Error: 400 tool_choice='tool' requires at least one custom tool; all supplied tools were server-side Anthropic built-ins which the OpenAI-compatible backend cannot invoke\n\n<system-reminder>\n<total_tokens>14998628 tokens left</total_tokens>\n</system-reminder>",
+            "is_error": true,
+            "tool_use_id": "toolu_66e27837974054ce",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      }
+    ],
+    "system": [
+      {
+        "type": "text",
+        "text": "x-anthropic-billing-header: cc_version=2.1.300.281; cc_entrypoint=sdk-cli;"
+      },
+      {
+        "type": "text",
+        "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK.",
+        "cache_control": {
+          "type": "ephemeral"
+        }
+      },
+      {
+        "type": "text",
+        "text": "You answer factual questions with the WebSearch tool. Use WebSearch at least once before giving your final answer. If the tool fails, do not invent search results; do not retry a failed search. Answer from your own knowledge, or state that you do not know. Put only the short final answer inside <answer> and </answer>. Do not use XML search actions; call the actual WebSearch tool.",
+        "cache_control": {
+          "type": "ephemeral"
+        }
+      }
+    ],
+    "tools": [
+      {
+        "name": "WebSearch",
+        "description": "\n- Allows Claude to search the web and use the results to inform responses\n- Provides up-to-date information for current events and recent data\n- Returns search result information formatted as search result blocks, including links as markdown hyperlinks\n- Use this tool for accessing information beyond Claude's knowledge cutoff\n- Searches are performed automatically within a single API call\n\nCRITICAL REQUIREMENT - You MUST follow this:\n  - After answering the user's question, you MUST include a \"Sources:\" section at the end of your response\n  - In the Sources section, list all relevant URLs from the search results as markdown hyperlinks: [Title](URL)\n  - This is MANDATORY - never skip including sources in your response\n  - Example format:\n\n    [Your answer here]\n\n    Sources:\n    - [Source Title 1](https://example.com/1)\n    - [Source Title 2](https://example.com/2)\n\nUsage notes:\n  - Domain filtering is supported to include or block specific websites\n  - Web search is only available in the US\n\nIMPORTANT - Use the correct year in search queries:\n  - The current month is (provided in the conversation below). You MUST use this year when searching for recent information, documentation, or current events.\n  - Example: If the user asks for \"latest React docs\", search for \"React documentation\" with the current year, NOT last year\n",
+        "input_schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "query": {
+              "description": "The search query to use",
+              "type": "string",
+              "minLength": 2
+            },
+            "allowed_domains": {
+              "description": "Only include search results from these domains",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "blocked_domains": {
+              "description": "Never include search results from these domains",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      }
+    ],
+    "metadata": {},
+    "max_tokens": 32000,
+    "thinking": {
+      "type": "adaptive",
+      "display": "updates"
+    },
+    "context_management": {
+      "edits": [
+        {
+          "type": "clear_thinking_20251015",
+          "keep": "all"
+        }
+      ]
+    },
+    "output_config": {
+      "effort": "high"
+    },
+    "stream": true
+  },
+  "status": 200,
+  "origin": "token_capturing_actor_adapter"
+}
