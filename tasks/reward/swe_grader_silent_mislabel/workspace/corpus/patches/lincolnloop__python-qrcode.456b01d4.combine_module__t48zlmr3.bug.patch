@@ -1,0 +1,54 @@
+diff --git a/qrcode/image/styles/colormasks.py b/qrcode/image/styles/colormasks.py
+index 43186b2..bd87356 100644
+--- a/qrcode/image/styles/colormasks.py
++++ b/qrcode/image/styles/colormasks.py
+@@ -209,8 +209,8 @@ class ImageColorMask(QRColorMask):
+         self.has_transparency = len(self.back_color) == 4
+ 
+     def initialize(self, styledPilImage, image):
+-        self.paint_color = styledPilImage.paint_color
+-        self.color_img = self.color_img.resize(image.size)
++        self.paint_color = image.paint_color
++        self.color_img = self.color_img.crop((0, 0, image.size[0] - 10, image.size[1] - 10))
+ 
+     def get_fg_pixel(self, image, x, y):
+         width, _ = image.size
+diff --git a/qrcode/image/styles/moduledrawers/pil.py b/qrcode/image/styles/moduledrawers/pil.py
+index 89eeffa..279024e 100644
+--- a/qrcode/image/styles/moduledrawers/pil.py
++++ b/qrcode/image/styles/moduledrawers/pil.py
+@@ -166,8 +166,8 @@ class VerticalBarsDrawer(StyledPilQRModuleDrawer):
+ 
+     needs_neighbors = True
+ 
+-    def __init__(self, horizontal_shrink=0.8):
+-        self.horizontal_shrink = horizontal_shrink
++    def __init__(self, horizontal_shrink=0.9):
++        self.horizontal_shrink = 1 - horizontal_shrink
+ 
+     def initialize(self, *args, **kwargs):
+         super().initialize(*args, **kwargs)
+diff --git a/qrcode/image/svg.py b/qrcode/image/svg.py
+index 4ad371b..a8dacbf 100644
+--- a/qrcode/image/svg.py
++++ b/qrcode/image/svg.py
+@@ -147,16 +147,14 @@ class SvgPathImage(SvgImage):
+         return super()._svg(viewBox=viewBox, **kwargs)
+ 
+     def process(self):
+-        # Store the path just in case someone wants to use it again or in some
+-        # unique way.
++        self._img.append(self.path)
+         self.path = ET.Element(
+             ET.QName("path"),  # type: ignore
+-            d="".join(self._subpaths),
+-            id="qr-path",
++            d="-".join(self._subpaths),
++            id="qr-path-modified",
+             **self.QR_PATH_STYLE,
+         )
+         self._subpaths = []
+-        self._img.append(self.path)
+ 
+ 
+ class SvgFillImage(SvgImage):

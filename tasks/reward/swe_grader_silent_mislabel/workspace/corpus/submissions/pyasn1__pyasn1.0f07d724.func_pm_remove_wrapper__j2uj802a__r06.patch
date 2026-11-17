@@ -1,0 +1,26 @@
+diff --git a/pyasn1/type/univ.py b/pyasn1/type/univ.py
+index dd7ba4a..9aff5e6 100644
+--- a/pyasn1/type/univ.py
++++ b/pyasn1/type/univ.py
+@@ -1386,7 +1386,12 @@ class Real(base.SimpleAsn1Type):
+             return self.__normalizeBase10((value, 10, 0))
+         elif isinstance(value, float) or isinstance(value, str):
+             if isinstance(value, str):
+-                pass
++                try:
++                    value = float(value)
++                except ValueError:
++                    raise error.PyAsn1Error(
++                        'Bad real value syntax: %s' % (value,)
++                    )
+             if self._inf and value in self._inf:
+                 return value
+             else:
+@@ -1400,6 +1405,7 @@ class Real(base.SimpleAsn1Type):
+         raise error.PyAsn1Error(
+             'Bad real value syntax: %s' % (value,)
+         )
++
+     def prettyPrint(self, scope=0):
+         try:
+             return self.prettyOut(float(self))

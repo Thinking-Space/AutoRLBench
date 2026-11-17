@@ -1,0 +1,487 @@
+diff --git a/bleach/callbacks.py.bak b/bleach/callbacks.py.bak
+new file mode 100644
+index 0000000..8099cca
+--- /dev/null
++++ b/bleach/callbacks.py.bak
+@@ -0,0 +1,32 @@
++"""A set of basic callbacks for bleach.linkify."""
++
++
++def nofollow(attrs, new=False):
++    href_key = (None, "href")
++
++    if href_key not in attrs:
++        return attrs
++
++    if attrs[href_key].startswith("mailto:"):
++        return attrs
++
++    rel_key = (None, "rel")
++    rel_values = [val for val in attrs.get(rel_key, "").split(" ") if val]
++    if "nofollow" not in [rel_val.lower() for rel_val in rel_values]:
++        rel_values.append("nofollow")
++    attrs[rel_key] = " ".join(rel_values)
++
++    return attrs
++
++
++def target_blank(attrs, new=False):
++
++    if attrs[href_key].startswith("mailto:"):
++        return attrs
++
++    attrs[(None, "target")] = "_blank"
++    href_key = (None, "href")
++    return attrs
++
++    if href_key not in attrs:
++        return attrs
+\ No newline at end of file
+diff --git a/bleach/callbacks.py.bak2 b/bleach/callbacks.py.bak2
+new file mode 100644
+index 0000000..8099cca
+--- /dev/null
++++ b/bleach/callbacks.py.bak2
+@@ -0,0 +1,32 @@
++"""A set of basic callbacks for bleach.linkify."""
++
++
++def nofollow(attrs, new=False):
++    href_key = (None, "href")
++
++    if href_key not in attrs:
++        return attrs
++
++    if attrs[href_key].startswith("mailto:"):
++        return attrs
++
++    rel_key = (None, "rel")
++    rel_values = [val for val in attrs.get(rel_key, "").split(" ") if val]
++    if "nofollow" not in [rel_val.lower() for rel_val in rel_values]:
++        rel_values.append("nofollow")
++    attrs[rel_key] = " ".join(rel_values)
++
++    return attrs
++
++
++def target_blank(attrs, new=False):
++
++    if attrs[href_key].startswith("mailto:"):
++        return attrs
++
++    attrs[(None, "target")] = "_blank"
++    href_key = (None, "href")
++    return attrs
++
++    if href_key not in attrs:
++        return attrs
+\ No newline at end of file
+diff --git a/bleach/callbacks.py.bak3 b/bleach/callbacks.py.bak3
+new file mode 100644
+index 0000000..8099cca
+--- /dev/null
++++ b/bleach/callbacks.py.bak3
+@@ -0,0 +1,32 @@
++"""A set of basic callbacks for bleach.linkify."""
++
++
++def nofollow(attrs, new=False):
++    href_key = (None, "href")
++
++    if href_key not in attrs:
++        return attrs
++
++    if attrs[href_key].startswith("mailto:"):
++        return attrs
++
++    rel_key = (None, "rel")
++    rel_values = [val for val in attrs.get(rel_key, "").split(" ") if val]
++    if "nofollow" not in [rel_val.lower() for rel_val in rel_values]:
++        rel_values.append("nofollow")
++    attrs[rel_key] = " ".join(rel_values)
++
++    return attrs
++
++
++def target_blank(attrs, new=False):
++
++    if attrs[href_key].startswith("mailto:"):
++        return attrs
++
++    attrs[(None, "target")] = "_blank"
++    href_key = (None, "href")
++    return attrs
++
++    if href_key not in attrs:
++        return attrs
+\ No newline at end of file
+diff --git a/bleach/callbacks.py.bak4 b/bleach/callbacks.py.bak4
+new file mode 100644
+index 0000000..8099cca
+--- /dev/null
++++ b/bleach/callbacks.py.bak4
+@@ -0,0 +1,32 @@
++"""A set of basic callbacks for bleach.linkify."""
++
++
++def nofollow(attrs, new=False):
++    href_key = (None, "href")
++
++    if href_key not in attrs:
++        return attrs
++
++    if attrs[href_key].startswith("mailto:"):
++        return attrs
++
++    rel_key = (None, "rel")
++    rel_values = [val for val in attrs.get(rel_key, "").split(" ") if val]
++    if "nofollow" not in [rel_val.lower() for rel_val in rel_values]:
++        rel_values.append("nofollow")
++    attrs[rel_key] = " ".join(rel_values)
++
++    return attrs
++
++
++def target_blank(attrs, new=False):
++
++    if attrs[href_key].startswith("mailto:"):
++        return attrs
++
++    attrs[(None, "target")] = "_blank"
++    href_key = (None, "href")
++    return attrs
++
++    if href_key not in attrs:
++        return attrs
+\ No newline at end of file
+diff --git a/fix_callbacks.py b/fix_callbacks.py
+new file mode 100644
+index 0000000..ee47d68
+--- /dev/null
++++ b/fix_callbacks.py
+@@ -0,0 +1,94 @@
++#!/usr/bin/env python
++"""Fix the callbacks.py file to resolve UnboundLocalError in target_blank and fix rel_values join."""
++
++with open('/testbed/bleach/callbacks.py', 'r') as f:
++    content = f.read()
++
++# Fix the target_blank function - reorder lines to define href_key first
++lines = content.split('\n')
++
++# Find the target_blank function
++for i, line in enumerate(lines):
++    if 'deftarget_blank(attrs,new=False):' in line:
++        # Reorder the lines within the function
++        # Move href_key definition to the beginning
++        new_lines = []
++        j = i
++        while j < len(lines) and not (lines[j].strip() and not lines[j].startswith('def') and 'target_blank' not in lines[j]):
++            new_lines.append(lines[j])
++            j += 1
++
++        # Reorder the target_blank function
++        # 1. Define href_key=(None,"href") at the beginning
++        # 2. Check if href_key is not in attrs, return attrs
++        # 3. Check if attrs[href_key] starts with "mailto:", return attrs
++        # 4. Add target="_blank" to attrs
++        # 5. Return attrs
++
++        # Find the end of the function (next def or end of file)
++        func_end = j
++        while func_end < len(lines) and not lines[func_end].strip().startswith('def'):
++            func_end += 1
++
++        # Reorder the function content
++        func_lines = lines[i:func_end]
++        reordered_func_lines = []
++
++        # Find href_key definition
++        href_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'href_key=(None,"href")' in func_line:
++                href_line_index = idx
++                break
++
++        # Find the check for href_key not in attrs
++        check_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'ifhref_keynotinattrs:' in func_line:
++                check_line_index = idx
++                break
++
++        # Find the mailto check
++        mailto_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'ifattrs[href_key].startswith("mailto:"):' in func_line:
++                mailto_line_index = idx
++                break
++
++        # Find the target="_blank" assignment
++        target_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'attrs[(None,"target")]="_blank"' in func_line:
++                target_line_index = idx
++                break
++
++        # Reorder: href_key definition, check not in attrs, mailto check, target assignment, return
++        if href_line_index is not None:
++            reordered_func_lines.append(func_lines[href_line_index])
++        if check_line_index is not None:
++            reordered_func_lines.append(func_lines[check_line_index])
++        if mailto_line_index is not None:
++            reordered_func_lines.append(func_lines[mailto_line_index])
++        if target_line_index is not None:
++            reordered_func_lines.append(func_lines[target_line_index])
++        # Find the return statement
++        for idx, func_line in enumerate(func_lines):
++            if 'returnattrs' in func_line and idx not in [href_line_index, check_line_index, mailto_line_index, target_line_index]:
++                reordered_func_lines.append(func_line)
++                break
++
++        # Replace the function
++        lines[i:func_end] = reordered_func_lines
++        break
++
++# Fix the rel_values join - replace ""join with " ".join
++for i, line in enumerate(lines):
++    if 'attrs[rel_key]=""join(rel_values)' in line:
++        lines[i] = line.replace('""join(rel_values)', '" ".join(rel_values)')
++        break
++
++# Write the fixed content back
++with open('/testbed/bleach/callbacks.py', 'w') as f:
++    f.write('\n'.join(lines))
++
++print("Fixed callbacks.py")
+\ No newline at end of file
+diff --git a/fix_callbacks_final.py b/fix_callbacks_final.py
+new file mode 100644
+index 0000000..0d687ff
+--- /dev/null
++++ b/fix_callbacks_final.py
+@@ -0,0 +1,87 @@
++#!/usr/bin/env python
++"""Fix the callbacks.py file to resolve UnboundLocalError in target_blank and fix rel_values join."""
++
++with open('/testbed/bleach/callbacks.py', 'r') as f:
++    lines = f.readlines()
++
++# Fix the target_blank function - reorder lines to define href_key first
++for i, line in enumerate(lines):
++    if 'deftarget_blank(attrs,new=False):' in line:
++        # Find the end of the function (next def or end of file)
++        func_end = i + 1
++        while func_end < len(lines) and not lines[func_end].strip().startswith('def'):
++            func_end += 1
++
++        # Reorder the target_blank function
++        # 1. Define href_key=(None,"href") at the beginning
++        # 2. Check if href_key is not in attrs, return attrs
++        # 3. Check if attrs[href_key] starts with "mailto:", return attrs
++        # 4. Add target="_blank" to attrs
++        # 5. Return attrs
++
++        # Extract the function lines
++        func_lines = lines[i:func_end]
++
++        # Find the href_key definition
++        href_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'href_key=(None,"href")' in func_line:
++                href_line_index = idx
++                break
++
++        # Find the check for href_key not in attrs
++        check_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'ifhref_keynotinattrs:' in func_line:
++                check_line_index = idx
++                break
++
++        # Find the mailto check
++        mailto_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'ifattrs[href_key].startswith("mailto:"):' in func_line:
++                mailto_line_index = idx
++                break
++
++        # Find the target="_blank" assignment
++        target_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'attrs[(None,"target")]="_blank"' in func_line:
++                target_line_index = idx
++                break
++
++        # Find the return statement
++        return_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'returnattrs' in func_line and idx not in [href_line_index, check_line_index, mailto_line_index, target_line_index]:
++                return_line_index = idx
++                break
++
++        # Reorder: href_key definition, check not in attrs, mailto check, target assignment, return
++        reordered_func_lines = []
++        if href_line_index is not None:
++            reordered_func_lines.append(func_lines[href_line_index])
++        if check_line_index is not None:
++            reordered_func_lines.append(func_lines[check_line_index])
++        if mailto_line_index is not None:
++            reordered_func_lines.append(func_lines[mailto_line_index])
++        if target_line_index is not None:
++            reordered_func_lines.append(func_lines[target_line_index])
++        if return_line_index is not None:
++            reordered_func_lines.append(func_lines[return_line_index])
++
++        # Replace the function
++        lines[i:func_end] = reordered_func_lines
++        break
++
++# Fix the rel_values join - replace ""join with " ".join
++for i, line in enumerate(lines):
++    if 'attrs[rel_key]=""join(rel_values)' in line:
++        lines[i] = line.replace('""join(rel_values)', '" ".join(rel_values)')
++        break
++
++# Write the fixed content back
++with open('/testbed/bleach/callbacks.py', 'w') as f:
++    f.writelines(lines)
++
++print("Fixed callbacks.py")
+\ No newline at end of file
+diff --git a/simple_fix.py b/simple_fix.py
+new file mode 100644
+index 0000000..f7b8e8b
+--- /dev/null
++++ b/simple_fix.py
+@@ -0,0 +1,90 @@
++#!/usr/bin/env python
++"""Simple fix for callbacks.py to resolve UnboundLocalError in target_blank and fix rel_values join."""
++
++with open('/testbed/bleach/callbacks.py', 'r') as f:
++    content = f.read()
++
++# Fix the target_blank function - reorder lines to define href_key first
++lines = content.split('\n')
++
++# Find the target_blank function
++for i, line in enumerate(lines):
++    if 'deftarget_blank(attrs,new=False):' in line:
++        # Reorder the function
++        # 1. Define href_key=(None,"href") at the beginning
++        # 2. Check if href_key is not in attrs, return attrs
++        # 3. Check if attrs[href_key] starts with "mailto:", return attrs
++        # 4. Add target="_blank" to attrs
++        # 5. Return attrs
++
++        # Find the end of the function (next def or end of file)
++        func_end = i + 1
++        while func_end < len(lines) and not lines[func_end].strip().startswith('def'):
++            func_end += 1
++
++        # Reorder the function content
++        func_lines = lines[i:func_end]
++        reordered_func_lines = []
++
++        # Find href_key definition
++        href_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'href_key=(None,"href")' in func_line:
++                href_line_index = idx
++                break
++
++        # Find the check for href_key not in attrs
++        check_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'ifhref_keynotinattrs:' in func_line:
++                check_line_index = idx
++                break
++
++        # Find the mailto check
++        mailto_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'ifattrs[href_key].startswith("mailto:"):' in func_line:
++                mailto_line_index = idx
++                break
++
++        # Find the target="_blank" assignment
++        target_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'attrs[(None,"target")]="_blank"' in func_line:
++                target_line_index = idx
++                break
++
++        # Find the return statement
++        return_line_index = None
++        for idx, func_line in enumerate(func_lines):
++            if 'returnattrs' in func_line and idx not in [href_line_index, check_line_index, mailto_line_index, target_line_index]:
++                return_line_index = idx
++                break
++
++        # Reorder: href_key definition, check not in attrs, mailto check, target assignment, return
++        if href_line_index is not None:
++            reordered_func_lines.append(func_lines[href_line_index])
++        if check_line_index is not None:
++            reordered_func_lines.append(func_lines[check_line_index])
++        if mailto_line_index is not None:
++            reordered_func_lines.append(func_lines[mailto_line_index])
++        if target_line_index is not None:
++            reordered_func_lines.append(func_lines[target_line_index])
++        if return_line_index is not None:
++            reordered_func_lines.append(func_lines[return_line_index])
++
++        # Replace the function
++        lines[i:func_end] = reordered_func_lines
++        break
++
++# Fix the rel_values join - replace ""join with " ".join
++for i, line in enumerate(lines):
++    if 'attrs[rel_key]=""join(rel_values)' in line:
++        lines[i] = line.replace('""join(rel_values)', '" ".join(rel_values)')
++        break
++
++# Write the fixed content back
++with open('/testbed/bleach/callbacks.py', 'w') as f:
++    f.write('\n'.join(lines))
++
++print("Fixed callbacks.py")
+\ No newline at end of file
+diff --git a/test_target_blank_error.py b/test_target_blank_error.py
+new file mode 100644
+index 0000000..3e371bf
+--- /dev/null
++++ b/test_target_blank_error.py
+@@ -0,0 +1,32 @@
++#!/usr/bin/env python
++"""Test script to reproduce the UnboundLocalError in target_blank callback."""
++
++import bleach
++from bleach.callbacks import target_blank
++
++# Test case 1: Empty attrs (should work but currently crashes)
++print("Test 1: Empty attrs")
++try:
++    attrs = {}
++    result = target_blank(attrs)
++    print("Result: {}".format(result))
++except Exception as e:
++    print("Error: {}: {}".format(type(e).__name__, e))
++
++# Test case 2: Attrs without href (should work but currently crashes)
++print("\nTest 2: Attrs without href")
++try:
++    attrs = {"_text": "somethingsomething"}
++    result = target_blank(attrs)
++    print("Result: {}".format(result))
++except Exception as e:
++    print("Error: {}: {}".format(type(e).__name__, e))
++
++# Test case 3: Attrs with href (should work)
++print("\nTest 3: Attrs with href")
++try:
++    attrs = {(None, "href"): "http://example.com"}
++    result = target_blank(attrs)
++    print("Result: {}".format(result))
++except Exception as e:
++    print("Error: {}: {}".format(type(e).__name__, e))
+\ No newline at end of file

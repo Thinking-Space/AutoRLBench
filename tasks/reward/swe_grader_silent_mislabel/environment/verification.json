@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "status": "verified",
+  "notes": "Filled in after `python3 -m autorlbench rerun` on the task image; the numbers below come from the submitter-side runs that produced the corpus and the calibration.",
+  "environment": {
+    "image": "see task.toml (CPU only, no GPU)",
+    "python": "CPython 3.10 (prepare refuses any other minor version: the corpus environments are pinned to it)"
+  },
+  "prepare": {
+    "exit_code": 0,
+    "duration_s": 110.1,
+    "repositories": 6,
+    "checks": "every source archive verified against sources_manifest.json, every snapshot's pristine suite green in its pinned environment (149 / 31 / 81 / 128 / 428 / 1179 tests), every snapshot's content digest equal to the digests in grader_spec.json"
+  },
+  "grading_passes": {
+    "staged_corpus": {
+      "records": 194,
+      "seconds": 177.7,
+      "workers": 8
+    },
+    "hidden_corpus": {
+      "records": 158,
+      "seconds": 149.3,
+      "workers": 8
+    }
+  },
+  "calibration": "evaluations/solution/oracle/calibration.json (four pipeline variants x two corpora, one pass each)",
+  "evidence_check": {
+    "command": "python3 -B environment/check_evidence.py",
+    "exit_code": 0
+  },
+  "validate": {
+    "command": "python3 -m autorlbench validate tasks/reward/swe_grader_silent_mislabel",
+    "ok": true
+  },
+  "end_to_end": {
+    "note": "python3 -m autorlbench rerun --backend local on a freshly prepared workspace, then the verifier",
+    "harness_rerun": {
+      "prepare_s": 102.2,
+      "rerun_s": 269.0,
+      "passed": true
+    },
+    "rerun_agreement_with_reference_labels": "194/194 (reference repair applied)",
+    "verifier_hidden_pass_agreement": "158/158",
+    "verifier_passed_repaired": true,
+    "verifier_passed_unrepaired": false,
+    "independent_attempt": "an agent given only the workspace and the solution instruction reproduced every label on both corpora with a different implementation"
+  }
+}

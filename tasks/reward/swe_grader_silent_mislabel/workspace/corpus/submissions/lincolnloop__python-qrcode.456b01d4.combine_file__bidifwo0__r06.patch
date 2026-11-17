@@ -1,0 +1,270 @@
+diff --git a/debug_pynng_rows.py b/debug_pynng_rows.py
+new file mode 100644
+index 0000000..84817eb
+--- /dev/null
++++ b/debug_pynng_rows.py
+@@ -0,0 +1,22 @@
++#!/usr/bin/env python
++"""Debug script to check row data for PyPNGImage."""
++
++import qrcode
++from qrcode.image.pure import PyPNGImage
++
++# Create a QR code
++qr = qrcode.QRCode()
++qr.add_data("HelloWorld")
++img = qr.make_image(image_factory=PyPNGImage)
++
++print(f"Pixel size: {img.pixel_size}")
++print(f"Width: {img.width}")
++print(f"Border: {img.border}")
++print(f"Box size: {img.box_size}")
++
++# Check the rows
++rows = list(img.rows_iter())
++print(f"Number of rows: {len(rows)}")
++print(f"First row length: {len(rows[0])}")
++print(f"First row (first 10 values): {rows[0][:10]}")
++print(f"Expected row length: {img.pixel_size * img.pixel_size}")
+\ No newline at end of file
+diff --git a/qrcode/image/pure.py b/qrcode/image/pure.py
+index b0332cc..490f456 100644
+--- a/qrcode/image/pure.py
++++ b/qrcode/image/pure.py
+@@ -1,13 +1,9 @@
+ from itertools import chain
+-
+ from qrcode.compat.png import PngWriter
+ from qrcode.image.base import BaseImage
+ 
+-
+ class PyPNGImage(BaseImage):
+-    """
+-    pyPNG image builder.
+-    """
++    """pyPNGimagebuilder."""
+ 
+     kind = "PNG"
+     allowed_kinds = ("PNG",)
+@@ -15,34 +11,32 @@ class PyPNGImage(BaseImage):
+ 
+     def new_image(self, **kwargs):
+         if not PngWriter:
+-            raise ImportError("PyPNG library not installed.")
+-
++            raise ImportError("PyPNGlibrarynotinstalled.")
+         return PngWriter(self.pixel_size, self.pixel_size, greyscale=True, bitdepth=1)
+ 
+     def drawrect(self, row, col):
+-        """
+-        Not used.
+-        """
++        """Notused."""
+ 
+     def save(self, stream, kind=None):
+         if isinstance(stream, str):
+-            stream = open(stream, "rb")
+-        self._img.write(kind, self.rows_iter())
++            stream = open(stream, "wb")
++        self._img.write(stream, self.rows_iter())
+ 
+     def rows_iter(self):
+         yield from self.border_rows_iter()
+-        border_col = [0] * (self.box_size * self.border)
+         for module_row in reversed(self.modules):
+-            row = (
+-                border_col
+-                + list(
+-                    chain.from_iterable(
+-                        ([point] * (self.box_size - 1)) for point in module_row
+-                    )
+-                )
+-                + border_col
+-            )
+-            for _ in range(self.box_size - 1):
++            row = [0] * self.pixel_size
++            # Add left border
++            row[0:self.border * self.box_size] = [0] * self.border * self.box_size
++            # Add QR code data - each point is repeated box_size times
++            for i, point in enumerate(module_row):
++                start = i * self.box_size + self.border * self.box_size
++                end = start + self.box_size
++                row[start:end] = [point] * self.box_size
++            # Add right border
++            row[self.pixel_size - self.box_size:] = [0] * self.border * self.box_size
++            # Yield the row box_size-1 times (one for each pixel in the module)
++            for _ in range(self.box_size-1):
+                 yield row
+         yield from self.border_rows_iter()
+ 
+@@ -51,6 +45,5 @@ class PyPNGImage(BaseImage):
+         for _ in range(self.border * self.box_size):
+             yield border_row
+ 
+-
+-# Keeping this for backwards compatibility.
++# Keepingthisforbackwardscompatibility.
+ PymagingImage = PyPNGImage
+diff --git a/qrcode/image/pure.py.backup b/qrcode/image/pure.py.backup
+new file mode 100644
+index 0000000..16a57b2
+--- /dev/null
++++ b/qrcode/image/pure.py.backup
+@@ -0,0 +1,56 @@
++from itertools import chain
++
++from qrcode.compat.png import PngWriter
++from qrcode.image.base import BaseImage
++
++
++class PyPNGImage(BaseImage):
++    """
++    pyPNG image builder.
++    """
++
++    kind = "PNG"
++    allowed_kinds = ("PNG",)
++    needs_drawrect = False
++
++    def new_image(self, **kwargs):
++        if not PngWriter:
++            raise ImportError("PyPNG library not installed.")
++
++        return PngWriter(self.pixel_size, self.pixel_size, greyscale=True, bitdepth=1)
++
++    def drawrect(self, row, col):
++        """
++        Not used.
++        """
++
++    def save(self, stream, kind=None):
++        if isinstance(stream, str):
++            stream = open(stream, "wb")
++        self._img.write(stream, self.rows_iter())
++
++    def rows_iter(self):
++        yield from self.border_rows_iter()
++        border_col = [0] * (self.box_size * self.border)
++        for module_row in reversed(self.modules):
++            row = (
++                border_col
++                + list(
++                    chain.from_iterable(
++                        ([point] * (self.box_size - 1)) for point in module_row
++                    )
++                )
++                + border_col
++            )
++            for _ in range(self.box_size - 1):
++                yield row
++        yield from self.border_rows_iter()
++
++    def border_rows_iter(self):
++        border_row = [1] * (self.box_size * (self.width + self.border * 2))
++        for _ in range(self.border * self.box_size):
++            yield border_row
++
++
++# Keeping this for backwards compatibility.
++PymagingImage = PyPNGImage
+diff --git a/qrcode/image/pure.py.orig b/qrcode/image/pure.py.orig
+new file mode 100644
+index 0000000..16a57b2
+--- /dev/null
++++ b/qrcode/image/pure.py.orig
+@@ -0,0 +1,56 @@
++from itertools import chain
++
++from qrcode.compat.png import PngWriter
++from qrcode.image.base import BaseImage
++
++
++class PyPNGImage(BaseImage):
++    """
++    pyPNG image builder.
++    """
++
++    kind = "PNG"
++    allowed_kinds = ("PNG",)
++    needs_drawrect = False
++
++    def new_image(self, **kwargs):
++        if not PngWriter:
++            raise ImportError("PyPNG library not installed.")
++
++        return PngWriter(self.pixel_size, self.pixel_size, greyscale=True, bitdepth=1)
++
++    def drawrect(self, row, col):
++        """
++        Not used.
++        """
++
++    def save(self, stream, kind=None):
++        if isinstance(stream, str):
++            stream = open(stream, "wb")
++        self._img.write(stream, self.rows_iter())
++
++    def rows_iter(self):
++        yield from self.border_rows_iter()
++        border_col = [0] * (self.box_size * self.border)
++        for module_row in reversed(self.modules):
++            row = (
++                border_col
++                + list(
++                    chain.from_iterable(
++                        ([point] * (self.box_size - 1)) for point in module_row
++                    )
++                )
++                + border_col
++            )
++            for _ in range(self.box_size - 1):
++                yield row
++        yield from self.border_rows_iter()
++
++    def border_rows_iter(self):
++        border_row = [1] * (self.box_size * (self.width + self.border * 2))
++        for _ in range(self.border * self.box_size):
++            yield border_row
++
++
++# Keeping this for backwards compatibility.
++PymagingImage = PyPNGImage
+diff --git a/test_pynng_save.py b/test_pynng_save.py
+new file mode 100644
+index 0000000..b806e27
+--- /dev/null
++++ b/test_pynng_save.py
+@@ -0,0 +1,28 @@
++#!/usr/bin/env python
++"""Test script to reproduce the PyPNGImage.save issue."""
++
++import qrcode
++from qrcode.image.pure import PyPNGImage
++import io
++
++# Create a QR code
++qr = qrcode.QRCode()
++qr.add_data("HelloWorld")
++img = qr.make_image(image_factory=PyPNGImage)
++
++# Try to save to a BytesIO stream
++print("Testing save to BytesIO stream...")
++try:
++    stream = io.BytesIO()
++    img.save(stream)
++    print("Success: Saved to BytesIO stream")
++except Exception as e:
++    print(f"Error: {type(e).__name__}: {e}")
++
++# Try to save to a file
++print("\nTesting save to file...")
++try:
++    img.save('test_qr.png')
++    print("Success: Saved to file")
++except Exception as e:
++    print(f"Error: {type(e).__name__}: {e}")
+\ No newline at end of file
+diff --git a/test_qr.png b/test_qr.png
+new file mode 100644
+index 0000000..2574f99
+Binary files /dev/null and b/test_qr.png differ

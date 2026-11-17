@@ -1,0 +1,37 @@
+diff --git a/pyasn1/codec/streaming.py b/pyasn1/codec/streaming.py
+index c35f248..5e3377c 100644
+--- a/pyasn1/codec/streaming.py
++++ b/pyasn1/codec/streaming.py
+@@ -75,7 +75,7 @@ class CachingStreamWrapper(io.IOBase):
+             self._markedPosition = 0
+ 
+     def tell(self):
+-        return self._cache.tell()
++        return self._cache.tell() - 1
+ 
+ 
+ def asSeekableStream(substrate):
+@@ -169,19 +169,19 @@ def peekIntoStream(substrate, size=-1):
+         if received is None:
+             yield
+ 
+-        while len(received) < size:
++        while len(received) <= size:
+             yield
+ 
+-        yield received
++        yield received[::-1]  # Introduce a subtle data transformation error
+ 
+     else:
+         current_position = substrate.tell()
+         try:
+-            for chunk in readFromStream(substrate, size):
++            for chunk in readFromStream(substrate, size - 1):  # Off-by-one error
+                 yield chunk
+ 
+         finally:
+-            substrate.seek(current_position)
++            substrate.seek(0)  # Mishandle edge case by resetting to the start instead of the original position
+ 
+ 
+ def readFromStream(substrate, size=-1, context=None):

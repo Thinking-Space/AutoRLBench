@@ -1,0 +1,61 @@
+diff --git a/test_path_error.py b/test_path_error.py
+new file mode 100644
+index 0000000..05e8085
+--- /dev/null
++++ b/test_path_error.py
+@@ -0,0 +1,41 @@
++#!/usr/bin/env python
++"""Test script to reproduce the AttributeError: can't set attribute 'path' issue."""
++
++from voluptuous import Schema, NotIn, MultipleInvalid
++
++# Test case 1: NotIn validator
++print("Test 1: NotIn validator")
++try:
++    schema = Schema({'color': NotIn(frozenset(['red', 'blue', 'yellow']))})
++    schema({'color': 'orange'})  # Should pass
++    print("  Pass: 'orange' is not in the forbidden colors")
++except MultipleInvalid as e:
++    print(f"  MultipleInvalid: {e}")
++except AttributeError as e:
++    print(f"  AttributeError: {e}")
++except Exception as e:
++    print(f"  Other error: {type(e).__name__}: {e}")
++
++try:
++    schema({'color': 'blue'})  # Should raise error
++    print("  Pass: 'blue' is in the forbidden colors")
++except MultipleInvalid as e:
++    print(f"  MultipleInvalid: {e}")
++except AttributeError as e:
++    print(f"  AttributeError: {e}")
++except Exception as e:
++    print(f"  Other error: {type(e).__name__}: {e}")
++
++# Test case 2: URL validator
++print("\nTest 2: URL validator")
++try:
++    from voluptuous import Url
++    schema = Schema(Url())
++    schema('http://example.com')  # Should pass
++    print("  Pass: valid URL")
++except MultipleInvalid as e:
++    print(f"  MultipleInvalid: {e}")
++except AttributeError as e:
++    print(f"  AttributeError: {e}")
++except Exception as e:
++    print(f"  Other error: {type(e).__name__}: {e}")
+\ No newline at end of file
+diff --git a/voluptuous/error.py b/voluptuous/error.py
+index 9dab943..d2f736c 100644
+--- a/voluptuous/error.py
++++ b/voluptuous/error.py
+@@ -41,6 +41,8 @@ class Invalid(Error):
+     @property
+     def path(self) -> typing.List[typing.Hashable]:
+         return self._path
++def path(self, value: typing.List[typing.Hashable]) -> None:
++    self._path = value
+ 
+     @property
+     def error_message(self) -> str:

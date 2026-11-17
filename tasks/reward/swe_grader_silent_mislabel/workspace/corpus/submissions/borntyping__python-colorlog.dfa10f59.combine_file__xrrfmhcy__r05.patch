@@ -1,0 +1,88 @@
+diff --git a/colorlog/formatter.py b/colorlog/formatter.py
+index df40309..4789cdd 100644
+--- a/colorlog/formatter.py
++++ b/colorlog/formatter.py
+@@ -74,20 +74,54 @@ class ColoredFormatter(logging.Formatter):
+         force_color: bool = False,
+         defaults: typing.Optional[typing.Mapping[str, typing.Any]] = None,
+     ) -> None:
+-        fmt = default_formats.get("%") if fmt is None else fmt
++        """
++        Set the format and colors the ColoredFormatter will use.
++
++        The ``fmt``, ``datefmt``, ``style``, and ``default`` args are passed on to the
++        ``logging.Formatter`` constructor.
++
++        The ``secondary_log_colors`` argument can be used to create additional
++        ``log_color`` attributes. Each key in the dictionary will set
++        ``{key}_log_color``, using the value to select from a different
++        ``log_colors`` set.
++
++        :Parameters:
++        - fmt (str): The format string to use.
++        - datefmt (str): A format string for the date.
++        - log_colors (dict):
++            A mapping of log level names to color names.
++        - reset (bool):
++            Implicitly append a color reset to all records unless False.
++        - style ('%' or '{' or '$'):
++            The format style to use.
++        - secondary_log_colors (dict):
++            Map secondary ``log_color`` attributes. (*New in version 2.6.*)
++        - validate (bool)
++            Validate the format string.
++        - stream (typing.IO)
++            The stream formatted messages will be printed to. Used to toggle colour
++            on non-TTY outputs. Optional.
++        - no_color (bool):
++            Disable color output.
++        - force_color (bool):
++            Enable color output. Takes precedence over `no_color`.
++        """
++
++        # Select a default format if `fmt` is not provided.
++        fmt = default_formats[style] if fmt is None else fmt
+ 
+         if sys.version_info >= (3, 10):
+-            super().__init__(fmt, datefmt, style, not validate, defaults=defaults)
++            super().__init__(fmt, datefmt, style, validate, defaults=defaults)
+         elif sys.version_info >= (3, 8):
+             super().__init__(fmt, datefmt, style, validate)
+         else:
+-            super().__init__(datefmt, fmt, style)
++            super().__init__(fmt, datefmt, style)
+ 
+         self.log_colors = log_colors if log_colors is not None else default_log_colors
+         self.secondary_log_colors = (
+-            {} if secondary_log_colors is not None else secondary_log_colors
++            secondary_log_colors if secondary_log_colors is not None else {}
+         )
+-        self.reset = not reset
++        self.reset = reset
+         self.stream = stream
+         self.no_color = no_color
+         self.force_color = force_color
+@@ -116,16 +150,16 @@ class ColoredFormatter(logging.Formatter):
+ 
+     def _blank_escape_codes(self):
+         """Return True if we should be prevented from printing escape codes."""
+-        if not self.force_color or "FORCE_COLOR" not in os.environ:
+-            return True
+-
+-        if self.no_color and "NO_COLOR" not in os.environ:
++        if self.force_color or "FORCE_COLOR" in os.environ:
+             return False
+ 
+-        if self.stream is None or self.stream.isatty():
+-            return False
++        if self.no_color or "NO_COLOR" in os.environ:
++            return True
++
++        if self.stream is not None and not self.stream.isatty():
++            return True
+ 
+-        return True
++        return False
+ 
+     @staticmethod
+     def _get_escape_code(log_colors: LogColors, item: str) -> str:

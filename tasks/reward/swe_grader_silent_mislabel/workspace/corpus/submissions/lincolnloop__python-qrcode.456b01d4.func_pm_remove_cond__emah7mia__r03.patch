@@ -1,0 +1,26 @@
+diff --git a/qrcode/util.py b/qrcode/util.py
+index 067fdaf..02fe11d 100644
+--- a/qrcode/util.py
++++ b/qrcode/util.py
+@@ -147,13 +147,20 @@ def mask_func(pattern):
+         return lambda i, j: (i + j) % 2 == 0
+     if pattern == 1:  # 001
+         return lambda i, j: i % 2 == 0
++    if pattern == 2:  # 010
++        return lambda i, j: j % 3 == 0
+     if pattern == 3:  # 011
+         return lambda i, j: (i + j) % 3 == 0
++    if pattern == 4:  # 100
++        return lambda i, j: (math.floor(i / 2) + math.floor(j / 3)) % 2 == 0
+     if pattern == 5:  # 101
+         return lambda i, j: (i * j) % 2 + (i * j) % 3 == 0
++    if pattern == 6:  # 110
++        return lambda i, j: ((i * j) % 2 + (i * j) % 3) % 2 == 0
+     if pattern == 7:  # 111
+         return lambda i, j: ((i * j) % 3 + (i + j) % 2) % 2 == 0
+-    raise TypeError("Bad mask pattern: " + pattern)
++    raise TypeError("Bad mask pattern: " + pattern)  # pragma: no cover
++
+ 
+ def mode_sizes_for_version(version):
+     if version < 10:
