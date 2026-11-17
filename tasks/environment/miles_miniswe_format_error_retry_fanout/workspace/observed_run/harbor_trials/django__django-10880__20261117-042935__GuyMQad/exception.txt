@@ -1,0 +1,41 @@
+Traceback (most recent call last):
+  File "<observed-workspace>/harbor_runtime/src/harbor/trial/single_step.py", line 77, in _run_agent
+    await self._run_agent_phase(
+  File "<observed-workspace>/harbor_runtime/src/harbor/trial/trial.py", line 465, in _run_agent_phase
+    await asyncio.wait_for(
+  File "/usr/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "<observed-workspace>/harbor_runtime/src/harbor/agents/installed/base.py", line 168, in wrapper
+    return await fn(self, instruction, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<observed-workspace>/harbor_runtime/src/harbor/agents/installed/mini_swe_agent.py", line 1087, in run
+    task.result()
+  File "<observed-workspace>/harbor_runtime/src/harbor/agents/installed/mini_swe_agent.py", line 1003, in _run_inner
+    await self.exec_as_agent(
+  File "<observed-workspace>/harbor_runtime/src/harbor/agents/installed/base.py", line 592, in exec_as_agent
+    return await self._exec(
+           ^^^^^^^^^^^^^^^^^
+  File "<observed-workspace>/harbor_runtime/src/harbor/agents/installed/base.py", line 559, in _exec
+    raise self._classify_exec_error(command, result)
+harbor.agents.installed.base.NonZeroAgentExitCodeError: Command failed (exit 1): if [ -f "$HOME/.local/bin/env" ]; then . "$HOME/.local/bin/env"; else export PATH="$HOME/.local/bin:$PATH"; fi; mini-swe-agent --yolo --model=openai/model --task='Query syntax error with condition and distinct combination
+Description
+	
+A Count annotation containing both a Case condition and a distinct=True param produces a query error on Django 2.2 (whatever the db backend). A space is missing at least (... COUNT(DISTINCTCASE WHEN ...).
+' --output=/logs/agent/mini-swe-agent.trajectory.json --cost-limit 0 -c mini -c model.model_kwargs.extra_headers.X-Session-ID=django__django-10880__20261117-042935__GuyMQad__agent --exit-immediately 2>&1 </dev/null | tee /logs/agent/mini-swe-agent.txt
+stdout: This is mini-swe-agent version 2.4.6.
+Check the v2 migration guide at https://klieret.short.gy/mini-v2-migration
+Loading global config from '/root/.config/mini-swe-agent/.env'
+Warning: Input is not a terminal (fd=0).
+Building agent config from specs: ... [118824 chars truncated] ... str_context_window_exceeded(error_str):    │
+│ ❱  373 │   │   raise ContextWindowExceededError(                             │
+│    374 │   │   │   message=f"ContextWindowExceededError:                     │
+│        {exception_provider} - {message}",                                    │
+│    375 │   │   │   llm_provider=custom_llm_provider,                         │
+│    376 │   │   │   model=model,                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ContextWindowExceededError: litellm.ContextWindowExceededError: 
+litellm.BadRequestError: ContextWindowExceededError: OpenAIException - The input
+(41090 tokens) is longer than the model's context length (40960 tokens).
+
+stderr: None
