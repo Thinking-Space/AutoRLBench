@@ -766,8 +766,7 @@ window.AUTORLBENCH_TASKS = [
       "sandbox-admission",
       "connection-pool",
       "async-rollout",
-      "throughput",
-      "issue-only"
+      "throughput"
     ],
     "model": "Qwen3.5-9B",
     "dataset": "Synthetic repository workload",

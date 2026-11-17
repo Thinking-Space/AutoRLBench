@@ -56,7 +56,6 @@ threshold carries a margin, not a variance estimate.
   launcher's `consistent_hashing` policy causes the rollout to generate and send; note that the policy only reaches the
   SGLang-router branch; tie it to the prefix-cache hit rate collapse between run-a and run-b/c. Blaming KV capacity, engine
   count, GPU memory, the sandbox waits alone, the reward or model quality fails.
-- **solution**: take the Miles router out of the path (`router.use_miles_router` false, the minimal form in
   `evaluations/solution/oracle/repair.patch`), or make `MilesRouter` bind a session to a worker by its routing key.
   Changing `router.policy` alone does not help: the Miles router never reads the policy.
 
@@ -69,7 +68,6 @@ threshold carries a margin, not a variance estimate.
   8 × H800 node with the task image's cluster mirror and `--backend local`: prepare passed (pinned model, wheels and
   workload digests verified), the run converted the checkpoint, completed 3 rollouts of 16 groups × 4 samples and
   3 optimizer updates (grad norm 0.70, 0.78, 0.80), and exited 0.
-- **solution**: the agent repairs the workspace and submits `report.md` without training; the harness reruns the
   launcher per `run_spec.json` and grades only that run. The metric is the share of follow-up turns whose cached prefix
   covers the previous turn's prompt, pass at ≥ 0.75. One run per arm on 8 × H800: 0.612 unrepaired, 0.621 with
   `router.policy` changed but the Miles router kept, 0.838 repaired (`evaluations/solution/oracle/calibration.json`). Grading first requires

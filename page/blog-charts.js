@@ -19,7 +19,7 @@
             errors: [['Infrastructure', 13], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 2]],
             difficulty: [['Very hard', 16], ['Hard', 12], ['Medium', 7], ['Easy', 3]]
         },
-        models: [['GPT-6-Astra', 33.9], ['GPT-6.1-Sol', 32.1], ['Gemini-4-Argon', 28.6], ['GLM-5.3', 25.0], ['Kimi-K3.1-Pro', 23.2], ['Fable-5.1', 19.6], ['Qwen3.8-Max', 17.9], ['Grok-4.7', 16.1], ['Kimi-K3', 5.4], ['DeepSeek-V4-Pro', 1.8]],
+        models: [['GPT-6-Astra', 33.3], ['GPT-6.1-Sol', 33.3], ['Gemini-4-Argon', 28.6], ['GLM-5.3', 26.3], ['Kimi-K3.1-Pro', 22.8], ['Fable-5.1', 19.3], ['Qwen3.8-Max', 19.3], ['Grok-4.7', 17.5], ['Kimi-K3', 7.0], ['DeepSeek-V4-Pro', 3.5]],
         // Per-model [issue, solution] pass rates behind the overall bars;
         // the leaderboard tooltip reads these in the overall view and the
         // categoryByModel entries in a category view.
@@ -35,7 +35,7 @@
             'Kimi-K3': [0, 16.7],
             'DeepSeek-V4-Pro': [0, 5.6]
         },
-        averageLevels: [15.8, 30.0],
+        averageLevels: [15.8, 31.6],
         modelHarness: ['Codex', 'Codex', 'Claude Code', 'Claude Code', 'Claude Code', 'Claude Code', 'Qwen Code', 'Grok Build', 'Claude Code', 'Claude Code'],
         modelDisplayNames: {
             Fable: 'Fable-5.1',
@@ -56,11 +56,11 @@
         // values are percentages of the 119 failed repair trajectories and
         // are rendered as animated marks in Figure 7.
         repairErrors: [
-            ['No edit', 21, '#104680'],
-            ['Wrong target', 48, '#6DADD1'],
+            ['No edit', 23, '#104680'],
+            ['Wrong target', 49, '#6DADD1'],
             ['Incorrect / incomplete', 30, '#DC6D57'],
             ['New Failure', 6, '#B72230'],
-            ['Cheating', 11, '#6D011F']
+            ['Cheating', 12, '#6D011F']
         ],
         // Per-task counts use the same mutually exclusive outcome categories
         // as the summary bar above: Pass, Wrong cause, Wrong evidence, Fail.

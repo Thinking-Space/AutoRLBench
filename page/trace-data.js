@@ -618,7 +618,19 @@
  * published). The twenty trajectories were rebuilt per agent type
  * and audited clean of network access. The published
  * issue-judgment total below moves 360 -> 380 with this round.
- * The 180 solution records are reconciled against AutoRLBench validation-first
+ * The ten sandbox_admission_starvation solution records were
+ * published on 17 Nov 2026 from the beijing 8xH800 BATCH
+ * replays. Six pass (GLM-5.3, GPT-6.1-Sol, Grok-4.7, Kimi-K3,
+ * DeepSeek-V4-Pro, Qwen3.8-Max): the canonical repair removes or
+ * narrows the sandbox setup semaphore, and the rerun wall time
+ * falls under the 200-second threshold. GPT-6-Astra passes the
+ * metric gate but the runner-integrity check catches modified
+ * pinned files (graded 0). Claude-Fable-5.1's repair leaves the
+ * metric above threshold. Kimi-K3.1-Pro is a no-answer; Gemini
+ * judges the run healthy (deterministic zero). The published
+ * solution-record reconciliation count below moves 180 -> 190,
+ * and the solution-run total 180 -> 190.
+ * The 190 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -9153,6 +9165,186 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1013000,
     "steps": 97,
     "costUsd": null
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "gpt6astra-sandbox-starve-sol",
+    "file": "agent-trace/gpt6astra-sandbox-starve-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 131000,
+    "steps": 2,
+    "costUsd": null,
+    "sourceRunId": "20261117-044257",
+    "sessionId": "01a1e61a-0c91-7c92-8081-51404148a518",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a39c9f23674a8e9ccf469623d86bc9110d98bf73ec72c158fe85e3756bd8f1ba"
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "gpt61sol-sandbox-starve-sol",
+    "file": "agent-trace/gpt61sol-sandbox-starve-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 153000,
+    "steps": 2,
+    "costUsd": null,
+    "sourceRunId": "20261117-044624",
+    "sessionId": "01a1e61d-33ab-7923-9b5f-8cf94eb423af",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "3e12dc222b356eeb573cb5998e1596c25b21397ecf909dab88de7c1e7ce2a0f5"
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "fable51-sandbox-starve-sol",
+    "file": "agent-trace/fable51-sandbox-starve-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 730000,
+    "steps": 27,
+    "costUsd": 41.5019,
+    "sourceRunId": "20261117-040148",
+    "sessionId": "2070278c-db7e-45b9-8b4d-efe1044306f7",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "e99aaacfa302eaae5681778d0337202d308699d9954c0e090cbc4409fd306b11"
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "glm53-sandbox-starve-sol",
+    "file": "agent-trace/glm53-sandbox-starve-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 3146000,
+    "steps": 132,
+    "costUsd": 27.7029,
+    "sourceRunId": "20261117-041514",
+    "sessionId": "fb833524-4d6b-4b34-8d8f-15de411f3504",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "445cbe5cbfb4a05fd6aa86ea27538ded619a6bda4020e88011d952945fa2a77f"
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "kimi-sandbox-starve-sol",
+    "file": "agent-trace/kimi-sandbox-starve-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 2647000,
+    "steps": 145,
+    "costUsd": 35.4719,
+    "sourceRunId": "20261117-050901",
+    "sessionId": "63ae0d92-e268-4a79-9215-ec646f5d8221",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "e05f5bd788376cb6c353be2e91bbe2448bfec79f1dde2e84a1ef6b95254d076d"
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "kimi31-sandbox-starve-sol",
+    "file": "agent-trace/kimi31-sandbox-starve-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 919000,
+    "steps": 47,
+    "costUsd": 5.0564,
+    "sourceRunId": "20261117-055431",
+    "sessionId": "185361e1-1e30-4043-803f-62a2f3a3290a",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "878ab77db45bbd6aae882c2e813281e98bcbd66c67c80bed57ec589fb5caf9c7"
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "dsv4-sandbox-starve-sol",
+    "file": "agent-trace/dsv4-sandbox-starve-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 4260000,
+    "steps": 69,
+    "costUsd": 25.3305,
+    "sourceRunId": "20261117-061108",
+    "sessionId": "a4d09ef4-4a55-417f-8790-91c235cbc27a",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "1841d32908f2a90bdb3ae0e81af264345627b25b741159ea4b19e0cedab43f79"
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "gemini4-sandbox-starve-sol",
+    "file": "agent-trace/gemini4-sandbox-starve-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": null,
+    "score": 0.0,
+    "durationMs": 154000,
+    "steps": 38,
+    "costUsd": 2.5917,
+    "sourceRunId": "20261117-072327",
+    "sessionId": "b8c1df90-3c13-41df-923e-adab7590bb40",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "cc9a36e730e476022522aad73d5cf5d7185ceb5b6662f3a726709ee07dc881a0"
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "qwen38-sandbox-starve-sol",
+    "file": "agent-trace/qwen38-sandbox-starve-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 7192000,
+    "steps": 2,
+    "costUsd": null,
+    "sourceRunId": "20261117-072720",
+    "sessionId": "recovered",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "7227adcbcc5d693976958aba4244bc67fb528a55c0da808dbacc2b3aff7b5c93"
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "grok47-sandbox-starve-sol",
+    "file": "agent-trace/grok47-sandbox-starve-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1609000,
+    "steps": 130,
+    "costUsd": null,
+    "sourceRunId": "20261117-045013",
+    "sessionId": "unknown",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "69723836bba17333091464633577b2e9ebf200c5f9ff16e0bd65b1660558f447"
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];
