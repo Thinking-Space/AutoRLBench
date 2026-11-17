@@ -1,0 +1,28 @@
+title = "Training entry silently skips HF checkpoint conversion when ray_end.sh exits non-zero"
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "infrastructure"
+tags = ["miles", "megatron", "hf-conversion", "silent-skip", "ray_end", "checkpoint", "post-training"]
+
+[submitter]
+name = "xuxiaoang"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "tigan 10k rubric (arena-rubric RL)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/run_training.sh"
+
+[environment]
+image = "ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b"
+image_stack = "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12"
+gpus = 8
+
+[outcome]
+failure_type = "post_training_silent_skip"
+failure_reason = "The training entry script tail contains a conditional that runs the HF checkpoint conversion only when ray_end.sh exits 0; ray_end.sh copies /tmp/ray/ to ceph after training completes, but /tmp/ray/ is absent or empty after a SIGKILL or container restart, so ray_end.sh exits 1 and the entire HF conversion block is skipped with RC=1 logged; training completes successfully, the Megatron checkpoint is saved, but no HF checkpoint is ever produced and no error is surfaced to the user."

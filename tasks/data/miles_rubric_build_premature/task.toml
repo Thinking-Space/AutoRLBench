@@ -1,0 +1,29 @@
+title = "Rubric --build runs before generation completes, producing a parquet with 15% fewer samples"
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "data"
+tags = ["miles", "rubric", "arena-rubric", "premature-build", "data-pipeline", "jsonl", "parquet"]
+
+[submitter]
+name = "xuxiaoang"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "tigan 10k rubric (arena-rubric RL)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "gen_rubric_tigan10k.py"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+# CPU-only task: the defect is in the Python data pipeline, not in GPU training.
+gpus = 0
+
+[outcome]
+failure_type = "data_pipeline_premature_termination"
+failure_reason = "gen_rubric_tigan10k.py --build was called while async generation was still running; load_done() read 8199 completed lines from the JSONL and built the parquet immediately; the generation continued to 9716 lines but the parquet was already frozen, so all subsequent training used a dataset with 15% fewer rubric samples than intended with no error or warning."

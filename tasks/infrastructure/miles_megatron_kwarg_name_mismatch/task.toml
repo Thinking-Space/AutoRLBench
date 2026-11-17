@@ -1,0 +1,33 @@
+title = "Megatron 0.18 passes name= kwarg that miles_plugins HuggingfaceAttention does not accept"
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "infrastructure"
+tags = ["miles", "megatron", "version-mismatch", "TypeError", "build_module", "kwarg"]
+
+[submitter]
+name = "xuxiaoang"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "tigan 10k rubric (arena-rubric RL)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/run_training.sh"
+
+[environment]
+image = "ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b"
+image_stack = "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12"
+# The defect is in pure Python (megatron 0.18 transformer_layer vs miles_plugins
+# HuggingfaceAttention signature mismatch). The recorded run used an internal
+# Cybertron image (miles-invariant:dev-4783ecf), but the defect reproduces in
+# this shared image with the same megatron + miles_plugins versions installed
+# via prepare.sh pysite shadow. GPU count matches the recorded 8-GPU training.
+gpus = 8
+
+[outcome]
+failure_type = "import_construction_error"
+failure_reason = "megatron 0.18's transformer_layer.py:363 calls build_module(..., name=\"self_attention\", ...) but miles_plugins/models/hf_attention.py::HuggingfaceAttention.__init__ has no name parameter, so get_model() raises TypeError: HuggingfaceAttention.__init__() got an unexpected keyword argument 'name' on every worker before training starts."

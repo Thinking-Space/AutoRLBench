@@ -1,0 +1,13 @@
+category: implementation
+framework: miles
+task: miles_megatron_kwarg_name_mismatch
+verdict: unhealthy
+root_cause:
+  - miles_plugins/models/hf_attention.py::HuggingfaceAttention.__init__ has no `name` parameter;
+    megatron 0.18 transformer_layer.py:363 calls build_module(..., name="self_attention", ...)
+evidence_metrics:
+  - worker stderr: TypeError HuggingfaceAttention.__init__() got an unexpected keyword argument 'name'
+fix:
+  must:
+    - Identify the name= kwarg mismatch between megatron 0.18 and HuggingfaceAttention
+    - Connect it to the TypeError in the worker traceback

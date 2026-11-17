@@ -1,0 +1,29 @@
+title = "BASE_A2 passed at rubric generation but omitted at build time, mismatching rubric criteria and reference answers"
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "configuration"
+tags = ["miles", "rubric", "arena-rubric", "BASE_A2", "reference-mismatch", "silent-failure", "data-pipeline"]
+
+[submitter]
+name = "xuxiaoang"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "tigan 10k rubric (arena-rubric RL)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "gen_rubric_tigan10k.py"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+# CPU-only task: the defect is in the Python data pipeline, not in GPU training.
+gpus = 0
+
+[outcome]
+failure_type = "configuration_inconsistency"
+failure_reason = "gen_rubric_tigan10k.py reads BASE_A2 at both generation time (to populate the a2 answer slot that shapes rubric criteria) and build time (to write reward_model.reference into the parquet); the script was called with BASE_A2 pointing to Qwen3.5-9B answers for generation but without BASE_A2 at --build time, so load_answers() silently read the module-level default (the old base model answers); the resulting parquet has rubric criteria calibrated against 9B answers but reward_model.reference containing old-base answers, and training proceeds with no error or warning."

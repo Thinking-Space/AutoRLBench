@@ -1,0 +1,28 @@
+title = "Wrong MEGATRON_MODEL_PATH causes Megatron to silently train from random weights"
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "infrastructure"
+tags = ["miles", "megatron", "checkpoint", "silent-failure", "random-init", "load-path"]
+
+[submitter]
+name = "xuxiaoang"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "tigan 10k rubric (arena-rubric RL)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/run_training.sh"
+
+[environment]
+image = "ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b"
+image_stack = "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12"
+gpus = 8
+
+[outcome]
+failure_type = "checkpoint_load_silent_failure"
+failure_reason = "MEGATRON_MODEL_PATH is set to the release/ subdirectory rather than the parent directory containing latest_checkpointed_iteration.txt; Megatron's checkpointing.py silently skips loading and logs only 'will not load any checkpoints and will start from random', then continues training with random weights producing garbled rollouts and near-zero reward throughout all training steps."

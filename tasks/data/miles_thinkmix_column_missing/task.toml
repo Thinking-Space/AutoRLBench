@@ -1,0 +1,28 @@
+title = "Training parquet has no think_mode column; THINK_MODE=auto silently falls back to full-think"
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "data"
+tags = ["miles", "thinkmix", "think_mode", "silent-fallback", "parquet", "schema", "arena-rubric"]
+
+[submitter]
+name = "xuxiaoang"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "tigan 10k rubric thinkmix (arena-rubric RL)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/run_training.sh"
+
+[environment]
+image = "ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b"
+image_stack = "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12"
+gpus = 8
+
+[outcome]
+failure_type = "configuration_silent_fallback"
+failure_reason = "The training parquet was never processed by add_thinkmix.py and has no think_mode column; with THINK_MODE=auto the miles framework logs a warning and silently trains 100% think samples instead of the intended 70/30 think/nothink split, so the policy never receives nothink training signal and nothink evaluation scores remain at base-model level."

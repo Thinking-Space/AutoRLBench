@@ -1,0 +1,28 @@
+title = "SGLang TP>1 produces garbled HTTP 200 rollout output for Qwen3.5 (issue 21039)"
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "infrastructure"
+tags = ["miles", "sglang", "tensor-parallel", "garbled-output", "Qwen3.5", "reward-collapse"]
+
+[submitter]
+name = "xuxiaoang"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "tigan 10k rubric (arena-rubric RL)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/run_training.sh"
+
+[environment]
+image = "ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b"
+image_stack = "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12"
+gpus = 8
+
+[outcome]
+failure_type = "garbled_rollout_output"
+failure_reason = "ROLLOUT_NUM_GPUS_PER_ENGINE=2 causes sglang 0.5.9 to run TP=2 for Qwen3.5; due to upstream sglang issue 21039, TP>1 produces garbled HTTP 200 responses for this architecture, so all rollout responses are nonsense, rubric reward stays near 0, and the policy never learns despite training running to completion with no error."
