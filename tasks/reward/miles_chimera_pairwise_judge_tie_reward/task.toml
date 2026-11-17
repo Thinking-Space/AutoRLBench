@@ -1,0 +1,45 @@
+title = "Pairwise judge pays half credit for a tie"
+license = "Apache-2.0"
+created_date = "2026-11-01"
+domain = "reward"
+tags = ["miles", "grpo", "reward-hacking", "llm-judge", "pairwise", "policy-collapse", "stem"]
+
+[submitter]
+name = "anbingxu"
+
+[model]
+name = "MiniCPM5-2.6B (CHIMERA SFT)"
+
+[dataset]
+name = "CHIMERA RL (5000 prompts)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/minicpm5/2_6b/short_rl/run-minicpm5-26b-short-math-8k-colocate.sh"
+script_args = [
+  "--rm-type", "llm_judge",
+  "--judge-model", "deepseek-v4-flash",
+  "--judge-prompt-template", "rl_data/chimera_judge_template_verdict_first.txt",
+  "--judge-kwargs", "enable_thinking=false,temperature=0.0,max_tokens=4096",
+  "--distributed-timeout-minutes", "60",
+  "--no-load-optim",
+  "--no-load-rng",
+  "--finetune",
+]
+
+[environment]
+# The recorded run used an internal miles image that cannot be pulled publicly.
+# The packaged issue tier only reads frozen evidence and never starts training, so it runs on
+# the closest shared public stack: slime v0.3.2 (sglang 0.5.15, torch 2.11.0, cu129, py3.12).
+# This substitution has not been smoke-tested against the launch script.
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+
+# Issue-only and offline: the agent reads the frozen snapshot, nothing is trained.
+# The recorded run itself used 8 x H800 on one node (colocated rollout + training).
+gpus = 0
+
+[outcome]
+failure_type = "reward_hacking"
+failure_reason = "The ground-truth verdict is unhealthy because the pairwise judge template labels the two candidates only A and B without ever stating that B is the reference, so for a content-free answer the judge can only declare a tie, and llm_judge_reward's LABEL_TO_SCORE maps A=B to 0.5 with no degenerate-answer gate; with no --kl-loss-coef anchor the policy collapses to one-token output while rollout/raw_reward rises from 0.175 to 0.365 and rollout/response_lengths falls from 5801 tokens to 1.0, so a one-token completion earns 1.86x what a genuine 5.8k-token attempt earned"

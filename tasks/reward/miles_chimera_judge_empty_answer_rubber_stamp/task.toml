@@ -1,0 +1,47 @@
+title = "Judge rubber-stamps content-free answers"
+license = "Apache-2.0"
+created_date = "2026-10-22"
+domain = "reward"
+tags = ["miles", "grpo", "reward-hacking", "llm-judge", "policy-collapse", "stem"]
+
+[submitter]
+name = "anbingxu"
+
+[model]
+name = "MiniCPM5-2.6B (CHIMERA SFT)"
+
+[dataset]
+name = "CHIMERA RL (5000 prompts)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/minicpm5/2_6b/short_rl/run-minicpm5-26b-short-math-8k-colocate.sh"
+script_args = [
+  "--rm-type", "llm_judge_equiv",
+  "--judge-model", "deepseek-v4-flash",
+  "--judge-prompt-template", "rl_data/chimera_judge_gt_equiv.txt",
+  "--judge-kwargs", "enable_thinking=false,temperature=0.0,max_tokens=4096",
+  "--zero-reward-on-truncation",
+  "--kl-loss-coef", "0.001",
+  "--distributed-timeout-minutes", "60",
+  "--no-load-optim",
+  "--no-load-rng",
+  "--finetune",
+]
+
+[environment]
+# The recorded run used an internal miles image that cannot be pulled publicly.
+# The packaged issue tier only reads frozen evidence and never starts training, so it runs on
+# the closest shared public stack: slime v0.3.2 (sglang 0.5.15, torch 2.11.0, cu129, py3.12).
+# This substitution has not been smoke-tested against the launch script.
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+
+# Issue-only and offline: the agent reads the frozen snapshot, nothing is trained.
+# The recorded run itself used 8 x H800 on one node (colocated rollout + training).
+gpus = 0
+
+[outcome]
+failure_type = "reward_hacking"
+failure_reason = "The ground-truth verdict is unhealthy because llm_judge_equiv_reward gates degenerate answers on character length (`if len(cleaned) < 3`), which a 3-character `###` passes, and the judge template it forwards to is verdict-first with thinking disabled, so the judge rubber-stamps YES on content-free answers; rollout/raw_reward rises from 0.203 to about 0.61 while rollout/response_lengths collapses from 5824 tokens to 2.0, so GRPO rewards punctuation-only output instead of correct answers"

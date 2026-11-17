@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "task_id": "miles_chimera_judge_empty_answer_rubber_stamp",
+  "source": {
+    "repo": "miles (Apache-2.0 fork of slime)",
+    "defective_side_commit": "13430ebf2fdfed6d91af3c12b3af29891a4335d2^",
+    "control_side_commit": "13430ebf2fdfed6d91af3c12b3af29891a4335d2",
+    "note": "workspace/ is the tree exported with `git archive` at the defective-side commit. No metric value anywhere in this task was altered."
+  },
+  "replacements": [
+    {
+      "what": "judge API key",
+      "original": "sk-<redacted 32 hex>",
+      "replacement": "not shipped",
+      "where": "original job entry command line",
+      "reason": "The recorded launch command passed --judge-api-key in cleartext. The entry line is not shipped; task.toml's training.script_args reproduces the run's flags with the credential omitted."
+    },
+    {
+      "what": "judge endpoint URL",
+      "original": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+      "replacement": "not shipped",
+      "where": "original job entry command line (--rm-url)",
+      "reason": "Third-party endpoint of the recorded run; omitted from script_args because it is not part of the defect and the judge is supplied by the harness."
+    },
+    {
+      "what": "outbound proxy host",
+      "original": "http://whitelist-proxy.<internal>:7891",
+      "replacement": "not shipped",
+      "where": "original job entry command line (--judge-proxy)",
+      "reason": "Internal hostname; omitted from script_args."
+    },
+    {
+      "what": "absolute judge-template path",
+      "original": "/user/<username>/rl_data/miles/chimera_judge_gt_equiv.txt",
+      "replacement": "rl_data/chimera_judge_gt_equiv.txt",
+      "where": "task.toml training.script_args --judge-prompt-template",
+      "reason": "The template was an out-of-repo asset referenced by absolute path. It is now shipped inside workspace/ and referenced relatively, so the task is self-contained."
+    },
+    {
+      "what": "checkpoint output path suffix",
+      "original": "${JOB_ID}_chimera2.6b-truncZero-r12k-b32-sft76",
+      "replacement": "not shipped",
+      "where": "original job entry CKPT_PATH",
+      "reason": "Absolute user path. The sibling control run's CKPT_PATH carried a '-judgefix' suffix that names the fix and would reveal which side is which, so no CKPT_PATH is shipped."
+    },
+    {
+      "what": "environment image",
+      "original": "internal registry image (miles nightly-dev-20260113a lineage)",
+      "replacement": "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c",
+      "where": "task.toml [environment].image",
+      "reason": "The recorded image is private and cannot be pulled publicly. The shipped issue tier reads only frozen evidence and starts no training, so the shared public slime v0.3.2 stack is used instead. The launch script has not been smoke-tested against this substituted image."
+    },
+    {
+      "what": "packaging-only metadata in frozen metrics",
+      "original": "\"task_id\": \"miles_chimera_judge_empty_answer_rubber_stamp\" and the run_once block whose note said the collapse had been identified",
+      "replacement": "removed",
+      "where": "workspace/outputs/metrics.json",
+      "reason": "The task_id named the defect and the run_once note stated the verdict; both would be visible answer hints to the agent. No metric value was changed.",
+      "sha256_before": "09d51adfb3ccb1066848306128f79de8686cb041fa4b480b6efd21302263b278",
+      "sha256_after": "79c871390b8788e74cd0f2714a6259f8782625ec4da46ad878e2253a7a08b7ce"
+    },
+    {
+      "what": "recorded job entry command",
+      "original": "platform entry line carrying --rm-type, --judge-prompt-template, --judge-kwargs, and the judge credential/endpoint flags",
+      "replacement": "sanitized copy at workspace/outputs/launch_command.txt; --judge-api-key, --rm-url, and --judge-proxy omitted",
+      "where": "workspace/outputs/launch_command.txt",
+      "reason": "The effective reward/judge configuration must be visible in the agent's workspace; task.toml is not mounted into the agent stage. The credential and third-party endpoint are not part of the defect.",
+      "sha256_before": "not shipped",
+      "sha256_after": "2571708bd6d2e432d21a3b0b00516ea181236694bc3c8d27d234a673e38cdce6"
+    }
+  ],
+  "remaining_scan_hits": [
+    {
+      "pattern": "broken|fixed",
+      "verdict": "upstream wording, left in place",
+      "detail": "Occurrences are ordinary English and identifier names in the upstream miles tree (tests, docs, argument names such as log_utils.py, loss.py, arguments.py). workspace/miles/rollout/rm_hub/ -- the directory holding the defect -- has zero hits, so none of these labels indicate which arm this workspace is."
+    },
+    {
+      "pattern": "modelbest|codeup",
+      "verdict": "upstream wording, left in place",
+      "detail": "Submodule URLs in workspace/.gitmodules plus unrelated upstream scripts and docs (scripts/setup/proxy.sh, docs/e2b-stress-test-report.md). They are properties of the public framework tree, not of the recorded run, and do not reveal the defect."
+    },
+    {
+      "pattern": "/user/|/para_hdd/",
+      "verdict": "upstream launch-script defaults, left in place",
+      "detail": "These absolute paths are defaults in the upstream miles launch script (run-minicpm5-26b-short-math-8k-colocate.sh). They name model/data/checkpoint locations, do not identify which arm produced this workspace, and no metric value or root cause depends on them."
+    }
+  ],
+  "omitted_from_workspace": [
+    {
+      "what": "Megatron-LM, sglang, mbridge",
+      "reason": "Git submodules; present as empty directories in the export. Not vendored, matching reward/slime_retool_length_reward_bonus which ships only the framework package."
+    },
+    {
+      "what": "model weights and checkpoints",
+      "reason": "Per CONTRIBUTING: weights are never shipped in the task."
+    },
+    {
+      "what": "rollout dumps",
+      "reason": "The rollout dumps for this job were deleted before packaging, so the actual generated '###' response text could not be included. The collapse is evidenced by the per-step response-length and reward trace instead."
+    }
+  ]
+}

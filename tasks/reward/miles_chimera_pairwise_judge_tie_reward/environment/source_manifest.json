@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "task_id": "miles_chimera_pairwise_judge_tie_reward",
+  "source": {
+    "repo": "miles (Apache-2.0 fork of slime)",
+    "defective_side_commit": "13430ebf2fdfed6d91af3c12b3af29891a4335d2^",
+    "note": "workspace/ is the tree exported with `git archive` at the defective-side commit, which contains both llm_judge_reward (the pairwise path this task exercises) and llm_judge_equiv_reward. The recorded job's own git commit (53528f481437 on branch dev-minicpm-pyx) is not present in this local clone and could not be fetched; the entry runs `cd <worktree> && bash <script>`, so the pod used a working tree rather than the platform checkout. No metric value anywhere in this task was altered."
+  },
+  "replacements": [
+    {
+      "what": "judge API key",
+      "original": "sk-<redacted 32 hex>",
+      "replacement": "not shipped",
+      "where": "original job entry command line",
+      "reason": "The recorded launch command passed --judge-api-key in cleartext. The entry line is not shipped; task.toml's training.script_args reproduces the run's flags with the credential omitted."
+    },
+    {
+      "what": "judge endpoint URL",
+      "original": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+      "replacement": "not shipped",
+      "where": "original job entry command line (--rm-url)",
+      "reason": "Third-party endpoint of the recorded run; omitted from script_args because it is not part of the defect and the judge is supplied by the harness."
+    },
+    {
+      "what": "outbound proxy host",
+      "original": "http://whitelist-proxy.<internal>:7891",
+      "replacement": "not shipped",
+      "where": "original job entry command line (--judge-proxy)",
+      "reason": "Internal hostname; omitted from script_args."
+    },
+    {
+      "what": "absolute judge-template path",
+      "original": "/user/<username>/rl_data/miles/chimera_judge_template_verdict_first.txt",
+      "replacement": "rl_data/chimera_judge_template_verdict_first.txt",
+      "where": "task.toml training.script_args --judge-prompt-template",
+      "reason": "The template was an out-of-repo asset referenced by absolute path. It is now shipped inside workspace/ and referenced relatively, so the task is self-contained."
+    },
+    {
+      "what": "checkpoint output path",
+      "original": "${JOB_ID}_chimera2.6b-iter38_chimera-rl-5000_grpo-dsv4flash-b32-ldfix",
+      "replacement": "not shipped",
+      "where": "original job entry CKPT_PATH",
+      "reason": "Absolute user path, and the control arm's CKPT_PATH carries a '-gtequiv-kl' suffix that names the fix and would reveal which side is which. No CKPT_PATH is shipped."
+    },
+    {
+      "what": "environment image",
+      "original": "internal registry image (miles nightly-dev-20260113a lineage)",
+      "replacement": "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c",
+      "where": "task.toml [environment].image",
+      "reason": "The recorded image is private and cannot be pulled publicly. The shipped issue tier reads only frozen evidence and starts no training, so the shared public slime v0.3.2 stack is used instead. The launch script has not been smoke-tested against this substituted image."
+    },
+    {
+      "what": "Megatron start-point path",
+      "original": "/user/<username>/miles_ckpt/chimera_iter38_load",
+      "replacement": "not shipped",
+      "where": "original job entry MEGATRON_MODEL_PATH",
+      "reason": "Absolute user path. The underlying directory has been deleted, so no usable path exists to substitute."
+    },
+    {
+      "what": "packaging-only metadata in frozen metrics",
+      "original": "\"task_id\": \"miles_chimera_pairwise_judge_tie_reward\" and the run_once block whose note said the collapse had been identified",
+      "replacement": "removed",
+      "where": "workspace/outputs/metrics.json",
+      "reason": "The task_id named the defect and the run_once note stated the verdict; both would be visible answer hints to the agent. No metric value was changed.",
+      "sha256_before": "f623b391e51955836e9af60aa228a718d910c1f0e2cdae1c615246555db57d96",
+      "sha256_after": "f7ad57467bfa7dc3e0013cffe5cbc90ef9fb691ea558ae392e3faf1dfb490795"
+    },
+    {
+      "what": "recorded job entry command",
+      "original": "platform entry line carrying --rm-type, --judge-prompt-template, --judge-kwargs, and the judge credential/endpoint flags",
+      "replacement": "sanitized copy at workspace/outputs/launch_command.txt; --judge-api-key, --rm-url, and --judge-proxy omitted",
+      "where": "workspace/outputs/launch_command.txt",
+      "reason": "The effective reward/judge configuration must be visible in the agent's workspace; task.toml is not mounted into the agent stage. The credential and third-party endpoint are not part of the defect.",
+      "sha256_before": "not shipped",
+      "sha256_after": "8ec5fc71cfecc3894203e2712d7f7acbad510b6d69050adb7a1bd7f1420286f7"
+    }
+  ],
+  "remaining_scan_hits": [
+    {
+      "pattern": "broken|fixed",
+      "verdict": "upstream wording, left in place",
+      "detail": "Occurrences are ordinary English and identifier names in the upstream miles tree (tests, docs, argument names). workspace/miles/rollout/rm_hub/ -- the directory holding the defect -- has zero hits, so none of these labels indicate which arm this workspace is."
+    },
+    {
+      "pattern": "modelbest|codeup",
+      "verdict": "upstream wording, left in place",
+      "detail": "Submodule URLs in workspace/.gitmodules plus unrelated upstream scripts and docs. They are properties of the framework tree, not of the recorded run, and do not reveal the defect."
+    },
+    {
+      "pattern": "/user/|/para_hdd/",
+      "verdict": "upstream launch-script defaults, left in place",
+      "detail": "These absolute paths are defaults in the upstream miles launch script (run-minicpm5-26b-short-math-8k-colocate.sh). They name model/data/checkpoint locations, do not identify which arm produced this workspace, and no metric value or root cause depends on them."
+    }
+  ],
+  "omitted_from_workspace": [
+    {
+      "what": "Megatron-LM, sglang, mbridge",
+      "reason": "Git submodules; present as empty directories in the export. Not vendored, matching reward/slime_retool_length_reward_bonus which ships only the framework package."
+    },
+    {
+      "what": "model weights and checkpoints",
+      "reason": "Per CONTRIBUTING: weights are never shipped in the task."
+    },
+    {
+      "what": "rollout dumps",
+      "reason": "The rollout dumps for this job were deleted before packaging, so the literal one-token completions could not be included. The collapse is evidenced by the per-step response-length and reward trace instead."
+    }
+  ],
+  "control_arm_note": {
+    "job": "573663 (batch 32) and 573732 (batch 64)",
+    "confounding": "The control differs from the defective run in three simultaneous changes: --rm-type (llm_judge -> llm_judge_equiv), --judge-prompt-template (A/B pairwise -> GT-equiv), --kl-loss-coef (absent -> 0.001). No single-variable contrast is available, which is why this task ships issue-only.",
+    "control_duration": "20 logged rollout steps before preemption (PREEMPTABLE priority)."
+  }
+}

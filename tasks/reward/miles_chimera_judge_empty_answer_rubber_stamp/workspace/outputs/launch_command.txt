@@ -1,0 +1,15 @@
+# Recorded job entry command (sanitized).
+# The judge API key, endpoint, and outbound proxy are omitted: they are not part of the defect.
+# Model, training-data, and checkpoint paths are resolved by the launch script's defaults.
+# Flags below override the launch script's own defaults where they differ.
+bash scripts/minicpm5/2_6b/short_rl/run-minicpm5-26b-short-math-8k-colocate.sh \
+  --rm-type llm_judge_equiv \
+  --judge-model deepseek-v4-flash \
+  --judge-prompt-template rl_data/chimera_judge_gt_equiv.txt \
+  --judge-kwargs enable_thinking=false,temperature=0.0,max_tokens=4096 \
+  --zero-reward-on-truncation \
+  --kl-loss-coef 0.001 \
+  --distributed-timeout-minutes 60 \
+  --no-load-optim \
+  --no-load-rng \
+  --finetune
