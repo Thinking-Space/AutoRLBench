@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "metric_key": "share_of_follow_up_turns_reusing_previous_prompt",
+  "threshold": 0.75,
+  "direction": "higher is better",
+  "runs_per_arm": 1,
+  "hardware": "8 x H800 (80 GB), one node, Qwen3.5-35B-A3B, 2 engines (TP2)",
+  "arms": {
+    "unrepaired": {
+      "value": 0.6116,
+      "follow_up_turns": 1823,
+      "reusing_previous_prompt": 1115,
+      "config": "--use-miles-router with --sglang-router-policy consistent_hashing",
+      "passes": false
+    },
+    "policy_only": {
+      "value": 0.6214,
+      "follow_up_turns": 1854,
+      "config": "--use-miles-router kept, policy changed to cache_aware",
+      "passes": false,
+      "note": "the Miles router never reads the policy (ray/rollout/router_manager.py assigns it only on the SGLang-router branch), so the change is inert; measured within noise of the unrepaired arm."
+    },
+    "repaired": {
+      "value": 0.8382,
+      "follow_up_turns": 1836,
+      "reusing_previous_prompt": 1539,
+      "config": "SGLang router with consistent_hashing (--use-miles-router dropped)",
+      "passes": true
+    }
+  },
+  "caveats": [
+    "one run per arm; the unrepaired and policy_only arms differ by 0.010, which bounds the run-to-run noise, so the threshold sits 0.088 below the passing arm and 0.129 above the strongest failing one",
+    "with only two engines a load-only choice is right about half the time by chance, which is why the unrepaired arm sits near 0.6 rather than near 0.5; the gap widens with more engines",
+    "the arms differ only in the router section of run_config.json; model, topology, training, rollout and workload are identical"
+  ]
+}

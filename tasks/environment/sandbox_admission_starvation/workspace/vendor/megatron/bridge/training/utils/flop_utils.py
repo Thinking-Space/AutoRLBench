@@ -1,0 +1,772 @@
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import importlib
+from pathlib import Path
+
+import torch
+import torch.nn.functional as F
+
+from megatron.bridge.data.datasets.packing_utils import calculate_avg_seqlen
+from megatron.bridge.peft.lora import LoRA
+from megatron.bridge.training.config import ConfigContainer
+from megatron.bridge.utils.vocab_utils import calculate_padded_vocab_size
+
+
+_lora_seq_stats_cache: dict = {}
+
+
+
+def _accumulator_to_int(value) -> int:
+    """Coerce a FLOPs accumulator (``int`` or scalar ``Tensor``) to ``int``."""
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, torch.Tensor):
+        if value.numel() == 0:
+            return 0
+        return int(value.detach().cpu().item())
+    return 0
+
+
+def _add_flops_accumulator(state, name: str, delta) -> None:
+    """Add an int or scalar tensor to a state accumulator."""
+    current = getattr(state, name, 0)
+    if not isinstance(current, (int, torch.Tensor)):
+        current = 0
+    setattr(state, name, current + delta)
+
+
+def _scalar_sum_for_accumulator(value: torch.Tensor) -> int | torch.Tensor:
+    """Return a scalar sum without forcing a CUDA host sync inside forward_step."""
+    total = value.sum()
+    if total.device.type == "cuda":
+        return total
+    return int(total.item())
+
+
+def _real_subseq_lengths(
+    cu_seqlens: torch.Tensor | None,
+    cu_seqlens_argmin: torch.Tensor | None = None,
+    cu_seqlens_unpadded: torch.Tensor | None = None,
+    cu_seqlens_unpadded_argmin: torch.Tensor | None = None,
+) -> torch.Tensor | None:
+    """Extract sub-sequence lengths from cu_seqlens metadata.
+
+    Prefers ``cu_seqlens_unpadded`` (true sub-sequence boundaries when
+    ``pad_seq_to_mult > 1``) over the padded ``cu_seqlens``. Truncates by the
+    corresponding ``*_argmin`` when provided. Returns ``None`` when no
+    cu_seqlens info is available.
+
+    Runs once per micro-batch, so it must stay free of GPU→CPU syncs:
+    ``cu_seqlens`` is a (monotonic non-decreasing) cumulative sum, so the diffs
+    are always ``>= 0`` and we do **not** filter them — a boolean mask like
+    ``sub_seq_lens[sub_seq_lens > 0]`` would force a data-dependent-size device
+    sync every micro-batch (the cause of a ~7% throughput regression). Zero-length
+    entries (padding) contribute ``0`` to ``Σᵢ sᵢ²`` so dropping them is
+    unnecessary; the result is identical.
+    """
+    if cu_seqlens_unpadded is not None:
+        cu = cu_seqlens_unpadded.squeeze()
+        argmin = cu_seqlens_unpadded_argmin
+    elif cu_seqlens is not None:
+        cu = cu_seqlens.squeeze()
+        argmin = cu_seqlens_argmin
+    else:
+        return None
+
+    if argmin is not None:
+        cu = cu[: int(argmin.item())]
+
+    if cu.numel() < 2:
+        return cu.new_empty(0, dtype=torch.long)
+
+    # No boolean mask here on purpose (see docstring): keep this sync-free.
+    return (cu[1:] - cu[:-1]).long()
+
+
+def accumulate_flops_metadata(
+    state,
+    tokens: torch.Tensor | None,
+    *,
+    config_seq_len: int | None = None,
+    cu_seqlens: torch.Tensor | None = None,
+    cu_seqlens_argmin: torch.Tensor | None = None,
+    cu_seqlens_unpadded: torch.Tensor | None = None,
+    cu_seqlens_unpadded_argmin: torch.Tensor | None = None,
+    num_vision_patches: int | torch.Tensor | None = None,
+) -> None:
+    """Accumulate per-microbatch FLOPS metadata onto ``state``.
+
+    Writes three accumulators consumed by ``train.py`` at end of step:
+
+    - ``_flops_seqlen_sum``: ``mbs * tokens.shape[1]`` (padded total tokens
+      this microbatch contributes), or ``mbs * config_seq_len`` for dense
+      non-packed batches whose tensors were already context-parallel sliced.
+      Drives the linear MLP/proj/logit terms.
+    - ``_flops_seqlen_sq_sum``: the THD attention term Σᵢ sᵢ², computed inline from
+      ``cu_seqlens`` (preferring ``cu_seqlens_unpadded``). The per-pack sub-sequence
+      lengths are reduced via :func:`_scalar_sum_for_accumulator`, which keeps the
+      result **on-device** (no ``.item()``) — so the per-microbatch path stays
+      sync-free and the single host sync happens once per step in
+      :func:`resolve_global_flops_seqlen_stats`. When ``cu_seqlens`` is absent
+      (dense / non-packed) or degenerate, the host-int BSHD fallback
+      ``mbs * dense_seq_len²`` is accumulated instead (bit-exact with the
+      pre-fix value). ``dense_seq_len`` is ``config_seq_len`` when provided,
+      otherwise ``tokens.shape[1]``.
+    - ``_flops_vision_patches``: running total of ``num_vision_patches``.
+
+    ``num_vision_patches`` is the precomputed number of vision patches in this
+    microbatch (drives the ViT term). It is kept model-agnostic on purpose: the
+    caller — which knows its own encoder's layout — computes the count and passes
+    a scalar (e.g. Qwen-VL sums ``grid_thw.prod(-1)`` over images and videos). May
+    be an ``int`` or a scalar ``Tensor`` (a device tensor avoids a host sync here).
+
+    For THD packed training (offline packed LLM SFT or VLM in-batch packing),
+    treating the whole pack as one length-``seq_len`` sequence over-counts
+    attention FLOPS by a large factor: actual attention work is Σᵢ sᵢ²,
+    not (Σᵢ sᵢ)². Using ``cu_seqlens`` here closes that gap.
+    """
+    if tokens is None:
+        return
+
+    mbs = tokens.shape[0]
+    tensor_seq_len = tokens.shape[1]
+    dense_seq_len = config_seq_len if isinstance(config_seq_len, int) and config_seq_len > 0 else tensor_seq_len
+
+    # THD attention term Σᵢ sᵢ², computed inline from cu_seqlens. The squared
+    # sub-sequence lengths stay on-device (``_scalar_sum_for_accumulator`` returns a
+    # device tensor, no host sync) so the launch-bound forward path is not stalled; the
+    # single sync is deferred to the per-step reduce. cu_seqlens is monotonic, so the
+    # diffs are >= 0 and zero-length padding entries contribute 0 — no boolean mask
+    # (which would force a data-dependent-size sync) is needed.
+    sub_seq_lens = _real_subseq_lengths(cu_seqlens, cu_seqlens_argmin, cu_seqlens_unpadded, cu_seqlens_unpadded_argmin)
+    if sub_seq_lens is not None and sub_seq_lens.numel() > 0:
+        _add_flops_accumulator(state, "_flops_seqlen_sum", mbs * tensor_seq_len)
+        setattr(state, "_flops_requires_global_reduce", True)
+        _add_flops_accumulator(state, "_flops_seqlen_sq_sum", _scalar_sum_for_accumulator(sub_seq_lens.long() ** 2))
+    else:
+        # No cu_seqlens (dense / non-packed) or a degenerate pack with no real
+        # sub-sequences → BSHD fallback (single pack-length sequence).
+        _add_flops_accumulator(state, "_flops_seqlen_sum", mbs * dense_seq_len)
+        _add_flops_accumulator(state, "_flops_seqlen_sq_sum", mbs * dense_seq_len**2)
+
+    if num_vision_patches is not None:
+        _add_flops_accumulator(state, "_flops_vision_patches", num_vision_patches)
+
+
+def num_floating_point_operations(cfg: ConfigContainer, batch_size: int = 1):
+    """Return the number of floating point operations"""
+    peft = getattr(cfg, "peft", None)
+    is_lora = isinstance(peft, LoRA)
+    # If the model provider has a custom TFLOPS calculation method, use it (non-LoRA only).
+    if not is_lora and hasattr(cfg.model, "_get_num_floating_point_operations"):
+        return cfg.model._get_num_floating_point_operations(batch_size)
+
+    def calculate_layer_counts():
+        """Calculate the number of attention, Mamba, MLP, MoE, and GDN layers."""
+        if hasattr(cfg.model, "hybrid_layer_pattern") and cfg.model.hybrid_layer_pattern:
+            counts = {"M": 0, "G": 0, "*": 0, "-": 0, "E": 0}
+            try:
+                parse_hybrid_pattern = importlib.import_module(
+                    "megatron.core.ssm.mamba_hybrid_layer_allocation"
+                ).parse_hybrid_pattern
+                parsed = parse_hybrid_pattern(cfg.model.hybrid_layer_pattern)
+                if parsed.main_pattern:
+                    for layer_type in parsed.main_pattern:
+                        if layer_type in counts:
+                            counts[layer_type] += 1
+                if parsed.mtp_pattern and parsed.mtp_num_depths > 0:
+                    for layer_type in parsed.mtp_pattern:
+                        if layer_type in counts:
+                            counts[layer_type] += parsed.mtp_num_depths
+            except (ImportError, ModuleNotFoundError):
+                for layer_type in cfg.model.hybrid_layer_pattern:
+                    if layer_type in counts:
+                        counts[layer_type] += 1
+            return counts["*"], counts["M"], counts["-"], counts["E"], counts["G"]
+        else:
+            num_attn_layers = round(cfg.model.num_layers * getattr(cfg.model, "hybrid_attention_ratio", 0))
+            num_mlp_layers = round(cfg.model.num_layers * getattr(cfg.model, "hybrid_mlp_ratio", 0))
+            num_mamba_layers = cfg.model.num_layers - num_attn_layers - num_mlp_layers
+            num_moe_layers = 0
+            num_gdn_layers = 0
+            return num_attn_layers, num_mamba_layers, num_mlp_layers, num_moe_layers, num_gdn_layers
+
+    def mlp_layer_flops(batch_size, seq_len, hidden_size, expansion=4.0, swiglu=False):
+        """Calculate FLOPs for an MLP layer."""
+        scale_factor = 3.0 / 2.0 if swiglu else 1.0
+        return 4 * expansion * scale_factor * batch_size * seq_len * hidden_size**2
+
+    def moe_layer_flops(
+        batch_size,
+        seq_len,
+        hidden_size,
+        moe_ffn_hidden_size,
+        shared_expert_ffn_hidden_size,
+        num_experts_routed_to,
+        moe_latent_size=None,
+        swiglu=False,
+    ):
+        """Calculate FLOPs for an MoE layer."""
+        scale_factor = 3.0 / 2.0 if swiglu else 1.0
+        if moe_latent_size is None:
+            routed_flops = (
+                4 * batch_size * seq_len * hidden_size * moe_ffn_hidden_size * num_experts_routed_to * scale_factor
+            )
+        else:
+            # Routed experts run on moe_latent_size.
+            routed_flops = (
+                4 * batch_size * seq_len * moe_latent_size * moe_ffn_hidden_size * num_experts_routed_to * scale_factor
+            )
+            # Up proj and down proj.
+            routed_flops += 4 * batch_size * seq_len * hidden_size * moe_latent_size
+        shared_flops = 4 * batch_size * seq_len * hidden_size * shared_expert_ffn_hidden_size * scale_factor
+        return routed_flops + shared_flops
+
+    def attn_layer_flops(
+        batch_size,
+        seq_len,
+        hidden_size,
+        num_heads,
+        gqa_groups=8,
+        kv_channels=None,
+    ):
+        """Calculate FLOPs for an attention layer."""
+        p = (kv_channels * num_heads / hidden_size) if kv_channels else 1
+        g = gqa_groups
+        return (
+            4
+            * batch_size
+            * seq_len
+            * hidden_size
+            * p
+            * (hidden_size + (hidden_size * (g / num_heads)) + (seq_len / 2))
+        )
+
+    def mamba_layer_flops(
+        batch_size,
+        seq_len,
+        hidden_size,
+        state_dim=16,
+        head_dim=64,
+        num_groups=1,
+        num_heads=128,
+    ):
+        """Calculate FLOPs for a Mamba layer."""
+        # Note (rwaleffe): flops estimate for scan should be updated based on new SSD kernels,
+        # but small percent of overall layer flops
+        d_in = 2 * hidden_size
+        if num_heads:
+            nheads = num_heads
+        else:
+            nheads = d_in // head_dim
+        return (
+            (2 * batch_size * seq_len * hidden_size * (2 * d_in + 2 * num_groups * state_dim + nheads))  # in_proj
+            + (7 * batch_size * seq_len * d_in * state_dim)  # scan
+            + (2 * batch_size * seq_len * d_in * hidden_size)  # out_proj
+        )
+
+    def gdn_layer_flops(
+        batch_size,
+        seq_len,
+        hidden_size,
+        qk_head_dim=128,
+        v_head_dim=128,
+        num_qk_heads=16,
+        num_v_heads=32,
+        conv_kernel_dim=4,
+    ):
+        """Calculate FLOPs for a Gated Delta Net (GDN) layer."""
+        qk_dim = qk_head_dim * num_qk_heads
+        v_dim = v_head_dim * num_v_heads
+        return (
+            2
+            * batch_size
+            * seq_len
+            * (
+                hidden_size * (2 * qk_dim + 2 * v_dim + 2 * num_v_heads)
+                + conv_kernel_dim * (2 * qk_dim + v_dim)
+                + num_v_heads * (v_head_dim**2) * 4
+                + hidden_size * v_dim
+            )
+        )
+
+    def hybrid_flops(
+        batch_size,
+        seq_len,
+        hidden_size,
+        num_attn_layers,
+        num_mamba_layers,
+        num_mlp_layers,
+        num_moe_layers,
+        num_gdn_layers=0,
+        mamba_state_dim=128,
+        mamba_head_dim=64,
+        mamba_num_groups=8,
+        mamba_num_heads=128,
+        num_attn_heads=32,
+        gqa_groups=8,
+        kv_channels=None,
+        mlp_expansion=4.0,
+        swiglu=False,
+        moe_latent_size=None,
+        moe_ffn_hidden_size=2048,
+        shared_expert_ffn_hidden_size=2048,
+        num_experts_routed_to=1,
+        gdn_qk_head_dim=128,
+        gdn_v_head_dim=128,
+        gdn_num_qk_heads=16,
+        gdn_num_v_heads=32,
+        gdn_conv_kernel_dim=4,
+        vocab_size=256000,
+        mtp_num_layers=0,
+    ):
+        """Calculate total FLOPs for the hybrid model."""
+        flops_fwd = (
+            num_attn_layers
+            * attn_layer_flops(
+                batch_size,
+                seq_len,
+                hidden_size,
+                num_attn_heads,
+                gqa_groups,
+                kv_channels,
+            )
+            + num_mlp_layers * mlp_layer_flops(batch_size, seq_len, hidden_size, mlp_expansion, swiglu)
+            + num_mamba_layers
+            * mamba_layer_flops(
+                batch_size,
+                seq_len,
+                hidden_size,
+                mamba_state_dim,
+                mamba_head_dim,
+                mamba_num_groups,
+                mamba_num_heads,
+            )
+            + num_moe_layers
+            * moe_layer_flops(
+                batch_size,
+                seq_len,
+                hidden_size,
+                moe_ffn_hidden_size,
+                shared_expert_ffn_hidden_size,
+                num_experts_routed_to,
+                moe_latent_size,
+                swiglu,
+            )
+            + num_gdn_layers
+            * gdn_layer_flops(
+                batch_size,
+                seq_len,
+                hidden_size,
+                gdn_qk_head_dim,
+                gdn_v_head_dim,
+                gdn_num_qk_heads,
+                gdn_num_v_heads,
+                gdn_conv_kernel_dim,
+            )
+            + (2 * batch_size * seq_len * hidden_size * vocab_size * (1 + mtp_num_layers))  # logits computation
+        )
+        return flops_fwd * 3
+
+    def transformer_flops():
+        """Calculate FLOPs for a standard Transformer model."""
+        # TODO(helenn/dnarayanan): Refactor this to reuse the helper methods.
+        # Attention projection size.
+        query_projection_size = cfg.model.kv_channels * cfg.model.num_attention_heads
+        # GQA or MHA
+        num_query_groups = (
+            cfg.model.num_attention_heads if cfg.model.num_query_groups is None else cfg.model.num_query_groups
+        )
+
+        is_squad = getattr(getattr(cfg, "dataset", None), "dataset_name", None) == "squad"
+        hf_model_id = getattr(cfg.model, "hf_model_id", None)
+        is_llama3_70b = hf_model_id is not None and "Meta-Llama-3-70B" in hf_model_id
+        packed_specs = getattr(getattr(cfg, "dataset", None), "packed_sequence_specs", None)
+        packed_data_path = getattr(packed_specs, "packed_train_data_path", None)
+        # If not explicitly set, try to find the file via dataset_root (the FinetuningDatasetBuilder
+        # computes this path dynamically, but dataset_root is available from the config).
+        if packed_data_path is None and packed_specs is not None:
+            dataset_root = getattr(cfg.dataset, "dataset_root", None)
+            seq_size = getattr(packed_specs, "packed_sequence_size", None)
+            if dataset_root is not None and seq_size is not None:
+                matches = sorted(Path(dataset_root).glob(f"packed/*/training_{seq_size}.npy"))
+                if matches:
+                    packed_data_path = str(matches[0])
+        if is_lora and is_squad and is_llama3_70b and packed_data_path is not None and Path(packed_data_path).exists():
+            gbs = cfg.train.global_batch_size
+            seq_len = cfg.model.seq_length
+            cache_key = (packed_data_path, gbs, seq_len)
+            if cache_key not in _lora_seq_stats_cache:
+                _lora_seq_stats_cache[cache_key] = calculate_avg_seqlen(
+                    packed_data_path, gbs, seq_len, drop_remainder=True
+                )
+            _, avg_tokens, _, avg_seqlen2 = _lora_seq_stats_cache[cache_key]
+
+            hs = cfg.model.hidden_size
+            n_layers = cfg.model.num_layers
+            n_heads = cfg.model.num_attention_heads
+            ffn_hs = cfg.model.ffn_hidden_size
+            vocab_size = cfg.model.vocab_size
+
+            model_flops_frozen = (
+                avg_tokens
+                * n_layers
+                * hs**2
+                * (12 + 12 * num_query_groups / n_heads + 18 * ffn_hs / hs + 6 * vocab_size / (n_layers * hs))
+            )
+            model_flops_unfrozen = n_layers * hs**2 * (12 * avg_seqlen2 / hs)
+
+            return batch_size * (model_flops_frozen * (2.0 / 3.0) + model_flops_unfrozen)
+        # MoE.
+        if cfg.model.num_moe_experts is None:
+            # Every Transformer MLP is dense.
+            num_dense_layers = cfg.model.num_layers
+            num_moe_layers = 0
+            num_experts_routed_to = 0
+            last_layer_is_moe = 0
+        else:
+            # Calculate number of dense and MoE Transformer MLPs.
+            moe_layer_freq = getattr(cfg.model, "moe_layer_freq", 1)
+            if isinstance(moe_layer_freq, int):
+                moe_layer_pattern = [1 if (i % moe_layer_freq == 0) else 0 for i in range(cfg.model.num_layers)]
+            elif isinstance(moe_layer_freq, list):
+                moe_layer_pattern = moe_layer_freq
+            else:
+                raise RuntimeError("Illegal --moe-layer-freq argument provided!")
+            assert len(moe_layer_pattern) == cfg.model.num_layers, (
+                f"Invalid length of moe_layer_pattern: {len(moe_layer_pattern)}, "
+                f"expected {cfg.model.num_layers}, "
+                f"current moe layer pattern: {moe_layer_freq}"
+            )
+            num_moe_layers = sum(moe_layer_pattern)  # Number of 1s in `moe_layer_pattern`.
+            num_dense_layers = cfg.model.num_layers - num_moe_layers
+            num_experts_routed_to = getattr(cfg.model, "moe_router_topk", 1)
+            last_layer_is_moe = moe_layer_pattern[-1]
+
+        if cfg.model.mtp_num_layers is not None:
+            mtp_num_layers = cfg.model.mtp_num_layers
+            num_moe_layers += last_layer_is_moe * mtp_num_layers
+            num_dense_layers += (1 - last_layer_is_moe) * mtp_num_layers
+            num_layers = cfg.model.num_layers + mtp_num_layers
+        else:
+            mtp_num_layers = 0
+            num_layers = cfg.model.num_layers
+
+        # 'moe_ffn_hidden_size' is set only for MoE models.
+        moe_ffn_hidden_size = (
+            cfg.model.ffn_hidden_size if cfg.model.moe_ffn_hidden_size is None else cfg.model.moe_ffn_hidden_size
+        )
+        moe_latent_size = getattr(cfg.model, "moe_latent_size", None)
+        shared_expert_ffn_hidden_size = (
+            0
+            if cfg.model.moe_shared_expert_intermediate_size is None
+            else cfg.model.moe_shared_expert_intermediate_size
+        )
+        # SwiGLU: h->2*ffn_h and ffn_h->h = 3 projections; non-SwiGLU: h->ffn_h and ffn_h->h = 2 projections.
+        ffn_expansion_factor = (
+            3 if (cfg.model.gated_linear_unit is True and cfg.model.activation_func == F.silu) else 2
+        )
+
+        if cfg.model.multi_latent_attention:
+            """
+            Basic arithmetic
+            let B is batch size, s is seq_len, h is embedding dim,
+            for one self_attnetion block (prenorm is not included)
+            qkv projection:  6Bsh^2
+            attn:            2Bs^2h
+            attn over value: 2Bs^2h
+            oproj:           2Bsh^2
+
+            references
+            https://arxiv.org/abs/2305.10403
+            https://arxiv.org/abs/2205.05198
+            """
+            ## MLA
+            if not hasattr(cfg.model, "q_lora_rank") or cfg.model.q_lora_rank is None:
+                q_term = (
+                    cfg.model.hidden_size
+                    * cfg.model.num_attention_heads
+                    * (getattr(cfg.model, "qk_head_dim", 64) + getattr(cfg.model, "qk_pos_emb_head_dim", 0))
+                )
+            else:
+                q_term = cfg.model.q_lora_rank * (
+                    cfg.model.hidden_size
+                    + cfg.model.num_attention_heads
+                    * (getattr(cfg.model, "qk_head_dim", 64) + getattr(cfg.model, "qk_pos_emb_head_dim", 0))
+                    + 1
+                )
+            self_attn_term = (
+                3
+                * 2  # fwd(1) + bwd(2) *FMA
+                * num_layers
+                * (
+                    ## q lora + rope + q norm
+                    q_term
+                    ## kv lora + rope + kv norm
+                    + getattr(cfg.model, "kv_lora_rank", 0)
+                    * (
+                        cfg.model.hidden_size
+                        + cfg.model.num_attention_heads
+                        * (getattr(cfg.model, "qk_head_dim", 64) + getattr(cfg.model, "v_head_dim", 64))
+                        + 1
+                    )
+                    + cfg.model.hidden_size * getattr(cfg.model, "qk_pos_emb_head_dim", 0)
+                    ## o proj
+                    + (cfg.model.num_attention_heads * getattr(cfg.model, "v_head_dim", 64)) * cfg.model.hidden_size
+                    ## core attn
+                    + cfg.model.seq_length
+                    * (
+                        cfg.model.num_attention_heads
+                        * (getattr(cfg.model, "qk_head_dim", 64) + getattr(cfg.model, "qk_pos_emb_head_dim", 0))
+                    )
+                    / 2
+                    + cfg.model.seq_length * cfg.model.num_attention_heads * getattr(cfg.model, "v_head_dim", 64) / 2
+                )
+            )
+
+        else:
+            ## MHA or GQA
+            key_projection_size = cfg.model.kv_channels * num_query_groups
+            value_projection_size = cfg.model.kv_channels * num_query_groups
+            gate_projection_size = query_projection_size if getattr(cfg.model, "attention_output_gate", False) else 0
+            proj_per_layer = (
+                cfg.model.hidden_size
+                * (query_projection_size + key_projection_size + value_projection_size + gate_projection_size)
+                + query_projection_size * cfg.model.hidden_size
+            )
+
+            window_size = getattr(cfg.model, "window_size", None)
+            window_attn_skip_freq = getattr(cfg.model, "window_attn_skip_freq", None)
+
+            if window_size is not None:
+                if isinstance(window_size, (list, tuple)):
+                    effective_window = window_size[0] + window_size[1] + 1
+                else:
+                    effective_window = window_size
+                swa_context = min(effective_window, cfg.model.seq_length)
+
+                if window_attn_skip_freq is None:
+                    num_swa_layers = num_layers
+                    num_full_attn_layers = 0
+                elif isinstance(window_attn_skip_freq, int):
+                    swa_pattern = [0 if ((i + 1) % window_attn_skip_freq == 0) else 1 for i in range(num_layers)]
+                    num_swa_layers = sum(swa_pattern)
+                    num_full_attn_layers = num_layers - num_swa_layers
+                elif isinstance(window_attn_skip_freq, list):
+                    swa_pattern = window_attn_skip_freq[:num_layers]
+                    num_swa_layers = sum(swa_pattern)
+                    num_full_attn_layers = num_layers - num_swa_layers
+                else:
+                    num_swa_layers = 0
+                    num_full_attn_layers = num_layers
+
+                full_core = query_projection_size * cfg.model.seq_length / 2 * 2
+                swa_core = query_projection_size * swa_context / 2 * 2
+
+                self_attn_term = (
+                    3
+                    * 2
+                    * (
+                        num_full_attn_layers * (proj_per_layer + full_core)
+                        + num_swa_layers * (proj_per_layer + swa_core)
+                    )
+                )
+            else:
+                full_core = query_projection_size * cfg.model.seq_length / 2 * 2
+                self_attn_term = 3 * 2 * num_layers * (proj_per_layer + full_core)
+
+        # Handle GDN (Gated DeltaNet) hybrid attention variant.
+        # When experimental_attention_variant is "gated_delta_net", a fraction of the
+        # layers use GDN instead of standard attention. Override self_attn_term with a
+        # weighted sum of GDN and standard-attention per-layer costs.
+        experimental_attention_variant = getattr(cfg.model, "experimental_attention_variant", None)
+        if experimental_attention_variant == "gated_delta_net":
+            linear_attention_freq = cfg.model.linear_attention_freq
+            if linear_attention_freq is None:
+                raise ValueError(
+                    "linear_attention_freq must be set when experimental_attention_variant='gated_delta_net'"
+                )
+            if isinstance(linear_attention_freq, int):
+                linear_attention_pattern = [
+                    0 if ((i + 1) % linear_attention_freq == 0) else 1 for i in range(num_layers)
+                ]
+            elif isinstance(linear_attention_freq, list):
+                linear_attention_pattern = linear_attention_freq
+                if len(linear_attention_pattern) != num_layers:
+                    raise ValueError(
+                        f"Invalid length of linear_attention_pattern: {len(linear_attention_pattern)}, "
+                        f"expected {num_layers}, "
+                        f"current linear_attention_freq: {linear_attention_freq}"
+                    )
+            else:
+                raise TypeError(
+                    f"linear_attention_freq must be int or list, got {type(linear_attention_freq).__name__}"
+                )
+
+            num_gdn_layers = sum(linear_attention_pattern)
+            num_standard_attn_layers = num_layers - num_gdn_layers
+
+            standard_self_attn_per_layer = self_attn_term / num_layers if num_layers > 0 else 0
+
+            qk_head_dim = cfg.model.linear_key_head_dim
+            v_head_dim = cfg.model.linear_value_head_dim
+            num_qk_heads = cfg.model.linear_num_key_heads
+            num_v_heads = cfg.model.linear_num_value_heads
+            conv_kernel_dim = cfg.model.linear_conv_kernel_dim
+
+            qk_dim = qk_head_dim * num_qk_heads
+            v_dim = v_head_dim * num_v_heads
+
+            gdn_self_attn_per_layer = (
+                3
+                * 2
+                * (
+                    cfg.model.hidden_size * (2 * qk_dim + 2 * v_dim + 2 * num_v_heads)
+                    + conv_kernel_dim * (2 * qk_dim + v_dim)
+                    + num_v_heads * (v_head_dim**2) * 4
+                    + cfg.model.hidden_size * v_dim
+                )
+            )
+
+            self_attn_term = (
+                gdn_self_attn_per_layer * num_gdn_layers + standard_self_attn_per_layer * num_standard_attn_layers
+            )
+
+        padded_vocab_size = calculate_padded_vocab_size(
+            cfg.model.vocab_size,
+            cfg.model.make_vocab_size_divisible_by,
+            cfg.model.tensor_model_parallel_size,
+            logging_enabled=False,
+        )
+
+        # Routed expert MLP FLOPs per layer (accounts for latent compression).
+        if moe_latent_size is None:
+            routed_expert_term = moe_ffn_hidden_size * num_experts_routed_to * ffn_expansion_factor
+        else:
+            routed_expert_term = (
+                moe_ffn_hidden_size
+                * num_experts_routed_to
+                * ffn_expansion_factor
+                * moe_latent_size
+                / cfg.model.hidden_size
+            ) + 2 * moe_latent_size
+
+        total_floating_point_operations = (
+            batch_size
+            * cfg.model.seq_length
+            * (
+                # MLP
+                3
+                * 2
+                * cfg.model.hidden_size
+                * (
+                    # dense layers
+                    (cfg.model.ffn_hidden_size * ffn_expansion_factor) * num_dense_layers
+                    # routed experts
+                    + routed_expert_term * num_moe_layers
+                    # Shared Experts.
+                    + (shared_expert_ffn_hidden_size * ffn_expansion_factor) * num_moe_layers
+                )
+                # Self Attention
+                + self_attn_term
+                # MTP norms and proj
+                + 3
+                * 2
+                * mtp_num_layers
+                * (
+                    # MTP eh norm + final norm
+                    3 * cfg.model.hidden_size
+                    # MTP eh proj
+                    + 2 * cfg.model.hidden_size * cfg.model.hidden_size
+                )
+                # Logit.
+                + 3 * 2 * cfg.model.hidden_size * padded_vocab_size * (mtp_num_layers + 1)
+            )
+        )
+        return total_floating_point_operations
+
+    # Main entrypoint for FLOPs calculation.
+    if getattr(cfg.model, "is_hybrid_model", False):
+        # Calculate the number of each type of layer.
+        num_attn_layers, num_mamba_layers, num_mlp_layers, num_moe_layers, num_gdn_layers = calculate_layer_counts()
+        mtp_num_layers = getattr(cfg.model, "mtp_num_layers", None)
+        if mtp_num_layers is None:
+            # When using unified hybrid patterns, infer MTP depth count from the pattern.
+            hybrid_pattern = getattr(cfg.model, "hybrid_layer_pattern", None)
+            if hybrid_pattern:
+                try:
+                    parse_hybrid_pattern = importlib.import_module(
+                        "megatron.core.ssm.mamba_hybrid_layer_allocation"
+                    ).parse_hybrid_pattern
+                    parsed = parse_hybrid_pattern(hybrid_pattern)
+                    mtp_num_layers = parsed.mtp_num_depths if parsed.mtp_pattern else 0
+                except (ImportError, ModuleNotFoundError):
+                    mtp_num_layers = 0
+            else:
+                mtp_num_layers = 0
+        padded_vocab_size = calculate_padded_vocab_size(
+            cfg.model.vocab_size,
+            cfg.model.make_vocab_size_divisible_by,
+            cfg.model.tensor_model_parallel_size,
+            logging_enabled=False,
+        )
+        num_query_groups = (
+            cfg.model.num_attention_heads if cfg.model.num_query_groups is None else cfg.model.num_query_groups
+        )
+
+        # Compute hybrid model FLOPs.
+        return hybrid_flops(
+            batch_size=batch_size,
+            seq_len=cfg.model.seq_length,
+            hidden_size=cfg.model.hidden_size,
+            num_attn_layers=num_attn_layers,
+            num_mamba_layers=num_mamba_layers,
+            num_mlp_layers=num_mlp_layers,
+            num_moe_layers=num_moe_layers,
+            num_gdn_layers=num_gdn_layers,
+            mamba_state_dim=getattr(cfg.model, "mamba_state_dim", 128),
+            mamba_head_dim=getattr(cfg.model, "mamba_head_dim", 64),
+            mamba_num_groups=getattr(cfg.model, "mamba_num_groups", 8),
+            mamba_num_heads=getattr(cfg.model, "mamba_num_heads", 128),
+            num_attn_heads=cfg.model.num_attention_heads,
+            gqa_groups=num_query_groups,
+            kv_channels=getattr(cfg.model, "kv_channels", None),
+            mlp_expansion=cfg.model.ffn_hidden_size / cfg.model.hidden_size,
+            swiglu=getattr(cfg.model, "gated_linear_unit", False),
+            moe_latent_size=getattr(cfg.model, "moe_latent_size", None),
+            moe_ffn_hidden_size=(
+                cfg.model.ffn_hidden_size
+                if getattr(cfg.model, "moe_ffn_hidden_size", None) is None
+                else cfg.model.moe_ffn_hidden_size
+            ),
+            shared_expert_ffn_hidden_size=(
+                0
+                if getattr(cfg.model, "moe_shared_expert_intermediate_size", None) is None
+                else cfg.model.moe_shared_expert_intermediate_size
+            ),
+            num_experts_routed_to=getattr(cfg.model, "moe_router_topk", 1),
+            gdn_qk_head_dim=getattr(cfg.model, "linear_key_head_dim", None) or 128,
+            gdn_v_head_dim=getattr(cfg.model, "linear_value_head_dim", None) or 128,
+            gdn_num_qk_heads=getattr(cfg.model, "linear_num_key_heads", None) or 16,
+            gdn_num_v_heads=getattr(cfg.model, "linear_num_value_heads", None) or 32,
+            gdn_conv_kernel_dim=getattr(cfg.model, "linear_conv_kernel_dim", None) or 4,
+            vocab_size=padded_vocab_size,
+            mtp_num_layers=mtp_num_layers,
+        )
+    else:
+        # Compute standard Transformer model FLOPs.
+        return transformer_flops()

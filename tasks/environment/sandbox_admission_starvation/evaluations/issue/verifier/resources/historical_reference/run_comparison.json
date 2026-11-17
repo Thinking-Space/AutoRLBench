@@ -1,0 +1,48 @@
+{
+ "task": "sandbox_admission_starvation",
+ "workload": "Fully-async multi-turn agentic RL on a 16A3B-class MoE model (Miles + SGLang + Megatron), 16 GPUs split 8 train / 8 rollout across two pods (master + worker). Each trajectory is a multi-turn tool-using episode in a remote sandbox; conversation history grows to >10k tokens, so per-turn latency depends on whether the previous turn's KV prefix is still cached on the engine that serves the next turn.",
+ "question": "With routing fixed, why are the rollout engines still starved, and what restores throughput?",
+ "runs": {
+  "run-a": {
+   "description": "Routing fixed: miles router and session gateway disabled, sglang router with cache_aware policy. Sandbox gate unchanged.",
+   "config": {
+    "router_impl": "sglang router (standalone router process)",
+    "router_policy": "cache_aware",
+    "miles_router": false,
+    "session_gateway": false,
+    "routing_key_affinity": "n/a (cache-aware placement)",
+    "rollout_engines": 8,
+    "rollout_tp_per_engine": 1,
+    "rollout_batch_groups": 32,
+    "samples_per_group": 8,
+    "max_inflight_groups": 32,
+    "sandbox_setup_gate": 64,
+    "sandbox_http_pool": "client defaults"
+   },
+   "log_coverage": "pod-console tail only (last 2000 master lines, ~17:17-17:41) + 270 worker lines; the in-process console capture for this run is empty"
+  },
+  "run-b": {
+   "description": "Routing fixed and sandbox admission gate opened.",
+   "config": {
+    "router_impl": "sglang router (standalone router process)",
+    "router_policy": "cache_aware",
+    "miles_router": false,
+    "session_gateway": false,
+    "routing_key_affinity": "n/a (cache-aware placement)",
+    "rollout_engines": 8,
+    "rollout_tp_per_engine": 1,
+    "rollout_batch_groups": 32,
+    "samples_per_group": 8,
+    "max_inflight_groups": 32,
+    "sandbox_setup_gate": 256,
+    "sandbox_http_pool": "max_connections=2000, max_keepalive=2048, keepalive_expiry=120s"
+   },
+   "log_coverage": "in-process console capture (17:55-18:41) + pod-console tail to job end (~18:53)"
+  }
+ },
+ "notes": [
+  "In-flight trajectories = max_inflight_groups x samples_per_group (32 x 8 = 256 for the post-migration runs). The sandbox setup gate is an asyncio semaphore held for sandbox create + setup + up to 3 retries; every trajectory must pass it before its first turn.",
+  "Semaphore waits are only logged when the wait exceeds 5 s ('sandbox setup waited Xs for semaphore').",
+  "run-a here is the same run as run-d of the routing task (identical archives)."
+ ]
+}

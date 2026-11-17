@@ -51,13 +51,11 @@ correct), length or format, lr/KL/GRPO settings, timeouts (they fail in both arm
 - **issue**: swallowed exceptions → unfenced or broken code is rewarded → the policy drops its fence
   → reward 1.0, zero gradient, held-out 0. "Reward hacking" without the exception handling earns
   partial credit.
-- **solution**: `except BaseException: ok = False` (`fix.diff`).
 
 ## Verification
 
 - **issue**: an LLM judge compares `agent_answer.md` with the hidden oracle on verdict / root cause /
   evidence (0.2 / 0.6 / 0.2). Pass needs a verdict score of 1.0 and both other scores above 0.8.
-- **solution**: the harness reruns `run_grpo_mbpp.sh` (60 steps, 3 h cap) and the grader re-executes
   `experiment_logs/val_generations/60.jsonl` itself (last fenced Python block + setup + all asserts in a
   fresh interpreter, 10 s timeout, at least 490 rows); pass at ≥ 0.33. Defective step 60: 0.0 (best
   0.2786, step 0); control 0.3667; margins 0.051 / 0.037. The control's step 0 is 0.2966, so a run

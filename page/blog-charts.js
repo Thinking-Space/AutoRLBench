@@ -16,10 +16,10 @@
     const data = {
         profile: {
             affiliations: [['THUNLP', 12], ['Tsinghua', 4], ['FusionBrain', 2], ['Brigham Young', 3], ['Johns Hopkins', 1], ['Tohoku', 2], ['UPenn', 1], ['Independent', 2], ['Fudan', 2], ['SII', 2], ['SW Jiaotong', 2], ['Duke', 1], ['SJTU', 1]],
-            errors: [['Infrastructure', 12], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 1]],
-            difficulty: [['Very hard', 14], ['Hard', 12], ['Medium', 7], ['Easy', 3]]
+            errors: [['Infrastructure', 13], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 2]],
+            difficulty: [['Very hard', 16], ['Hard', 12], ['Medium', 7], ['Easy', 3]]
         },
-        models: [['GPT-6-Astra', 35.2], ['GPT-6.1-Sol', 33.3], ['Gemini-4-Argon', 29.6], ['GLM-5.3', 25.9], ['Kimi-K3.1-Pro', 24.1], ['Fable-5.1', 20.4], ['Qwen3.8-Max', 18.5], ['Grok-4.7', 16.7], ['Kimi-K3', 5.6], ['DeepSeek-V4-Pro', 1.9]],
+        models: [['GPT-6-Astra', 33.9], ['GPT-6.1-Sol', 32.1], ['Gemini-4-Argon', 28.6], ['GLM-5.3', 25.0], ['Kimi-K3.1-Pro', 23.2], ['Fable-5.1', 19.6], ['Qwen3.8-Max', 17.9], ['Grok-4.7', 16.1], ['Kimi-K3', 5.4], ['DeepSeek-V4-Pro', 1.8]],
         // Per-model [issue, solution] pass rates behind the overall bars;
         // the leaderboard tooltip reads these in the overall view and the
         // categoryByModel entries in a category view.
@@ -35,7 +35,7 @@
             'Kimi-K3': [0, 16.7],
             'DeepSeek-V4-Pro': [0, 5.6]
         },
-        averageLevels: [16.7, 30.0],
+        averageLevels: [15.8, 30.0],
         modelHarness: ['Codex', 'Codex', 'Claude Code', 'Claude Code', 'Claude Code', 'Claude Code', 'Qwen Code', 'Grok Build', 'Claude Code', 'Claude Code'],
         modelDisplayNames: {
             Fable: 'Fable-5.1',
@@ -51,7 +51,7 @@
         // Figure 2 uses the same four-step blue-to-red palette as the
         // four-stage trajectory in Figure 8: two blue outcomes followed by
         // two red outcomes.
-        outcomes: [['Pass', 60, '#174f86'], ['Wrong cause', 193, '#3d82b7'], ['Wrong evidence', 42, '#d86f58'], ['Fail', 59, '#bf2536']],
+        outcomes: [['Pass', 60, '#174f86'], ['Wrong cause', 203, '#3d82b7'], ['Wrong evidence', 45, '#d86f58'], ['Fail', 64, '#bf2536']],
         // Failed repair trajectories grouped by the primary error mode. The
         // values are percentages of the 119 failed repair trajectories and
         // are rendered as animated marks in Figure 7.
@@ -82,7 +82,7 @@
             { title: 'GRPO broadcast', x: [0,50,100,150,200,250,300,350,400], a: [5.435,7.065,8.696,10.326,9.783,11.957,10.87,11.957,11.413], b: [5.978,0,0,0,0,0,0,0,0], aLabel: 'Fable', bLabel: 'Kimi K3', gate: 10, max: 15, colors: [C.blue, C.peach] },
             { title: 'AdamW epsilon', x: [0,10,20,30,40,50,60,70,80,90,100], a: [.076,48.749,52.464,55.648,58.074,56.027,57.165,58.302,56.861,59.136,58.378], b: [.076,.455,10.69,27.521,40.561,47.309,48.976,48.446,48.749,48.976,49.431], aLabel: 'Astra', bLabel: 'Kimi K3', gate: 53, max: 65, colors: [C.navy, C.peach] }
         ],
-        categories: [['Configuration', 16.0, 45.0], ['Reward', 16.0, 23.3], ['Data', 10.0, 30.0], ['Environment', 0, 0], ['Algorithm', 14.4, 20.0], ['Infrastructure', 22.5, 27.1]],
+        categories: [['Configuration', 16.0, 45.0], ['Reward', 16.0, 23.3], ['Data', 10.0, 30.0], ['Environment', 0, 0], ['Algorithm', 14.4, 20.0], ['Infrastructure', 20.8, 27.1]],
         // Per model and category: [diagnosis, repair, combined] pass rates
         // over that category's published runs. The combined value keeps the
         // fig-1 category drill-down on the same metric as the overall
@@ -133,16 +133,16 @@
             }
         ],
         costs: {
-            issue: [['Astra', 5.03, 33.3], ['Sol', 0.79, 30.6], ['Gemini', 12.66, 16.7], ['GLM', 17.35, 22.2], ['Kimi 3.1', 5.42, 16.7], ['Fable', 14.33, 16.7], ['Qwen', 0.97, 13.9], ['Grok', 2.96, 16.7], ['DeepSeek', 13.12, 0.0], ['Kimi K3', 4.26, 0.0]],
-            solution: [['Astra', 47.0, 38.9], ['Sol', 6.04, 38.9], ['Gemini', 43.42, 55.6], ['GLM', 45.48, 33.3], ['Kimi 3.1', 4.82, 38.9], ['Fable', 34.69, 27.8], ['DeepSeek', 38.76, 5.6], ['Kimi K3', 13.16, 16.7]]
+            issue: [['Astra', 5.03, 31.6], ['Sol', 0.79, 28.9], ['Gemini', 12.05, 15.8], ['GLM', 17.21, 21.1], ['Kimi 3.1', 6.25, 15.8], ['Fable', 14.25, 15.8], ['Qwen', 0.97, 13.2], ['Grok', 2.96, 15.8], ['DeepSeek', 12.98, 0.0], ['Kimi K3', 4.69, 0.0]],
+            solution: [['Astra', 47.0, 38.9], ['Sol', 6.04, 38.9], ['Gemini', 43.42, 55.6], ['GLM', 45.48, 33.3], ['Kimi 3.1', 4.82, 38.9], ['Fable', 32.98, 27.8], ['DeepSeek', 38.76, 5.6], ['Kimi K3', 13.16, 16.7]]
         },
         modelLogos: {
             Fable: 'anthropic.png', DeepSeek: 'deepseek.png', GLM: 'glm.png', Astra: 'openai.png',
             Sol: 'openai.png', Gemini: 'googlegemini.png', 'Kimi K3': 'kimi.png', 'Kimi 3.1': 'kimi.png'
         },
         times: {
-            issue: [['Astra',62.45,11.61], ['Sol',17.5,13.11], ['Gemini',23.04,19.06], ['GLM',24.43,17.65], ['Kimi 3.1',26.72,20.28], ['Fable',31.27,17.03], ['Qwen',29.74,27.73], ['Grok',21.33,13.14], ['DeepSeek',37.05,33.26], ['Kimi K3',42.04,17.23]],
-            solution: [['Astra',114.3,34.07], ['Sol',105.0,25.36], ['Gemini',100.83,77.3], ['GLM',60.66,52.23], ['Kimi 3.1',21.42,20.07], ['Fable',47.97,10.66], ['Qwen',43.36,37.37], ['Grok',20.71,16.65], ['DeepSeek',83.03,52.69], ['Kimi K3',48.62,27.7]]
+            issue: [['Astra',59.25,11.41], ['Sol',16.66,12.73], ['Gemini',22.8,19.06], ['GLM',24.15,17.65], ['Kimi 3.1',26.71,20.82], ['Fable',29.97,16.65], ['Qwen',29.58,27.73], ['Grok',21.1,13.62], ['DeepSeek',36.55,32.87], ['Kimi K3',40.4,16.44]],
+            solution: [['Astra',114.3,34.07], ['Sol',105.0,25.36], ['Gemini',100.83,77.3], ['GLM',60.66,52.23], ['Kimi 3.1',21.42,20.07], ['Fable',43.51,10.22], ['Qwen',43.36,37.37], ['Grok',20.71,16.65], ['DeepSeek',83.03,52.69], ['Kimi K3',48.62,27.7]]
         }
     };
 

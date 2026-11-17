@@ -737,5 +737,45 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The training sandbox only catches AssertionError, so code with NameError passes and the policy stops writing its fenced Python block entirely.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on MBPP, the training sandbox marks a sample wrong only on AssertionError, so a response with no runnable code (the tests raise NameError) earns full reward. The policy stops writing its fenced Python block, the training score hits 1.0 by step 11, and held-out pass rate falls from 0.2786 to 0.0; the strict-sandbox control reaches 0.3667."
+  },
+  {
+    "id": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "title": "Multi-engine routing destroys prefix-cache affinity",
+    "family": "Infrastructure",
+    "tags": [
+      "multi-engine",
+      "prefix-cache",
+      "async-rollout",
+      "throughput",
+      "issue-only"
+    ],
+    "model": "Qwen3.5-35B-A3B",
+    "dataset": "Synthetic repository workload",
+    "framework": "Miles / multi-turn GRPO with engine routing",
+    "image": "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-16",
+    "license": "Apache-2.0",
+    "brief": "The router picks engines by in-flight count only, so consecutive turns land without their prefix cache and the token-weighted prefix hit rate falls from 97.3% to 20.7-30.9%.",
+    "issue": "Fully-asynchronous multi-turn GRPO of a MoE policy on sandboxed repository-debugging tasks asks for per-session routing affinity, but the Miles router it is launched with picks engines by in-flight count only, so consecutive turns of a trajectory land on engines without their prefix cache and the token-weighted prefix hit rate falls from 97.3% to 20.7-30.9%."
+  },
+  {
+    "id": "environment/sandbox_admission_starvation",
+    "title": "Sandbox admission gate starves asynchronous rollouts",
+    "family": "Environment",
+    "tags": [
+      "sandbox-admission",
+      "connection-pool",
+      "async-rollout",
+      "throughput",
+      "issue-only"
+    ],
+    "model": "Qwen3.5-9B",
+    "dataset": "Synthetic repository workload",
+    "framework": "Miles / multi-turn GRPO with sandbox admission",
+    "image": "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-16",
+    "license": "Apache-2.0",
+    "brief": "A 32-64-slot sandbox semaphore held across every remote setup call makes 256 in-flight trajectories queue for minutes, leaving the inference engines idle.",
+    "issue": "Fully-asynchronous multi-turn GRPO of a MoE policy on sandboxed repository-debugging tasks keeps 256 trajectories in flight, but a 32-64-slot sandbox setup semaphore held across every remote setup call makes them queue for minutes before their first turn, leaving the inference engines idle."
   }
 ];

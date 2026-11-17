@@ -603,6 +603,21 @@
  * trajectories were rebuilt per agent type and audited clean of
  * network access. The published issue-judgment total below moves
  * 350 -> 360 with this round.
+ * The ten multi_engine_prefix_affinity_collapse and ten
+ * sandbox_admission_starvation issue records were published on
+ * 17 Nov 2026 from the local cybertron-evaluate sweeps. No pass on
+ * either task. multi_engine_prefix_affinity_collapse: the Miles
+ * router picks engines by in-flight count only, destroying
+ * per-session prefix-cache affinity (token-weighted prefix hit
+ * rate 97.3% -> 20.7-30.9%); Grok-4.7 (0.9) and Kimi-K3.1-Pro
+ * (0.866) are the best. sandbox_admission_starvation: a 32-64-slot
+ * sandbox setup semaphore held across every remote setup call
+ * starves 256 in-flight trajectories; Grok-4.7 (0.96) is the
+ * best with evidence at exactly 0.8. Both tasks ship issue-only
+ * this round (solution evaluation is defined but not yet
+ * published). The twenty trajectories were rebuilt per agent type
+ * and audited clean of network access. The published
+ * issue-judgment total below moves 360 -> 380 with this round.
  * The 180 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -7151,13 +7166,13 @@ window.AUTORLBENCH_RUNS = [
     "level": "solution",
     "passed": false,
     "score": 0.0,
-    "durationMs": 5452160,
-    "steps": 48,
-    "costUsd": 51.0822,
-    "sourceRunId": "20261114-035536-cedbae2c",
-    "sessionId": "a2773266-bdaa-4077-9414-f36de4a29c63",
+    "durationMs": 635000,
+    "steps": 20,
+    "costUsd": 20.1887,
+    "sourceRunId": "20261116-231317",
+    "sessionId": "dc9cef7f-8a5b-47dc-aa14-08ec2f6d480b",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "999e790c059262e05bf6b37751dabc183cce404189e77fbe99a3bfb645cdc9c5"
+    "traceSha256": "86ff71f88d9b82dcd6bdc22eb4b9bb9640836ed459121fc6f9ef866d6e06f0fd"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -8857,6 +8872,286 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.96,
     "durationMs": 14437000,
     "steps": 67,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "gpt6astra-prefix-affinity",
+    "file": "agent-trace/gpt6astra-prefix-affinity.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 92000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "gpt61sol-prefix-affinity",
+    "file": "agent-trace/gpt61sol-prefix-affinity.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.05,
+    "durationMs": 104000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "fable51-prefix-affinity",
+    "file": "agent-trace/fable51-prefix-affinity.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 314000,
+    "steps": 11,
+    "costUsd": 11.0523
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "glm53-prefix-affinity",
+    "file": "agent-trace/glm53-prefix-affinity.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1010000,
+    "steps": 59,
+    "costUsd": 11.1656
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "kimi-prefix-affinity",
+    "file": "agent-trace/kimi-prefix-affinity.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 777000,
+    "steps": 57,
+    "costUsd": 13.8487
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "kimi31-prefix-affinity",
+    "file": "agent-trace/kimi31-prefix-affinity.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.866,
+    "durationMs": 1770000,
+    "steps": 115,
+    "costUsd": 31.9587
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "dsv4-prefix-affinity",
+    "file": "agent-trace/dsv4-prefix-affinity.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.266667,
+    "durationMs": 1568000,
+    "steps": 33,
+    "costUsd": 10.7248
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "gemini4-prefix-affinity",
+    "file": "agent-trace/gemini4-prefix-affinity.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 777000,
+    "steps": 15,
+    "costUsd": 0.6044
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "qwen38-prefix-affinity",
+    "file": "agent-trace/qwen38-prefix-affinity.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.266667,
+    "durationMs": 2111000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "grok47-prefix-affinity",
+    "file": "agent-trace/grok47-prefix-affinity.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 1028000,
+    "steps": 166,
+    "costUsd": null
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "gpt6astra-sandbox-starve",
+    "file": "agent-trace/gpt6astra-sandbox-starve.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.01666,
+    "durationMs": 122000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "gpt61sol-sandbox-starve",
+    "file": "agent-trace/gpt61sol-sandbox-starve.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 98000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "fable51-sandbox-starve",
+    "file": "agent-trace/fable51-sandbox-starve.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 460000,
+    "steps": 13,
+    "costUsd": 14.592
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "glm53-sandbox-starve",
+    "file": "agent-trace/glm53-sandbox-starve.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.28,
+    "durationMs": 1289000,
+    "steps": 83,
+    "costUsd": 18.2481
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "kimi-sandbox-starve",
+    "file": "agent-trace/kimi-sandbox-starve.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.28,
+    "durationMs": 531000,
+    "steps": 39,
+    "costUsd": 11.1834
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "kimi31-sandbox-starve",
+    "file": "agent-trace/kimi31-sandbox-starve.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 1408000,
+    "steps": 67,
+    "costUsd": 9.7204
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "dsv4-sandbox-starve",
+    "file": "agent-trace/dsv4-sandbox-starve.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.216,
+    "durationMs": 1745000,
+    "steps": 33,
+    "costUsd": 10.3873
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "gemini4-sandbox-starve",
+    "file": "agent-trace/gemini4-sandbox-starve.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1426000,
+    "steps": 45,
+    "costUsd": 2.3264
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "qwen38-sandbox-starve",
+    "file": "agent-trace/qwen38-sandbox-starve.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 1091000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/sandbox_admission_starvation",
+    "slug": "grok47-sandbox-starve",
+    "file": "agent-trace/grok47-sandbox-starve.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 1013000,
+    "steps": 97,
     "costUsd": null
   }
 ];

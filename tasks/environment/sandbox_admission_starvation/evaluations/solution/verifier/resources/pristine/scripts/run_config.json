@@ -1,0 +1,61 @@
+{
+  "workload": "public repository debugging in remote sandboxes, multi-turn tool calls",
+  "model": {
+    "path": "models/Qwen3.5-9B"
+  },
+  "conversion": {
+    "gpus": 1,
+    "pp": 1
+  },
+  "topology": {
+    "actor_gpus": 4,
+    "rollout_gpus": 4,
+    "rollout_gpus_per_engine": 1
+  },
+  "training": {
+    "tp": 2,
+    "ep": 1,
+    "max_tokens_per_gpu": 16384,
+    "lr": 1e-06,
+    "optimizer_cpu_offload": false,
+    "grads_in_fp32": true,
+    "log_probs_max_tokens_per_gpu": 8192
+  },
+  "rollout": {
+    "data": "data/public_repo_tasks.jsonl",
+    "num_rollout": 3,
+    "batch_groups": 16,
+    "samples_per_group": 8,
+    "max_turns": 8,
+    "max_new_tokens_per_turn": 2048,
+    "max_context_len": 32768,
+    "tool_call_parser": "qwen3_coder",
+    "sglang_mem_fraction": 0.8,
+    "server_concurrency": 128
+  },
+  "router": {
+    "use_miles_router": false,
+    "policy": "cache_aware"
+  },
+  "env": {
+    "MILES_EXPERIMENTAL_ROLLOUT_REFACTOR": "0",
+    "PUBLIC_ASYNC_MAX_INFLIGHT_GROUPS": "32",
+    "PUBLIC_ASYNC_QUEUE_MAXSIZE": "32",
+    "SANDBOX_API_URL": "http://127.0.0.1:18080",
+    "SANDBOX_TEMPLATE": "python-repo"
+  },
+  "services": [
+    {
+      "name": "sandbox_service",
+      "argv": [
+        "runtime/sandbox_service.py",
+        "--port",
+        "18080",
+        "--access-log",
+        "{log_dir}/sandbox_access.jsonl"
+      ],
+      "health_url": "http://127.0.0.1:18080/health"
+    }
+  ],
+  "extra_args": []
+}

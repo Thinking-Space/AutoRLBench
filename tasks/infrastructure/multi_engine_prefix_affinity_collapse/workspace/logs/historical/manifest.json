@@ -1,0 +1,58 @@
+{
+ "schema_version": 1,
+ "format": {
+  "container": "gzip-compressed JSON Lines, one object per console line, UTF-8",
+  "record": {
+   "t": "ISO-8601 UTC capture time (string) for lines from the in-process console capture; null for lines from the pod-log archive",
+   "pod": "\"master\" or \"worker\"",
+   "msg": "sanitized console line (ANSI colour codes stripped; Ray actor prefix and \"[repeated Nx across cluster]\" dedup markers preserved)"
+  },
+  "sanitization_marker": "a record whose msg is \"[sanitized: N line(s) removed]\" stands for N consecutive source lines that were dropped by the sanitizer (its t is the t of the first dropped line)",
+  "log_clock": "timestamps embedded in msg (e.g. \"[2026-09-28 14:39:14]\") are the cluster-local clock (UTC+8); they are what derive_metrics.py uses"
+ },
+ "archives": {
+  "run-a/master.log.gz": {
+   "records": 1969,
+   "sha256": "204bc0bb6f6e967c743bbba96fed134984f10770d2ba965ba583ccdaf2d290c1",
+   "source": "Master pod console: the platform's archived pod log, which only serves the last 2000 lines per pod; earlier output (startup and the first part of the run) is no longer retrievable and no in-process console capture exists for this run. All records have t=null.",
+   "log_clock_range": null,
+   "truncation": "last 2000 pod-console lines only (see source)"
+  },
+  "run-a/worker.log.gz": {
+   "records": 13,
+   "sha256": "6efb53f16ac241a17a3db6ec64bc4ddbb2fb6e32fb058981a8579c6904ef5d2a",
+   "source": "Worker pod console from the platform's archived pod log (complete: 1292 source lines, below the 2000-line limit). This pod only runs the Ray worker daemon; output of actors placed on this node is forwarded to and printed by the driver on the master pod (Ray prefix 'ip=<node-x>'), so it appears in master.log.gz. All records have t=null.",
+   "log_clock_range": null,
+   "truncation": "complete"
+  },
+  "run-b/master.log.gz": {
+   "records": 6257,
+   "sha256": "f6ef1890e4b65083d4d1311446d12d2ff8678ad3f4d23fd1843ae244ac709561",
+   "source": "Master pod console. The first 4698 source lines come from the in-process console capture written by the experiment tracker (it starts when the training driver initialises, so launcher/Ray-start output that precedes it is absent); each has a capture timestamp in field t (UTC). The remaining 1802 source lines are the tail of the platform's archived pod log (the archive only serves the last 2000 lines per pod), appended after removing the 198 lines that overlap the capture; these have t=null.",
+   "log_clock_range": null,
+   "truncation": "complete console from tracker initialisation to job end"
+  },
+  "run-b/worker.log.gz": {
+   "records": 16,
+   "sha256": "63229213377dd0390ff8cf0e0f77ee62cc95d38e62cc1199f8d20a86b701f90f",
+   "source": "Worker pod console from the platform's archived pod log (complete: 270 source lines, below the 2000-line limit). This pod only runs the Ray worker daemon; output of actors placed on this node is forwarded to and printed by the driver on the master pod (Ray prefix 'ip=<node-x>'), so it appears in master.log.gz. All records have t=null.",
+   "log_clock_range": null,
+   "truncation": "complete"
+  },
+  "run-c/master.log.gz": {
+   "records": 15569,
+   "sha256": "5a7650483d6d97dbd590bada39dff55d29d67e78d8a36f6e826807d9926b8579",
+   "source": "Master pod console. The first 14765 source lines come from the in-process console capture written by the experiment tracker (it starts when the training driver initialises, so launcher/Ray-start output that precedes it is absent); each has a capture timestamp in field t (UTC). The remaining 1339 source lines are the tail of the platform's archived pod log (the archive only serves the last 2000 lines per pod), appended after removing the 661 lines that overlap the capture; these have t=null.",
+   "log_clock_range": null,
+   "truncation": "complete console from tracker initialisation to job end"
+  },
+  "run-c/worker.log.gz": {
+   "records": 16,
+   "sha256": "fdf8371d66cd3ec683360e3b9fc82655dd5da290a815d43fa44eca545b0f93ec",
+   "source": "Worker pod console from the platform's archived pod log (complete: 270 source lines, below the 2000-line limit). This pod only runs the Ray worker daemon; output of actors placed on this node is forwarded to and printed by the driver on the master pod (Ray prefix 'ip=<node-x>'), so it appears in master.log.gz. All records have t=null.",
+   "log_clock_range": null,
+   "truncation": "complete"
+  }
+ },
+ "redaction": "Private payloads, prompts, model outputs, private module log lines, paths, hosts, IPs, ports, job and run identifiers removed or replaced; framework log lines and numeric runtime observations retained; one dynamic-filter reason token was renamed to a neutral equivalent, preserving its counts."
+}

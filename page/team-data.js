@@ -20,7 +20,7 @@ const TEAM = [
     { name: 'Junlin Yang', handle: 'YangJL2003', affiliation: 'Tsinghua University' },
     { name: 'Jianing Yin', handle: 'CatherineYin1213', affiliation: 'University of Pennsylvania'},
     { name: 'Ruijia Zhang', handle: 'Richard-ZZZ', affiliation: 'Johns Hopkins University'},
-    { name: 'Haoyang Su', handle: 'Hoyant-Su', affiliation: 'Fudan University'},
+    { name: 'Haoyang Su', handle: 'Hoyant-Su', affiliation: 'Fudan University, Shanghai Innovation Institute'},
     { name: 'Pengyi Li', handle: 'lipengyi0829', affiliation: 'FusionBrain Lab'},
     { name: 'Purva Chiniya', handle: 'PurvaChiniya', affiliation: 'Independent Researcher'},
     { name: 'Dengzhe Hou', handle: 'dengzhe-hou', affiliation: 'Tohoku University'},
@@ -45,15 +45,17 @@ const INSTITUTIONS = Array.from(new Set(TEAM.flatMap(person =>
    Each entry is spliced in after the named institution; the logo map
    below assigns them a cell like any other entry. */
 const INSTITUTION_INSERTS = [
-    { after: 'Tsinghua University', name: 'THUNLP' }
+    { after: 'Tsinghua University', name: 'THUNLP' },
+    { after: 'Brigham Young University', name: 'Nanyang Technological University' },
+    { after: 'Southwest Jiaotong University', name: 'Shanghai Jiao Tong University' }
 ];
 
 /* The logos on the Team page all live in one image, images/institutions.png:
-   a single row of 9 cells (120x60 each, rendered at 2x -> 2160x120).
-   INSTITUTION_LOGOS maps each institution to its cell; institutions without
-   an entry render name-only. To add an institution, drop its logo file into
-   page/scripts/institutions/ (untracked), extend compose-strip.html there,
-   and re-render it headless at window-size 2160x120. */
+   a single row of 14 cells (120x60 each, rendered at 2x -> 3360x120).
+   INSTITUTION_LOGOS maps each institution to its cell. To add an
+   institution, drop its logo file into page/scripts/institutions/
+   (untracked), extend compose-strip.html there, and re-render it headless
+   at window-size 3360x120. */
 const INSTITUTION_LOGOS = {
     'Tsinghua University': 0,
     'THUNLP': 1,
@@ -63,5 +65,10 @@ const INSTITUTION_LOGOS = {
     'Fudan University': 5,
     'FusionBrain Lab': 6,
     'Tohoku University': 7,
-    'Duke University': 8
+    'Duke University': 8,
+    'Brigham Young University': 9,
+    'Nanyang Technological University': 10,
+    'Southwest Jiaotong University': 11,
+    'Shanghai Jiao Tong University': 12,
+    'Shanghai Innovation Institute': 13
 };
