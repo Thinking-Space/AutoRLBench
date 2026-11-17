@@ -1,0 +1,36 @@
+title = "Response position ids restart at zero: the actor scores rollouts in a view vLLM never sampled"
+license = "Apache-2.0"
+created_date = "2026-11-16"
+domain = "infrastructure"
+tags = ["verl", "grpo", "gsm8k", "position-ids", "rope", "train-inference-mismatch"]
+
+[submitter]
+name = "Shulin Tian"
+affiliation = "NTU"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train (7,360 after a 500-character question filter) / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_gsm8k.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "verl's agent loop numbers the response window's position ids from 0 instead of continuing after the prompt, so vLLM samples with correct positions while the actor and reference score every rollout with the response laid over the prompt in RoPE position space; the policy gradient optimizes a different conditional than the one sampled, actor/kl_loss reaches 0.44-0.83 by step 60 (control 0.07) and held-out accuracy ends at 0.4776 / 0.4670 (seeds 42 / 43) against 0.5580 / 0.5406 for the same recipe with correct position ids."
+
+[security]
+requires_isolated_stages = true

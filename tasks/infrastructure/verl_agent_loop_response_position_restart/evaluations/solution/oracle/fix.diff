@@ -1,0 +1,21 @@
+diff -ruN a/verl/experimental/agent_loop/agent_loop.py b/verl/experimental/agent_loop/agent_loop.py
+--- a/verl/experimental/agent_loop/agent_loop.py
++++ b/verl/experimental/agent_loop/agent_loop.py
+@@ -804,17 +804,6 @@
+     ) -> torch.Tensor:
+         """Compute position ids for multi-modal inputs."""
+         if self.processor is None:
+-            # Prompt and response windows are padded independently (left / right), so number each window from 0
+-            # on its own; mixing the two paddings into one cumulative count misplaces the response tokens.
+-            prompt_width = self.rollout_config.prompt_length
+-            if attention_mask.shape[-1] > prompt_width:
+-                return torch.cat(
+-                    [
+-                        compute_position_id_with_mask(attention_mask[..., :prompt_width]),
+-                        compute_position_id_with_mask(attention_mask[..., prompt_width:]),
+-                    ],
+-                    dim=-1,
+-                )
+             return compute_position_id_with_mask(attention_mask)  # (1, seq_len)
+ 
+         multi_modal_kwargs = {
