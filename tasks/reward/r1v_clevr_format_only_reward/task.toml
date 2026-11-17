@@ -1,0 +1,30 @@
+title = "Format-only reward on CLEVR counting"
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "reward"
+tags = ["r1-v", "trl", "grpo", "vlm", "clevr", "format-only-reward", "issue-only"]
+
+[submitter]
+name = "Yaolun Zhang"
+
+[model]
+name = "Qwen2-VL-2B-Instruct"
+
+[dataset]
+name = "CLEVR-CoGenT-A counting (train, held-out) + Super-CLEVR counting (out-of-distribution)"
+
+[training]
+framework = "R1-V (TRL GRPOTrainer subclass)"
+algo = "grpo"
+script = "run_grpo.sh"
+
+[environment]
+image = "hiyouga/verl@sha256:864124d32147f5e9b31916656b441f19d77c1c03e3448c8504b0025df59121b2"
+image_stack = "verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10"
+# One GPU, matching the recorded run: run_grpo.sh starts torchrun with
+# --nproc_per_node=1. The recorded run used one 80 GB card.
+gpus = 1
+
+[outcome]
+failure_type = "reward_missing_correctness_term"
+failure_reason = "run_grpo.sh passes --reward_funcs sformat, so the only reward is strict_format_reward (1.0 when the completion is exactly <think>...</think><answer>integer</answer>); the registered answer rewards (count, accuracy) are not used. The training reward saturates at 0.96-0.98 from step 16 on while it carries no information about whether the count is right: held-out CLEVR accuracy (500 items) moves 0.602 -> 0.842 (step 75) -> 0.584 (step 100) -> 0.656 (step 150), and out-of-distribution accuracy (1000 items) peaks at 0.243 at step 25 and ends at 0.187."

@@ -1,0 +1,75 @@
+{
+ "schema_version": 1,
+ "source_kind": "raw_task_historical_run",
+ "source_policy": "Trainer code is the upstream R1-V commit plus the edits listed under files. Run artifacts are the recorded run's outputs. Only a home-directory path in one log line and the launch script's default values were rewritten; no metric value was changed.",
+ "framework_repo": "https://github.com/StarsfieldAI/R1-V",
+ "framework_commit": "e35f97e566357631a2602accdd79610b752d8f0b",
+ "kept_framework_entries": [
+  "src/r1-v/src/open_r1 -> workspace/open_r1",
+  "src/r1-v/local_scripts/zero3.json -> workspace/zero3.json",
+  "src/r1-v/LICENSE -> workspace/LICENSE"
+ ],
+ "added_files": [
+  "workspace/run_grpo.sh (launch script written for this run)",
+  "workspace/eval_checkpoints.py (per-checkpoint held-out evaluation written for this run)"
+ ],
+ "dropped": [
+  "checkpoints and weights (outputs/)",
+  "models/ and data/ (rebuilt by environment/prepare.sh)",
+  "upstream docs, images, eval scripts and the unused distill_r1 package"
+ ],
+ "run_notes": "The recorded run received its reward list, step budget, save interval, learning rate and KL coefficient through environment variables. The shipped run_grpo.sh carries the same five values as its defaults, so that the script alone reproduces the recorded command line. The job hit its wall-time limit during the evaluation of checkpoint-125; a second invocation of eval_checkpoints.py (--steps 125,150) finished the series, which is why results/eval.log has two headers and results/eval_metrics.jsonl has the step-125 val line twice with identical values.",
+ "remaining_word_hits": "none: `grep -rIlw 'broken\\|fixed' workspace/` returns nothing.",
+ "files": [
+  {
+   "source": "src/r1-v/src/open_r1/grpo.py",
+   "destination": "workspace/open_r1/grpo.py",
+   "sha256_before": "27c29e81ae2dfd28d4648aebbb511a0e4ae57b3f013313fd9a2b8bc55bdfe620",
+   "sha256_after": "d744932bf350bb9476fd9bef91476f3ac718b9520b7a16f580496c50a72c9eea",
+   "replacements": [
+    {
+     "rule": "pre-run code edit",
+     "detail": "Added count_reward and strict_format_reward and registered them as `count` and `sformat`; load the training set with load_from_disk when --dataset_name is a directory; build the prompt columns without re-encoding the image column; reworded QUESTION_TEMPLATE; emptied the model-card tags. These edits were in place before the recorded run."
+    }
+   ]
+  },
+  {
+   "source": "src/r1-v/src/open_r1/sft.py",
+   "destination": "workspace/open_r1/sft.py",
+   "sha256_before": "d01a2c7b2cdee47c928ab6f75450ba8d8096b0703a54a4226b38dc36b40fd42d",
+   "sha256_after": "bad0d1b90237d6abf738e80bdb8e68671964950ed4b04d226f5703dd8af4e4d1",
+   "replacements": [
+    {
+     "rule": "pre-run code edit",
+     "detail": "Emptied the model-card tags. Not used by the recorded run."
+    }
+   ]
+  },
+  {
+   "source": "run_grpo.sh as executed",
+   "destination": "workspace/run_grpo.sh",
+   "sha256_before": "b2f9277cf43f61d54db6c3c8614cd6a61c57c7f2a107872ff54142f378f31437",
+   "sha256_after": "1abcc1a1b4d4dd440e341431d636a8c3fb41ccb4dd4580a04de9b7d76e5d3d54",
+   "replacements": [
+    {
+     "rule": "launch defaults",
+     "detail": "Five `${VAR:-default}` values (reward list, step budget, save interval, learning rate, KL coefficient) were set to the values the recorded run received through its environment. No other line changed."
+    }
+   ]
+  },
+  {
+   "source": "results/train.log as recorded",
+   "destination": "workspace/results/train.log",
+   "sha256_before": "302e61f7c5f8fcb148674f99f791b097dd627f13ebe376da461e7be9e5601fa7",
+   "sha256_after": "bb9757b9a0edf366a23de6b88e8a8daba180b721a964135c98aeba0e788ed234",
+   "replacements": [
+    {
+     "rule": "home path",
+     "from": "<recording user's home directory>/",
+     "to": "/root/",
+     "detail": "Line 2 only, a `df` warning about a missing autotune cache directory."
+    }
+   ]
+  }
+ ]
+}
