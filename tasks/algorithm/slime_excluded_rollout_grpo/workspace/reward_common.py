@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 import torch
 
 if TYPE_CHECKING:
-    from replay import Sample
+    from train import Fragment as Sample
 
 
 @dataclass

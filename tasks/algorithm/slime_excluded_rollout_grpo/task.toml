@@ -8,21 +8,22 @@ tags = ["grpo", "reward-normalization", "aborted-rollouts", "agent-rl"]
 name = "Pengcheng Huang"
 
 [model]
-name = "No model required for the post-rollout CPU replay"
+name = "Qwen3.5-0.8B"
 
 [dataset]
-name = "Six synthetic post-rollout batches"
+name = "Offline ticket routing simulator"
 
 [training]
-framework = "slime"
+framework = "PyTorch and Transformers with the historical Slime reward helpers"
 algo = "grpo"
-script = "replay.py"
+script = "train.py"
+script_args = ["--out", "outputs"]
 
 [environment]
 image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
 image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
-gpus = 0
+gpus = 1
 
 [outcome]
 failure_type = "excluded_rollout_contaminates_grpo_baseline"
-failure_reason = "The historical cost-budget callback normalizes all terminal rollout rewards before training exclusion, so a zero-reward interrupted rollout changes a valid sample's advantage from -0.707104 to +0.132453 despite contributing no effective training advantage itself."
+failure_reason = "Interrupted zero-reward rollouts enter GRPO normalization before they are masked, producing nonzero advantages for equally rewarded completed rollouts."
