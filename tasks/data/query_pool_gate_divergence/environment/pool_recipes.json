@@ -1,0 +1,160 @@
+{
+  "schema": "query_pool_recipes.v1",
+  "banks": [
+    "swe_smith",
+    "swe_rebench",
+    "r2e_gym"
+  ],
+  "built": [
+    {
+      "pool_id": "p_balanced",
+      "total": 300,
+      "weights": "swe_smith=50,swe_rebench=35,r2e_gym=15",
+      "seed": 42
+    },
+    {
+      "pool_id": "p_zero_weight",
+      "total": 240,
+      "weights": "swe_smith=60,swe_rebench=40,r2e_gym=0",
+      "seed": 43
+    },
+    {
+      "pool_id": "p_smith_only",
+      "total": 180,
+      "weights": "swe_smith=100,swe_rebench=0,r2e_gym=0",
+      "seed": 44
+    },
+    {
+      "pool_id": "p_60_40",
+      "total": 300,
+      "weights": "swe_smith=60,swe_rebench=40,r2e_gym=0",
+      "seed": 45
+    },
+    {
+      "pool_id": "p_small_mixed",
+      "total": 120,
+      "weights": "swe_smith=50,swe_rebench=35,r2e_gym=15",
+      "seed": 46
+    },
+    {
+      "pool_id": "p_60_30_10",
+      "total": 300,
+      "weights": "swe_smith=60,swe_rebench=30,r2e_gym=10",
+      "seed": 47
+    },
+    {
+      "pool_id": "h_balanced",
+      "total": 400,
+      "weights": "swe_smith=50,swe_rebench=35,r2e_gym=15",
+      "seed": 71
+    },
+    {
+      "pool_id": "h_two_sources",
+      "total": 400,
+      "weights": "swe_smith=70,swe_rebench=30,r2e_gym=0",
+      "seed": 72
+    },
+    {
+      "pool_id": "h_small",
+      "total": 120,
+      "weights": "swe_smith=75,swe_rebench=25,r2e_gym=0",
+      "seed": 73
+    },
+    {
+      "pool_id": "h_small_mixed",
+      "total": 150,
+      "weights": "swe_smith=50,swe_rebench=35,r2e_gym=15",
+      "seed": 74
+    },
+    {
+      "pool_id": "h_70_20_10",
+      "total": 400,
+      "weights": "swe_smith=70,swe_rebench=20,r2e_gym=10",
+      "seed": 75
+    },
+    {
+      "pool_id": "h_trap_a",
+      "total": 150,
+      "weights": "swe_smith=50,swe_rebench=35,r2e_gym=15",
+      "seed": 81
+    },
+    {
+      "pool_id": "h_trap_b",
+      "total": 200,
+      "weights": "swe_smith=80,swe_rebench=20,r2e_gym=0",
+      "seed": 82
+    }
+  ],
+  "derived": [
+    {
+      "pool_id": "p_legacy_manifest",
+      "from": "p_smith_only",
+      "edit": "drop_zero_sources",
+      "note": "written by builder v1, which omitted sources at weight 0"
+    },
+    {
+      "pool_id": "p_float_total",
+      "from": "p_balanced",
+      "edit": "total_plus",
+      "amount": 0.4,
+      "note": "total_queries written by a build script that divided before rounding"
+    },
+    {
+      "pool_id": "p_no_total",
+      "from": "p_balanced",
+      "edit": "drop_total",
+      "note": "total_queries dropped when the manifest schema changed"
+    },
+    {
+      "pool_id": "p_short_file",
+      "from": "p_balanced",
+      "edit": "truncate_rows",
+      "amount": 1,
+      "note": "one row lost in transfer after the manifest was written"
+    },
+    {
+      "pool_id": "h_legacy_manifest",
+      "from": "h_small",
+      "edit": "drop_zero_sources",
+      "note": "written by builder v1, which omitted sources at weight 0"
+    },
+    {
+      "pool_id": "h_float_total",
+      "from": "h_balanced",
+      "edit": "total_plus",
+      "amount": 0.25,
+      "note": "total_queries written by a build script that divided before rounding"
+    },
+    {
+      "pool_id": "h_no_total",
+      "from": "h_balanced",
+      "edit": "drop_total",
+      "note": "total_queries dropped when the manifest schema changed"
+    },
+    {
+      "pool_id": "h_short_file",
+      "from": "h_balanced",
+      "edit": "truncate_rows",
+      "amount": 2,
+      "note": "two rows lost in transfer after the manifest was written"
+    },
+    {
+      "pool_id": "h_string_total",
+      "from": "h_trap_a",
+      "edit": "total_as_string",
+      "note": "total_queries written as a string by a build script that read it from the shell"
+    },
+    {
+      "pool_id": "h_legacy_trap",
+      "from": "h_trap_b",
+      "edit": "drop_zero_sources",
+      "note": "written by builder v1, which omitted sources at weight 0"
+    },
+    {
+      "pool_id": "h_no_sha_field",
+      "from": "h_trap_a",
+      "edit": "drop_sha256",
+      "note": "written before the manifest carried a data digest"
+    }
+  ]
+}

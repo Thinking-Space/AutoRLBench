@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "rerun_verified",
+  "environment": {
+    "image": "see task.toml (CPU only, no GPU)",
+    "python": "CPython 3; the pools are plain JSONL and the gate is bash + stdlib python"
+  },
+  "prepare": {
+    "exit_code": 0,
+    "duration_s": 1.0,
+    "pools": 24,
+    "checks": "query_banks.tar.xz verified against sources_manifest.json, all 24 pools rebuilt from the banks with scripts/build_pool.py and the recipes in pool_recipes.json, every rebuilt file verified against pool_digests.json"
+  },
+  "evidence_check": {
+    "command": "python3 -B environment/check_evidence.py",
+    "exit_code": 0
+  },
+  "validate": {
+    "command": "python3 -m autorlbench validate tasks/data/query_pool_gate_divergence",
+    "ok": true
+  },
+  "rerun": {
+    "exit_code": 0,
+    "duration_s": 1.57,
+    "cases": 16,
+    "accepted": 11,
+    "rejected": 5,
+    "note": "the shipped gate; four accepted runs do not match the pool they were validated against"
+  },
+  "end_to_end": {
+    "note": "autorlbench rerun --backend local, then the reference repair applied to the harness-prepared workspace, then the verifier",
+    "harness_rerun_passed": true,
+    "repaired_rerun": {
+      "cases": 16,
+      "agreement_with_reference": "16/16"
+    },
+    "verifier_passed_repaired": true,
+    "verifier_hidden_pass": "22/22",
+    "verifier_passed_unrepaired": false,
+    "blind_trial": "an agent given only the workspace and the solution instruction repaired every defect in ~14 minutes and scored 16/16 staged, 21/22 held-out: it deduplicated a malformed registry instead of refusing the launch. The instruction now states that an inconsistent input is a refusal, not something to repair in passing."
+  }
+}

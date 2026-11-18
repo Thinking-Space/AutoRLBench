@@ -1,0 +1,26 @@
+{
+  "category": "implementation",
+  "framework": "none",
+  "task": "query_pool_gate_divergence",
+  "verdict": "unhealthy",
+  "root_cause": [
+    "the pool manifest is read by three separate processes and only the validator's reading is checked: the validator treats total_queries as optional while the POOL_TOTAL reader indexes it with a hard subscript",
+    "export VAR=\"$(...)\" returns the export builtin's status, not the command substitution's, so set -e cannot see the second reader crash; the run continues with an empty POOL_TOTAL and a run identity missing its pool-size component",
+    "int(manifest.get('total_queries', ...)) truncates a non-integer total instead of refusing it, and the float reaches the run identity verbatim",
+    "the gate refuses pools the project's own builder produces: `count <= 0` rejects a source at weight zero, and the repo-wide unusable-instance registry is treated as a per-pool list",
+    "nothing asserts the pool is the intended experiment (the composition values the launch cases set are read by nothing), and the batch configuration is not bounded by the now-variable pool size, so an over-sampling batch wider than the pool repeats prompts inside a rollout",
+    "the validate-only exit happens before the run identity and the batch guards, so a dry run certifies nothing about what a real launch would do"
+  ],
+  "evidence_metrics": [
+    "pass A: 16 cases, 11 accepted, 5 rejected; four accepted runs do not match the pool they were validated against and three rejections are pools the builder produced",
+    "c05_manifest_without_total accepted with run tag mixed_s50_rebench35_r2e15_grpo_lr3e6_100005 (size component empty) and pool_total_env \"\"",
+    "c06_non_integer_total accepted with run tag mixed300.4_...",
+    "c09_oversampling_over_pool accepted with duplicate_prompts_total 544 over four rollouts of a 120-query pool",
+    "c02 / c03 / c04 rejected as 'manifest source_counts must be positive' or 'invalid registry entry' on pools whose data files are intact and whose digests match"
+  ],
+  "fix": {
+    "must": [
+      "parse the manifest once, in the validator, and propagate its already-checked values with a bare assignment so a failure aborts under set -e; refuse non-integer totals; accept zero-weight sources and scope the registry to the pool; assert the intended composition; bound the batch configuration by the pool size; and run the validate-only exit last"
+    ]
+  }
+}

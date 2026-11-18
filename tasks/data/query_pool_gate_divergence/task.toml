@@ -1,0 +1,27 @@
+title = 'Query pool launch gate validates one pool and starts the run on another'
+license = "Apache-2.0"
+created_date = "2026-11-18"
+domain = "data"
+tags = ['query-pool', 'data-pipeline', 'launch-gate', 'silent-failure', 'shell-exit-status']
+
+[submitter]
+name = "Jialin Ren"
+
+[model]
+name = "none (the graded artefact is the data pipeline's launch gate; the trainer is stubbed)"
+
+[dataset]
+name = "Public mixed query pools: 24 pools built from three per-source banks of public SWE-smith problem statements, plus a repo-wide unusable-instance registry"
+
+[training]
+framework = "none"
+algo = "grpo"
+
+[environment]
+image = "hiyouga/verl@sha256:864124d32147f5e9b31916656b441f19d77c1c03e3448c8504b0025df59121b2"
+image_stack = "verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10"
+gpus = 0
+
+[outcome]
+failure_type = "launch_gate_validates_a_different_pool_than_the_run_uses"
+failure_reason = "The gate parses the pool manifest in three separate processes with three different readings, and the reader outside the validator fails invisibly because `export VAR=\"$(...)\"` returns the export builtin's status, so a crashed read yields an empty value under `set -e`."
