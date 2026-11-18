@@ -776,5 +776,26 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "A 32-64-slot sandbox semaphore held across every remote setup call makes 256 in-flight trajectories queue for minutes, leaving the inference engines idle.",
     "issue": "Fully-asynchronous multi-turn GRPO of a MoE policy on sandboxed repository-debugging tasks keeps 256 trajectories in flight, but a 32-64-slot sandbox setup semaphore held across every remote setup call makes them queue for minutes before their first turn, leaving the inference engines idle."
+  },
+  {
+    "id": "infrastructure/verl_agent_loop_response_position_restart",
+    "title": "Response position ids restart at zero: the actor scores rollouts in a view vLLM never sampled",
+    "family": "Infrastructure",
+    "tags": [
+      "verl",
+      "grpo",
+      "gsm8k",
+      "position-ids",
+      "rope",
+      "train-inference-mismatch"
+    ],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "GSM8K",
+    "framework": "verl / GRPO with agent loop",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-16",
+    "license": "Apache-2.0",
+    "brief": "The agent loop numbers response tokens from 0 instead of continuing after the prompt; the actor scores every rollout in a view vLLM never sampled.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, the agent loop numbers response tokens from 0 instead of continuing after the prompt. vLLM samples with correct positions, but the actor and the reference score every rollout with the response laid over the prompt in RoPE position space. Training reward still climbs and nothing errors; held-out accuracy ends at 0.4776 against 0.5580."
   }
 ];
