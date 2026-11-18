@@ -10,14 +10,17 @@ const TEAM = [
     { name: 'Yuxin Zuo*', handle: 'yuxinzuo', affiliation: 'Tsinghua University' },
     { name: 'Yaohui Li', handle: 'lif1014', affiliation: 'Tsinghua University' },
     { name: 'Jiarui Yuan', handle: '1rubbishyuan', affiliation: 'Tsinghua University' },
-    { name: 'Zixuan Fu', handle: 'Zixuan-Fu', affiliation: 'Tsinghua University' },
     { name: 'Yuan Gao', handle: 'Zaogezi', affiliation: 'Tsinghua University' },
-    { name: 'Xin Huang', handle: 'NaCresp', affiliation: 'Tsinghua University' },
+    { name: 'Lifan Yuan', handle: 'lifan-yuan', affiliation: 'University of Illinois Urbana-Champaign' },
+    { name: 'Cheng Qian', handle: 'qiancheng-apodex', affiliation: 'University of Illinois Urbana-Champaign' },
+    { name: 'Zixuan Fu', handle: 'Zixuan-Fu', affiliation: 'Tsinghua University' },
     { name: 'Yaxuan Li', handle: 'YaxuanLi-cn', affiliation: 'Tsinghua University' },
     { name: 'Zixi Chen', handle: 'Jccc1025', affiliation: 'Tsinghua University' },
     { name: 'Shouzheng Huang', handle: 'Huangsz2021', affiliation: 'Harbin Institute of Technology (Shenzhen)' },
     { name: 'Jinyang Wu', handle: 'jinyangwu', affiliation: 'Tsinghua University' },
     { name: 'Junlin Yang', handle: 'YangJL2003', affiliation: 'Tsinghua University' },
+    { name: 'Xin Huang', handle: 'NaCresp', affiliation: 'Tsinghua University' },
+    { name: 'Yicheng He', handle: 'hyc6666hyc', affiliation: 'Tsinghua University' },
     { name: 'Jianing Yin', handle: 'CatherineYin1213', affiliation: 'University of Pennsylvania'},
     { name: 'Ruijia Zhang', handle: 'Richard-ZZZ', affiliation: 'Johns Hopkins University'},
     { name: 'Haoyang Su', handle: 'Hoyant-Su', affiliation: 'Fudan University, Shanghai Innovation Institute'},
@@ -28,7 +31,9 @@ const TEAM = [
     { name: 'Kaixiang Zhao', handle: 'kzhao5', affiliation: 'Brigham Young University'},
     { name: 'Zhizhou Wang', handle: 'Jeffjeno', affiliation: 'Southwest Jiaotong University'},
     { name: 'Jialin Ren', handle: 'BugSmith', affiliation: 'Tsinghua University'},
-    { name: 'Shulin Tian', handle: 'shulin16', affiliation: 'Nanyang Technological University'}
+    { name: 'Shulin Tian', handle: 'shulin16', affiliation: 'Nanyang Technological University'},
+    { name: 'Haoxuan Pan', handle: 'merak0514', affiliation: 'Tsinghua University'},
+    { name: 'Qingfeng He', handle: 'heqf21', affiliation: 'Tsinghua University'}
 ];
 
 /* The institution wall below the team grid is derived from the affiliations
@@ -53,11 +58,11 @@ const INSTITUTION_INSERTS = [
 ];
 
 /* The logos on the Team page all live in one image, images/institutions.png:
-   a single row of 14 cells (120x60 each, rendered at 2x -> 3360x120).
+   a single row of 15 cells (120x60 each, rendered at 2x -> 3600x120).
    INSTITUTION_LOGOS maps each institution to its cell. To add an
    institution, drop its logo file into page/scripts/institutions/
    (untracked), extend compose-strip.html there, and re-render it headless
-   at window-size 3360x120. */
+   at window-size 3600x120. */
 const INSTITUTION_LOGOS = {
     'Tsinghua University': 0,
     'THUNLP': 1,
@@ -72,5 +77,6 @@ const INSTITUTION_LOGOS = {
     'Nanyang Technological University': 10,
     'Southwest Jiaotong University': 11,
     'Shanghai Jiao Tong University': 12,
-    'Shanghai Innovation Institute': 13
+    'Shanghai Innovation Institute': 13,
+    'University of Illinois Urbana-Champaign': 14
 };
