@@ -797,5 +797,27 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The agent loop numbers response tokens from 0 instead of continuing after the prompt; the actor scores every rollout in a view vLLM never sampled.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, the agent loop numbers response tokens from 0 instead of continuing after the prompt. vLLM samples with correct positions, but the actor and the reference score every rollout with the response laid over the prompt in RoPE position space. Training reward still climbs and nothing errors; held-out accuracy ends at 0.4776 against 0.5580."
+  },
+  {
+    "id": "infrastructure/verl_fsdp_microbatch_grad_reset",
+    "title": "Gradient reset inside the micro-batch loop keeps 1/8 of every mini-batch",
+    "family": "Infrastructure",
+    "tags": [
+      "verl",
+      "grpo",
+      "gsm8k",
+      "gradient-accumulation",
+      "fsdp",
+      "noisy-updates",
+      "issue-only"
+    ],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "GSM8K",
+    "framework": "verl / GRPO with FSDP",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-16",
+    "license": "Apache-2.0",
+    "brief": "FSDP clears gradients before every micro-batch's backward, so only the last of 8 micro-batches reaches the optimizer.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, verl's FSDP engine clears gradients before every micro-batch's backward, so only the last of 8 micro-batches reaches the optimizer. AdamW still takes full-size steps, so the policy drifts like a healthy run, but along a direction estimated from 4 prompt groups. Training reward rises; held-out accuracy ends below its starting value (0.4511 vs 0.4610) against 0.5580 for the same recipe."
   }
 ];

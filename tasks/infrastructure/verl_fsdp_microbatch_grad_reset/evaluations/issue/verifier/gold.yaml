@@ -1,0 +1,13 @@
+category: implementation
+framework: verl
+task: verl_fsdp_microbatch_grad_reset
+verdict: unhealthy
+root_cause:
+  - verl/workers/engine/fsdp/transformer_impl.py FSDPEngine.forward_backward_batch calls module.zero_grad(set_to_none=True) before every micro-batch's backward, so only the last of the 8 micro-batches in each 256-sample mini-batch reaches the optimizer; AdamW still takes full-size steps along a direction estimated from 4 prompt groups
+evidence_metrics:
+  - held-out accuracy re-scored from val_generations goes 0.4610 (step 0) to a 0.4723 peak (step 20) and back to 0.4511 (step 60), below its starting value, against 0.5580 for the same recipe without the reset
+  - training reward rises 0.389 to 0.602 while held-out accuracy does not follow; actor/entropy falls 0.49 to 0.10 and actor/kl_loss reaches 0.083, so the run does not look stuck
+  - actor/grad_norm stays at 0.12-0.36 for all 60 steps (the norm of the one surviving micro-batch gradient), about a third of the un-reset control's 0.58-0.94
+fix:
+  must:
+    - remove the per-micro-batch zero_grad so gradients accumulate across all micro-batches of the mini-batch, as in fix.diff

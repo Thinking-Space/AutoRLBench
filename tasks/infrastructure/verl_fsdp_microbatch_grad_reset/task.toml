@@ -1,0 +1,36 @@
+title = "Gradient reset inside the micro-batch loop keeps 1/8 of every mini-batch"
+license = "Apache-2.0"
+created_date = "2026-11-16"
+domain = "infrastructure"
+tags = ["verl", "grpo", "gsm8k", "gradient-accumulation", "fsdp", "noisy-updates", "issue-only"]
+
+[submitter]
+name = "Shulin Tian"
+affiliation = "NTU"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train (7,360 after a 500-character question filter) / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_gsm8k.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "verl's FSDP engine calls module.zero_grad() before every micro-batch's backward, so only the last of the 8 micro-batches in each 256-sample mini-batch reaches the optimizer; AdamW still takes full-size steps (entropy 0.49 -> 0.10, actor/kl_loss 0.083 at step 60, as in a healthy run) but along a direction estimated from 4 prompt groups, actor/grad_norm stays at 0.12-0.36 (control 0.55-0.94), training reward rises 0.39 -> 0.60 and held-out accuracy (re-scored) peaks at 0.4723 and ends at 0.4511, below its step-0 value of 0.4610, against 0.5580 for the same recipe without the reset."
+
+[security]
+requires_isolated_stages = true

@@ -1,0 +1,13 @@
+diff -ruN a/verl/workers/engine/fsdp/transformer_impl.py b/verl/workers/engine/fsdp/transformer_impl.py
+--- a/verl/workers/engine/fsdp/transformer_impl.py
++++ b/verl/workers/engine/fsdp/transformer_impl.py
+@@ -643,9 +643,6 @@
+                 loss, meta_info = self.forward_step(micro_batch, loss_function=loss_function, forward_only=forward_only)
+ 
+                 if not forward_only:
+-                    # Release the gradient buffers left from the previous micro-batch before this backward so that
+-                    # peak memory stays at one micro-batch of gradients plus the sharded parameters.
+-                    self.module.zero_grad(set_to_none=True)
+                     if scaler is not None:
+                         scaler.scale(loss).backward()
+                     else:
