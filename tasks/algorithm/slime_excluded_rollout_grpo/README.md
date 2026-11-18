@@ -1,41 +1,44 @@
-# Excluded OpenClaw rollouts contaminate GRPO advantages
+# GRPO credit assignment drifts during multi-turn tool rollouts
 
-A complete tool-routing GRPO run reproduces how the historical OpenClaw reward callback gives identical successful completions positive advantages when their group includes interrupted rollouts.
+A complete Slime GRPO run shows how tool timeouts can change the sign of the learning signal for completed trajectories.
 
 | | |
 | --- | --- |
 | **Author** | Pengcheng Huang |
 | **Affiliation** | Northeastern University |
 | **Type** | Algorithm |
-| **Domain** | Tool-use RL |
-| **Tags** | `grpo`, `reward-normalization`, `aborted-rollouts`, `agent-rl` |
-| **Framework** | PyTorch and Transformers with the historical Slime reward helpers |
-| **Run time** | 218.3 seconds in the recorded run, including training, evaluation and saves after model load |
-| **Resources** | One NVIDIA H800 GPU |
+| **Domain** | Agentic tool-use RL |
+| **Tags** | `grpo` `reward-normalization` `tool-use` `aborted-rollouts` |
+| **Framework** | Slime v0.3.2, SGLang 0.5.15.post1, Megatron Core 0.16.0rc0 |
+| **Run time** | About 11 min 23 s from the first timestamped checkpoint conversion output to Ray job completion |
+| **Resources** | 1 × NVIDIA H800 (80 GB) |
 
 ## Difficulty
 
-Training runs to completion and held-out accuracy saturates. The defect is in the learning signal during groups with tool timeouts. The workspace starts from public Qwen3.5-0.8B and runs 36 rounds of on-policy sampling, two clipped GRPO optimizer updates per round, and periodic checkpointing. The policy samples a tool choice and a final route from the available action tokens. A local catalog supplies observations. The simulator generates 2,048 training tickets and 48 held-out tickets, with three sampled attempts per held-out ticket and timeouts disabled for evaluation.
+`workspace/run.sh` uses the bundled Slime implementation to convert the pinned Qwen3.5-0.8B checkpoint and launch `workspace/slime/train.py` through Ray. SGLang samples multi-token assistant replies. The rollout feeds ticket catalog responses back into the policy context as masked observations. Megatron runs clipped GRPO and saves distributed checkpoints. The experiment runs 16 rollouts with four prompts and four samples per prompt, producing 32 optimizer updates. Slime evaluates before training and after every four rollouts. The offline generator creates 128 training tickets and 16 held-out tickets with disjoint IDs. The Slime snapshot retains its Apache-2.0 license.
 
-This is a reconstruction of the historical task-reward path using a public checkpoint, a local tool environment, and scheduled catalog timeouts. The trainer exercises the task-reward component of the original objective. The two arms use the same source, seed, schedule, checkpoint and update budget, with the eligibility change confined to `reward_callback.py`. Actual timeouts depend on whether a sampled rollout calls the catalog. The initial evaluation and the first and final recorded rollout batches match across the two arms.
+This reproduces the task-reward portion of the historical OpenClaw defect in a local tool environment. The adapter introduces a repeatable timeout schedule on selected training tool requests. Held-out evaluation uses the catalog without this schedule. The pinned public framework supplies sampling, rollout batching, optimization and checkpointing.
 
-| Evidence | Historical callback | Eligibility control |
+| Held-out evaluation | Historical callback | Eligibility control |
 | --- | ---: | ---: |
-| Step 0 verified held-out routes | 42/144 | 42/144 |
-| Step 6 verified held-out routes | 141/144 | 144/144 |
-| Step 12 verified held-out routes | 144/144 | 142/144 |
-| Step 36 verified held-out routes | 144/144 | 144/144 |
-| Step 36 completed rollouts with reward 1.0 | 29/29 | 29/29 |
-| Step 36 gradient norm, averaged over the two updates | 0.0007186256 | 0.0 |
+| Before training | 12/16 | 12/16 |
+| After 4 rollouts | 15/16 | 16/16 |
+| After 8 rollouts | 16/16 | 15/16 |
+| After 12 rollouts | 0/16 | 2/16 |
+| After 16 rollouts | 0/16 | 0/16 |
 
-In the step 1 trace, group 2 has rewards `[0.6, 1, 1, 1, 0, 0]`. The two zeros come from timed-out calls. Including them puts the 0.6 rollout at the group mean, suppressing its negative advantage of about −1.5. In the final trace, group 0 contains four successful completions and two timeouts. All four eligible rewards are 1.0. Including the interrupted runs gives those completions advantages of about +0.6455. Filtering the interrupted records returns zero for each.
+The two runs share the checkpoint, prompts, seed, budget and timeout schedule. The control changes the callback's normalization population. Sampled replies diverge between runs. The final scores show that this pair cannot establish whether the normalization bug caused the held-out decline.
+
+The recorded run reached all 32 optimizer updates. Its 256 training trajectories included 27 masked tool timeouts. Recomputing GRPO on the same batches finds 81 eligible trajectories whose advantages change when timeout records are excluded, including four sign flips. In rollout 0, group 1 has rewards `[0.0, 1.0, 0.6, 0.6]`. The leading zero is a masked timeout. Each 0.6-reward completion has advantage **+0.1213** in the recorded calculation and **−0.5773** when the same batch is normalized over eligible completions.
 
 ## Reference solution
 
-- **issue** — Identify how `workspace/reward_callback.py::post_process_rewards` sends interrupted records to `task_advantages` before the late loss selection in `workspace/train.py::update`. Normalize the eligible terminal records before broadcasting back to decision fragments. A scored zero from a legitimate completion would remain eligible.
+- **issue** — Identify how `routing.reward.post_process_rewards` includes interrupted records in group normalization before Slime applies the training loss masks. Normalize eligible terminal trajectories before broadcasting their advantages to samples. Keep legitimately scored zero rewards in the population. A late mask leaves the peer advantages computed from the wider population.
 
-The task is issue-only because the paired run identifies a gradient defect and both arms end at the same held-out score.
+This contribution is issue-only because the paired runs both finish at 0/16, while the recorded groups directly expose the incorrect learning signal.
 
 ## Verification
 
-- **issue** — Inspect the full per-round training and held-out evaluation log in `workspace/evidence/metrics.jsonl` and the decision traces at rounds 1, 18 and 36. Recompute the affected group statistics from the raw rewards and confirm that the late mask drops the interrupted trajectories after their rewards have contributed to normalization. The original training and paired control each completed 72 optimizer updates with valid saved adapters on the declared shared image. Prepare the pinned public checkpoint with `environment/prepare.sh`, then run `python3 train.py --out outputs` from the workspace on one compatible GPU to repeat the training.
+- **issue** — The defect was exercised in the declared shared Slime image. `workspace/logs/training.log` retains the full training command's combined stdout/stderr, including checkpoint conversion, Ray and SGLang logs, per-step optimizer metrics, evaluation and checkpoint saves. W&B was disabled. The rollout snapshots from rounds 0, 7 and 15 record actual generated text and tool outcomes. Compare their terminal reward populations with the callback that prepares rewards for the actor.
+
+The prepare stage materializes the pinned model into `assets/model`. From the workspace, `./run.sh assets/model outputs` reproduces the recipe on one compatible GPU. The launcher builds the derived Megatron checkpoint through the GPU converter before starting Ray. The recorded platform run used stochastic SGLang sampling, so scores may vary across launches.

@@ -1,20 +1,15 @@
 # Canonical issue oracle
 
-Expected verdict **unhealthy GRPO learning signal**. The training completes and both the historical callback and the control finish with 144/144 verified routes. The diagnosis concerns the learning signal under tool interruptions.
+Expected verdict **unhealthy GRPO learning signal under tool interruptions**. The optimizer ran and the policy initially improved on the held-out tasks. The evidence establishes incorrect credit assignment for completed rollouts.
 
 ## Root cause
 
-`workspace/train.py::Rollout.fragments` encodes a timed-out catalog call as one terminal record with reward zero, status `aborted`, `remove_sample=True`, and no trainable decision. `workspace/reward_callback.py::post_process_rewards` groups all terminal records and forwards them to `task_advantages` before `update` selects trainable fragments. `workspace/reward_common.py` already collapses decision fragments to one reward per terminal rollout and uses the group mean and sample standard deviation. It receives a normalization population that includes already-excluded terminal records. Late masking removes the timeout from the loss while its zero still changes the completed rollouts' advantages.
+`workspace/routing/rollout.py::generate` handles a catalog timeout by returning a record with zero reward, `Sample.Status.ABORTED`, `remove_sample=True`, and an all-zero response loss mask. The training callback in `workspace/routing/reward.py::post_process_rewards` sends the full list of terminal records for each prompt to `task_advantages`. The helper in `workspace/routing/reward_common.py` groups by prompt and rollout identity and computes a GRPO mean and sample standard deviation over the records it receives. The normalization population already includes interrupted records when `workspace/slime/slime/ray/rollout.py::_convert_samples_to_train_data` applies the loss masks.
 
-Compute eligibility per terminal rollout before normalization, using exclusion flags rather than raw reward. A genuine scored zero should count. Expand the computed advantages back to the two decision fragments of each completed rollout and give excluded fragments no loss. A singleton eligible group and a group with equal eligible rewards should have zero centered advantage. An all-excluded group should never be normalized.
+This order makes a timeout affect eligible peer rewards even though its tokens contribute no policy loss. Compute group-relative advantages over eligible terminal records, using their exclusion status. Preserve legitimate zero scores. No score should enter the group statistics more than once for a terminal trajectory.
 
 ## Observable impact
 
-- `workspace/evidence/rollouts-001.jsonl`, group 2, contains rewards `[0.6, 1.0, 1.0, 1.0, 0.0, 0.0]` of which the last two are timeouts. The complete 0.6 rollout gets advantage 0.0 in the historical computation and about −1.5 with the two timeouts removed.
-- `workspace/evidence/rollouts-036.jsonl`, group 0, contains four completed rewards of 1.0 and two timeout zeros. Each completed rollout gets advantage about +0.6455 under the historical callback and 0 under eligible-only centering. Group identities and rollout outcomes match in the paired arms at this step.
-- At round 36 the defective run logs 29 verified completions, seven timeouts, 58 trainable actions and a nonzero gradient norm of about 0.0007186. The control logs the same rollout counts and zero gradient norm. The interruption appears in the learning signal even once the policy has saturated.
-- A passing diagnosis explains how a discarded sample can change its valid peers' advantages, using an actual group or connecting the last-round gradient to the complete equal-reward trajectories and masked timeouts. Mentioning timeouts or masking without connecting the peer effect merits partial root-cause credit.
-
-## Incorrect attributions
-
-The timeout is a trigger. The algorithmic defect is the use of timeout rewards in normalization. The training includes real policy updates and reaches full held-out accuracy. Fragment counting, the standard-deviation convention, and insufficient optimization do not explain the effect. Removing every zero-valued reward would also remove legitimate scored completions.
+- `workspace/rollouts/rollout-000.jsonl`, group 1, records four terminal rewards `[0, 1, 0.6, 0.6]`. The first is a masked catalog timeout. The recorded callback gives the 0.6-reward completions about **+0.1213**. Excluding that timeout gives about **−0.5773** for the same completions. This is a comparison on the same sampled trajectories.
+- `workspace/logs/training.log` records the completed optimization and held-out evaluation. The run reached 16/16 before finishing at 0/16. The decline alone cannot identify its cause.
+- A passing diagnosis connects the eligibility omission to changed peer advantages and anchors the claim in a recorded reward group or the native training signal. A timeout report or a reference to the loss mask without the peer effect merits partial root-cause credit.
