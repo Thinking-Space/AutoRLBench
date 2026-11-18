@@ -126,6 +126,7 @@ At the solution level the agent repairs the workspace and submits `report.md` â€
 | [`autorlbench/`](autorlbench/) | Evaluation harness: task loader, validator, runtimes, agent adapters, CLI |
 | [`ENVIRONMENTS.md`](ENVIRONMENTS.md) | The eight fixed shared environment images every task runs in |
 | [`skills/package-task/`](skills/package-task/) | Agent skill that turns a raw task into a task |
+| [`skills/validate-task/`](skills/validate-task/) | Agent skill that reviews a task's experiment, evidence, and grading |
 | [`tests/`](tests/) | Harness unit tests |
 | [`page/`](page/) | Website source, deployed to GitHub Pages |
 

@@ -127,6 +127,7 @@ solution 层里 agent 只负责修 workspace 并提交 `report.md`，**不自己
 | [`autorlbench/`](autorlbench/) | 评测框架：任务加载、校验、运行时、agent 适配器、CLI |
 | [`ENVIRONMENTS.md`](ENVIRONMENTS.md) | 全部任务运行的 8 个固定共享环境镜像 |
 | [`skills/package-task/`](skills/package-task/) | 把 raw task 打包成任务的 agent skill |
+| [`skills/validate-task/`](skills/validate-task/) | 检查任务实验、证据和评分的 agent skill |
 | [`tests/`](tests/) | 框架单元测试 |
 | [`page/`](page/) | 网站源码，部署到 GitHub Pages |
 

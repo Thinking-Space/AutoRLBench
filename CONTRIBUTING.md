@@ -107,6 +107,14 @@ python3 -m autorlbench validate tasks/<domain>/<task_id>
 
 It must report zero errors.
 
+Schema validation does not prove that the task is a complete, evidence-backed
+RL experiment. Ask an agent to review the task with the
+[validate-task](skills/validate-task/SKILL.md) skill before opening the PR:
+
+```text
+Validate tasks/<domain>/<task_id> using the validate-task skill at skills/validate-task in this repository.
+```
+
 ## Open a pull request
 
 The generated task is already inside your clone, so branch, commit, and push it to your
