@@ -1,0 +1,28 @@
+title = "Excluded OpenClaw rollouts contaminate GRPO advantages"
+license = "Apache-2.0"
+created_date = "2026-11-18"
+domain = "algorithm"
+tags = ["grpo", "reward-normalization", "aborted-rollouts", "agent-rl"]
+
+[submitter]
+name = "Pengcheng Huang"
+
+[model]
+name = "No model required for the post-rollout CPU replay"
+
+[dataset]
+name = "Six synthetic post-rollout batches"
+
+[training]
+framework = "slime"
+algo = "grpo"
+script = "replay.py"
+
+[environment]
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+gpus = 0
+
+[outcome]
+failure_type = "excluded_rollout_contaminates_grpo_baseline"
+failure_reason = "The historical cost-budget callback normalizes all terminal rollout rewards before training exclusion, so a zero-reward interrupted rollout changes a valid sample's advantage from -0.707104 to +0.132453 despite contributing no effective training advantage itself."
