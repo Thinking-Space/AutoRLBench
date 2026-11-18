@@ -1,0 +1,147 @@
+defaults:
+  - ppo_trainer
+  - _self_
+
+hydra:
+  searchpath:
+    - file:///workspace/framework/verl/trainer/config
+  run:
+    dir: /workspace/experiments/justrl_math/outputs/${trainer.experiment_name}/hydra
+
+data:
+  train_files: /workspace/experiments/justrl_math/inputs/data/train.parquet
+  val_files:
+    - /workspace/experiments/justrl_math/inputs/data/AIME24.parquet
+    - /workspace/experiments/justrl_math/inputs/data/AIME25.parquet
+    - /workspace/experiments/justrl_math/inputs/data/AMC23.parquet
+  train_batch_size: 64
+  max_prompt_length: 1024
+  max_response_length: 16384
+  # prepare.py applies the identical template/token length filter once.
+  filter_overlong_prompts: false
+  filter_overlong_prompts_workers: 1
+  truncation: error
+  dataloader_num_workers: 0
+  seed: 42
+
+actor_rollout_ref:
+  hybrid_engine: true
+  model:
+    path: /workspace/models/DeepSeek-R1-Distill-Qwen-1.5B
+    use_remove_padding: true
+    enable_gradient_checkpointing: true
+    trust_remote_code: false
+  actor:
+    strategy: fsdp
+    optim:
+      lr: 1.0e-6
+      lr_warmup_steps: 10
+      lr_scheduler_type: constant
+      weight_decay: 0.1
+    ppo_mini_batch_size: 16
+    ppo_micro_batch_size_per_gpu: 1
+    ppo_epochs: 1
+    use_dynamic_bsz: true
+    ppo_max_token_len_per_gpu: 32768
+    entropy_coeff: 0.0
+    calculate_entropy: false
+    use_kl_loss: false
+    kl_loss_coef: 0.0
+    clip_ratio_low: 0.2
+    clip_ratio_high: 0.28
+    clip_ratio_c: 10.0
+    loss_agg_mode: token-mean
+    grad_clip: 1.0
+    policy_loss:
+      loss_mode: vanilla
+    fsdp_config:
+      dtype: bfloat16
+      param_offload: false
+      optimizer_offload: false
+      ulysses_sequence_parallel_size: 1
+  rollout:
+    name: vllm
+    tensor_model_parallel_size: 1
+    dtype: bfloat16
+    temperature: 1.0
+    top_p: 1.0
+    top_k: -1
+    n: 8
+    max_model_len: 17408
+    max_num_batched_tokens: 32768
+    max_num_seqs: 256
+    gpu_memory_utilization: 0.90
+    enforce_eager: false
+    enable_chunked_prefill: true
+    enable_prefix_caching: true
+    disable_log_stats: false
+    free_cache_engine: true
+    calculate_log_probs: true
+    log_prob_use_dynamic_bsz: true
+    log_prob_max_token_len_per_gpu: 32768
+    log_prob_micro_batch_size_per_gpu: 1
+    agent:
+      num_workers: 2
+    val_kwargs:
+      do_sample: true
+      n: 32
+      temperature: 0.7
+      top_p: 0.9
+      top_k: -1
+
+algorithm:
+  adv_estimator: grpo
+  norm_adv_by_std_in_grpo: true
+  use_kl_in_reward: false
+  kl_ctrl:
+    kl_coef: 0.0
+  filter_groups:
+    enable: false
+  rollout_correction:
+    rollout_is: null
+    bypass_mode: false
+
+reward:
+  num_workers: 2
+  reward_manager:
+    name: dapo
+  custom_reward_function:
+    path: /workspace/experiments/justrl_math/reward.py
+    name: compute_score
+  reward_model:
+    enable: false
+
+transfer_queue:
+  backend:
+    SimpleStorage:
+      num_data_storage_units: 2
+
+trainer:
+  use_v1: true
+  v1:
+    trainer_mode: sync
+  logger: [console, swanlab]
+  project_name: VerbalRL
+  experiment_name: justrl-math-deepseek-1.5b
+  val_before_train: true
+  n_gpus_per_node: 2
+  nnodes: 1
+  total_epochs: 1
+  total_training_steps: 1000
+  save_freq: 50
+  test_freq: 50
+  max_actor_ckpt_to_keep: 2
+  resume_mode: auto
+  default_local_dir: /workspace/experiments/justrl_math/outputs/${trainer.experiment_name}/checkpoints
+  validation_data_dir: /workspace/experiments/justrl_math/outputs/${trainer.experiment_name}/validation
+
+ray_kwargs:
+  ray_init:
+    address: null
+    include_dashboard: false
+    num_cpus: null
+    runtime_env:
+      py_executable: /workspace/.venv/bin/python
+      # vLLM exposes runtime progress through this upstream setting.
+      env_vars:
+        VLLM_LOGGING_LEVEL: INFO
