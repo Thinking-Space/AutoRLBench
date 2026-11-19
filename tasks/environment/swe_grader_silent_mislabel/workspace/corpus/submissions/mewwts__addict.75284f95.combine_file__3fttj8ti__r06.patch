@@ -1,0 +1,22 @@
+diff --git a/addict/addict.py b/addict/addict.py
+index e66717f..114afcf 100644
+--- a/addict/addict.py
++++ b/addict/addict.py
+@@ -91,14 +91,14 @@ class Dict(dict):
+         return copy.copy(self)
+ 
+     def deepcopy(self):
+-        return copy.copy(self)
++        return copy.deepcopy(self)
+ 
+     def __deepcopy__(self, memo):
+         other = self.__class__()
+         memo[id(self)] = other
+         for key, value in self.items():
+-            other[key] = copy.deepcopy(value, memo)
+-        return self
++            other[copy.deepcopy(key, memo)] = copy.deepcopy(value, memo)
++        return other
+ 
+     def update(self, *args, **kwargs):
+         other = {}

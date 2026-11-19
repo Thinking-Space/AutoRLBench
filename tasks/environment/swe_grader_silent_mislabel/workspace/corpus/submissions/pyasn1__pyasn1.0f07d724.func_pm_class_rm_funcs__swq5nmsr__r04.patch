@@ -1,0 +1,32 @@
+diff --git a/pyasn1/codec/ber/encoder.py b/pyasn1/codec/ber/encoder.py
+index d615c99..bbdad19 100644
+--- a/pyasn1/codec/ber/encoder.py
++++ b/pyasn1/codec/ber/encoder.py
+@@ -29,6 +29,27 @@ class AbstractItemEncoder(object):
+     eooIntegerSubstrate = (0, 0)
+     eooOctetsSubstrate = bytes(eooIntegerSubstrate)
+ 
++    # noinspection PyMethodMayBeStatic
++    def encodeTag(self, singleTag, isConstructed):
++        tagClass, tagFormat, tagId = singleTag
++        encodedTag = tagClass | tagFormat
++        if isConstructed:
++            encodedTag |= tag.tagFormatConstructed
++
++        if tagId < 31:
++            return encodedTag | tagId,
++
++        else:
++            substrate = tagId & 0x7f,
++
++            tagId >>= 7
++
++            while tagId:
++                substrate = (0x80 | (tagId & 0x7f),) + substrate
++                tagId >>= 7
++
++            return (encodedTag | 0x1F,) + substrate
++
+     def encodeLength(self, length, defMode):
+         if not defMode and self.supportIndefLenMode:
+             return (0x80,)

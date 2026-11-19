@@ -1,0 +1,27 @@
+title = 'Repository-repair reward pipeline silently mislabels rollouts'
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "environment"
+tags = ['reward-pipeline', 'test-execution', 'log-parsing', 'reward-hacking', 'data-quality']
+
+[submitter]
+name = "Jialin Ren"
+
+[model]
+name = "none (the graded artefact is the reward pipeline; the rollout patches it grades are staged, not generated during evaluation)"
+
+[dataset]
+name = "Public repository-repair corpus: 6 permissively licensed Python repositories, injected bugs from the public SWE-smith dataset, 352 rollout patches (11 recorded from training, the rest staged for this task)"
+
+[training]
+framework = "none"
+algo = "grpo"
+
+[environment]
+image = "hiyouga/verl@sha256:864124d32147f5e9b31916656b441f19d77c1c03e3448c8504b0025df59121b2"
+image_stack = "verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10"
+gpus = 0
+
+[outcome]
+failure_type = "reward_pipeline_mislabels_rollouts"
+failure_reason = "The grading command never asks pytest for the summary section its parser is the only consumer of, the test suite is not restored before grading, node ids are matched by substring fallback, and runs that could not decide are reported as zeros."

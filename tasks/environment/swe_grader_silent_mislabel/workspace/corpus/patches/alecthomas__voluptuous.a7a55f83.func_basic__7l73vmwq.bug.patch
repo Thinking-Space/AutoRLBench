@@ -1,0 +1,19 @@
+diff --git a/voluptuous/schema_builder.py b/voluptuous/schema_builder.py
+index cdeb514..0ee0b84 100644
+--- a/voluptuous/schema_builder.py
++++ b/voluptuous/schema_builder.py
+@@ -959,10 +959,10 @@ class Marker(object):
+         description: typing.Any | None = None,
+     ) -> None:
+         self.schema: typing.Any = schema_
+-        self._schema = Schema(schema_)
+-        self.msg = msg
+-        self.description = description
+-        self.__hash__ = cache(lambda: hash(schema_))  # type: ignore[method-assign]
++        self._schema = Schema(description)  # Incorrectly using 'description' instead of 'schema_'
++        self.msg = schema_  # Incorrectly assigning 'schema_' to 'self.msg'
++        self.description = msg  # Incorrectly assigning 'msg' to 'self.description'
++        self.__hash__ = cache(lambda: hash(description))  # Incorrectly using 'description' instead of 'schema_'
+ 
+     def __call__(self, v):
+         try:

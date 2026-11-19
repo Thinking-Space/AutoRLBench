@@ -1,0 +1,32 @@
+diff --git a/qrcode/image/base.py b/qrcode/image/base.py
+index a7821a7..f79e9e8 100644
+--- a/qrcode/image/base.py
++++ b/qrcode/image/base.py
+@@ -127,6 +127,27 @@ class BaseImageWithDrawer(BaseImage):
+         self.eye_drawer = self.get_drawer(eye_drawer) or self.get_default_eye_drawer()
+         super().__init__(*args, **kwargs)
+ 
++    def is_eye(self, row: int, col: int) -> bool:
++        """
++        Check if the given position (row, col) is part of an eye (alignment pattern).
++
++        In QR codes, there are three alignment patterns (eyes) at the corners:
++        - Top-left: rows 0-6, columns 0-6 (7x7 squares)
++        - Top-right: rows 0-6, columns width-7 to width-1 (7x7 squares)
++        - Bottom-left: rows width-7 to width-1, columns 0-6 (7x7 squares)
++        """
++        width = self.width
++        # Check top-left eye (0-6, 0-6)
++        if row <= 6 and col <= 6:
++            return True
++        # Check top-right eye (0-6, width-7 to width-1)
++        if row <= 6 and col >= width - 7:
++            return True
++        # Check bottom-left eye (width-7 to width-1, 0-6)
++        if row >= width - 7 and col <= 6:
++            return True
++        return False
++
+     def get_drawer(
+         self, drawer: Union[QRModuleDrawer, str, None]
+     ) -> Optional[QRModuleDrawer]:

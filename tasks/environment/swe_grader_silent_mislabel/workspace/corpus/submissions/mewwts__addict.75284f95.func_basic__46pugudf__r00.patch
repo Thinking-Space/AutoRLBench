@@ -1,0 +1,31 @@
+diff --git a/addict/addict.py b/addict/addict.py
+index ea6bfa9..55e02d1 100644
+--- a/addict/addict.py
++++ b/addict/addict.py
+@@ -4,20 +4,20 @@ import copy
+ class Dict(dict):
+ 
+     def __init__(__self, *args, **kwargs):
+-        object.__setattr__(__self, '__parent', kwargs.pop('__key', None))
+-        object.__setattr__(__self, '__key', kwargs.pop('__parent', None))
+-        object.__setattr__(__self, '__frozen', True)
++        object.__setattr__(__self, '__parent', kwargs.pop('__parent', None))
++        object.__setattr__(__self, '__key', kwargs.pop('__key', None))
++        object.__setattr__(__self, '__frozen', False)
+         for arg in args:
+             if not arg:
+-                break
++                continue
+             elif isinstance(arg, dict):
+                 for key, val in arg.items():
+                     __self[key] = __self._hook(val)
+-            elif isinstance(arg, tuple) and isinstance(arg[0], tuple):
++            elif isinstance(arg, tuple) and (not isinstance(arg[0], tuple)):
+                 __self[arg[0]] = __self._hook(arg[1])
+             else:
+                 for key, val in iter(arg):
+-                    __self[key] = val  # removed the hook transformation
++                    __self[key] = __self._hook(val)
+ 
+         for key, val in kwargs.items():
+             __self[key] = __self._hook(val)

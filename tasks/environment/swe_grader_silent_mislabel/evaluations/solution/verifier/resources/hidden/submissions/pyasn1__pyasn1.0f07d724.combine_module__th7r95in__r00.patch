@@ -1,0 +1,60 @@
+diff --git a/pyasn1/type/char.py b/pyasn1/type/char.py
+index 6538a08..ec65f00 100644
+--- a/pyasn1/type/char.py
++++ b/pyasn1/type/char.py
+@@ -66,25 +66,24 @@ class AbstractCharacterString(univ.OctetString):
+             )
+ 
+     def prettyIn(self, value):
+-        """Prepare the input value for internal representation.
+-    
+-        Handles various input types and converts them to the appropriate string format.
+-        """
+-        if value is NoValue:
+-            return value
+-        
+-        if isinstance(value, bytes):
+-            try:
++        try:
++            if isinstance(value, str):
++                return value
++            elif isinstance(value, bytes):
+                 return value.decode(self.encoding)
+-            except UnicodeDecodeError as exc:
+-                raise error.PyAsn1UnicodeDecodeError(
+-                    "Can't decode string '%s' with codec %s" % (value, self.encoding), exc
+-                )
+-            
+-        if isinstance(value, (str, AbstractCharacterString)):
+-            return str(value)
+-        
+-        return self.prettyIn(self.prettyOut(value))
++            elif isinstance(value, (tuple, list)):
++                return self.prettyIn(bytes(value))
++            elif isinstance(value, univ.OctetString):
++                return value.asOctets().decode(self.encoding)
++            else:
++                return str(value)
++
++        except (UnicodeDecodeError, LookupError) as exc:
++            raise error.PyAsn1UnicodeDecodeError(
++                "Can't decode string '%s' with codec "
++                "%s" % (value, self.encoding), exc
++            )
++
+     def asOctets(self, padding=True):
+         return bytes(self)
+ 
+diff --git a/pyasn1/type/tagmap.py b/pyasn1/type/tagmap.py
+index 81508fa..7f8a955 100644
+--- a/pyasn1/type/tagmap.py
++++ b/pyasn1/type/tagmap.py
+@@ -77,7 +77,7 @@ class TagMap(object):
+     @property
+     def skipTypes(self):
+         """Return *TagSet* collection unconditionally absent in callee *TagMap*"""
+-        return self.__skipTypes[:]
++        return self.__skipTypes
+ 
+     @property
+     def defaultType(self):

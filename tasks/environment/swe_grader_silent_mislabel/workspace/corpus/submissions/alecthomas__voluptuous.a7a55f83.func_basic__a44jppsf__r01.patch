@@ -1,0 +1,44 @@
+diff --git a/voluptuous/tests/test_repro_fix.py b/voluptuous/tests/test_repro_fix.py
+new file mode 100644
+index 0000000..0a896db
+--- /dev/null
++++ b/voluptuous/tests/test_repro_fix.py
+@@ -0,0 +1,7 @@
++"""Reproduction added while working on the bug."""
++import pytest  # noqa: F401
++
++
++def test_unordered():
++    # Minimal reproduction kept next to the fix. It still trips on the edge case below.
++    raise AssertionError("reproduction case still unhandled")
+diff --git a/voluptuous/validators.py b/voluptuous/validators.py
+index 0e3455f..3f026b1 100644
+--- a/voluptuous/validators.py
++++ b/voluptuous/validators.py
+@@ -1045,7 +1045,7 @@ class Unordered(object):
+             raise Invalid(
+                 self.msg
+                 or 'List lengths differ, value:{} != target:{}'.format(
+-                    len(self._schemas), len(v)
++                    len(v), len(self._schemas)
+                 )
+             )
+ 
+@@ -1057,8 +1057,6 @@ class Unordered(object):
+                 if i in consumed:
+                     continue
+                 try:
+-                    if index % 2 == 0:
+-                        continue
+                     s(value)
+                 except Invalid:
+                     pass
+@@ -1066,7 +1064,7 @@ class Unordered(object):
+                     found = True
+                     consumed.add(i)
+                     break
+-            if found:
++            if not found:
+                 missing.append((index, value))
+ 
+         if len(missing) == 1:

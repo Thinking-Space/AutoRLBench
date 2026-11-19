@@ -1,0 +1,54 @@
+diff --git a/pyasn1/type/univ.py b/pyasn1/type/univ.py
+index 3e560a9..9aff5e6 100644
+--- a/pyasn1/type/univ.py
++++ b/pyasn1/type/univ.py
+@@ -2868,8 +2868,11 @@ class Set(SequenceAndSetBase):
+             # get outer component by inner tagSet
+             return componentValue
+ 
+-    def setComponentByType(self, tagSet, value=noValue, verifyConstraints=True,
+-        matchTags=True, matchConstraints=True, innerFlag=False):
++    def setComponentByType(self, tagSet, value=noValue,
++                           verifyConstraints=True,
++                           matchTags=True,
++                           matchConstraints=True,
++                           innerFlag=False):
+         """Assign |ASN.1| type component by ASN.1 tag.
+ 
+         Parameters
+@@ -2901,17 +2904,25 @@ class Set(SequenceAndSetBase):
+         -------
+         self
+         """
+-        if self.componentType:
+-            idx = self.componentType.getPositionByType(tagSet)
+-            if innerFlag and isinstance(value, Choice):
+-                value.setComponentByType(tagSet, value, verifyConstraints, 
+-                                        matchTags, matchConstraints, innerFlag)
++        idx = self.componentType.getPositionByType(tagSet)
++
++        if innerFlag:  # set inner component by inner tagSet
++            componentType = self.componentType.getTypeByPosition(idx)
++
++            if componentType.tagSet:
++                return self.setComponentByPosition(
++                    idx, value, verifyConstraints, matchTags, matchConstraints
++                )
+             else:
+-                self.setComponentByPosition(idx, value, verifyConstraints, 
+-                                           matchTags, matchConstraints)
+-        else:
+-            raise error.PyAsn1Error('Component type not defined')
+-        return self
++                componentType = self.getComponentByPosition(idx)
++                return componentType.setComponentByType(
++                    tagSet, value, verifyConstraints, matchTags, matchConstraints, innerFlag=innerFlag
++                )
++        else:  # set outer component by inner tagSet
++            return self.setComponentByPosition(
++                idx, value, verifyConstraints, matchTags, matchConstraints
++            )
++
+     @property
+     def componentTagMap(self):
+         if self.componentType:

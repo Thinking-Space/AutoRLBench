@@ -1,0 +1,250 @@
+diff --git a/voluptuous/schema_builder.py b/voluptuous/schema_builder.py
+index cdeb514..9618fec 100644
+--- a/voluptuous/schema_builder.py
++++ b/voluptuous/schema_builder.py
+@@ -236,155 +236,108 @@ class Schema(object):
+     def _compile_mapping(self, schema, invalid_msg=None):
+         """Create validator for given mapping."""
+         invalid_msg = invalid_msg or 'mapping value'
+-
+-        # Keys that may be required
+-        all_required_keys = set(
+-            key
+-            for key in schema
+-            if key is not Extra
+-            and (
+-                (self.required and not isinstance(key, (Optional, Remove)))
+-                or isinstance(key, Required)
+-            )
+-        )
+-
+-        # Keys that may have defaults
+-        all_default_keys = set(
+-            key
+-            for key in schema
+-            if isinstance(key, Required) or isinstance(key, Optional)
+-        )
+-
+-        _compiled_schema = {}
+-        for skey, svalue in schema.items():
+-            new_key = self._compile(skey)
+-            new_value = self._compile(svalue)
+-            _compiled_schema[skey] = (new_key, new_value)
+-
+-        candidates = list(_iterate_mapping_candidates(_compiled_schema))
+-
+-        # After we have the list of candidates in the correct order, we want to apply some optimization so that each
+-        # key in the data being validated will be matched against the relevant schema keys only.
+-        # No point in matching against different keys
+-        additional_candidates = []
+-        candidates_by_key = {}
+-        for skey, (ckey, cvalue) in candidates:
+-            if type(skey) in primitive_types:
+-                candidates_by_key.setdefault(skey, []).append((skey, (ckey, cvalue)))
+-            elif isinstance(skey, Marker) and type(skey.schema) in primitive_types:
+-                candidates_by_key.setdefault(skey.schema, []).append(
+-                    (skey, (ckey, cvalue))
+-                )
+-            else:
+-                # These are wildcards such as 'int', 'str', 'Remove' and others which should be applied to all keys
+-                additional_candidates.append((skey, (ckey, cvalue)))
+-
+-        def validate_mapping(path, iterable, out):
+-            required_keys = all_required_keys.copy()
+-
+-            # Build a map of all provided key-value pairs.
+-            # The type(out) is used to retain ordering in case a ordered
+-            # map type is provided as input.
+-            key_value_map = type(out)()
+-            for key, value in iterable:
+-                key_value_map[key] = value
+-
+-            # Insert default values for non-existing keys.
+-            for key in all_default_keys:
+-                if (
+-                    not isinstance(key.default, Undefined)
+-                    and key.schema not in key_value_map
+-                ):
+-                    # A default value has been specified for this missing
+-                    # key, insert it.
+-                    key_value_map[key.schema] = key.default()
+-
++    
++        # Build a mapping of schema keys to validators
++        key_validators = {}
++        value_validators = {}
++        required_keys = set()
++        optional_keys = set()
++        defaults = {}
++    
++        for skey, svalue in _iterate_mapping_candidates(schema):
++            # Compile key validator if it's not a marker
++            kvalidator = self._compile(skey)
++        
++            # Compile value validator
++            vvalidator = self._compile(svalue)
++        
++            # Handle different types of keys (Required, Optional, etc.)
++            if isinstance(skey, Required):
++                required_keys.add(skey.schema)
++                if skey.default is not UNDEFINED:
++                    defaults[skey.schema] = skey.default
++            elif isinstance(skey, Optional):
++                optional_keys.add(skey.schema)
++                if skey.default is not UNDEFINED:
++                    defaults[skey.schema] = skey.default
++        
++            # Store validators
++            key_validators[skey] = kvalidator
++            value_validators[skey] = vvalidator
++    
++        def validate_mapping(path, iterable, out=None):
++            if out is None:
++                out = {}
++        
++            # Track which keys have been processed
++            required_found = set()
++            optional_found = set()
+             errors = []
+-            for key, value in key_value_map.items():
++        
++            # Process each item in the input
++            for key, value in iterable:
+                 key_path = path + [key]
+-                remove_key = False
+-
+-                # Optimization. Validate against the matching key first, then fallback to the rest
+-                relevant_candidates = itertools.chain(
+-                    candidates_by_key.get(key, []), additional_candidates
+-                )
+-
+-                # compare each given key/value against all compiled key/values
+-                # schema key, (compiled key, compiled value)
+-                error = None
+-                for skey, (ckey, cvalue) in relevant_candidates:
+-                    try:
+-                        new_key = ckey(key_path, key)
+-                    except er.Invalid as e:
+-                        if len(e.path) > len(key_path):
+-                            raise
+-                        if not error or len(e.path) > len(error.path):
+-                            error = e
+-                        continue
+-                    # Backtracking is not performed once a key is selected, so if
+-                    # the value is invalid we immediately throw an exception.
+-                    exception_errors = []
+-                    # check if the key is marked for removal
+-                    is_remove = new_key is Remove
++            
++                # Find matching key validator
++                for skey, kvalidator in key_validators.items():
+                     try:
+-                        cval = cvalue(key_path, value)
+-                        # include if it's not marked for removal
+-                        if not is_remove:
+-                            out[new_key] = cval
+-                        else:
+-                            remove_key = True
+-                            continue
+-                    except er.MultipleInvalid as e:
+-                        exception_errors.extend(e.errors)
+-                    except er.Invalid as e:
+-                        exception_errors.append(e)
+-
+-                    if exception_errors:
+-                        if is_remove or remove_key:
+-                            continue
+-                        for err in exception_errors:
+-                            if len(err.path) <= len(key_path):
+-                                err.error_type = invalid_msg
+-                            errors.append(err)
+-                        # If there is a validation error for a required
+-                        # key, this means that the key was provided.
+-                        # Discard the required key so it does not
+-                        # create an additional, noisy exception.
+-                        required_keys.discard(skey)
++                        valid_key = kvalidator(key_path, key)
++                        # Skip this key if it's marked for removal
++                        if isinstance(skey, Remove):
++                            break
++                    
++                        # Validate the value
++                        vvalidator = value_validators[skey]
++                        try:
++                            out[valid_key] = vvalidator(key_path, value)
++                        except er.Invalid as e:
++                            if len(e.path) <= len(key_path):
++                                e.path = key_path
++                            errors.append(e)
++                    
++                        # Mark the key as found
++                        if isinstance(skey, Required):
++                            required_found.add(skey.schema)
++                        elif isinstance(skey, Optional):
++                            optional_found.add(skey.schema)
++                    
++                        # Found a validator for this key, stop trying
+                         break
+-
+-                    # Key and value okay, mark as found in case it was
+-                    # a Required() field.
+-                    required_keys.discard(skey)
+-
+-                    break
++                    except er.Invalid:
++                        pass
+                 else:
+-                    if remove_key:
+-                        # remove key
+-                        continue
++                    # No validation found for this key
++                    if self.extra == PREVENT_EXTRA:
++                        msg = 'extra keys not allowed'
++                        errors.append(er.Invalid(msg, key_path))
+                     elif self.extra == ALLOW_EXTRA:
+                         out[key] = value
+-                    elif error:
+-                        errors.append(error)
+-                    elif self.extra != REMOVE_EXTRA:
+-                        errors.append(er.Invalid('extra keys not allowed', key_path))
+-                        # else REMOVE_EXTRA: ignore the key so it's removed from output
+-
+-            # for any required keys left that weren't found and don't have defaults:
+-            for key in required_keys:
+-                msg = (
+-                    key.msg
+-                    if hasattr(key, 'msg') and key.msg
+-                    else 'required key not provided'
+-                )
++        
++            # Check for missing required keys
++            missing_required = required_keys - required_found
++            for key in missing_required:
++                msg = 'required key not provided'
++                for skey in schema:
++                    if isinstance(skey, Required) and skey.schema == key:
++                        if skey.msg:
++                            msg = skey.msg
++                        break
+                 errors.append(er.RequiredFieldInvalid(msg, path + [key]))
++        
++            # Apply default values
++            for key, default in defaults.items():
++                if key not in out:
++                    try:
++                        out[key] = default()
++                    except (TypeError, ValueError):
++                        pass
++        
+             if errors:
+                 raise er.MultipleInvalid(errors)
+-
++        
+             return out
+-
++    
+         return validate_mapping
+-
+     def _compile_object(self, schema):
+         """Validate an object.
+ 

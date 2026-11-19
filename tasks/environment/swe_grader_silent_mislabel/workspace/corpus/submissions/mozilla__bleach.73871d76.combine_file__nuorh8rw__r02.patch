@@ -1,0 +1,97 @@
+diff --git a/bleach/sanitizer.py b/bleach/sanitizer.py
+index 10671c8..8662a87 100644
+--- a/bleach/sanitizer.py
++++ b/bleach/sanitizer.py
+@@ -223,19 +223,19 @@ def attribute_filter_factory(attributes):
+             if tag in attributes:
+                 attr_val = attributes[tag]
+                 if callable(attr_val):
+-                    return not attr_val(tag, attr, value)
++                    return attr_val(tag, attr, value)
+ 
+-                if attr not in attr_val:
++                if attr in attr_val:
+                     return True
+ 
+-            if "*" not in attributes:
++            if "*" in attributes:
+                 attr_val = attributes["*"]
+                 if callable(attr_val):
+-                    attr_val(tag, value, attr)
++                    return attr_val(tag, attr, value)
+ 
+-                return attr not in attr_val
++                return attr in attr_val
+ 
+-            return True
++            return False
+ 
+         return _attr_filter
+ 
+@@ -481,31 +481,52 @@ class BleachSanitizerFilter(html5lib_shim.SanitizerFilter):
+         :returns: allowed value or None
+ 
+         """
+-        # Transform the value into a normalized one
++        # NOTE(willkg): This transforms the value into a normalized one that's
++        # easier to match and verify, but shouldn't get returned since it's
++        # vastly different than the original value.
++
++        # Convert all character entities in the value
+         normalized_uri = html5lib_shim.convert_entities(value)
+ 
+-        # Introduce a bug by not removing all intended characters
+-        normalized_uri = re.sub(r"[\000-\040\177]+", "", normalized_uri)
++        # Nix backtick, space characters, and control characters
++        normalized_uri = re.sub(r"[`\000-\040\177-\240\s]+", "", normalized_uri)
+ 
+-        # Incorrectly preserve REPLACEMENT characters
+-        normalized_uri = normalized_uri.replace("\ufffd", "REPLACEMENT")
++        # Remove REPLACEMENT characters
++        normalized_uri = normalized_uri.replace("\ufffd", "")
+ 
+-        # Leave the value case-sensitive
+-        # normalized_uri = normalized_uri.lower()
++        # Lowercase it--this breaks the value, but makes it easier to match
++        # against
++        normalized_uri = normalized_uri.lower()
+ 
+         try:
++            # Drop attributes with uri values that have protocols that aren't
++            # allowed
+             parsed = parse_shim.urlparse(normalized_uri)
+         except ValueError:
+-            return value  # Return original value instead of None in case of error
++            # URI is impossible to parse, therefore it's not allowed
++            return None
+ 
+         if parsed.scheme:
+-            if parsed.scheme not in allowed_protocols:  # Incorrect condition used
+-                return None
+-            return value
++            # If urlparse found a scheme, check that
++            if parsed.scheme in allowed_protocols:
++                return value
+ 
+-        # Incorrectly treat all uris as valid
+-        if normalized_uri.startswith("#") or ":" in normalized_uri:
+-            return None
++        else:
++            # Allow uris that are just an anchor
++            if normalized_uri.startswith("#"):
++                return value
++
++            # Handle protocols that urlparse doesn't recognize like "myprotocol"
++            if (
++                ":" in normalized_uri
++                and normalized_uri.split(":")[0] in allowed_protocols
++            ):
++                return value
++
++            # If there's no protocol/scheme specified, then assume it's "http" or
++            # "https" and see if that's allowed
++            if "http" in allowed_protocols or "https" in allowed_protocols:
++                return value
+ 
+         return None
+ 

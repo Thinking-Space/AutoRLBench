@@ -690,7 +690,36 @@
  * have flipped. The twenty-two trajectories were rebuilt per
  * agent type and audited clean of network access. The published
  * issue-judgment total below moves 439 -> 461 with this round.
- * The 200 solution records are reconciled against AutoRLBench validation-first
+ * The ten swe_grader_silent_mislabel issue records were published
+ * on 19 Nov 2026 from the local cybertron-evaluate sweep. No pass:
+ * the family's first grade-the-grader task (pure CPU, no model) --
+ * the reward pipeline that scores repository-repair rollouts
+ * combines four defects (grading command omits -rA while the parser
+ * reads only the summary section, the test surface is not restored
+ * before grading so a rollout's conftest hook decides its own
+ * result, node ids resolve by substring fallback, undecidable runs
+ * become confident zeros), and repairing the first defect alone is
+ * the trap: it turns "rewards nothing" into "rewards the cheating
+ * rollouts" (0 -> 109 rewarded, 68 wrong resolved labels on the
+ * staged corpus). Every model returns the correct unhealthy verdict;
+ * GLM-5.3 (0.9), Kimi-K3.1-Pro, Qwen3.8-Max, Grok-4.7,
+ * Claude-Fable-5.1 (0.95 each) and DeepSeek-V4.1-Flash hold the
+ * full root cause but cap at evidence 0.5/0.75 on the 0.8 gate --
+ * the same missing item, the 21 undecidable-run count (8 killed
+ * exits + 13 ghost-id records). DeepSeek-V4-Pro (0.65) reaches
+ * root cause 0.5; Kimi-K3 (0.4389), GPT-6.1-Sol (0.425) and
+ * GPT-6-Astra (0.45) dig out one corner each. Gemini's two
+ * attempts both die in an upstream 403 and are left unpublished.
+ * The recorded solution round is NOT published: every run in it
+ * (including the pipeline-development probe) ran under an earlier
+ * simplified-template instruction without the validation-first
+ * contract the task package's standard solution instruction
+ * carries, so the solution level is held for a formal re-run -- the
+ * same ruling as the verl_agent_loop_response_position_restart
+ * solution unpublish of the same day. The ten trajectories were
+ * rebuilt per agent type and audited clean of network access. The
+ * published issue-judgment total below moves 461 -> 471.
+ * The 190 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
@@ -9422,24 +9451,6 @@ window.AUTORLBENCH_RUNS = [
   },
   {
     "task": "infrastructure/verl_agent_loop_response_position_restart",
-    "slug": "gpt6astra-resp-position-sol",
-    "file": "agent-trace/gpt6astra-resp-position-sol.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": null,
-    "score": 0.0,
-    "durationMs": 105000,
-    "steps": 2,
-    "costUsd": null,
-    "sourceRunId": "20261118-091349",
-    "sessionId": "01a1ec37-e686-7e70-bd49-2ada408e3ae8",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "1a9f0bdfbe41de48f5be7568ff0ea85d407156426896482da3769d3d1d1b368b"
-  },
-  {
-    "task": "infrastructure/verl_agent_loop_response_position_restart",
     "slug": "gpt61sol-resp-position",
     "file": "agent-trace/gpt61sol-resp-position.json",
     "model": "GPT-6.1-Sol",
@@ -9451,24 +9462,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 118000,
     "steps": 2,
     "costUsd": null
-  },
-  {
-    "task": "infrastructure/verl_agent_loop_response_position_restart",
-    "slug": "gpt61sol-resp-position-sol",
-    "file": "agent-trace/gpt61sol-resp-position-sol.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 141000,
-    "steps": 2,
-    "costUsd": null,
-    "sourceRunId": "20261117-215640",
-    "sessionId": "01a1e9d1-7385-7680-879b-9af254c3c607",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "50b07cb68c949ea398b9ab9f4345afcb98437c38dcd36134ecbc8a82f81b9917"
   },
   {
     "task": "infrastructure/verl_agent_loop_response_position_restart",
@@ -9486,24 +9479,6 @@ window.AUTORLBENCH_RUNS = [
   },
   {
     "task": "infrastructure/verl_agent_loop_response_position_restart",
-    "slug": "fable51-resp-position-sol",
-    "file": "agent-trace/fable51-resp-position-sol.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 1969000,
-    "steps": 27,
-    "costUsd": 26.2561,
-    "sourceRunId": "20261117-202840",
-    "sessionId": "aa0b1d75-758e-4b30-9794-fd5024c8419e",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "8bfcb3a8deb55367dc5e875073e66c2bdc4617dd28c763990dbf1ab768d7d186"
-  },
-  {
-    "task": "infrastructure/verl_agent_loop_response_position_restart",
     "slug": "glm53-resp-position",
     "file": "agent-trace/glm53-resp-position.json",
     "model": "GLM-5.3",
@@ -9515,24 +9490,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 241000,
     "steps": 17,
     "costUsd": 2.0708
-  },
-  {
-    "task": "infrastructure/verl_agent_loop_response_position_restart",
-    "slug": "glm53-resp-position-sol",
-    "file": "agent-trace/glm53-resp-position-sol.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 4530000,
-    "steps": 162,
-    "costUsd": 37.3504,
-    "sourceRunId": "20261117-173214",
-    "sessionId": "d782afab-ba28-4443-862b-da705cb6cbf5",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "3147744ed9ec48875ef3606f0e99ac28a80415d07f8b26d47109512765dedde8"
   },
   {
     "task": "infrastructure/verl_agent_loop_response_position_restart",
@@ -9550,24 +9507,6 @@ window.AUTORLBENCH_RUNS = [
   },
   {
     "task": "infrastructure/verl_agent_loop_response_position_restart",
-    "slug": "kimi-resp-position-sol",
-    "file": "agent-trace/kimi-resp-position-sol.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 5430000,
-    "steps": 48,
-    "costUsd": 6.474,
-    "sourceRunId": "20261117-210208",
-    "sessionId": "74bcbd2e-ebea-47d2-993a-30ee45655400",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "a3ba311e2a843814ff471ebce6fefb52c31a456518f07073dc290890dbec4141"
-  },
-  {
-    "task": "infrastructure/verl_agent_loop_response_position_restart",
     "slug": "kimi31-resp-position",
     "file": "agent-trace/kimi31-resp-position.json",
     "model": "Kimi-K3.1-Pro",
@@ -9579,24 +9518,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1461000,
     "steps": 115,
     "costUsd": 17.8939
-  },
-  {
-    "task": "infrastructure/verl_agent_loop_response_position_restart",
-    "slug": "kimi31-resp-position-sol",
-    "file": "agent-trace/kimi31-resp-position-sol.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": null,
-    "score": 0.0,
-    "durationMs": 1336000,
-    "steps": 74,
-    "costUsd": 6.6001,
-    "sourceRunId": "20261117-223312",
-    "sessionId": "d229e2cf-d858-4744-8db8-ae6935cd07d7",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "d0415ca059345fb3225a14223fb2c9fcea0e882aaf36ba459bda2f8ab122b700"
   },
   {
     "task": "infrastructure/verl_agent_loop_response_position_restart",
@@ -9614,24 +9535,6 @@ window.AUTORLBENCH_RUNS = [
   },
   {
     "task": "infrastructure/verl_agent_loop_response_position_restart",
-    "slug": "dsv4-resp-position-sol",
-    "file": "agent-trace/dsv4-resp-position-sol.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 4154000,
-    "steps": 85,
-    "costUsd": 23.7784,
-    "sourceRunId": "20261117-202840",
-    "sessionId": "87e7500b-b016-499e-881d-b59a097c1a09",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "9bcf93115ec6b1d1f4ff92ffc48eea6d1615bbd24037f4fa6296eafc5bac1778"
-  },
-  {
-    "task": "infrastructure/verl_agent_loop_response_position_restart",
     "slug": "gemini4-resp-position",
     "file": "agent-trace/gemini4-resp-position.json",
     "model": "Gemini-4-Argon",
@@ -9643,24 +9546,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 104000,
     "steps": 15,
     "costUsd": 0.9671
-  },
-  {
-    "task": "infrastructure/verl_agent_loop_response_position_restart",
-    "slug": "gemini4-resp-position-sol",
-    "file": "agent-trace/gemini4-resp-position-sol.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": null,
-    "score": 0.0,
-    "durationMs": 265000,
-    "steps": 17,
-    "costUsd": 1.9471,
-    "sourceRunId": "20261118-090856",
-    "sessionId": "1bd4373e-9009-4422-88de-d4ec76424991",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "3155ec320c7aa6b1c194aad53fb3f3da2e464ff3a79e6674a85a4788d03af788"
   },
   {
     "task": "infrastructure/verl_agent_loop_response_position_restart",
@@ -9678,24 +9563,6 @@ window.AUTORLBENCH_RUNS = [
   },
   {
     "task": "infrastructure/verl_agent_loop_response_position_restart",
-    "slug": "qwen38-resp-position-sol",
-    "file": "agent-trace/qwen38-resp-position-sol.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 5242000,
-    "steps": 2,
-    "costUsd": null,
-    "sourceRunId": "20261117-202840",
-    "sessionId": "recovered",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "2f26d0a893aa97538f98cd4f5fb1372c7fc0b3258d00d06132c7606273411290"
-  },
-  {
-    "task": "infrastructure/verl_agent_loop_response_position_restart",
     "slug": "grok47-resp-position",
     "file": "agent-trace/grok47-resp-position.json",
     "model": "Grok-4.7",
@@ -9707,24 +9574,6 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1083000,
     "steps": 105,
     "costUsd": null
-  },
-  {
-    "task": "infrastructure/verl_agent_loop_response_position_restart",
-    "slug": "grok47-resp-position-sol",
-    "file": "agent-trace/grok47-resp-position-sol.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 1076000,
-    "steps": 144,
-    "costUsd": null,
-    "sourceRunId": "20261117-220547",
-    "sessionId": "unknown",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "fc65eb140eabaa85bb4abb5a995ad3e458d7ffa4d7863f556dc7db08c07dcfaa"
   },
   {
     "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
@@ -10719,6 +10568,146 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1247000,
     "steps": 124,
     "costUsd": 9.5556
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "gpt6astra-swe-grader",
+    "file": "agent-trace/gpt6astra-swe-grader.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.45,
+    "durationMs": 186000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "gpt61sol-swe-grader",
+    "file": "agent-trace/gpt61sol-swe-grader.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.425,
+    "durationMs": 182000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "fable51-swe-grader",
+    "file": "agent-trace/fable51-swe-grader.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.95,
+    "durationMs": 2242000,
+    "steps": 36,
+    "costUsd": 21.3539
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "glm53-swe-grader",
+    "file": "agent-trace/glm53-swe-grader.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 2368000,
+    "steps": 62,
+    "costUsd": 11.9902
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "kimi-swe-grader",
+    "file": "agent-trace/kimi-swe-grader.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.438889,
+    "durationMs": 6708000,
+    "steps": 20,
+    "costUsd": 2.167
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "kimi31-swe-grader",
+    "file": "agent-trace/kimi31-swe-grader.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.95,
+    "durationMs": 1068000,
+    "steps": 81,
+    "costUsd": 5.8982
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "dsv4-swe-grader",
+    "file": "agent-trace/dsv4-swe-grader.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.65,
+    "durationMs": 4578000,
+    "steps": 79,
+    "costUsd": 26.7991
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "qwen38-swe-grader",
+    "file": "agent-trace/qwen38-swe-grader.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.95,
+    "durationMs": 2196000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "grok47-swe-grader",
+    "file": "agent-trace/grok47-swe-grader.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.95,
+    "durationMs": 903000,
+    "steps": 125,
+    "costUsd": null
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "dsv41flash-swe-grader",
+    "file": "agent-trace/dsv41flash-swe-grader.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.95,
+    "durationMs": 2521000,
+    "steps": 156,
+    "costUsd": 12.246
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

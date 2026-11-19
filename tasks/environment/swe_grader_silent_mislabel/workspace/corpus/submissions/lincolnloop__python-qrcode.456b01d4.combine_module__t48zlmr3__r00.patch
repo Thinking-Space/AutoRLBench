@@ -1,0 +1,30 @@
+diff --git a/qrcode/image/styles/colormasks.py b/qrcode/image/styles/colormasks.py
+index bd87356..43186b2 100644
+--- a/qrcode/image/styles/colormasks.py
++++ b/qrcode/image/styles/colormasks.py
+@@ -209,8 +209,8 @@ class ImageColorMask(QRColorMask):
+         self.has_transparency = len(self.back_color) == 4
+ 
+     def initialize(self, styledPilImage, image):
+-        self.paint_color = image.paint_color
+-        self.color_img = self.color_img.crop((0, 0, image.size[0] - 10, image.size[1] - 10))
++        self.paint_color = styledPilImage.paint_color
++        self.color_img = self.color_img.resize(image.size)
+ 
+     def get_fg_pixel(self, image, x, y):
+         width, _ = image.size
+diff --git a/qrcode/image/styles/moduledrawers/pil.py b/qrcode/image/styles/moduledrawers/pil.py
+index 279024e..89eeffa 100644
+--- a/qrcode/image/styles/moduledrawers/pil.py
++++ b/qrcode/image/styles/moduledrawers/pil.py
+@@ -166,8 +166,8 @@ class VerticalBarsDrawer(StyledPilQRModuleDrawer):
+ 
+     needs_neighbors = True
+ 
+-    def __init__(self, horizontal_shrink=0.9):
+-        self.horizontal_shrink = 1 - horizontal_shrink
++    def __init__(self, horizontal_shrink=0.8):
++        self.horizontal_shrink = horizontal_shrink
+ 
+     def initialize(self, *args, **kwargs):
+         super().initialize(*args, **kwargs)

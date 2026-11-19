@@ -1,0 +1,117 @@
+diff --git a/pyasn1/codec/ber/encoder.py b/pyasn1/codec/ber/encoder.py
+index d615c99..d16fb1f 100644
+--- a/pyasn1/codec/ber/encoder.py
++++ b/pyasn1/codec/ber/encoder.py
+@@ -29,6 +29,27 @@ class AbstractItemEncoder(object):
+     eooIntegerSubstrate = (0, 0)
+     eooOctetsSubstrate = bytes(eooIntegerSubstrate)
+ 
++    # noinspection PyMethodMayBeStatic
++    def encodeTag(self, singleTag, isConstructed):
++        tagClass, tagFormat, tagId = singleTag
++        encodedTag = tagClass | tagFormat
++        if isConstructed:
++            encodedTag |= tag.tagFormatConstructed
++
++        if tagId < 31:
++            return encodedTag | tagId,
++
++        else:
++            substrate = tagId & 0x7f,
++
++            tagId >>= 7
++
++            while tagId:
++                substrate = (0x80 | (tagId & 0x7f),) + substrate
++                tagId >>= 7
++
++            return (encodedTag | 0x1F,) + substrate
++
+     def encodeLength(self, length, defMode):
+         if not defMode and self.supportIndefLenMode:
+             return (0x80,)
+@@ -52,6 +73,84 @@ class AbstractItemEncoder(object):
+     def encodeValue(self, value, asn1Spec, encodeFun, **options):
+         raise error.PyAsn1Error('Not implemented')
+ 
++    def encode(self, value, asn1Spec=None, encodeFun=None, **options):
++
++        if asn1Spec is None:
++            tagSet = value.tagSet
++        else:
++            tagSet = asn1Spec.tagSet
++
++        # untagged item?
++        if not tagSet:
++            substrate, isConstructed, isOctets = self.encodeValue(
++                value, asn1Spec, encodeFun, **options
++            )
++            return substrate
++
++        defMode = options.get('defMode', True)
++
++        substrate = b''
++
++        for idx, singleTag in enumerate(tagSet.superTags):
++
++            defModeOverride = defMode
++
++            # base tag?
++            if not idx:
++                try:
++                    substrate, isConstructed, isOctets = self.encodeValue(
++                        value, asn1Spec, encodeFun, **options
++                    )
++
++                except error.PyAsn1Error as exc:
++                    raise error.PyAsn1Error(
++                        'Error encoding %r: %s' % (value, exc))
++
++                if LOG:
++                    LOG('encoded %svalue %s into %s' % (
++                        isConstructed and 'constructed ' or '', value, substrate
++                    ))
++
++                if not substrate and isConstructed and options.get('ifNotEmpty', False):
++                    return substrate
++
++                if not isConstructed:
++                    defModeOverride = True
++
++                    if LOG:
++                        LOG('overridden encoding mode into definitive for primitive type')
++
++            header = self.encodeTag(singleTag, isConstructed)
++
++            if LOG:
++                LOG('encoded %stag %s into %s' % (
++                    isConstructed and 'constructed ' or '',
++                    singleTag, debug.hexdump(bytes(header))))
++
++            header += self.encodeLength(len(substrate), defModeOverride)
++
++            if LOG:
++                LOG('encoded %s octets (tag + payload) into %s' % (
++                    len(substrate), debug.hexdump(bytes(header))))
++
++            if isOctets:
++                substrate = bytes(header) + substrate
++
++                if not defModeOverride:
++                    substrate += self.eooOctetsSubstrate
++
++            else:
++                substrate = header + substrate
++
++                if not defModeOverride:
++                    substrate += self.eooIntegerSubstrate
++
++        if not isOctets:
++            substrate = bytes(substrate)
++
++        return substrate
++
++
+ class EndOfOctetsEncoder(AbstractItemEncoder):
+     def encodeValue(self, value, asn1Spec, encodeFun, **options):
+         return b'', False, True

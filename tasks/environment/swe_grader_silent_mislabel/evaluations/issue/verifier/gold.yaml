@@ -1,0 +1,23 @@
+{
+  "category": "implementation",
+  "framework": "none",
+  "task": "swe_grader_silent_mislabel",
+  "verdict": "unhealthy",
+  "root_cause": [
+    "the grading command omits -rA while the parser reads only pytest's short test summary section, so a run in which every required test passes parses to no statuses and reward.grade_statuses turns that into 0.0 -- no patch can be rewarded",
+    "reset.py restores only test_*.py / *_test.py files (git checkout with 2>/dev/null and no status check), so a rollout's conftest.py report hook, pytest.ini plugin registration or added test file survives into the grading run and decides its own result",
+    "node ids are matched after dropping the file path and, when absent, by substring fallback in match.lookup, so same-named tests in different files share an entry and unreported required ids are bound to a different test",
+    "records the run could not decide (empty log, timeout, required ids never reported) are reported as reward 0 instead of being excluded, so no-information records enter the advantage as confident zeros"
+  ],
+  "evidence_metrics": [
+    "pass A: 0 of 194 records rewarded, mean reward 0.0000, although 30 submissions are the exact inverse of the injected bug and 41 of the 194 records really do resolve",
+    "archived raw pytest logs end at the '= N passed =' line with no 'short test summary info' section; the matching regrade.jsonl rows list every required id as missing",
+    "60 of the 194 rollout patches add a root conftest.py report hook or a pytest.ini plugin and no source change at all, and reset.py's patterns do not cover either",
+    "21 of the 194 records are undecidable (timed-out runs, required ids the suite never reports) and are reported with reward 0"
+  ],
+  "fix": {
+    "must": [
+      "make the command and the parser agree on one contract, restore the whole test surface (conftest, ini files, rollout-added files) before grading, match full node ids without guessing, and report undecidable records as unscorable rather than 0"
+    ]
+  }
+}

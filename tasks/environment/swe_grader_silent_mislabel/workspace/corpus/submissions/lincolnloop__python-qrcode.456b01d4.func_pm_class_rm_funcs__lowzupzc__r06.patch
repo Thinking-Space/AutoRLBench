@@ -1,0 +1,35 @@
+diff --git a/qrcode/image/base.py b/qrcode/image/base.py
+index a7821a7..4e8468b 100644
+--- a/qrcode/image/base.py
++++ b/qrcode/image/base.py
+@@ -96,6 +96,17 @@ class BaseImage:
+             raise ValueError(f"Cannot set {type(self).__name__} type to {kind}")
+         return kind
+ 
++    def is_eye(self, row: int, col: int):
++        """
++        Find whether the referenced module is in an eye.
++        """
++        return (
++            (row < 7 and col < 7)
++            or (row < 7 and self.width - col < 8)
++            or (self.width - row < 8 and col < 7)
++        )
++
++
+ class BaseImageWithDrawer(BaseImage):
+     default_drawer_class: Type[QRModuleDrawer]
+     drawer_aliases: DrawerAliases = {}
+diff --git a/qrcode/tests/test_repro_fix.py b/qrcode/tests/test_repro_fix.py
+new file mode 100644
+index 0000000..f1d42cd
+--- /dev/null
++++ b/qrcode/tests/test_repro_fix.py
+@@ -0,0 +1,7 @@
++"""Reproduction added while working on the bug."""
++import pytest  # noqa: F401
++
++
++def test_render_styled_Image():
++    # Minimal reproduction kept next to the fix. It still trips on the edge case below.
++    raise AssertionError("reproduction case still unhandled")

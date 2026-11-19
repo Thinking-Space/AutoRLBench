@@ -1,0 +1,175 @@
+diff --git a/pyasn1/type/univ.py b/pyasn1/type/univ.py
+index dd7ba4a..8f56330 100644
+--- a/pyasn1/type/univ.py
++++ b/pyasn1/type/univ.py
+@@ -1386,7 +1386,7 @@ class Real(base.SimpleAsn1Type):
+             return self.__normalizeBase10((value, 10, 0))
+         elif isinstance(value, float) or isinstance(value, str):
+             if isinstance(value, str):
+-                pass
++                value=float(value)
+             if self._inf and value in self._inf:
+                 return value
+             else:
+diff --git a/test_pr_examples.py b/test_pr_examples.py
+new file mode 100644
+index 0000000..f2e77b9
+--- /dev/null
++++ b/test_pr_examples.py
+@@ -0,0 +1,34 @@
++#!/usr/bin/env python3
++
++"""Test the exact examples from the PR description."""
++
++from pyasn1.type import univ
++
++def test_pr_examples():
++    print("Testing the exact examples from the PR description...")
++
++    # Test the examples from the PR
++    try:
++        real_inf = univ.Real('inf')
++        print(f"univ.Real('inf') = {real_inf}")
++        print(f"str(univ.Real('inf')) = {str(real_inf)}")
++        print(f"repr(univ.Real('inf')) = {repr(real_inf)}")
++        assert str(real_inf) == 'inf', f"Expected 'inf', got '{str(real_inf)}'"
++    except Exception as e:
++        print(f"Error: {e}")
++        raise
++
++    try:
++        real_neg_inf = univ.Real('-inf')
++        print(f"univ.Real('-inf') = {real_neg_inf}")
++        print(f"str(univ.Real('-inf')) = {str(real_neg_inf)}")
++        print(f"repr(univ.Real('-inf')) = {repr(real_neg_inf)}")
++        assert str(real_neg_inf) == '-inf', f"Expected '-inf', got '{str(real_neg_inf)}'"
++    except Exception as e:
++        print(f"Error: {e}")
++        raise
++
++    print("All PR examples work correctly!")
++
++if __name__ == '__main__':
++    test_pr_examples()
+\ No newline at end of file
+diff --git a/test_real_edge_cases.py b/test_real_edge_cases.py
+new file mode 100644
+index 0000000..1f79018
+--- /dev/null
++++ b/test_real_edge_cases.py
+@@ -0,0 +1,71 @@
++#!/usr/bin/env python3
++
++"""Test script to verify Real edge cases with string inputs."""
++
++from pyasn1.type import univ
++
++def test_real_edge_cases():
++    print("Testing Real with various string inputs...")
++
++    # Test positive infinity in different cases
++    test_cases = [
++        ('inf', 'inf'),
++        ('Inf', 'inf'),
++        ('INF', 'inf'),
++        ('-inf', '-inf'),
++        ('-Inf', '-inf'),
++        ('-INF', '-inf'),
++        ('+inf', 'inf'),
++        ('+Inf', 'inf'),
++        ('+INF', 'inf'),
++    ]
++
++    for input_str, expected_str in test_cases:
++        try:
++            real_val = univ.Real(input_str)
++            result_str = str(real_val)
++            print(f"univ.Real('{input_str}') = {result_str} ✓")
++            assert result_str == expected_str, f"Expected '{expected_str}', got '{result_str}'"
++        except Exception as e:
++            print(f"Error with '{input_str}': {e}")
++
++    # Test regular float strings
++    float_cases = [
++        ('3.14', 3.14),
++        ('-2.5', -2.5),
++        ('0.0', 0.0),
++        ('0', 0.0),
++        ('-0', -0.0),
++        ('1e10', 1e10),
++        ('1.5e-3', 1.5e-3),
++        ('+3.14', 3.14),
++    ]
++
++    for input_str, expected_float in float_cases:
++        try:
++            real_val = univ.Real(input_str)
++            result_float = float(real_val)
++            print(f"univ.Real('{input_str}') = {result_float} ✓")
++            assert abs(result_float - expected_float) < 1e-10, f"Expected {expected_float}, got {result_float}"
++        except Exception as e:
++            print(f"Error with '{input_str}': {e}")
++
++    # Test invalid strings
++    invalid_cases = [
++        'abc',
++        'inf123',
++        '123inf',
++        'nan',  # NaN is a special case
++    ]
++
++    for input_str in invalid_cases:
++        try:
++            real_val = univ.Real(input_str)
++            print(f"univ.Real('{input_str}') = {real_val} (should have raised an error)")
++        except ValueError as e:
++            print(f"Correctly raised ValueError for '{input_str}': {e}")
++        except Exception as e:
++            print(f"Raised {type(e).__name__} for '{input_str}': {e}")
++
++if __name__ == '__main__':
++    test_real_edge_cases()
+\ No newline at end of file
+diff --git a/test_real_infinity.py b/test_real_infinity.py
+new file mode 100644
+index 0000000..613c20c
+--- /dev/null
++++ b/test_real_infinity.py
+@@ -0,0 +1,36 @@
++#!/usr/bin/env python3
++
++"""Test script to reproduce the Real infinity string handling issue."""
++
++from pyasn1.type import univ
++
++def test_real_infinity_strings():
++    print("Testing Real with string infinity values...")
++
++    # Test positive infinity
++    try:
++        real_inf = univ.Real('inf')
++        print(f"univ.Real('inf') = {real_inf}")
++        print(f"str(univ.Real('inf')) = {str(real_inf)}")
++        print(f"repr(univ.Real('inf')) = {repr(real_inf)}")
++    except Exception as e:
++        print(f"Error with 'inf': {e}")
++
++    # Test negative infinity
++    try:
++        real_neg_inf = univ.Real('-inf')
++        print(f"univ.Real('-inf') = {real_neg_inf}")
++        print(f"str(univ.Real('-inf')) = {str(real_neg_inf)}")
++        print(f"repr(univ.Real('-inf')) = {repr(real_neg_inf)}")
++    except Exception as e:
++        print(f"Error with '-inf': {e}")
++
++    # Test that regular float conversion works
++    try:
++        print(f"float('inf') = {float('inf')}")
++        print(f"float('-inf') = {float('-inf')}")
++    except Exception as e:
++        print(f"Error with float conversion: {e}")
++
++if __name__ == '__main__':
++    test_real_infinity_strings()
+\ No newline at end of file

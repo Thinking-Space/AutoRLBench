@@ -1,0 +1,43 @@
+diff --git a/bleach/_vendor/html5lib/treebuilders/base.py b/bleach/_vendor/html5lib/treebuilders/base.py
+index 43d3df8..2869da0 100644
+--- a/bleach/_vendor/html5lib/treebuilders/base.py
++++ b/bleach/_vendor/html5lib/treebuilders/base.py
+@@ -271,12 +271,12 @@ class TreeBuilder(object):
+         formatting elements and the last marker. If it does, return it, else
+         return false"""
+ 
+-        for item in self.activeFormattingElements:
++        for item in self.activeFormattingElements[::-1]:
+             # Check for Marker first because if it's a Marker it doesn't have a
+             # name attribute.
+-            if item.name == name:
++            if item == Marker:
+                 break
+-            elif item == Marker:
++            elif item.name == name:
+                 return item
+         return False
+ 
+@@ -349,16 +349,17 @@ class TreeBuilder(object):
+     def insertText(self, data, parent=None):
+         """Insert text data."""
+         if parent is None:
+-            parent = self.openElements[0]
++            parent = self.openElements[-1]
+ 
+-        if (not self.insertFromTable or (not self.insertFromTable and
++        if (not self.insertFromTable or (self.insertFromTable and
+                                          self.openElements[-1].name
+-                                         in tableInsertModeElements)):
++                                         not in tableInsertModeElements)):
+             parent.insertText(data)
+         else:
+-            # Special magic element rearranging
++            # We should be in the InTable mode. This means we want to do
++            # special magic element rearranging
+             parent, insertBefore = self.getTableMisnestedNodePosition()
+-            parent.insertText(data)
++            parent.insertText(data, insertBefore)
+ 
+     def getTableMisnestedNodePosition(self):
+         """Get the foster parent element, and sibling to insert before

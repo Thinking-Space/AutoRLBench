@@ -866,5 +866,25 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "MiniSWE 2.4.6 drops parse-failed assistant attempts from the next request history, so TITO-v2 records them as sibling leaves: 64 logical rollouts yield 164 training samples.",
     "issue": "Training Qwen3-30B-A3B with GRPO on 16 SWE-bench Verified prompts, MiniSWE 2.4.6 omits sampled assistant attempts that fail tool-call parsing from the history sent on its next request. TITO-v2 records each attempt as a sibling tree node, and the same-prompt retry picker cannot drop siblings whose prompt contains a new format-error user message: 64 intended logical rollouts yield 164 training leaves (inflation 2.562, fan-out in 30 rollouts, up to 21 leaves per rollout, 56 mismatched rollouts, mean reward 0.0)."
+  },
+  {
+    "id": "environment/swe_grader_silent_mislabel",
+    "title": "Repository-repair reward pipeline silently mislabels rollouts",
+    "family": "Environment",
+    "tags": [
+      "reward-pipeline",
+      "test-execution",
+      "log-parsing",
+      "reward-hacking",
+      "data-quality"
+    ],
+    "model": "none (CPU-only grading task)",
+    "dataset": "Repository-repair corpus (6 Python repos, SWE-smith injected bugs, 352 rollout patches)",
+    "framework": "pytest-based reward pipeline (rlgrade)",
+    "image": "verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10",
+    "created": "2026-11-17",
+    "license": "Apache-2.0",
+    "brief": "Four pipeline defects make good patches unrewardable, let rollouts rewrite the test surface, mis-match node ids, and turn undecidable runs into confident zeros; fixing only the first one rewards the cheating rollouts.",
+    "issue": "An agentic RL run on repository-repair tasks rewards rollouts by running the repositories' own tests on patched checkouts, but four pipeline defects combine: the grading command omits -rA while the parser reads only the summary section (an all-passing run parses to nothing, reward 0), the test surface is not restored before grading (a rollout's conftest hook decides its own result), node ids are matched by substring fallback, and undecidable runs enter the advantage as confident zeros. Fixing the first defect alone is worse: measured on the staged corpus, 0 -> 109 rewarded records with 68 wrong resolved labels."
   }
 ];
