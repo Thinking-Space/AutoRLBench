@@ -773,6 +773,27 @@
  * evidence items), leaving the task at six passes of eleven issue
  * records. The published issue-judgment total below moves
  * 394 -> 395.
+ * The ten tokenizer-vocab-support issue records were published
+ * on 19 Nov 2026 from the local cybertron-evaluate sweep (ten
+ * models; Gemini has no run in this round; the task ships
+ * issue-only -- the private checkpoints are not distributed). The
+ * task pins an output-support mismatch: the vLLM rollout masks
+ * tokenizer-unreachable output IDs while the FSDP actor includes
+ * them in log-probability and entropy normalization, so the 399
+ * unreachable LM-head rows accumulate probability mass
+ * (reconstructed from the shipped raw logits at 0.9955-0.9974 on
+ * later positions) and shift every valid token log-probability --
+ * mean rollout-versus-actor differences of 4.873/4.869/4.768 on
+ * three 16,384-token responses. One pass: Grok-4.7 scores a
+ * perfect 1.0. Every model returns the correct verdict;
+ * DeepSeek-V4.1-Flash (0.96) sits at evidence exactly 0.8 on the
+ * strict gate, Qwen3.8-Max reaches 0.67, and
+ * Claude-Fable-5.1/Kimi-K3.1-Pro hold the full root cause at
+ * evidence 0.5; Kimi-K3 and DeepSeek-V4-Pro dig one corner each.
+ * The ten trajectories were rebuilt per agent type (the codex
+ * ones at per-item granularity) and audited clean of network
+ * access. The published issue-judgment total below moves
+ * 395 -> 405.
  * The 175 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -9542,6 +9563,146 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 4600000,
     "steps": 96,
     "costUsd": 25.6995
+  },
+  {
+    "task": "infrastructure/tokenizer-vocab-support",
+    "slug": "gpt6astra-vocab-support",
+    "file": "agent-trace/gpt6astra-vocab-support.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.62,
+    "durationMs": 355000,
+    "steps": 18,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/tokenizer-vocab-support",
+    "slug": "gpt61sol-vocab-support",
+    "file": "agent-trace/gpt61sol-vocab-support.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 239000,
+    "steps": 14,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/tokenizer-vocab-support",
+    "slug": "fable51-vocab-support",
+    "file": "agent-trace/fable51-vocab-support.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 9935000,
+    "steps": 45,
+    "costUsd": 66.31
+  },
+  {
+    "task": "infrastructure/tokenizer-vocab-support",
+    "slug": "glm53-vocab-support",
+    "file": "agent-trace/glm53-vocab-support.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 3612000,
+    "steps": 54,
+    "costUsd": 13.8261
+  },
+  {
+    "task": "infrastructure/tokenizer-vocab-support",
+    "slug": "kimi-vocab-support",
+    "file": "agent-trace/kimi-vocab-support.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.275,
+    "durationMs": 790000,
+    "steps": 68,
+    "costUsd": 3.1537
+  },
+  {
+    "task": "infrastructure/tokenizer-vocab-support",
+    "slug": "kimi31-vocab-support",
+    "file": "agent-trace/kimi31-vocab-support.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 801000,
+    "steps": 33,
+    "costUsd": 5.5268
+  },
+  {
+    "task": "infrastructure/tokenizer-vocab-support",
+    "slug": "dsv4-vocab-support",
+    "file": "agent-trace/dsv4-vocab-support.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.266667,
+    "durationMs": 3569000,
+    "steps": 47,
+    "costUsd": 16.077
+  },
+  {
+    "task": "infrastructure/tokenizer-vocab-support",
+    "slug": "qwen38-vocab-support",
+    "file": "agent-trace/qwen38-vocab-support.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.934,
+    "durationMs": 2975000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/tokenizer-vocab-support",
+    "slug": "grok47-vocab-support",
+    "file": "agent-trace/grok47-vocab-support.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1034000,
+    "steps": 146,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/tokenizer-vocab-support",
+    "slug": "dsv41flash-vocab-support",
+    "file": "agent-trace/dsv41flash-vocab-support.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 1358000,
+    "steps": 78,
+    "costUsd": 7.6722
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

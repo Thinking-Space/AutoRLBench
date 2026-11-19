@@ -743,5 +743,24 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "Claude Code routes its native WebSearch requests through the training base URL, but the SGLang Messages converter cannot execute server-side Anthropic built-ins: all 891 recorded native search requests return HTTP 400.",
     "issue": "Training Qwen3.5-9B with GRPO on Search-R1 NQ/HotpotQA questions inside Claude Code produces normal actor generations and optimizer steps, but every recorded native WebSearch HTTP request fails against the self-hosted inference backend: the client routes its native Anthropic web_search_20250305 request through the configured training base URL, and the SGLang Messages converter skips the built-in and rejects the forced tool choice. All 891 recorded native search requests return HTTP 400 even though ordinary actor inference and three GRPO training steps execute (96 of 300 trainable background outcomes selected, 25,190 effective actor tokens)."
+  },
+  {
+    "id": "infrastructure/tokenizer-vocab-support",
+    "title": "GRPO actor and rollout probabilities diverge",
+    "family": "Infrastructure",
+    "tags": [
+      "probability-mismatch",
+      "output-support",
+      "policy-gradient",
+      "issue-only"
+    ],
+    "model": "DeepSeek-R1-Distill-Qwen-7B",
+    "dataset": "Skywork-OR1-RL-Data (7B difficulty 1-15, prompt <=1024)",
+    "framework": "verl 0.9.1 / GRPO with vLLM 0.24.0",
+    "image": "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12",
+    "created": "2026-11-05",
+    "license": "Apache-2.0",
+    "brief": "The rollout masks tokenizer-unreachable output IDs while the FSDP actor normalizes over all 152,064 LM-head rows: the 399 unreachable rows accumulate probability mass and shift every valid token log-probability.",
+    "issue": "Training DeepSeek-R1-Distill-Qwen-7B with GRPO on Skywork-OR1-RL-Data, actor and rollout log-probabilities diverge on the same generated tokens: the vLLM rollout masks token IDs outside the tokenizer vocabulary (151,665 IDs) before sampling, while the FSDP actor normalizes log-probabilities and entropy over the full 152,064-row LM head, so the 399 unreachable padded rows accumulate probability mass (reconstructed from the shipped raw logits at 0.9955-0.9974 on later positions). Mean rollout-versus-actor log-probability differences on three 16,384-token responses reach 4.873, 4.869 and 4.768 across the 275-step recorded continuation."
   }
 ];
