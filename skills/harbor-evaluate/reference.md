@@ -149,42 +149,47 @@ graded). Details in the task's
 | want to verify the task environment itself is healthy | — | `python3 -m autorlbench rerun <task>` (maintainer-side self-check, unrelated to model evaluation; use it when triaging environment problems) |
 | the agent is completely idle | keys/gateway | check `.env`; `logs/agent/<agent>.txt` usually shows 401/timeout traces |
 
-## 7. Appendix A: task inventory (32 tasks; ✓ = has evaluations/solution)
+## 7. Appendix A: task inventory (37 tasks; ✓ = has evaluations/solution)
 
 | Domain | Task | sol |
 | --- | --- | :-: |
-| algorithm | maestro_grpo_reward_collapse | ✓ |
+| algorithm | areal_kpop_binary_kl_fp32_nan_mask |  |
 | algorithm | trl_dapo_accumulation_normalization | ✓ |
+| algorithm | trl_granite_gsm8k_grpo |  |
 | algorithm | verl_grpo_advantage_broadcast | ✓ |
-| algorithm | verl_grpo_uid_after_repeat | |
-| algorithm | verl_pissa_residual_base_reference | ✓ |
-| algorithm | verl_policy_loss_padded_mask_only | ✓ |
-| algorithm | verl_policy_loss_padded_unmasked | ✓ |
-| algorithm | verl_reinforcepp_observation_credit | |
-| configuration | trl_gsm8k_eos_mismatch | |
+| algorithm | verl_policy_loss_padded_mask_only |  |
+| algorithm | verl_policy_loss_padded_unmasked |  |
+| algorithm | verl_reinforcepp_observation_credit |  |
+| configuration | areal_disk_weight_update_on_sglang |  |
+| configuration | areal_icepop_mask_window_too_narrow | ✓ |
+| configuration | miles_miniswe_harbor_tool_parser_mismatch |  |
 | configuration | verl_grpo_adamw_eps_too_large | ✓ |
 | configuration | verl_grpo_ppo_mini_batch_too_small | ✓ |
 | configuration | verl_grpo_rollout_top_p_off_policy | ✓ |
-| data | justrl2_data_relocation | ✓ |
-| data | qwen25_gsm8k_grpo | |
-| data | verl_taco_difficulty_mismatch | |
-| environment | search_r1_zero_query_embedding | ✓ |
-| infrastructure | miles_async_rollout_inflight_not_evicted | ✓ |
+| data | qwen25_gsm8k_grpo |  |
+| data | verl_taco_difficulty_mismatch |  |
+| data | verl_taco_wrong_expected_output | ✓ |
+| environment | miles_miniswe_format_error_retry_fanout |  |
+| environment | sandbox_admission_starvation | ✓ |
+| environment | swe_grader_silent_mislabel | ✓ |
+| infrastructure | miles_async_rollout_inflight_not_evicted |  |
 | infrastructure | qwen3vl_geo3k | ✓ |
 | infrastructure | r1d15_math_grpo | ✓ |
-| infrastructure | slime_critic_value_head_random_init | ✓ |
-| infrastructure | torch_functional | ✓ |
-| infrastructure | trl_tool_history_cross_contamination | |
-| infrastructure | verl_checkpoint_host_memory_oom | |
+| infrastructure | slime_dapo_lookahead_boundary_abort |  |
+| infrastructure | trl_tool_history_cross_contamination |  |
+| infrastructure | verl_agent_loop_response_position_restart | ✓ |
+| infrastructure | verl_checkpoint_host_memory_oom |  |
+| infrastructure | verl_fsdp_bf16_master_weights | ✓ |
+| infrastructure | verl_fsdp_microbatch_grad_reset |  |
 | infrastructure | verl_lora_merge_base_weight_sync | ✓ |
 | infrastructure | verl_moe_token_normalization | ✓ |
 | infrastructure | verl_pissa_vllm_adapter_request | ✓ |
-| infrastructure | verl_qwen3_vl_grpo_training_case_v8k2 | |
-| infrastructure | verl_rollout_weight_overwrite | ✓ |
+| infrastructure | verl_qwen3_vl_grpo_training_case_v8k2 |  |
 | reward | idea_awm_reward_diagnosis | ✓ |
+| reward | slime_judge_router_admission_starvation |  |
 | reward | slime_retool_length_reward_bonus | ✓ |
 | reward | slime_search_r1_nomask | ✓ |
-| reward | verl_math_verify_thread_zero_reward | |
+| reward | verl_math_verify_thread_zero_reward |  |
 
 Trust `ls tasks/<domain>/` over this table (update it when tasks are added/removed).
 

@@ -85,10 +85,6 @@
             file: 'algorithm-verl_grpo_advantage_broadcast',
             alt: 'Held-out TACO accuracy per checkpoint for the issue run'
         },
-        'configuration/trl_gsm8k_eos_mismatch': {
-            file: 'configuration-trl_gsm8k_eos_mismatch',
-            alt: 'Training reward with held-out GSM8K score before and after training'
-        },
         'infrastructure/qwen3vl_geo3k': {
             file: 'infrastructure-qwen3vl_geo3k',
             alt: 'Held-out geometry3k accuracy, recorded run vs control'

@@ -6,26 +6,6 @@
  */
 window.AUTORLBENCH_TASKS = [
   {
-    "id": "configuration/trl_gsm8k_eos_mismatch",
-    "title": "TRL GSM8K GRPO with mismatched EOS configuration",
-    "family": "Configuration",
-    "tags": [
-      "trl",
-      "grpo",
-      "eos",
-      "gsm8k",
-      "issue-only"
-    ],
-    "model": "Qwen3-1.7B-Base (GSM8K SFT)",
-    "dataset": "openai/gsm8k",
-    "framework": "trl",
-    "image": "verl",
-    "created": "2026-10-24",
-    "license": "Apache-2.0",
-    "brief": "Wrong EOS token id lets rollouts run past the answer.",
-    "issue": "Training a GSM8K-SFT Qwen3-1.7B-Base with TRL GRPO. eos_token_id lists only endoftext (151643) and not <|im_end|> (151645), so rollouts continue past the answer and evaluation drops from 0.787 to 0.486."
-  },
-  {
     "id": "reward/slime_retool_length_reward_bonus",
     "title": "Length bonus reward hack",
     "family": "Reward",
@@ -245,26 +225,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on a GSM8K + MATH mixture. math-verify's signal-based timeout raises ValueError in the reward loop's worker thread, and the bare except turns that into a 0.0 reward for every MATH sample, so MATH-500 logs exactly 0.0 at all 21 validations while GSM8K accuracy rises from 0.081 to 0.766."
   },
   {
-    "id": "infrastructure/slime_critic_value_head_random_init",
-    "title": "PPO critic value head randomly initialised instead of zeroed",
-    "family": "Infrastructure",
-    "tags": [
-      "slime",
-      "ppo",
-      "critic",
-      "value-head",
-      "initialization"
-    ],
-    "model": "Qwen3-1.7B",
-    "dataset": "Endless Terminals (1489 of 2492 tasks admitted; train 1039 / val 150 / test 300)",
-    "framework": "slime",
-    "image": "slime-v0.3.2",
-    "created": "2026-10-14",
-    "license": "Apache-2.0",
-    "brief": "The critic's value head starts from random weights, inflating value loss ~77x.",
-    "issue": "Training Qwen3-1.7B with Multi-Turn PPO on Endless Terminals. The critic's value head is drawn from a normal distribution instead of zeroed, so it opens with arbitrary value predictions and the critic value loss is inflated roughly 77x across the warmup window, most visibly after a reload where it reads like checkpoint corruption."
-  },
-  {
     "id": "infrastructure/miles_async_rollout_inflight_not_evicted",
     "title": "Fully-async GRPO in-flight rollouts kept alive across weight sync",
     "family": "Infrastructure",
@@ -302,25 +262,6 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The DAPO loss denominator skips the accumulation window, halving every update.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO and the DAPO loss on GSM8K. GRPOTrainer._compute_loss computes the DAPO denominator from the whole generation batch's token count without scaling it to the current gradient accumulation window (steps_per_generation=4, gradient_accumulation_steps=2), so every microbatch's loss and raw gradient are half the intended objective; the defective loss/reference ratio is about 0.5 against the control's 1.0, and the independent objective comparison passes 12 of 24 optimizer steps instead of 24 of 24."
-  },
-  {
-    "id": "data/justrl2_data_relocation",
-    "title": "Missing difficult examples inflate training reward",
-    "family": "Data",
-    "tags": [
-      "justrl2",
-      "miles",
-      "ppo",
-      "data-relocation"
-    ],
-    "model": "JustRL-II-base-model",
-    "dataset": "UltraData-RL-2609 / Math (frozen public selection)",
-    "framework": "miles / JustRL-II",
-    "image": "justrl2-data-relocation",
-    "created": "2026-10-31",
-    "license": "Apache-2.0",
-    "brief": "A moved hard-example directory leaves the training manifest stale, and reward climbs on the survivors.",
-    "issue": "Training JustRL-II-base-model with PPO on a Math selection of UltraData-RL-2609. At the configured midpoint a storage migration moves the hard-example backing directory from live/hard to archive/hard without updating the manifest, so every hard sample is attempted, fails at the file-read boundary, and is dropped as ABORTED while the rollout loop refills the batch with easy examples — training, checkpointing and evaluation all stay alive, and observed reward rises because the surviving population is easier."
   },
   {
     "id": "configuration/verl_grpo_ppo_mini_batch_too_small",
@@ -482,28 +423,6 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "An AdamW eps override of 1e-3 sits far above this model's per-parameter gradients, turning every update into momentum SGD 10-100x smaller than the learning rate implies.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. run_gsm8k_grpo.sh overrides the actor AdamW eps to 1e-3; per-parameter RMS gradients of this 0.5B model are about 1e-5 to 5e-5, so eps dominates the Adam denominator and the update becomes momentum SGD 10-100x smaller than lr 2e-6 implies: pg_clipfrac averages 8e-5 over steps 1-10 (control 2e-3), the training score first reaches 0.3 at step 35 (control step 5), and held-out strict accuracy ends at 0.486 against 0.566 with the default eps, while every per-step metric looks stable. No crash, RUN_EXIT 0."
-  },
-  {
-    "id": "algorithm/maestro_grpo_reward_collapse",
-    "title": "Search-token reconstruction drops the end token and collapses multimodal GRPO",
-    "family": "Algorithm",
-    "tags": [
-      "maestro",
-      "verl",
-      "grpo",
-      "multimodal",
-      "tool-use",
-      "token-truncation",
-      "issue-only"
-    ],
-    "model": "Qwen/Qwen3-VL-4B-Thinking (+ six staged tool-service models)",
-    "dataset": "locaszzz/maestro_data: 9,200 train / 100 held-out",
-    "framework": "verl + verl_tool (Maestro) / GRPO",
-    "image": "maestro-vllm011",
-    "created": "2026-11-05",
-    "license": "MIT",
-    "brief": "The first-turn search-action reconstruction omits <|im_end|> before the final-token replacement eats the closing '>' of </search>, so recorded rollouts carry corrupted delimiters and training collapses.",
-    "issue": "Training Qwen3-VL-4B-Thinking with multimodal GRPO over the Maestro tool loop (six staged tool-service models, 200 steps). The first-turn <search>...</search> reconstruction appends no <|im_end|>, and the new_gen_tokens[:-1] + gen_ids[-1:] final-token replacement assumes the reconstructed last token is the EOS and instead removes the '>' that closes </search>: sampled step-1 rollouts carry unequal opening/closing search-tag counts with closing tags like </search<|im_end|>, degenerating to forms like </search<<|im_start|> by step 200. At step 200 critic/score/mean=-1.0, verl_tool/is_traj_finished/mean=0.0, and responses clip at the 4096-token cap (response_length/clip_ratio=0.5625, response_length/max=4096) with no completed final-answer trajectory among the sampled rows. Training reward still improves temporarily (step-120 mean 0.71), so never having learned is a wrong attribution. No crash."
   },
   {
     "id": "infrastructure/r1d15_math_grpo",
@@ -715,48 +634,6 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The launcher sets the FSDP actor to bf16, so parameters and AdamW state round away lr-sized updates; learning is 5-13x slower on KL and ends 9 points below the fp32 control.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, the launcher sets the FSDP actor's model_dtype to bf16, so parameters and AdamW state are bf16 and lr-sized updates round away for most weights. The KL to the reference grows 5-13x more slowly and held-out accuracy ends at 0.4655 against 0.5580."
-  },
-  {
-    "id": "environment/verl_mbpp_sandbox_errors_pass",
-    "title": "Sandbox passes non-assert errors; the policy drops its code fence",
-    "family": "Environment",
-    "tags": [
-      "verl",
-      "grpo",
-      "mbpp",
-      "code-sandbox",
-      "reward-hacking",
-      "exception-handling",
-      "issue-only"
-    ],
-    "model": "Qwen2.5-0.5B-Instruct",
-    "dataset": "MBPP",
-    "framework": "verl / GRPO with code sandbox",
-    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
-    "created": "2026-11-14",
-    "license": "Apache-2.0",
-    "brief": "The training sandbox only catches AssertionError, so code with NameError passes and the policy stops writing its fenced Python block entirely.",
-    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on MBPP, the training sandbox marks a sample wrong only on AssertionError, so a response with no runnable code (the tests raise NameError) earns full reward. The policy stops writing its fenced Python block, the training score hits 1.0 by step 11, and held-out pass rate falls from 0.2786 to 0.0; the strict-sandbox control reaches 0.3667."
-  },
-  {
-    "id": "infrastructure/multi_engine_prefix_affinity_collapse",
-    "title": "Multi-engine routing destroys prefix-cache affinity",
-    "family": "Infrastructure",
-    "tags": [
-      "multi-engine",
-      "prefix-cache",
-      "async-rollout",
-      "throughput",
-      "issue-only"
-    ],
-    "model": "Qwen3.5-35B-A3B",
-    "dataset": "Synthetic repository workload",
-    "framework": "Miles / multi-turn GRPO with engine routing",
-    "image": "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12",
-    "created": "2026-11-16",
-    "license": "Apache-2.0",
-    "brief": "The router picks engines by in-flight count only, so consecutive turns land without their prefix cache and the token-weighted prefix hit rate falls from 97.3% to 20.7-30.9%.",
-    "issue": "Fully-asynchronous multi-turn GRPO of a MoE policy on sandboxed repository-debugging tasks asks for per-session routing affinity, but the Miles router it is launched with picks engines by in-flight count only, so consecutive turns of a trajectory land on engines without their prefix cache and the token-weighted prefix hit rate falls from 97.3% to 20.7-30.9%."
   },
   {
     "id": "environment/sandbox_admission_starvation",
