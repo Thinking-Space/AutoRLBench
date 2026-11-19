@@ -18,6 +18,7 @@ A benchmark and open call for valuable, reproducible RL runs. Each task is a rea
 
 ## 🚀 News 
 
+- **17 Nov 2026** — We’ve just updated the AutoRLBench [blog](https://thinking-space.github.io/AutoRLBench/blog.html) with what we learned from evaluating agents on real RL training failures..
 - **6 Nov 2026** — We release the second version of the task list: 32 tasks, 24 of which support solution-level evaluation.
 - **2 Nov 2026** — We release the first version of the task list: 18 tasks, 13 of which support solution-level evaluation.
 - **24 Oct 2026** — Call for contributions officially open, and Kimi-K3.1-Pro added to the leaderboard.
