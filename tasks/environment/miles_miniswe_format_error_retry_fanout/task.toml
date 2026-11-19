@@ -1,0 +1,39 @@
+title = "MiniSWE format-error retries inflate Miles TITO training leaves"
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "environment"
+tags = [
+  "miles",
+  "harbor",
+  "mini-swe-agent",
+  "swe-bench-verified",
+  "grpo",
+  "tito-v2",
+  "fanout",
+  "format-error",
+  "issue-only",
+]
+
+[submitter]
+name = "AutoRLBench Task Builder"
+
+[model]
+name = "Qwen/Qwen3-30B-A3B"
+
+[dataset]
+name = "SWE-bench Verified (16 deterministic prompts)"
+
+[training]
+framework = "miles"
+algo = "GRPO"
+script = "run.sh"
+
+[environment]
+image = "ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b"
+image_stack = "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12"
+gpus = 8
+
+[outcome]
+failure_type = "agentic_environment_format_error_fanout"
+failure_reason = "MiniSWE 2.4.6 omits sampled assistant attempts that fail tool-call parsing from the history sent on its next request, so TITO-v2 records those attempts as sibling tree nodes; 64 intended logical rollouts therefore yield 164 training leaves, with fan-out in 30 rollouts and a maximum of 21 leaves per rollout."
+success_evidence = "$AUTORLBENCH_RESULTS/experiment_logs/metrics.json"

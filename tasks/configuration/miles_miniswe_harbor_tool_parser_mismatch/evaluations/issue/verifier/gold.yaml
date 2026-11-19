@@ -1,0 +1,28 @@
+{
+  "category": "configuration",
+  "framework": "miles",
+  "task": "miles_miniswe_harbor_tool_parser_mismatch",
+  "verdict": "unhealthy",
+  "root_cause": [
+    {
+      "name": "tool_call_parser_mismatch",
+      "where": "workspace/run_miles.py (launch flag --sglang-tool-call-parser qwen3_coder)",
+      "observed": "the Qwen3-30B-A3B checkpoint is served with the qwen3_coder tool-call parser instead of the parser this checkpoint requires (qwen25), so the tool-call object stays literal assistant text; the strict TITO-v2 matcher records assistant_text mismatches on every rollout and 64 logical rollouts expand uniformly to 192 training leaves",
+      "expected": "serve this checkpoint with the qwen25 tool-call parser so tool calls are separated as structured content; the remaining post-qwen25 fan-out is a separate MiniSWE integration issue and is not this task's canonical answer"
+    }
+  ],
+  "evidence_metrics": [
+    "64 intended logical rollouts yield 192 training samples (3.0x uniform inflation, three leaves per rollout, 128 extra samples)",
+    "the rollout records contain 187 assistant_text mismatch entries whose actual_text includes a trailing literal tool-call object after the reasoning text while expected_text stops before it",
+    "all 64 rollouts are marked with a TITO session mismatch (rate 1.0) and 64 fan-out rollouts",
+    "exit statuses: 72 AgentError and 120 Submitted over 64 Harbor trials; mean reward 0.0; mean total time 639.228 seconds",
+    "the qwen25 control run reduces training leaves to 164, inflation to 2.562x and fan-out rollouts to 30"
+  ],
+  "fix": {
+    "must": [
+      "identify the qwen3_coder tool-call parser as wrong for this checkpoint and name qwen25 as the required parser",
+      "connect the literal tool-call JSON, the strict assistant_text mismatches and the uniform three-leaf expansion as one causal chain",
+      "do not attribute the residual post-qwen25 fan-out to the parser mismatch"
+    ]
+  }
+}

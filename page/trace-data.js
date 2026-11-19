@@ -655,6 +655,41 @@
  * zero root-cause credit; GLM-5.3, Gemini-4-Argon and GPT-6-Astra
  * are no-answer structural zeros. The published issue-judgment
  * total below moves 429 -> 439 with this round.
+ * The eleven miles_miniswe_harbor_tool_parser_mismatch and
+ * eleven miles_miniswe_format_error_retry_fanout issue records
+ * were published on 19 Nov 2026 from the local cybertron-evaluate
+ * sweeps (eleven models including DeepSeek V4.1 Flash; both tasks
+ * ship issue-only). The pair decomposes one incident into
+ * orthogonal root causes and serves as each other's decoy: the
+ * parser task's launcher serves Qwen3-30B-A3B with the
+ * qwen3_coder tool-call parser instead of the required qwen25, so
+ * tool-call JSON stays literal assistant text, all 64 rollouts
+ * record an assistant_text mismatch (187 entries), and 64 logical
+ * rollouts inflate to 192 training leaves (ratio 3.0); the
+ * fan-out task's MiniSWE 2.4.6 omits parse-failed assistant
+ * attempts from the next request history, TITO-v2 records them as
+ * siblings, and the same-prompt retry picker cannot drop them:
+ * 64 logical rollouts yield 164 training leaves (ratio 2.562, up
+ * to 21 leaves per rollout). Parser round: five pass (GLM-5.3
+ * 1.0, Grok-4.7 0.9867, DeepSeek-V4.1-Flash 0.9857,
+ * Claude-Fable-5.1 0.9667, DeepSeek-V4-Pro 0.9625);
+ * Kimi-K3.1-Pro (0.9375) and Qwen3.8-Max (0.92) are
+ * evidence-blocked; GPT-6-Astra and GPT-6.1-Sol hold the correct
+ * verdict but reverse the parser mechanism, and Kimi-K3 swaps the
+ * two parsers. Fan-out round: three pass (GLM-5.3 and GPT-6-Astra
+ * 1.0, DeepSeek-V4.1-Flash 0.9714); Kimi-K3 (0.75) and Grok-4.7
+ * (0.55) fall short on root cause, and Claude-Fable-5.1 (0.1)
+ * judges the run healthy. Gemini (twice) and the fan-out Qwen run
+ * are no-answer structural zeros: Gemini's session ends in an
+ * upstream 403, and the Qwen run never engaged its agent (a
+ * 108-byte CLI banner stream and an empty deliverable, so its
+ * recovered trajectory is instruction-only). The astra fan-out
+ * row was re-judged under the final oracle scope after the
+ * direct-example paragraph it was dinged for was removed; it and
+ * the glm row were the only evidence-gated rows that edit could
+ * have flipped. The twenty-two trajectories were rebuilt per
+ * agent type and audited clean of network access. The published
+ * issue-judgment total below moves 439 -> 461 with this round.
  * The 200 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
@@ -10376,6 +10411,314 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2183000,
     "steps": 78,
     "costUsd": 8.6223
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "gpt6astra-tool-parser",
+    "file": "agent-trace/gpt6astra-tool-parser.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.328571,
+    "durationMs": 76000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "gpt61sol-tool-parser",
+    "file": "agent-trace/gpt61sol-tool-parser.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.31428,
+    "durationMs": 86000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "fable51-tool-parser",
+    "file": "agent-trace/fable51-tool-parser.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.966667,
+    "durationMs": 573000,
+    "steps": 22,
+    "costUsd": 7.1014
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "glm53-tool-parser",
+    "file": "agent-trace/glm53-tool-parser.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 2392000,
+    "steps": 99,
+    "costUsd": 18.8629
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "kimi-tool-parser",
+    "file": "agent-trace/kimi-tool-parser.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3428,
+    "durationMs": 3342000,
+    "steps": 19,
+    "costUsd": 2.2292
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "kimi31-tool-parser",
+    "file": "agent-trace/kimi31-tool-parser.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9375,
+    "durationMs": 435000,
+    "steps": 24,
+    "costUsd": 1.9672
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "dsv4-tool-parser",
+    "file": "agent-trace/dsv4-tool-parser.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.9625,
+    "durationMs": 1446000,
+    "steps": 48,
+    "costUsd": 12.9551
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "gemini4-tool-parser",
+    "file": "agent-trace/gemini4-tool-parser.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 233000,
+    "steps": 4,
+    "costUsd": 0.1133
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "qwen38-tool-parser",
+    "file": "agent-trace/qwen38-tool-parser.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.92,
+    "durationMs": 2109000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "grok47-tool-parser",
+    "file": "agent-trace/grok47-tool-parser.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.986667,
+    "durationMs": 279000,
+    "steps": 92,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "dsv41flash-tool-parser",
+    "file": "agent-trace/dsv41flash-tool-parser.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.985714,
+    "durationMs": 877000,
+    "steps": 101,
+    "costUsd": 9.7559
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "gpt6astra-retry-fanout",
+    "file": "agent-trace/gpt6astra-retry-fanout.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 131000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "gpt61sol-retry-fanout",
+    "file": "agent-trace/gpt61sol-retry-fanout.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.292,
+    "durationMs": 70000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "fable51-retry-fanout",
+    "file": "agent-trace/fable51-retry-fanout.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 585000,
+    "steps": 15,
+    "costUsd": 15.6508
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "glm53-retry-fanout",
+    "file": "agent-trace/glm53-retry-fanout.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 2087000,
+    "steps": 93,
+    "costUsd": 16.7927
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "kimi-retry-fanout",
+    "file": "agent-trace/kimi-retry-fanout.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.75,
+    "durationMs": 3743000,
+    "steps": 53,
+    "costUsd": 11.8505
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "kimi31-retry-fanout",
+    "file": "agent-trace/kimi31-retry-fanout.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.286,
+    "durationMs": 384000,
+    "steps": 27,
+    "costUsd": 4.3468
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "dsv4-retry-fanout",
+    "file": "agent-trace/dsv4-retry-fanout.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.375,
+    "durationMs": 1689000,
+    "steps": 61,
+    "costUsd": 19.5343
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "gemini4-retry-fanout",
+    "file": "agent-trace/gemini4-retry-fanout.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 932000,
+    "steps": 7,
+    "costUsd": 0.2956
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "qwen38-retry-fanout",
+    "file": "agent-trace/qwen38-retry-fanout.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 6000,
+    "steps": 1,
+    "costUsd": null
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "grok47-retry-fanout",
+    "file": "agent-trace/grok47-retry-fanout.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.55,
+    "durationMs": 777000,
+    "steps": 136,
+    "costUsd": null
+  },
+  {
+    "task": "environment/miles_miniswe_format_error_retry_fanout",
+    "slug": "dsv41flash-retry-fanout",
+    "file": "agent-trace/dsv41flash-retry-fanout.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.9714,
+    "durationMs": 1247000,
+    "steps": 124,
+    "costUsd": 9.5556
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

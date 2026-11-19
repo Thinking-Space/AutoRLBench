@@ -1,0 +1,26 @@
+{
+  "category": "environment",
+  "framework": "miles",
+  "task": "miles_miniswe_format_error_retry_fanout",
+  "verdict": "unhealthy",
+  "root_cause": [
+    {
+      "name": "format_error_non_replay_inflates_training_leaves",
+      "where": "workspace/mini_swe_agent/src/minisweagent/models/litellm_model.py (query/_parse_actions raises FormatError before the assistant message is returned); workspace/mini_swe_agent/src/minisweagent/agents/default.py (run appends only the user-side correction message); miles TITO tree attachment and picker_hub/drop_same_prompt_retries (sibling_prompt_must_match=True)",
+      "observed": "MiniSWE 2.4.6 omits a parse-failed assistant attempt from the subsequent request history while TITO commits the attempt as a tree node, so find_attach_point attaches the retry as a sibling, and the same-prompt retry picker cannot drop siblings whose prompt carries the new format-error user message; every surviving sibling path becomes a training leaf, so 64 logical rollouts yield 164 training samples",
+      "expected": "either keep the parse-failed assistant attempt in the request history so the retry extends the same path, or make the retry picker classify format-error siblings as identical retries"
+    }
+  ],
+  "evidence_metrics": [
+    "64 intended logical rollouts yield 164 training samples (2.562x, 100 extra samples), with a maximum of 21 leaves per logical rollout",
+    "30 fan-out rollouts, 56 mismatch rollouts and a TITO session mismatch rate of 0.875; sample statuses 128 completed and 36 truncated",
+    "mean reward 0.0 over 64 Harbor trials (97 AgentError, 67 Submitted)",
+  ],
+  "fix": {
+    "must": [
+      "name MiniSWE's non-replay of parse-failed assistant attempts, TITO's sibling attachment and the picker's inability to drop those siblings as one causal chain",
+      "cite the 64-to-164 leaf accounting with the frozen metrics",
+      "do not attribute this run's fan-out to the tool-call parser (this run already uses the required qwen25 parser), the strict matcher, Harbor, Tencent AGS, SWE-bench difficulty or model quality"
+    ]
+  }
+}

@@ -819,5 +819,52 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "FSDP clears gradients before every micro-batch's backward, so only the last of 8 micro-batches reaches the optimizer.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, verl's FSDP engine clears gradients before every micro-batch's backward, so only the last of 8 micro-batches reaches the optimizer. AdamW still takes full-size steps, so the policy drifts like a healthy run, but along a direction estimated from 4 prompt groups. Training reward rises; held-out accuracy ends below its starting value (0.4511 vs 0.4610) against 0.5580 for the same recipe."
+  },
+  {
+    "id": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
+    "title": "Miles MiniSWE tool-call parser mismatch",
+    "family": "Configuration",
+    "tags": [
+      "miles",
+      "mini-swe-agent",
+      "swe-bench-verified",
+      "grpo",
+      "tito-v2",
+      "tool-call-parser",
+      "session-mismatch",
+      "issue-only"
+    ],
+    "model": "Qwen3-30B-A3B",
+    "dataset": "SWE-bench Verified (16 prompts)",
+    "framework": "Miles / GRPO with TITO-v2 and MiniSWE",
+    "image": "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12",
+    "created": "2026-11-16",
+    "license": "Apache-2.0",
+    "brief": "The launcher serves Qwen3-30B-A3B with the qwen3_coder tool-call parser instead of the required qwen25, so tool-call JSON stays literal assistant text: all 64 rollouts mismatch and 64 logical rollouts become 192 training leaves.",
+    "issue": "Training Qwen3-30B-A3B with GRPO on 16 SWE-bench Verified prompts through Miles, Harbor and mini-swe-agent, SGLang is configured with the qwen3_coder tool-call parser instead of the checkpoint's required qwen25. Tool calls remain literal assistant text, every TITO-v2 rollout records an assistant-text mismatch (64 of 64, 187 entries), and each logical rollout expands to three training leaves: 192 training samples for 64 logical rollouts (inflation 3.0, mean reward 0.0, 72 AgentError and 120 Submitted exits)."
+  },
+  {
+    "id": "environment/miles_miniswe_format_error_retry_fanout",
+    "title": "MiniSWE format-error retries inflate Miles TITO training leaves",
+    "family": "Environment",
+    "tags": [
+      "miles",
+      "harbor",
+      "mini-swe-agent",
+      "swe-bench-verified",
+      "grpo",
+      "tito-v2",
+      "format-error",
+      "rollout-fanout",
+      "issue-only"
+    ],
+    "model": "Qwen3-30B-A3B",
+    "dataset": "SWE-bench Verified (16 prompts)",
+    "framework": "Miles / GRPO with TITO-v2 and MiniSWE",
+    "image": "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12",
+    "created": "2026-11-17",
+    "license": "Apache-2.0",
+    "brief": "MiniSWE 2.4.6 drops parse-failed assistant attempts from the next request history, so TITO-v2 records them as sibling leaves: 64 logical rollouts yield 164 training samples.",
+    "issue": "Training Qwen3-30B-A3B with GRPO on 16 SWE-bench Verified prompts, MiniSWE 2.4.6 omits sampled assistant attempts that fail tool-call parsing from the history sent on its next request. TITO-v2 records each attempt as a sibling tree node, and the same-prompt retry picker cannot drop siblings whose prompt contains a new format-error user message: 64 intended logical rollouts yield 164 training leaves (inflation 2.562, fan-out in 30 rollouts, up to 21 leaves per rollout, 56 mismatched rollouts, mean reward 0.0)."
   }
 ];
