@@ -1,0 +1,37 @@
+title = "Old log-probs computed by the reference model pin GRPO to the base model"
+license = "Apache-2.0"
+created_date = "2026-11-19"
+domain = "algorithm"
+tags = ["verl", "grpo", "gsm8k", "ppo-ratio", "old-log-prob", "reference-policy", "silent-stall", "issue-only"]
+
+[submitter]
+name = "pkulium"
+affiliation = "Iowa State University"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_dapo_gsm8k.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+# trainer.n_gpus_per_node=1: FSDP actor and the colocated vLLM rollout share one GPU.
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "verl/trainer/ppo/ray_trainer.py::RayPPOTrainer._compute_old_log_prob computes old_log_probs (and the entropy logged as actor/entropy) with self.ref_policy_wg.compute_ref_log_prob instead of self.actor_rollout_wg.compute_log_prob, so the unmodified PPO loss takes its ratio and 0.2 clip against the frozen reference model; tokens that move more than 20% from the base model in the direction of their advantage get no gradient and the policy stays near the base model (actor/kl_loss <= 0.0024 for 60 steps, actor/ppo_kl negative at every step from step 2 and tracking kl_loss, pg_clipfrac 0.0065-0.0118, logged entropy 0.55 -> 0.50 because it is the reference model's), training score peaks at 0.465, and held-out accuracy moves only 0.4382 -> 0.4647 against 0.4329 -> 0.5451 for the same recipe with the actor call (seed 43: 0.4556 vs 0.5171)."
+
+[security]
+requires_isolated_stages = true
