@@ -51,13 +51,13 @@ still starves). Each public arm was run once, so the threshold carries a margin,
 
 ## Reference solution
 
-- **issue**: name *both* limits throttling the same path — the setup semaphore in
-  `vendor/agent_runtime/env_runtime.py` (default 32, one slot held across the whole remote setup sequence and its
-  retries) and the shared 20-connection `httpx` pool in `vendor/agent_runtime/sandbox_client.py`, which logs nothing and
-  is the one that actually binds — and connect them to the 256 in-flight trajectories set by the producer
-  configuration, with the semaphore-wait and idle-engine evidence. Only the semaphore is logged, so a diagnosis that
-  stops there scores half the root cause and falls below the pass mark. Attributing the slowdown to the sandbox service's raw latency, compute capacity, the reward, model quality or
-  routing alone fails.
+- **issue**: identify both interacting limits on the real producer path: the small setup semaphore in
+  `vendor/agent_runtime/env_runtime.py`, held across create/upload/install and retries relative to the 256
+  in-flight trajectories, and the shared process-wide HTTP pool in `vendor/agent_runtime/sandbox_client.py` that
+  carries both setup and tool traffic. Equivalent admission-wait, pool-contention, delayed-rollout, or idle-engine
+  evidence is accepted; exact 20/32 values and every historical percentile are corroborating details. A diagnosis
+  that names only the logged semaphore misses the second binding transport limit. Attributing the slowdown to raw
+  service latency, compute capacity, reward, model quality, or routing alone fails.
 - **solution**: lift the unlogged connection-pool limit, and with it the admission gate — the minimal form is
   `SANDBOX_MAX_CONNECTIONS` / `SANDBOX_MAX_KEEPALIVE_CONNECTIONS` and `MAX_CONCURRENT_SANDBOX_SETUP` in the launcher's
   environment (`evaluations/solution/oracle/repair.patch`); sizing the pool in code and narrowing the semaphore's scope
@@ -66,8 +66,8 @@ still starves). Each public arm was run once, so the threshold carries a margin,
 ## Verification
 
 - **issue**: an LLM judge compares `agent_answer.md` with the hidden oracle on verdict / root cause / evidence, weighted
-  0.2 / 0.6 / 0.2. Passing requires a score of at least 0.8; the oracle carries two essential root causes, so naming
-  only the logged one cannot reach it. `environment/check_evidence.py` verifies the sanitized
+  0.2 / 0.6 / 0.2. Passing requires a score of at least 0.8; both the admission gate and the shared transport pool
+  are essential, while evidence is grouped into interchangeable admission, transport, and impact observations. `environment/check_evidence.py` verifies the sanitized
   archives (record counts and SHA-256), re-derives every metric file from them, and scans the workspace for private
   markers. `python3 -m autorlbench rerun tasks/environment/sandbox_admission_starvation` was run on one 8 × H800 node
   with the task image's cluster mirror and `--backend local`: prepare passed (pinned model, wheels and workload digests

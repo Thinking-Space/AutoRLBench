@@ -1,67 +1,33 @@
 # Canonical issue oracle
 
-Expected verdict: **unhealthy**.
+Expected verdict: **unhealthy**. The rollout producer is starved by admission and transport throttles before trajectories can generate normally; the model, reward, optimizer, and sandbox service are not the primary failure.
 
-## Root cause
+## Essential root-cause groups
 
-Every agentic trajectory must pass a sandbox admission gate before its first turn, and the gate is far
-narrower than the number of trajectories the rollout producer keeps in flight. In
-`workspace/vendor/agent_runtime/env_runtime.py`, `MAX_CONCURRENT_SANDBOX_SETUP` defaults to
-`SANDBOX_OPERATION_CONCURRENCY` (32), and `create_and_setup_env` holds one `asyncio.Semaphore` slot for
-the whole setup sequence: the remote `create`, the repository upload, the tool-command install, and any
-retries together with their backoff sleeps. The producer (`workspace/runtime/fully_async.py`, with
-`PUBLIC_ASYNC_MAX_INFLIGHT_GROUPS=32` and 8 samples per group in `workspace/scripts/run_config.json`)
-keeps 256 trajectories in flight, so most of them queue on the semaphore before generating a single token.
-**The semaphore is the half that logs; the binding constraint is the half that does not.** Every one of
-those HTTP calls goes through one process-wide `httpx` pool
-(`workspace/vendor/agent_runtime/sandbox_client.py`, `SANDBOX_MAX_CONNECTIONS=20`, keepalive 20), shared
-by the admitted setups and by the tool calls of every already-running trajectory. The launcher overrides
-neither default. Nothing logs a wait for a connection: that time is charged to whichever call was
-waiting, mostly the sandbox `create`, and is visible only by comparing the client-side create duration
-with the service's own access log. Measured on the public workload, lifting the admission gate alone is
-no improvement (366.7 s against 311.7 s unrepaired) because the queue simply moves into the pool, where
-the extra concurrent setups now also compete with running trajectories' tool calls; lifting the pool
-reaches 177.8 s and lifting both 137.4 s. A diagnosis that names only the semaphore has identified the
-symptom that logs, not the limit that binds. The result is starved inference engines and a rollout that
-collects groups far more slowly than the engines could serve them; the defect is in the admission and
-transport configuration of the real producer path, not the model, the reward, the optimizer, or the
-sandbox service being unhealthy.
+### 1. Narrow admission gate held across setup
 
-## Evidence
+`workspace/vendor/agent_runtime/env_runtime.py` defaults `MAX_CONCURRENT_SANDBOX_SETUP` from `SANDBOX_OPERATION_CONCURRENCY` (32). `create_and_setup_env` holds one semaphore slot across the remote sandbox create, repository upload, tool installation, and retries/backoff. The producer keeps 32 groups with 8 samples each in flight (`PUBLIC_ASYNC_MAX_INFLIGHT_GROUPS=32`), or 256 trajectories, so many trajectories wait on the gate before their first token. The exact configured values are useful corroboration but are not required if the diagnosis correctly explains the undersized gate, its scope, and the resulting queue.
 
-- Historical archives (`workspace/logs/historical/`): in both runs, `env_runtime.py`-style warnings
-  `sandbox setup waited Xs for semaphore` dominate the rollout window. run-a: 67 printed lines (at least
-  378 events counting Ray dedup), wait p50 190 s, p90 432 s, max 449 s. run-b: 83 lines (at least 380
-  events), p50 205 s, p90 479 s, max 523 s. Engines are idle rather than saturated: per-engine
-  `#running-req` mean 1.6 (run-a) / 1.1 (run-b), KV token usage p50 0.02 / 0.04, and no training step is
-  logged in either window. run-a's request routing is already cache-aware (prefix hit rate 82.3%), so its
-  starvation cannot be blamed on routing; run-b also has the routing problem (hit rate 30.9%), a confounder.
-- Public rerun (`workspace/logs/public_rerun/`, Qwen3.5-9B, 4 engines): `env_setup/*.jsonl.gz` records the same
-  queueing on the gate (662 setups over three rollouts, 629 of them waited at least 5 s, semaphore wait
-  p50 35.4 s, p90 114.5 s, max 160.0 s, against a remote create time p50 of 18.8 s; the producer log shows
-  rollout 0 at 0/16 accepted groups after 30, 60 and 90 s), while the rollout and
-  the optimizer still proceed; this is the same mechanism at one-node scale.
+### 2. Shared HTTP pool co-binds the same path
 
-A diagnosis that names the semaphore default and its scope across the setup HTTP calls, connects it to
-the 256 in-flight trajectories from the producer configuration, and supports it with the wait and
-engine-idle evidence is correct. Attributing the slowdown to the sandbox service's raw latency, to GPU or
-KV-cache capacity, to the reward, to model quality, or to request routing alone is wrong or partial.
+All setup and tool calls use one process-wide `httpx` client in `workspace/vendor/agent_runtime/sandbox_client.py`. Its default connection and keepalive limits are small (20); the launcher changes neither. Setup requests consume those connections while already-running trajectories need them for tool calls. Thus connection-pool contention is a second binding transport limit. Raising only the semaphore moves the queue into the pool instead of restoring throughput. A diagnosis may state the two limits together as one admission/transport bottleneck, but it must make clear that the HTTP pool is shared and independently constraining.
+
+## Accepted evidence (three interchangeable groups)
+
+A correct diagnosis need not reproduce every number below. One concrete observation from each group is sufficient.
+
+1. **Admission:** semaphore wait warnings or measured wait time; the small default/scope relative to producer in-flight count; or delayed/zero accepted groups in the public rerun. Historical archives show long waits (roughly 190–523 s percentiles/max), and the public rerun has hundreds of setups waiting, with the first valid groups delayed.
+2. **Transport:** a limited/shared pool, setup and tool traffic competing for it, or client-side create/tool latency much larger than service-side work. The public access log is consistent with a pool near its cap; the pool itself emits no wait log.
+3. **Impact:** engines are idle/underused rather than compute-saturated (low running-request and KV usage), historical windows have no training step, or the public rollout and training wait are inflated by queueing. Public setup queueing and rollout wall time are also valid impact evidence.
+
+Routing degradation in one archive is a confounder, not the sole cause; the cache-aware archive still starves. Raw sandbox latency, GPU/KV capacity, reward saturation, model quality, and request routing alone are not root causes.
 
 ## Trigger conditions
 
-- Many agentic trajectories are in flight at once (rollout groups x samples per group).
-- Each trajectory's sandbox setup takes a slot on a small semaphore and holds it across several remote
-  calls and retries.
-- The gate and the HTTP connection-pool limits stay at their small defaults.
+- Many agentic trajectories are in flight at once.
+- Each trajectory holds a small setup slot over several remote calls and retries.
+- The gate and shared HTTP pool remain at their small defaults.
 
 ## Documentation reconciliation
 
-The control runs below are author-side rebuttal context kept outside the workspace: they are neither
-evidence items nor a gap a diagnosis is penalised for not citing.
-
-- Hidden reference: a run identical to run-a except `MAX_CONCURRENT_SANDBOX_SETUP` raised to cover the
-  256 in-flight trajectories and a larger HTTP pool has no semaphore-wait line, total running requests of
-  about 43 in its first 12 minutes and 65 over the archive, and 8 training steps within the hour.
-- Hidden control of the public rerun, with only `MAX_CONCURRENT_SANDBOX_SETUP=8192` and
-  `SANDBOX_MAX_CONNECTIONS=2048` changed: 760 setups with zero wait, rollout 0 and 1 in 99 s and 39 s
-  instead of 235 s and 77 s, and the whole run in 837 s instead of 987 s.
+The hidden controls are author-side context, not required evidence. Opening both limits removes semaphore waits and reduces rollout wall time; opening only the gate leaves the connection-pool queue. These controls are not part of the scoring denominator.
