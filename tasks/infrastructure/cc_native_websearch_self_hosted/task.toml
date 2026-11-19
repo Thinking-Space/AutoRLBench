@@ -1,0 +1,28 @@
+title = "Claude Code native WebSearch on a self-hosted RL backend"
+license = "Apache-2.0"
+created_date = "2026-11-17"
+domain = "infrastructure"
+tags = ["native-websearch", "server-tool-compatibility", "self-hosted-inference", "agent-rl"]
+
+[submitter]
+name = "Pengcheng Huang"
+
+[model]
+name = "Qwen3.5-9B"
+
+[dataset]
+name = "Search-R1 QA: 32 NQ + 32 HotpotQA questions (FlashRAG)"
+
+[training]
+framework = "slime"
+algo = "grpo"
+script = "run.sh"
+
+[environment]
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+gpus = 8
+
+[outcome]
+failure_type = "server_tool_backend_incompatibility"
+failure_reason = "Claude Code routes its native Anthropic web_search_20250305 request through the configured training base URL, but the SGLang Messages converter cannot execute server-side Anthropic built-ins and rejects the forced tool choice; all 891 recorded native search requests return HTTP 400 even though ordinary actor inference and three GRPO training steps execute."

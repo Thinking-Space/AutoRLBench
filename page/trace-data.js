@@ -746,6 +746,22 @@
  * sandbox-admission curls are localhost health checks). The
  * published solution-run total below moves 190 -> 208, and the
  * solution-record reconciliation anchor 190 -> 208.
+ * The eleven cc_native_websearch_self_hosted issue records were
+ * published on 19 Nov 2026 from the local cybertron-evaluate sweep
+ * (eleven models including DeepSeek V4.1 Flash; the task ships
+ * issue-only). The task pins Claude Code native WebSearch against a
+ * self-hosted RL backend: the client routes its native Anthropic
+ * web_search_20250305 request through the configured training base
+ * URL, but the SGLang Messages converter cannot execute server-side
+ * Anthropic built-ins and rejects the forced tool choice, so all
+ * 891 recorded native search requests return HTTP 400 while ordinary
+ * actor inference and three GRPO training steps execute. Three pass
+ * (Qwen3.8-Max 0.9667, GPT-6.1-Sol and DeepSeek-V4.1-Flash 0.966
+ * each); every model returns the correct verdict and full root
+ * cause -- the eight fails are all evidence-gated (0.5-0.8 against
+ * the 0.8 gate). The eleven trajectories were rebuilt per agent
+ * type and audited clean of network access. The published
+ * issue-judgment total below moves 383 -> 394.
  * The 175 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -9266,6 +9282,160 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "88526e36-c34a-4a8d-8754-c146e7da8d80",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "703dd91a0999ebd1ab72c5a6a65e27756e4176fb7349ab2a861b7d437957eda9"
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "gpt6astra-cc-websearch",
+    "file": "agent-trace/gpt6astra-cc-websearch.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.94,
+    "durationMs": 81000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "gpt61sol-cc-websearch",
+    "file": "agent-trace/gpt61sol-cc-websearch.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.966,
+    "durationMs": 74000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "fable51-cc-websearch",
+    "file": "agent-trace/fable51-cc-websearch.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.92,
+    "durationMs": 484000,
+    "steps": 16,
+    "costUsd": 12.1547
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "glm53-cc-websearch",
+    "file": "agent-trace/glm53-cc-websearch.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.94546,
+    "durationMs": 631000,
+    "steps": 30,
+    "costUsd": 4.9763
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "kimi-cc-websearch",
+    "file": "agent-trace/kimi-cc-websearch.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.944444,
+    "durationMs": 450000,
+    "steps": 20,
+    "costUsd": 0.7635
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "kimi31-cc-websearch",
+    "file": "agent-trace/kimi31-cc-websearch.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.934,
+    "durationMs": 217000,
+    "steps": 16,
+    "costUsd": 1.1682
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "dsv4-cc-websearch",
+    "file": "agent-trace/dsv4-cc-websearch.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 1199000,
+    "steps": 29,
+    "costUsd": 9.9101
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "gemini4-cc-websearch",
+    "file": "agent-trace/gemini4-cc-websearch.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 973000,
+    "steps": 23,
+    "costUsd": 6.9389
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "qwen38-cc-websearch",
+    "file": "agent-trace/qwen38-cc-websearch.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.966667,
+    "durationMs": 732000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "grok47-cc-websearch",
+    "file": "agent-trace/grok47-cc-websearch.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.933333,
+    "durationMs": 320000,
+    "steps": 53,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "dsv41flash-cc-websearch",
+    "file": "agent-trace/dsv41flash-cc-websearch.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.966,
+    "durationMs": 689000,
+    "steps": 39,
+    "costUsd": 4.2973
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

@@ -723,5 +723,25 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "Four pipeline defects make good patches unrewardable, let rollouts rewrite the test surface, mis-match node ids, and turn undecidable runs into confident zeros; fixing only the first one rewards the cheating rollouts.",
     "issue": "An agentic RL run on repository-repair tasks rewards rollouts by running the repositories' own tests on patched checkouts, but four pipeline defects combine: the grading command omits -rA while the parser reads only the summary section (an all-passing run parses to nothing, reward 0), the test surface is not restored before grading (a rollout's conftest hook decides its own result), node ids are matched by substring fallback, and undecidable runs enter the advantage as confident zeros. Fixing the first defect alone is worse: measured on the staged corpus, 0 -> 109 rewarded records with 68 wrong resolved labels."
+  },
+  {
+    "id": "infrastructure/cc_native_websearch_self_hosted",
+    "title": "Claude Code native WebSearch on a self-hosted RL backend",
+    "family": "Infrastructure",
+    "tags": [
+      "native-websearch",
+      "server-tool-compatibility",
+      "self-hosted-inference",
+      "agent-rl",
+      "issue-only"
+    ],
+    "model": "Qwen3.5-9B",
+    "dataset": "Search-R1 QA (32 NQ + 32 HotpotQA questions, FlashRAG)",
+    "framework": "slime / GRPO with Claude Code rollouts on SGLang",
+    "image": "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-17",
+    "license": "Apache-2.0",
+    "brief": "Claude Code routes its native WebSearch requests through the training base URL, but the SGLang Messages converter cannot execute server-side Anthropic built-ins: all 891 recorded native search requests return HTTP 400.",
+    "issue": "Training Qwen3.5-9B with GRPO on Search-R1 NQ/HotpotQA questions inside Claude Code produces normal actor generations and optimizer steps, but every recorded native WebSearch HTTP request fails against the self-hosted inference backend: the client routes its native Anthropic web_search_20250305 request through the configured training base URL, and the SGLang Messages converter skips the built-in and rejects the forced tool choice. All 891 recorded native search requests return HTTP 400 even though ordinary actor inference and three GRPO training steps execute (96 of 300 trainable background outcomes selected, 25,190 effective actor tokens)."
   }
 ];
