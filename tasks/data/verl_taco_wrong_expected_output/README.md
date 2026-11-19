@@ -5,10 +5,11 @@ difficulty, but ~40% of the training rows are problems whose expected outputs
 are natively wrong in the dataset: the problems' own bundled solutions agree
 with each other on an output and still fail their own tests. Under the binary
 all-tests-pass reward, a rollout that solves such a problem correctly is still
-scored 0, so GRPO teaches the model to discard correct algorithms for those
-problems. Training reward is pinned below the clean baseline scaled by the
+scored 0, so GRPO loses the learning signal for those problems: zero advantage
+in all-zero groups, negative advantage in mixed-reward groups. Training reward
+is pinned below the clean baseline scaled by the
 clean fraction, the externally-correct-but-scored-0 rate persists instead of
-vanishing, and held-out accuracy regresses instead of improving.
+vanishing, and held-out accuracy stagnates instead of improving.
 
 Constructed from the label-noise brief
 `raw_tasks/task_briefs/label_noise_1_taco_wrong_expected_output.md`
@@ -218,7 +219,8 @@ The mechanism, from the recorded runs (both arms 2026-11-10):
   scored 0" samples are the metric; max rate over the last five step dumps.
   Anchoring: launch script and `taco.py` byte-compared against pristine
   verifier copies, `test.parquet` sha-pinned, `train.parquet` floored at
-  `min_train_rows` and checked disjoint from the test prompts, every train
+  `min_train_rows` total rows (1,200) and `min_distinct_train_prompts` distinct
+  prompts (800), and checked disjoint from the test prompts, every train
   row checked for the shipped prompt-template shape, rows still carrying a
   recorded wrong-expected-output signature (the recorded failing input and
   the original wrong expected output at the recorded failing index, whether
@@ -236,7 +238,11 @@ The mechanism, from the recorded runs (both arms 2026-11-10):
   leaving the wrong expected in place is still detectable by any later
   re-execution audit.
 * Issue tier: LLM judge against the hidden oracle (verdict / root cause /
-  evidence = 0.2 / 0.6 / 0.2, conjunctive pass gate), as in the sibling task.
+  evidence = 0.2 / 0.6 / 0.2; passing requires verdict = 1, root cause > 0.8,
+  and evidence > 0.8). Evidence covers a visible label counterexample, its
+  binary-reward consequence, and the GRPO learning-signal mechanism. Equivalent
+  visible evidence is accepted; exact aggregate counts and the hidden clean
+  control/reference-solution outputs are not required.
 
 ## Reference solution
 
@@ -244,7 +250,11 @@ Remove the natively-wrong-expected-output rows from `taco_verl/train.parquet`
 (or replace them with verified-clean rows at matched `EASY`/`MEDIUM`
 difficulty). The repaired `train.parquet` must keep the taco_verl schema,
 prompt template, and `data_source` unchanged, keep at least
-`min_train_rows` rows, and stay disjoint from `test.parquet` prompts;
+`min_train_rows` total rows (1,200) covering at least
+`min_distinct_train_prompts` distinct prompts (800), and stay disjoint from
+`test.parquet` prompts. Clean rows may be repeated to reach 1,200 total rows:
+filtering all 552 dirty rows leaves 828 clean rows, so this repair is feasible
+offline without adding external data. Repairing labels in place is also allowed;
 `test.parquet`, the launch script, and `verl/utils/reward_score/taco.py`
 must remain byte-identical. Identifying the dirty rows offline is part of
 the task: a row's own tests can be executed against candidate solutions

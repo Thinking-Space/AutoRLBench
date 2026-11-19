@@ -1,0 +1,584 @@
+{
+  "schema_version": 1,
+  "batch_id": "20261119T115632Z",
+  "completed_at": "2026-11-19T11:58:43.456362+00:00",
+  "judge_model": "gpt-5.6-terra",
+  "scope": "Rejudge the original Issue diagnoses with repaired task-specific rubrics; no agent or Solution rerun.",
+  "pass_rule": {
+    "verdict_score_equals": 1,
+    "root_cause_score_gt": 0.8,
+    "evidence_score_gt": 0.8
+  },
+  "tasks": {
+    "data/verl_taco_wrong_expected_output": {
+      "total": 11,
+      "judged": 11,
+      "old_passed": 0,
+      "new_passed": 1,
+      "new_score_gt_0_8": 3
+    },
+    "environment/swe_grader_silent_mislabel": {
+      "total": 10,
+      "judged": 10,
+      "old_passed": 0,
+      "new_passed": 6,
+      "new_score_gt_0_8": 6
+    }
+  },
+  "rubric_sha256": {
+    "rubrics/environment/swe_grader_silent_mislabel/judge_prompt.md": "a9fcb9d2a47be320046e4865dceb1e29cf29106a9119e9697c0f6b30001362dd",
+    "rubrics/environment/swe_grader_silent_mislabel/oracle.md": "11f36a72a267831e3d25a5548a64f4c2f905be89c930e147990f853ff88147c9",
+    "rubrics/environment/swe_grader_silent_mislabel/judge.py": "ec39c4cdbb2ab551592e8b3bf46b212f8d9074eef664b5ea516df85641d1278c",
+    "rubrics/data/verl_taco_wrong_expected_output/judge_prompt.md": "1260661ff55c80b85cec6e7b9d3d350d8a26285d114b301c2ee8b446b7216b18",
+    "rubrics/data/verl_taco_wrong_expected_output/oracle.md": "cddee25081073a0af5210938dd4dc72cd8f55563f9c732bf22c059f8f0f134ef",
+    "rubrics/data/verl_taco_wrong_expected_output/judge.py": "ec39c4cdbb2ab551592e8b3bf46b212f8d9074eef664b5ea516df85641d1278c"
+  },
+  "runs": [
+    {
+      "slug": "gpt6astra-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "GPT-6-Astra",
+      "previous": {
+        "passed": false,
+        "score": 0.72,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly calls the run unhealthy and gives concrete native test/expected-output contradictions (e.g. capitalization, palindrome, and malformed/incorrect test cases), then links valid near/full solutions being assigned binary reward 0 to GRPO group-centered zero advantages and discarded learning signal. It also supplies concrete zero-reward rollout groups and group-normalization/all-zero-group statistics, satisfying all three evidence groups. However, it additionally treats a purported __name__ execution-harness defect and the generic reference-output comparator as independent concrete causes; the oracle rules out a scorer/harness code defect as a root cause, so this weakens the otherwise correct root-cause diagnosis.",
+          "root_cause_score": 0.75,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.85
+      },
+      "trace_file": "agent-trace/gpt6astra-taco-wrong-output.json",
+      "trace_sha256": "c1303c0631ec8eedc3efd4421c7adb952d70a34d9366179c0d32189ad21fc8e6",
+      "answer_sha256": "d33f02cc40d8d6a04ad7dab58a32fc49204439b2e58194e64880f82c9c93acbe",
+      "answer_source": "literal Python string in recorded write command (not executed)"
+    },
+    {
+      "slug": "gpt61sol-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "GPT-6.1-Sol",
+      "previous": {
+        "passed": false,
+        "score": 0.61,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly calls the run unhealthy and establishes native training-label contradictions, then connects binary all-tests-pass scoring to correct solutions receiving zero reward and zero GRPO advantage in all-zero groups. It gives a concrete training example (train21025: recurrence implies 3 while the recorded target is 55), reports correct implementations receiving 0, and cites both group-normalization code and observed all-zero/tied groups. However, it also presents scorer/runner execution defects and a multiple-valid-answer judging defect as separate root causes, whereas the oracle rules out reward-code/scorer defects as independent causes; this reduces root-cause agreement.",
+          "root_cause_score": 0.75,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.85
+      },
+      "trace_file": "agent-trace/gpt61sol-taco-wrong-output.json",
+      "trace_sha256": "8eb23eee5d0de3784f6fdb861be52162f449657764a9b4ba729bbbdb3d14eb71",
+      "answer_sha256": "048824df1098fda62393bcf4a540c1bf58e585e3686fa28b96f6a218619ea6c6",
+      "answer_source": "literal Python string in recorded write command (not executed)"
+    },
+    {
+      "slug": "fable51-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "Claude-Fable-5.1",
+      "previous": {
+        "passed": false,
+        "score": 0.76,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly judges the run unhealthy and identifies natively permuted/wrong training test outputs, rather than excessive difficulty or a scorer defect, as the primary cause. It explicitly applies the binary all-tests-pass scorer to those mismatches and explains that correct programs receive reward 0 and hence zero advantage in all-zero GRPO groups. It supplies concrete bad-label support via named training problems with swapped/permuted outputs and independent reference/sample/execution checks; connects this to near-universal all-zero HackerEarth rollout groups; and supports the learning consequence with observed zero-advantage-group/token statistics and GRPO signal analysis. Mentions of saturation and small updates are framed as consequences/contributors, not competing root causes.",
+          "root_cause_score": 1.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": true,
+        "score": 1.0
+      },
+      "trace_file": "agent-trace/fable51-taco-wrong-output.json",
+      "trace_sha256": "ed99850fb283533d1a8da741362896ef76c660d3766f3e67f384e974c3e9d32a",
+      "answer_sha256": "d4187498844f1b390367eabae571149bcfe2cb40f443b5f607777518bb3215aa",
+      "answer_source": "quoted heredoc (not executed)"
+    },
+    {
+      "slug": "glm53-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "GLM-5.3",
+      "previous": {
+        "passed": false,
+        "score": 0.22,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.33,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly calls the run unhealthy, but attributes failure to binary-reward sparsity plus conservative LR/KL optimization, which the oracle rules out as independent root causes. It never identifies a concrete natively incorrect training-test expected output or establishes that a correct solution is scored zero, so evidence groups 1 and 2 are absent. It does concretely support group-normalized zero-advantage behavior using observed zero-variance/all-zero groups and the GRPO advantage code, satisfying evidence group 3 only.",
+          "root_cause_score": 0.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.266
+      },
+      "trace_file": "agent-trace/glm53-taco-wrong-output.json",
+      "trace_sha256": "e965bc6d9df0e2c5c071cff36e3e6afccd537b5d220d9cfe6cc3ea78e134faac",
+      "answer_sha256": "653e33406c8702dda97819248800566b3e7d48e00b55630d3eeb47e04b4243d8",
+      "answer_source": "literal file-write content"
+    },
+    {
+      "slug": "kimi-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "Kimi-K3",
+      "previous": {
+        "passed": false,
+        "score": 0.02,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis declares the run healthy, contradicting the oracle's unhealthy verdict. It does not identify natively wrong training labels or connect them to zero/negative GRPO advantages; instead it attributes the flat behavior to a conservative recipe and truncation, which are not the root cause. It provides no concrete training-test label contradiction, no demonstrated correct rollout receiving binary reward 0, and no zero/mixed-group advantage evidence connecting the issue to lost learning signal.",
+          "root_cause_score": 0.0,
+          "status": "judged",
+          "verdict_score": 0.0
+        },
+        "passed": false,
+        "score": 0.0
+      },
+      "trace_file": "agent-trace/kimi-taco-wrong-output.json",
+      "trace_sha256": "d8c3b1e20c7121892ca9f5973bb2495dbdf2284cfeb65ab3ddba5e64b3367e94",
+      "answer_sha256": "d858343cf6494d329b58ce1eed92fef000a0f4efccb6a666484f5c5fa27fda70",
+      "answer_source": "literal file-write content"
+    },
+    {
+      "slug": "kimi31-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "Kimi-K3.1-Pro",
+      "previous": {
+        "passed": false,
+        "score": 0.45,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.3333,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The unhealthy verdict agrees. The diagnosis correctly explains binary all-tests-pass rewards, all-zero groups, and weakened GRPO advantages, but omits the essential native training-label errors and therefore attributes the failure to reward quantization alone. It provides no concrete problem/test contradiction or demonstrated correct rollout receiving reward 0; it does support the learning-signal mechanism with explicit group-normalization behavior and observed all-zero groups.",
+          "root_cause_score": 0.3,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.44666
+      },
+      "trace_file": "agent-trace/kimi31-taco-wrong-output.json",
+      "trace_sha256": "731fe07d7c360c0f840aa6c701377dd6b9d8ee76fcafd67c4d1577f1d4178873",
+      "answer_sha256": "110e862e38335fd053500918d093a7397bb9957fd6f25b6dfdd7a05c6a7527b7",
+      "answer_source": "literal file-write content"
+    },
+    {
+      "slug": "dsv4-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "DeepSeek-V4-Pro",
+      "previous": {
+        "passed": false,
+        "score": 0.25,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly calls the run unhealthy, but attributes failure to an allegedly too-small learning rate and explicitly rules out reward correctness. This contradicts the oracle's native wrong-label plus binary all-tests-pass/GRPO-advantage causal chain. It provides no concrete train-test label contradiction, no demonstrated correct solution scored zero from that mismatch, and no all-zero/mixed GRPO-group advantage evidence connecting lost rewards to suppressed learning.",
+          "root_cause_score": 0.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.2
+      },
+      "trace_file": "agent-trace/dsv4-taco-wrong-output.json",
+      "trace_sha256": "0f974551e2daa9dbcdbbc91b70d6db0eb401a0338d9a94af5976f4584091615b",
+      "answer_sha256": "9533a43b4533d613bf95e31ef5895a29cc07db9c9be8dd8d585ef5d934eeb068",
+      "answer_source": "literal file-write content"
+    },
+    {
+      "slug": "gemini4-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "Gemini-4-Argon",
+      "previous": {
+        "passed": false,
+        "score": 0.2,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The unhealthy verdict agrees. However, the diagnosis attributes failure to an excessive response-length setting, malformed generations, and evaluator instability/crashes, all of which are ruled out as root causes; it does not identify natively incorrect training test labels or explain the binary-reward/GRPO-advantage consequence. It gives no concrete training-test output contradiction, no demonstrated correct solution receiving binary reward 0 due to a bad label, and no all-zero/mixed-group or GRPO-normalization evidence connecting lost reward to learning.",
+          "root_cause_score": 0.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.2
+      },
+      "trace_file": "agent-trace/gemini4-taco-wrong-output.json",
+      "trace_sha256": "059d59fd898be084e5ee754f29cf2bf18ca748e773750134ca9eb998e4432e28",
+      "answer_sha256": "dd2daafabc7f06583c073b68d9c74f3288a18fa946d0d578a2614b2c0815d944",
+      "answer_source": "literal file-write content"
+    },
+    {
+      "slug": "qwen38-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "Qwen3.8-Max",
+      "previous": {
+        "passed": false,
+        "score": 0.23,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.3333,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The unhealthy verdict agrees. The diagnosis does not identify the oracle's native training-label errors or connect them to correct rollouts receiving zero/negative GRPO advantage; instead it attributes failure to binary reward sparsity alone, train/validation test-count mismatch, and timeout issues, which the oracle rules out as root causes. It supports the GRPO normalization mechanism with concrete all-zero/zero-variance group counts and the advantage formula, but provides no specific training-test contradiction and no bad-label-to-correct-solution reward-0 example.",
+          "root_cause_score": 0.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.26666
+      },
+      "trace_file": "agent-trace/qwen38-taco-wrong-output.json",
+      "trace_sha256": "e6cea07dfaff949c1fda1aa86cb6400c7c65e9e10fc74e0d2d5dbadf871059bf",
+      "answer_sha256": "ce84e6870fa09ad2301d04733564e1226771dd2b0ff8885cc3fb3319b9df2dd0",
+      "answer_source": "literal file-write content"
+    },
+    {
+      "slug": "grok47-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "Grok-4.7",
+      "previous": {
+        "passed": false,
+        "score": 0.24,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly calls the run unhealthy, but attributes the failure to weak optimization from learning-rate/token-mean scaling, which the oracle rules out as the root cause. It does not identify natively wrong training labels or connect them to correct rollouts receiving zero/negative GRPO advantage. It provides no concrete training-test contradiction, no demonstrated correct solution scored 0 because of a bad label, and no supporting all-zero/mixed-group advantage evidence; in fact, it argues the binary objective mismatch is not causal.",
+          "root_cause_score": 0.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.2
+      },
+      "trace_file": "agent-trace/grok47-taco-wrong-output.json",
+      "trace_sha256": "98d96284b5e44a53f7fb117b02aa18baa8aa56d6d3e214c72dc3348623ea8c58",
+      "answer_sha256": "139d303e73cd3ecb83a08d6a7252d18f814c2725af588b90ebc4adeb76070d0d",
+      "answer_source": "literal file-create content"
+    },
+    {
+      "slug": "dsv41flash-taco-wrong-output",
+      "task": "data/verl_taco_wrong_expected_output",
+      "model": "DeepSeek-V4.1-Flash",
+      "previous": {
+        "passed": false,
+        "score": 0.82,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.67,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly calls the run unhealthy and identifies native wrong expected outputs in a large dirty training slice, then links binary all-tests-pass scoring to correct rollouts receiving zero reward and all-zero/negative-advantage GRPO behavior. It gives specific expected-versus-'corrected' output examples and explicitly shows reward 0 under the binary scorer, but does not concretely establish any listed corrected value from a problem statement, worked derivation, or identified independent execution; model output plus an unsupported 'corrected' assertion is insufficient for the bad-label-counterexample group. It fully supports the reward-to-zero link and the learning-signal link with the reward code, group counts, and normalization formula. Root-cause credit is reduced because it additionally treats sparse binary reward/group composition and the low learning rate as contributing causal causes, despite these being ruled out as independent root causes.",
+          "root_cause_score": 0.75,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.784
+      },
+      "trace_file": "agent-trace/dsv41flash-taco-wrong-output.json",
+      "trace_sha256": "4b7dc16d582767f2a6f38aa61ee8cdfeee4250ddbde07f7978cc745ae886f6f9",
+      "answer_sha256": "860cb66d4dc977cef1b523e532c5450d36df1e9f6f98d062e7c46c38c30c5833",
+      "answer_source": "literal file-write content"
+    },
+    {
+      "slug": "gpt6astra-swe-grader",
+      "task": "environment/swe_grader_silent_mislabel",
+      "model": "GPT-6-Astra",
+      "previous": {
+        "passed": false,
+        "score": 0.45,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.5,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly identifies the missing pytest summary/parser mismatch and supports it with the command, parser, and an all-pass archived log whose statuses are missing and reward is zero. It also supports mechanism 4 via the empty-status reward-zero branch and archived missing-test records. It does not identify the incomplete restoration allowing conftest/config/plugin or added-test manipulation, nor the path-stripping and substring-fallback node-id collision mechanism; its discussion of bogus keys is not that mechanism.",
+          "root_cause_score": 0.5,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.6
+      },
+      "trace_file": "agent-trace/gpt6astra-swe-grader.json",
+      "trace_sha256": "630e8d8ab80f1f82b6dd985c233ada4b8200770af67bc286f8f966199f0c3dae",
+      "answer_sha256": "2888199d9ee62c52276365965d6a01aa347558c5e222b80fbae687fabb33d3f3",
+      "answer_source": "original answer, matched byte-for-byte after strip to original judge request"
+    },
+    {
+      "slug": "gpt61sol-swe-grader",
+      "task": "environment/swe_grader_silent_mislabel",
+      "model": "GPT-6.1-Sol",
+      "previous": {
+        "passed": false,
+        "score": 0.425,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.5,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly identifies the pytest/parser mismatch, including all-pass logs lacking the summary section and missing statuses becoming reward 0. It also correctly covers missing-status collapse to zero. It does not address the incomplete restoration of conftest/configuration/plugins or added test files, and merely mentions a permissive substring matcher without explaining path stripping, node-id identity loss, or status substitution across tests; those mechanisms and their concrete evidence are missing.",
+          "root_cause_score": 0.5,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.6
+      },
+      "trace_file": "agent-trace/gpt61sol-swe-grader.json",
+      "trace_sha256": "2ed84e51af9994e1711ead5d83f9678bf2a3d991eca87716400c076b2ef5e30a",
+      "answer_sha256": "4c8edc5fabfc589f59957a399cb8ad8a900bc667cb15b04e6a23462eb477290f",
+      "answer_source": "original answer, matched byte-for-byte after strip to original judge request"
+    },
+    {
+      "slug": "fable51-swe-grader",
+      "task": "environment/swe_grader_silent_mislabel",
+      "model": "Claude-Fable-5.1",
+      "previous": {
+        "passed": false,
+        "score": 0.95,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly concludes the pipeline is unhealthy. It concretely shows the command/parser mismatch: pytest lacks `-rA` while parsing only occurs after `short test summary info`, with archived all-green logs such as `128 passed` yielding all required IDs missing. It documents incomplete restoration with `reset.py` limited to `test_*.py`/`*_test.py`, surviving `conftest.py`/`pytest.ini`/plugins, and a local report-rewriting-hook reproduction. It identifies both identity failures: normalization drops the file component and lookup uses `if name in key`, supported by same-name and prefix-collision examples. Finally, it shows timeout empty logs and missing/collection-error statuses being mapped to `unresolved` reward 0 rather than an unscorable outcome, with concrete timeout and exit-4 examples. Its differing corpus-resolution counts do not contradict the mechanisms.",
+          "root_cause_score": 1.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": true,
+        "score": 1.0
+      },
+      "trace_file": "agent-trace/fable51-swe-grader.json",
+      "trace_sha256": "7766d7dcb6d6e3bf745ff72a1442a21654f89f76dd7c751e12408b1bd421e961",
+      "answer_sha256": "c17f051fd3987a6ef0dd8829bdcb4857f6f62d0239d2e003b69778502dfd31b5",
+      "answer_source": "original answer, matched byte-for-byte after strip to original judge request"
+    },
+    {
+      "slug": "glm53-swe-grader",
+      "task": "environment/swe_grader_silent_mislabel",
+      "model": "GLM-5.3",
+      "previous": {
+        "passed": false,
+        "score": 0.9,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "Verdict agrees: it states the reward pipeline is not reporting test behavior and labels the run unhealthy ('Verdict: no'). It accurately explains all four mechanisms: (1) command flags omit -rA while the parser requires 'short test summary info,' with an all-pass archived log ending in '128 passed' and a missing-status regrade row; (2) restoration only checks test-name globs, leaving conftest.py, pytest.ini/plugins, and untracked additions, supported by concrete hook/plugin examples and deletion reruns; (3) normalization drops the file part and lookup uses first substring containment, supported by cited code and same-name cross-file collisions with conflicting statuses; and (4) empty/missing statuses and timeout empty logs become unresolved reward 0 rather than unscorable, supported by the cited reward/executor paths and concrete timeout, exit-4, and patch-failure records.",
+          "root_cause_score": 1.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": true,
+        "score": 1.0
+      },
+      "trace_file": "agent-trace/glm53-swe-grader.json",
+      "trace_sha256": "cf9324d40071f3b06e7c54317f6f755d816bcca426863e69054e8002196c671c",
+      "answer_sha256": "72652ad6d6788d4f8ec9398d846e90c091f726b59fa59599b4351e0050216112",
+      "answer_source": "original answer, matched byte-for-byte after strip to original judge request"
+    },
+    {
+      "slug": "kimi-swe-grader",
+      "task": "environment/swe_grader_silent_mislabel",
+      "model": "Kimi-K3",
+      "previous": {
+        "passed": false,
+        "score": 0.438889,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.5,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly identifies the command/parser mismatch and explains that empty statuses are scored as 0 rather than treated as unscorable, with concrete source and archived-log evidence for both. It omits the restoration vulnerability involving conftest/plugins/configuration, and it explicitly dismisses the node-id path-stripping and substring-fallback problem as irrelevant, so mechanisms 2 and 3 receive no credit.",
+          "root_cause_score": 0.5,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.6
+      },
+      "trace_file": "agent-trace/kimi-swe-grader.json",
+      "trace_sha256": "330319519b955f8ab24173499853a4d60cfedcbaaa2df8f738d9ec1cc1738d0e",
+      "answer_sha256": "60176d9ce776f1a4577a8de177047c115e94903c3138b0e17fb94a4dbaf9c890",
+      "answer_source": "original answer, matched byte-for-byte after strip to original judge request"
+    },
+    {
+      "slug": "kimi31-swe-grader",
+      "task": "environment/swe_grader_silent_mislabel",
+      "model": "Kimi-K3.1-Pro",
+      "previous": {
+        "passed": false,
+        "score": 0.95,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis agrees the pipeline is unhealthy. It concretely identifies the parser's reliance on a missing pytest summary and all-pass logs producing missing statuses; the incomplete restore filter allowing conftest.py, pytest.ini, plugins, and added test files to control reporting; path stripping plus substring fallback causing node-id collisions and substituted outcomes; and timeout/empty-log or missing-status cases being labeled unresolved with reward 0. It supports each mechanism with source references, archived logs, and concrete corpus examples.",
+          "root_cause_score": 1.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": true,
+        "score": 1.0
+      },
+      "trace_file": "agent-trace/kimi31-swe-grader.json",
+      "trace_sha256": "bc093c4afc0f337e9e427e52f7aca4659f0486ba50135e80c728a1bc7c5ac845",
+      "answer_sha256": "d74cb0703feb4f20005cfe5726f72ed3e918673db9aaf55f2dca123838f8809e",
+      "answer_source": "original answer, matched byte-for-byte after strip to original judge request"
+    },
+    {
+      "slug": "dsv4-swe-grader",
+      "task": "environment/swe_grader_silent_mislabel",
+      "model": "DeepSeek-V4-Pro",
+      "previous": {
+        "passed": false,
+        "score": 0.65,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 0.75,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The verdict agrees: it calls the pipeline unhealthy/flat-zero and unable to report repository test behavior. It accurately explains and evidences (1), quoting the summary-only parser, absence of the summary on green logs, and `grade_statuses` mapping empty statuses to 0; (2), the test-only restoration glob leaving `pytest.ini`, `conftest.py`, and plugins, with concrete cheat patches; and (4), timeout empty logs flowing to `{}` and `unresolved 0.0`, with executor paths and timed-out records. It entirely omits mechanism (3): path removal from node IDs and substring fallback that can assign another test's status to a missing required ID. Thus neither root-cause nor evidence credit is warranted for that group.",
+          "root_cause_score": 0.75,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": false,
+        "score": 0.8
+      },
+      "trace_file": "agent-trace/dsv4-swe-grader.json",
+      "trace_sha256": "9a7b090adf8d561aef4c45ae4351bbc2857bab05b025f5fba692b08e68e326cd",
+      "answer_sha256": "1ea3ead943ac2d1ed0bd6fe4a765b6d21ef8bbb3d103f98eed5d211bf0cc7e40",
+      "answer_source": "original answer, matched byte-for-byte after strip to original judge request"
+    },
+    {
+      "slug": "qwen38-swe-grader",
+      "task": "environment/swe_grader_silent_mislabel",
+      "model": "Qwen3.8-Max",
+      "previous": {
+        "passed": false,
+        "score": 0.95,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis correctly declares the pipeline unhealthy. It concretely shows the command lacks -rA while the parser requires a \"short test summary info\" section and ignores verbose PASSED lines; documents incomplete test restoration that leaves conftest.py, pytest.ini, plugins, and added files under rollout control; identifies path-dropping normalization plus first-substring fallback and gives truncated-id/collision-style examples; and shows empty/missing logs, timeouts, usage errors, and patch failures are assigned reward 0 rather than an unscorable outcome. Each mechanism is supported with cited code paths and/or archived or local reproduction evidence.",
+          "root_cause_score": 1.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": true,
+        "score": 1.0
+      },
+      "trace_file": "agent-trace/qwen38-swe-grader.json",
+      "trace_sha256": "7b95530ed0e771f5a72e662ac88a53525d435399f98e16d91becf890c8b77963",
+      "answer_sha256": "ffc2f170fb0dfad063a8c8deb690874d6dd9dee0baee228c294894e8e53cd983",
+      "answer_source": "original answer, matched byte-for-byte after strip to original judge request"
+    },
+    {
+      "slug": "grok47-swe-grader",
+      "task": "environment/swe_grader_silent_mislabel",
+      "model": "Grok-4.7",
+      "previous": {
+        "passed": false,
+        "score": 0.95,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis concludes the pipeline is unhealthy: it says rewards do not report repository test outcomes and documents false negatives and undecidable runs scored as zero. It concretely shows the command/parser mismatch (`build_command` lacks `-r`; parser requires `short test summary info`; green logs have only verbose PASSED lines), with archived/reproduced all-pass examples. It documents incomplete restoration with the `test_*.py`/`*_test.py` filter and surviving `tests.py`, root `conftest.py`, added `pytest.ini`, and force-pass plugin examples. It explains both path-dropping normalization collisions and substring fallback binding absent ids to longer test names, with concrete collisions. Finally, it quotes the reward empty/missing branch, executor timeout behavior, and provides timeout and collection-error records mapped to 0 rather than unscorable.",
+          "root_cause_score": 1.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": true,
+        "score": 1.0
+      },
+      "trace_file": "agent-trace/grok47-swe-grader.json",
+      "trace_sha256": "f79c6c7d19495072e97c82d91710a78decedaf8a53fce567a983a5aaa5b0c8bf",
+      "answer_sha256": "73249106cb77bd6eaec7c2ba90daba8130ce8bd214a708cf26a28f390bb1efab",
+      "answer_source": "original answer, matched byte-for-byte after strip to original judge request"
+    },
+    {
+      "slug": "dsv41flash-swe-grader",
+      "task": "environment/swe_grader_silent_mislabel",
+      "model": "DeepSeek-V4.1-Flash",
+      "previous": {
+        "passed": false,
+        "score": 0.95,
+        "source": "page/trace-data.js"
+      },
+      "result": {
+        "metrics": {
+          "evidence_score": 1.0,
+          "judge_model": "gpt-5.6-terra",
+          "reason": "The diagnosis agrees the pipeline is unhealthy and accurately explains all four mechanisms: the command omits -rA while the parser requires the short summary, reset.py leaves conftest/config/plugin and added test surfaces, node-id normalization drops paths with substring fallback, and missing statuses/timeouts become unresolved reward 0. It provides concrete source references, archived logs, collision examples, hook/plugin reproductions, and timeout records for each mechanism.",
+          "root_cause_score": 1.0,
+          "status": "judged",
+          "verdict_score": 1.0
+        },
+        "passed": true,
+        "score": 1.0
+      },
+      "trace_file": "agent-trace/dsv41flash-swe-grader.json",
+      "trace_sha256": "063864f47201d9ff0802b992099bf2e58f743d81177707b456c38fde6c0e740c",
+      "answer_sha256": "da257a1cdcbb1c0d646ef046a17f5eb72800cfe590aaeead09b7ace0c29528aa",
+      "answer_source": "original answer, matched byte-for-byte after strip to original judge request"
+    }
+  ]
+}

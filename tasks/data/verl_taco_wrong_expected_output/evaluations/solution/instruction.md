@@ -80,8 +80,11 @@ verifier's pristine copies at grading time, and `taco_verl/test.parquet` is
 pinned by sha256, so editing the runner, the reward, shortening the run,
 touching the held-out set, or training on it (train/test prompt overlap is
 checked) fails the run. The repaired `train.parquet` must keep the shipped
-schema and prompt template on every row, keep at least 1,200 distinct rows,
-and stay disjoint from the held-out prompts; its row content is checked for
+schema and prompt template on every row, keep at least 1,200 total rows covering
+at least 800 distinct prompts, and stay disjoint from the held-out prompts.
+You may repeat retained rows to reach the total-row floor after filtering, or
+repair labels in place; repeated rows do not count toward the 800-prompt
+diversity floor. Its row content is checked for
 tampering at grading time, so rewriting prompts or problem statements to hide
 training rows from the grader fails the run. A non-empty
 `/workspace/report.md` is required. The grader also requires run-reality

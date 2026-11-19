@@ -87,9 +87,9 @@ records were of that kind). Both are visible in the workspace; neither is labell
 - **issue**: name the four defects with their mechanism and direction -- the command/parser
   contract that makes every reward 0, the test-surface restoration that lets a rollout grade
   itself, the node-id matching that answers with another test's result, and the missing
-  "undecidable" outcome -- and connect each to the archived pass (0 of 194 rewarded; raw logs
-  with no summary section; 60 rollouts that change no source file at all; 21 undecidable
-  records). A diagnosis that stops at the missing `-rA` has found the defect that explains the
+  "undecidable" outcome -- and support each with visible source, archived logs, or a
+  local reproduction. The archived corpus counts are examples, not required recall.
+  A diagnosis that stops at the missing `-rA` has found the defect that explains the
   flat reward, not the one that makes the reward wrong.
 - **solution**: repair all four stages (`evaluations/solution/oracle/repair.patch`); equivalents
   are accepted -- machine-readable pytest output instead of log parsing, re-copying the test
@@ -101,8 +101,11 @@ records were of that kind). Both are visible in the workspace; neither is labell
 ## Verification
 
 - **issue**: an LLM judge compares `agent_answer.md` with the hidden oracle on verdict / root
-  cause / evidence, weighted 0.2 / 0.6 / 0.2, pass at ≥ 0.8. The oracle carries four essential
-  root causes, so naming only the missing summary section cannot reach the mark.
+  cause / evidence, weighted 0.2 / 0.6 / 0.2. Passing requires verdict = 1,
+  root cause > 0.8, and evidence > 0.8, not merely a total ≥ 0.8. The oracle
+  carries four essential root causes; concrete support for each is required,
+  but exact counts of patches or undecidable records are not. Naming only the
+  missing summary section cannot pass.
   `environment/check_evidence.py` re-derives every number quoted here from the shipped
   artefacts, checks that the staged and held-out corpora share no instance, and scans the
   task for private markers.

@@ -32,8 +32,9 @@ Pass requires metric <= required_final_score_max.
 The rerun is anchored: live grading byte-compares the workspace launch script
 and `verl/utils/reward_score/taco.py` against the verifier's pristine copies,
 pins `taco_verl/test.parquet` by sha256, requires the repaired
-`taco_verl/train.parquet` to keep at least `min_train_rows` rows, and checks
-that no training prompt equals a held-out prompt (training on the validation
+`taco_verl/train.parquet` to keep at least `min_train_rows` total rows and
+`min_distinct_train_prompts` distinct prompts (clean rows may be repeated), and
+checks that no training prompt equals a held-out prompt (training on the validation
 set fails). The external judge finds each dumped response's problem by
 parsing the prompt the run trained on, so the repaired train.parquet is also
 checked against blinding: every row must keep the shipped prompt-template
@@ -84,6 +85,8 @@ REQUIRED_SPEC_KEYS = {
     "log_roots",
     "dump_subdir",
     "min_rows",
+    "min_train_rows",
+    "min_distinct_train_prompts",
     "pinned_sha256",
 }
 
@@ -359,8 +362,9 @@ def stage_integrity(
     """The rerun stage executes the agent's workspace copy of the launch script on
     the agent's data, so live grading compares: the launch script and taco.py
     byte-for-byte against the pristine copies in resources/, test.parquet by
-    sha256, train.parquet by row floor, train/test prompt disjointness, the
-    shipped prompt-template shape on every train row, a bound on rows still
+    sha256, train.parquet by total-row and distinct-prompt floors, train/test
+    prompt disjointness, the shipped prompt-template shape on every train row,
+    a bound on rows still
     carrying a recorded wrong-expected-output signature, and the required
     non-empty report.md. A replay of packaged evidence by hand runs without
     the stage environment and skips the check."""
@@ -390,9 +394,10 @@ def stage_integrity(
         except OSError:
             digest = ""
         details[f"pinned:{rel}"] = digest == expected
-    # train.parquet floor + train/test disjointness (the repair may and must
-    # change train.parquet, so it is not pinned; it just cannot shrink to a
-    # token set or become the validation set).
+    # Clean rows may be repeated to preserve the training budget after filtering
+    # the 552 dirty rows out of the 1,380-row mix. Check total rows and diversity
+    # separately: the 828 remaining clean prompts can satisfy both floors, but
+    # repeating a token set cannot. Held-out prompts must never enter training.
     train = None
     try:
         import pyarrow.parquet as pq
@@ -403,8 +408,12 @@ def stage_integrity(
         test = pq.read_table(ws / "taco_verl/test.parquet", columns=["prompt"])
         train_prompts = {json.dumps(p, sort_keys=True) for p in train["prompt"].to_pylist()}
         test_prompts = {json.dumps(p, sort_keys=True) for p in test["prompt"].to_pylist()}
-        details["train_rows"] = len(train_prompts)
-        details["train_rows_ok"] = len(train_prompts) >= int(spec.get("min_train_rows", 0))
+        details["train_rows"] = train.num_rows
+        details["train_rows_ok"] = train.num_rows >= int(spec["min_train_rows"])
+        details["train_distinct_prompts"] = len(train_prompts)
+        details["train_distinct_prompts_ok"] = len(train_prompts) >= int(
+            spec["min_distinct_train_prompts"]
+        )
         details["train_test_disjoint"] = not (train_prompts & test_prompts)
     except Exception as exc:  # pyarrow missing or parquet unreadable
         details["train_rows_ok"] = False

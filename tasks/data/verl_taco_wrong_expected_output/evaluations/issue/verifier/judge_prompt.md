@@ -14,11 +14,14 @@ Score these dimensions from 0 to 1:
   agree with the oracle. The oracle's root cause has two parts: (a) the
   training labels are natively wrong for a large fraction of the training
   problems -- in those rows the expected output of at least one test is wrong
-  in the dataset itself, so the problems' own bundled solutions, which agree
-  with each other, still fail their own tests -- and (b) under the binary
+  in the dataset itself, rather than the task merely being too difficult --
+  and (b) under the binary
   all-tests-pass reward a rollout that solves such a problem correctly is
   still scored 0, so GRPO assigns correct rollouts zero or negative advantage
-  and the model is trained to discard correct algorithms for those problems.
+  and loses the learning signal for those problems. All-zero groups have zero
+  advantage; a correct solution can receive negative advantage in mixed-reward
+  groups. Do not require the stronger and usually false claim that correct
+  solutions always receive negative advantage or are actively unlearned.
   Score:
   - `1`: states (a) and connects it to (b).
   - `0.3`: states (a), or only that some training labels are wrong, without
@@ -35,19 +38,29 @@ Score these dimensions from 0 to 1:
   rules out as an independent root cause next to the correct one. Do not
   require a file path, a function name, or an enumeration of the affected
   rows.
-- `evidence_score`: whether the diagnosis uses concrete evidence consistent
-  with the oracle and does not confuse symptoms with root causes. Strong
-  evidence includes a persistent externally-correct-but-scored-0 rate that
-  does not vanish with training (a rollout whose executed output matches
-  what the problem's own agreeing solutions produce while the run's reward
-  scored it 0, concentrated on a fixed subset of training problems and absent
-  from a clean control), the training reward mean pinned near the clean
-  baseline scaled by the clean share, held-out accuracy flat at its step-0
-  level while the model demonstrably solves the clean problems, and the
-  `EASY`/`MEDIUM` difficulty mix that rules out "the training data is too
-  hard". Penalize numbers that contradict the oracle and symptoms (such as a
-  noisy nonzero training reward or partially all-zero GRPO groups) presented
-  as the root cause.
+- `evidence_score`: score the fraction of the following three groups concretely
+  supported (each worth 1/3); do not enumerate the oracle's reference statistics
+  into extra requirements:
+  1. A specific training-test contradiction: identify a test/problem and its
+     recorded expected output, then establish a different correct output from
+     the problem statement, a worked example, or an independently justified
+     implementation/execution. Model disagreement alone is not proof of a bad
+     label, and a bare claim that labels are wrong earns no credit here.
+  2. Connect the bad label to a correct solution receiving reward 0: either a
+     concrete rollout/reproduction or the visible binary all-tests-pass reward
+     code applied to the demonstrated mismatch is sufficient.
+  3. Connect that lost reward to learning: support the zero/negative-advantage
+     explanation with observed all-zero/mixed groups or the concrete GRPO
+     group-normalization code applied to those rewards. Flat validation alone
+     does not demonstrate this mechanism.
+  Accept equivalent visible examples even if not listed in the oracle; no
+  particular problem id, file name, count of dirty rows, or per-step rate is
+  required. Do not require access to bundled reference solutions or a clean
+  control run: the task author's source-pool solutions, control curve, and
+  `control_reference/group_advantage.json` are not staged for the agent. Their
+  numbers are calibration context only. Counts from an agent's stated subset
+  or independent analysis need not equal reference aggregates. Reject material
+  contradictions in the supporting example, not omissions of optional numbers.
 
 Return exactly one JSON object with no Markdown and no additional keys:
 
@@ -56,6 +69,6 @@ Return exactly one JSON object with no Markdown and no additional keys:
   "verdict_score": 0.0,
   "root_cause_score": 0.0,
   "evidence_score": 0.0,
-  "reason": "One concise sentence explaining the score."
+  "reason": "Briefly cite the diagnosis's support for the root cause and three evidence groups, identifying any missing or contradicted group."
 }
 ```

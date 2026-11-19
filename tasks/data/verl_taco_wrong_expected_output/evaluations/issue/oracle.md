@@ -26,21 +26,30 @@ essential:
 2. **Causal chain to the failure.** The TACO reward is binary (1 only when
    every test passes). On a dirty problem, a rollout that implements the
    correct algorithm still fails the natively-wrong test and earns 0, so GRPO
-   assigns correct rollouts a negative (or zero) advantage: the model is
-   trained to discard correct algorithms for those problems. The training
+   assigns correct rollouts zero advantage in all-zero groups, suppressing
+   learning, or negative advantage in mixed-reward groups. The recorded
+   correct-but-zero samples are predominantly zero-advantage, not actively
+   pushed away from the correct algorithm. The training
    reward mean stays pinned below the clean baseline scaled by the clean
    fraction, and the rate of externally-correct-but-scored-0 rollouts stays
    nonzero instead of vanishing as training progresses.
 
 The difficulty mix being `EASY`/`MEDIUM` with a 4B instruct policy that
 solves ~34% of the matched held-out split at step 0 is how the agent can tell
-this is not the sibling failure "training data too hard": the same model,
-same scorer, on matched-difficulty verified problems learns, while a
-persistent subset of training groups produces agreeing correct-looking
-output that the tests reject.
+this is not the sibling failure "training data too hard": the visible run
+solves some matched-difficulty problems, while specific outputs justified by
+the problem statements are rejected by the recorded test labels. The hidden
+clean control is corroboration for the task author, not required agent evidence.
 
-## Observable impact (from the recorded Qwen3-4B-Instruct-2507 runs; the
-## defective arm ran 49/50 steps, the control arm the shipped 40 steps)
+## Reference calibration (not a required evidence checklist)
+
+The defective arm ran 49/50 steps; the control arm ran the shipped 40 steps.
+The control run, source-pool reference solutions, and
+`evaluations/solution/oracle/control_reference/group_advantage.json` are not
+agent-visible. None of their values, nor the exact aggregates below, is required
+for Issue credit. Score the three visible evidence groups in
+`verifier/judge_prompt.md`; independently established counterexamples and
+group statistics are valid alternatives to the reference investigation.
 
 - `critic/rewards/mean`: defective arm 0.370 averaged over the run (range
   0.09-0.65, no upward trend; last five recorded dumps 0.431) versus the
@@ -92,6 +101,14 @@ output that the tests reject.
   persistent correct-but-zero rate on the dirty subset is the primary channel.
 
 ## Evidence
+
+Full evidence credit requires a concrete bad-label counterexample, its
+connection to binary reward 0, and support for the resulting GRPO loss of
+learning signal. One justified counterexample is sufficient to establish the
+label defect; no census of the dirty pool or particular sample id is required.
+The agent can derive the correct output from the visible problem statement or
+an independently justified solution. The task author's agreeing bundled
+solutions establish the calibration, but are not required agent artifacts.
 
 - `workspace/taco_verl/train.parquet` rows carry no provenance label; the
   dirty/clean distinction is not a column. It is established by execution:

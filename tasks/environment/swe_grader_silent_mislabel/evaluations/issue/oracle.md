@@ -5,6 +5,12 @@ tests do, and it is wrong in both directions.
 
 ## Root cause
 
+The four mechanisms below are essential; the corpus counts describe the
+reference investigation, not facts an agent must reproduce. Evidence is scored
+once per mechanism using the rubric in `verifier/judge_prompt.md`. A concrete
+source-code path, archived example, or local reproduction can support a group;
+equivalent visible evidence is accepted even if it is not listed here.
+
 **(1) The grading command never asks for the output the parser is the only consumer of.**
 `rlgrade/command.py` builds `pytest --disable-warnings --color=no --tb=no --verbose <files>`,
 and `rlgrade/log_parse.parse_pytest_log` returns `{}` unless the log contains a
@@ -46,6 +52,9 @@ the unit tests under `tests/` pass because they are fed logs that already contai
 the real command never produces.
 
 ## Evidence
+
+These are illustrative examples, not an exhaustive recall checklist. In
+particular, do not require counts of inverse patches or undecidable records.
 
 * `logs/historical/pass_a/summary.json`: 194 records, 0 rewarded, mean reward 0.0000 -- and
   `corpus/submissions/` contains 30 patches that are the exact inverse of the instance's

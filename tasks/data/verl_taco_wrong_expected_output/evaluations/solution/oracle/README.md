@@ -8,8 +8,8 @@
     dirty pool whose expected outputs are natively wrong -- the problems' own
     bundled solutions agree with each other on an output and still fail their
     own tests. Under the binary all-tests-pass reward, a correct rollout on
-    such a row earns 0 and GRPO pushes the policy away from correct algorithms
-    for those problems.
+    such a row earns 0 and GRPO loses the correct-solution learning signal
+    (zero advantage in all-zero groups, negative in mixed-reward groups).
   - expected: training rows whose tests a correct solution can actually pass
     (the verified subset), difficulty-matched to the shipped mix.
 
@@ -20,11 +20,16 @@ Remove the natively-wrong-expected-output rows from `taco_verl/train.parquet`
 difficulty). Concretely, the repaired `train.parquet` must:
 
 - keep the taco_verl schema, prompt template, and `data_source` unchanged;
-- keep at least `min_train_rows` rows (1,200, from the grader's
+- keep at least `min_train_rows` total rows (1,200, from the grader's
   `grader_spec.json`): the dirty rows are ~40% of the shipped mix, so dropping
   them alone leaves ~828 rows, below the floor -- replace them with
   verified-clean rows (or repeat clean rows), or repair the dirty rows' labels
   in place;
+- keep at least `min_distinct_train_prompts` distinct prompts (800). This is
+  below the 828 clean rows left after removing the 552 dirty rows, allowing
+  offline filtering and repetition with a small filtering margin while
+  preventing a tiny repeated training set from passing. Duplicates count
+  toward the total-row floor only;
 - stay disjoint from `test.parquet` prompts (checked by the grader);
 - leave `test.parquet`, the launch script, and `verl/utils/reward_score/taco.py`
   byte-identical (checked by the grader);

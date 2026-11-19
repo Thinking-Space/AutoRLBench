@@ -748,6 +748,12 @@
  * solution-record reconciliation anchor 190 -> 208.
  * The 175 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
+ * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
+ * (11) and swe_grader_silent_mislabel (10) were rejudged with gpt-5.6-terra
+ * after evidence-rubric repairs. Seven failures changed to passes; task
+ * passes are now 1/11 and 6/10. Prior results, new dimension scores, reasons,
+ * and provenance are recorded in issue-rejudgments.json. Agent trajectories
+ * and Solution results are unchanged.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
 window.AUTORLBENCH_RUNS = [
@@ -5841,10 +5847,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.72,
+    "score": 0.85,
     "durationMs": 1120472,
     "steps": 29,
-    "costUsd": 4.7324
+    "costUsd": 4.7324,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -5873,10 +5880,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.61,
+    "score": 0.85,
     "durationMs": 892415,
     "steps": 30,
-    "costUsd": 0.8936
+    "costUsd": 0.8936,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -5904,11 +5912,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.76,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 6051852,
     "steps": 24,
-    "costUsd": 49.0356
+    "costUsd": 49.0356,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -5937,10 +5946,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.22,
+    "score": 0.266,
     "durationMs": 824534,
     "steps": 54,
-    "costUsd": 9.1929
+    "costUsd": 9.1929,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -5969,10 +5979,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.02,
+    "score": 0.0,
     "durationMs": 621839,
     "steps": 42,
-    "costUsd": 1.1972
+    "costUsd": 1.1972,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -6001,10 +6012,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.45,
+    "score": 0.44666,
     "durationMs": 1252490,
     "steps": 19,
-    "costUsd": 2.3914
+    "costUsd": 2.3914,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -6033,10 +6045,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.25,
+    "score": 0.2,
     "durationMs": 1455699,
     "steps": 38,
-    "costUsd": 10.4672
+    "costUsd": 10.4672,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -6068,7 +6081,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.2,
     "durationMs": 1916965,
     "steps": 13,
-    "costUsd": 2.8455
+    "costUsd": 2.8455,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -6097,10 +6111,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.23,
+    "score": 0.26666,
     "durationMs": 2052722,
     "steps": 27,
-    "costUsd": null
+    "costUsd": null,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -6128,10 +6143,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.24,
+    "score": 0.2,
     "durationMs": 652083,
     "steps": 14,
-    "costUsd": null
+    "costUsd": null,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -8153,10 +8169,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.82,
+    "score": 0.784,
     "durationMs": 0,
     "steps": 134,
-    "costUsd": 11.4724
+    "costUsd": 11.4724,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "environment/sandbox_admission_starvation",
@@ -8839,10 +8856,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.45,
+    "score": 0.6,
     "durationMs": 186000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -8853,10 +8871,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.425,
+    "score": 0.6,
     "durationMs": 182000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -8866,11 +8885,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.95,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 2242000,
     "steps": 36,
-    "costUsd": 21.3539
+    "costUsd": 21.3539,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -8880,11 +8900,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 2368000,
     "steps": 62,
-    "costUsd": 11.9902
+    "costUsd": 11.9902,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -8895,10 +8916,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.438889,
+    "score": 0.6,
     "durationMs": 6708000,
     "steps": 20,
-    "costUsd": 2.167
+    "costUsd": 2.167,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -8908,11 +8930,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.95,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1068000,
     "steps": 81,
-    "costUsd": 5.8982
+    "costUsd": 5.8982,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -8923,10 +8946,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.65,
+    "score": 0.8,
     "durationMs": 4578000,
     "steps": 79,
-    "costUsd": 26.7991
+    "costUsd": 26.7991,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -8936,11 +8960,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.95,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 2196000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -8950,11 +8975,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "grok-build",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.95,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 903000,
     "steps": 125,
-    "costUsd": null
+    "costUsd": null,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -8964,11 +8990,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.95,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 2521000,
     "steps": 156,
-    "costUsd": 12.246
+    "costUsd": 12.246,
+    "rejudgmentSource": "issue-rejudgments.json"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
