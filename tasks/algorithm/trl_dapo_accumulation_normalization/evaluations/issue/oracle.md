@@ -4,21 +4,15 @@ Expected verdict: **unhealthy**.
 
 ## Root cause
 
-`src/trl/trainer/grpo_trainer.py`, `GRPOTrainer._compute_loss`: the DAPO denominator uses the token count of the entire generation batch without scaling it to the current gradient accumulation window. With steps_per_generation=4 and gradient_accumulation_steps=2, the loss and raw gradient for identical inputs are half the intended accumulation-window objective. During training multiply the denominator by current_gradient_accumulation_steps / steps_per_generation. Evaluation uses its unsplit batch denominator.
+`src/trl/trainer/grpo_trainer.py`, `GRPOTrainer._compute_loss`: the DAPO branch divides each micro-batch numerator by the token count of the entire generation batch without scaling that denominator to the current gradient accumulation window. Here `steps_per_generation=4` and `gradient_accumulation_steps=2`, so the logged optimizer-step objective is about half the intended window-token objective. The missing training correction is equivalent to multiplying the denominator by `current_gradient_accumulation_steps / steps_per_generation`; evaluation correctly uses its unsplit batch denominator. The exact arithmetic mechanism, rather than a poor reward or held-out score alone, is the essential diagnosis.
 
 ## Observable impact
 
-Every item in this section is derivable from the shipped workspace
-(`results/`). The counterfactual control run is author-side reference and
-lives in Documentation reconciliation below.
+Every item in this section is derivable from the shipped workspace (`results/`). Equivalent observations are accepted; the exact values are corroborating details.
 
-- The recorded run completes all 24 optimizer steps (`metrics_rank0.jsonl`,
-  train.log).
-- Captured objectives are zero on 12 of the 24 optimizer steps; on the 12
-  nonzero steps the recorded loss is ≈ 0.5× the accumulation-window objective
-  recomputed from the recorded per-token data (`token_records/`).
-- Held-out evaluation reward of the recorded run: 0.1953125
-  (`final_metrics.json`).
+- The recorded run completes all 24 optimizer steps (`metrics_rank0.jsonl`, `train.log`).
+- Captured objectives are zero on some optimizer steps; on the nonzero steps the recorded loss is about 0.5× the accumulation-window objective recomputed from `token_records/`, because the denominator is the full generation batch.
+- Held-out evaluation reward is 0.1953125 (`final_metrics.json`), with truncation and zero-variance groups as secondary symptoms. The exact objective discrepancy is stronger evidence than the small held-out reward gap.
 
 This single paired run does not establish a general accuracy effect.
 
