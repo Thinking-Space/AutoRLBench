@@ -794,7 +794,24 @@
  * ones at per-item granularity) and audited clean of network
  * access. The published issue-judgment total below moves
  * 395 -> 405.
- * The 175 solution records are reconciled against AutoRLBench validation-first
+ * The ten verl_agent_loop_response_position_restart solution
+ * records were re-published on 19 Nov 2026 from the formal re-run
+ * (recorded 17:36-20:05, beijing 1xGPU BATCH replay verdicts). The
+ * previous round -- withdrawn earlier the same day -- ran under
+ * the simplified pr61-simple template instruction; this round ran
+ * against the audited task tree whose solution instruction is
+ * byte-identical to the published package (verified per run from
+ * the session stores). One pass: Grok-4.7 scores 1.0, the only
+ * repair whose verifier exits clean -- the response-position
+ * restart fixed. The nine fails split into eight honest repair
+ * fails (verifier exit 1) and one deterministic zero: Kimi-K3.1-Pro
+ * left the workspace unchanged, a healthy-verdict trap answer with
+ * no repair attempted. The ten trajectories were rebuilt per agent
+ * type (the codex ones at per-item granularity) and audited clean
+ * of network access. The published solution-run total below moves
+ * 175 -> 185, and the solution-record reconciliation anchor
+ * 175 -> 185.
+ * The 185 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
  * (11) and swe_grader_silent_mislabel (10) were rejudged with gpt-5.6-terra
@@ -7316,7 +7333,7 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261116-204434",
     "sessionId": "01a1e463-9534-7152-91de-93f9f056fbc3",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "898e5b7298cd774640b9873410f9e5f98b1f6586f9800c08eddfe8d70482b06f"
+    "traceSha256": "aee1c3e79890a3366c09693f49f036f8759efc218dc7b774d7df7fd96d6f1b10"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -7348,7 +7365,7 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261116-200356-sol-rescue",
     "sessionId": "01a1e422-42fc-7d81-a9c2-12616b9f762f",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "204b6f2379d1a80b50e40403164282b0dac4298a3a046eb47e466cf13843968a"
+    "traceSha256": "c57248056bd779612809530b19f2eed9d8f529f89399cae8bb04bb2a99d70849"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -7782,7 +7799,7 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261117-044257",
     "sessionId": "01a1e61a-0c91-7c92-8081-51404148a518",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "a39c9f23674a8e9ccf469623d86bc9110d98bf73ec72c158fe85e3756bd8f1ba"
+    "traceSha256": "4b3e3a55117692dbef6045a538894311aefeb912bc17e9f51fc858c9296435ef"
   },
   {
     "task": "environment/sandbox_admission_starvation",
@@ -7800,7 +7817,7 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261117-044624",
     "sessionId": "01a1e61d-33ab-7923-9b5f-8cf94eb423af",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "3e12dc222b356eeb573cb5998e1596c25b21397ecf909dab88de7c1e7ce2a0f5"
+    "traceSha256": "680c4f38f9ca1101b260efea81d1af3ff2757f783253507bb37cd3e6d021c190"
   },
   {
     "task": "environment/sandbox_admission_starvation",
@@ -9703,6 +9720,186 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1358000,
     "steps": 78,
     "costUsd": 7.6722
+  },
+  {
+    "task": "infrastructure/verl_agent_loop_response_position_restart",
+    "slug": "gpt6astra-resp-position-sol",
+    "file": "agent-trace/gpt6astra-resp-position-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 122000,
+    "steps": 14,
+    "costUsd": null,
+    "sourceRunId": "20261119-195604",
+    "sessionId": "01a1f3aa-5439-76c2-967b-8b0794628bb5",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "9e46968e0166384509306ffe886ac5fa5641d00e1581777a5dc6784318411b60"
+  },
+  {
+    "task": "infrastructure/verl_agent_loop_response_position_restart",
+    "slug": "gpt61sol-resp-position-sol",
+    "file": "agent-trace/gpt61sol-resp-position-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 127000,
+    "steps": 9,
+    "costUsd": null,
+    "sourceRunId": "20261119-190505",
+    "sessionId": "01a1f37b-b5f8-7ce3-a5d5-adb50e805e27",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "6bd5cd25c885ae4b1863efd2daa7d1f2c88ed268e56b938c6d31544b8083dc6d"
+  },
+  {
+    "task": "infrastructure/verl_agent_loop_response_position_restart",
+    "slug": "fable51-resp-position-sol",
+    "file": "agent-trace/fable51-resp-position-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 611000,
+    "steps": 20,
+    "costUsd": 16.0783,
+    "sourceRunId": "20261119-185407",
+    "sessionId": "7fa37eac-3685-4dd3-9865-89daae5e8750",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "3c8ce36bf3ca2e656627273d25514edb642c6a46398ec64cdbef83c9e52546e2"
+  },
+  {
+    "task": "infrastructure/verl_agent_loop_response_position_restart",
+    "slug": "glm53-resp-position-sol",
+    "file": "agent-trace/glm53-resp-position-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 4607000,
+    "steps": 208,
+    "costUsd": 44.0076,
+    "sourceRunId": "20261119-173612",
+    "sessionId": "36745a9e-4ce0-4d15-9bf2-87c9a54afec5",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a2915c7a61f82e37d059f98fa55641c8d1f2e100405b37921c6a6e673f4aca9a"
+  },
+  {
+    "task": "infrastructure/verl_agent_loop_response_position_restart",
+    "slug": "kimi-resp-position-sol",
+    "file": "agent-trace/kimi-resp-position-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1468000,
+    "steps": 51,
+    "costUsd": 14.8345,
+    "sourceRunId": "20261119-190759",
+    "sessionId": "c6f020db-5566-4878-b7fa-b6d306387a96",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "895ef86c521c7b160d94973cb1b094ae39801c490724596cbcdf0a3089f33dd8"
+  },
+  {
+    "task": "infrastructure/verl_agent_loop_response_position_restart",
+    "slug": "kimi31-resp-position-sol",
+    "file": "agent-trace/kimi31-resp-position-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1918000,
+    "steps": 57,
+    "costUsd": 9.3292,
+    "sourceRunId": "20261119-193314",
+    "sessionId": "e36e31be-e195-4edc-ba19-f971e83ee347",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "4a9f66c8cbc6388f3f608a8323d6e0c080236a9e6ff27066be64cc534efa642c"
+  },
+  {
+    "task": "infrastructure/verl_agent_loop_response_position_restart",
+    "slug": "dsv4-resp-position-sol",
+    "file": "agent-trace/dsv4-resp-position-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 3359000,
+    "steps": 67,
+    "costUsd": 19.4524,
+    "sourceRunId": "20261119-175046",
+    "sessionId": "3e07cd72-75cb-4d9c-b284-cc10025e2aca",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "795867cb9ced95e1e8dadf71c62000ff84f27625d0ae86e3c176345f588b9c2c"
+  },
+  {
+    "task": "infrastructure/verl_agent_loop_response_position_restart",
+    "slug": "qwen38-resp-position-sol",
+    "file": "agent-trace/qwen38-resp-position-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2893000,
+    "steps": 2,
+    "costUsd": null,
+    "sourceRunId": "20261119-200549",
+    "sessionId": "recovered-from-stream",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "ddfac537c7e97bba508b9ca3ce723a1d1fdf6b8a4c05b7aed2edb3b0b8fcc22f"
+  },
+  {
+    "task": "infrastructure/verl_agent_loop_response_position_restart",
+    "slug": "grok47-resp-position-sol",
+    "file": "agent-trace/grok47-resp-position-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 807000,
+    "steps": 245,
+    "costUsd": null,
+    "sourceRunId": "20261119-173612",
+    "sessionId": "unknown",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a5aba7f4df518031f331e36e9ebb2f8363e03c4a41b496848c128d583f48fda6"
+  },
+  {
+    "task": "infrastructure/verl_agent_loop_response_position_restart",
+    "slug": "dsv41flash-resp-position-sol",
+    "file": "agent-trace/dsv41flash-resp-position-sol.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 3050000,
+    "steps": 190,
+    "costUsd": 18.2301,
+    "sourceRunId": "20261119-190323",
+    "sessionId": "cc9cd8ed-a886-4099-b980-9cd496f354d5",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "d6a43e44d17ff7e3926d4f21ec8ebf7c2b79d58ea1cd450e355fd34d98a280af"
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];
