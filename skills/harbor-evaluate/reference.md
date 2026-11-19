@@ -149,7 +149,7 @@ graded). Details in the task's
 | want to verify the task environment itself is healthy | — | `python3 -m autorlbench rerun <task>` (maintainer-side self-check, unrelated to model evaluation; use it when triaging environment problems) |
 | the agent is completely idle | keys/gateway | check `.env`; `logs/agent/<agent>.txt` usually shows 401/timeout traces |
 
-## 7. Appendix A: task inventory (37 tasks; ✓ = has evaluations/solution)
+## 7. Appendix A: task inventory (35 tasks; ✓ = has evaluations/solution)
 
 | Domain | Task | sol |
 | --- | --- | :-: |
@@ -174,7 +174,6 @@ graded). Details in the task's
 | environment | swe_grader_silent_mislabel | ✓ |
 | infrastructure | miles_async_rollout_inflight_not_evicted |  |
 | infrastructure | qwen3vl_geo3k | ✓ |
-| infrastructure | r1d15_math_grpo | ✓ |
 | infrastructure | slime_dapo_lookahead_boundary_abort |  |
 | infrastructure | trl_tool_history_cross_contamination |  |
 | infrastructure | verl_agent_loop_response_position_restart | ✓ |
@@ -184,7 +183,6 @@ graded). Details in the task's
 | infrastructure | verl_lora_merge_base_weight_sync | ✓ |
 | infrastructure | verl_moe_token_normalization | ✓ |
 | infrastructure | verl_pissa_vllm_adapter_request | ✓ |
-| infrastructure | verl_qwen3_vl_grpo_training_case_v8k2 |  |
 | reward | idea_awm_reward_diagnosis | ✓ |
 | reward | slime_judge_router_admission_starvation |  |
 | reward | slime_retool_length_reward_bonus | ✓ |

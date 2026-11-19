@@ -29,17 +29,17 @@ AutoRLBench Leaderboard，issue + solution 双档成绩。总分为全部已评�
 
 | # | 模型 | Agent | Issue 分数 | Solution 分数 | 总分 |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | DeepSeek-V4.1-Flash | Claude Code | 29.7 % | 25.0 % | **28.3 %** |
-| 2 | GPT-6-Astra | Codex | 27.0 % | 29.4 % | **27.8 %** |
-| 2 | GPT-6.1-Sol | Codex | 24.3 % | 35.3 % | **27.8 %** |
-| 4 | GLM-5.3 | Claude Code | 24.3 % | 29.4 % | **25.9 %** |
-| 5 | Gemini-4-Argon | Claude Code | 13.9 % | 50.0 % | **25.0 %** |
-| 6 | Claude-Fable-5.1 | Claude Code | 13.5 % | 29.4 % | **18.5 %** |
-| 7 | Kimi-K3.1-Pro | Claude Code | 10.8 % | 29.4 % | **16.7 %** |
-| 8 | Qwen3.8-Max | Qwen Code | 8.1 % | 29.4 % | **14.8 %** |
-| 8 | Grok-4.7 | Grok Build | 10.8 % | 23.5 % | **14.8 %** |
-| 10 | Kimi-K3 | Claude Code | 0.0 % | 17.6 % | **5.6 %** |
-| 11 | DeepSeek-V4-Pro | Claude Code | 2.8 % | 5.9 % | **3.8 %** |
+| 1 | GPT-6.1-Sol | Codex | 25.7 % | 37.5 % | **29.4 %** |
+| 2 | DeepSeek-V4.1-Flash | Claude Code | 28.6 % | 26.7 % | **28.0 %** |
+| 3 | GPT-6-Astra | Codex | 25.7 % | 31.3 % | **27.5 %** |
+| 3 | GLM-5.3 | Claude Code | 25.7 % | 31.3 % | **27.5 %** |
+| 5 | Gemini-4-Argon | Claude Code | 14.7 % | 53.3 % | **26.5 %** |
+| 6 | Claude-Fable-5.1 | Claude Code | 14.3 % | 31.3 % | **19.6 %** |
+| 7 | Kimi-K3.1-Pro | Claude Code | 11.4 % | 31.3 % | **17.6 %** |
+| 8 | Qwen3.8-Max | Qwen Code | 8.6 % | 31.3 % | **15.7 %** |
+| 8 | Grok-4.7 | Grok Build | 11.4 % | 25.0 % | **15.7 %** |
+| 10 | Kimi-K3 | Claude Code | 0.0 % | 18.8 % | **5.9 %** |
+| 11 | DeepSeek-V4-Pro | Claude Code | 2.9 % | 6.3 % | **4.0 %** |
 
 
 ## 任务

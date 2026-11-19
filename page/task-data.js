@@ -104,26 +104,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen3-VL-8B-Instruct with GRPO on geometry3k. A raw AutoProcessor is used instead of the model's preprocessor, so image position ids come out flat and the KL against the reference model is an order of magnitude too high."
   },
   {
-    "id": "infrastructure/verl_qwen3_vl_grpo_training_case_v8k2",
-    "title": "Qwen3-VL GRPO training case v8k2",
-    "family": "Infrastructure",
-    "tags": [
-      "verl",
-      "grpo",
-      "qwen3-vl",
-      "sequence-parallel",
-      "issue-only"
-    ],
-    "model": "Qwen/Qwen3-VL-8B-Instruct",
-    "dataset": "derek-thomas/ScienceQA",
-    "framework": "verl",
-    "image": "vl-grpo-cu129-recorded",
-    "created": "2026-10-24",
-    "license": "Apache-2.0",
-    "brief": "Fused FSDP path drops the globally shifted SP labels.",
-    "issue": "Training Qwen3-VL-8B-Instruct with GRPO on ScienceQA. The fused FSDP path does not consume the globally shifted sequence-parallel labels, so vLLM applies the wrong loss mask; correcting it is worth 5.35 percentage points of validation accuracy."
-  },
-  {
     "id": "reward/slime_search_r1_nomask",
     "title": "Search-R1 observations trained without a loss mask",
     "family": "Reward",
@@ -423,26 +403,6 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "An AdamW eps override of 1e-3 sits far above this model's per-parameter gradients, turning every update into momentum SGD 10-100x smaller than the learning rate implies.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. run_gsm8k_grpo.sh overrides the actor AdamW eps to 1e-3; per-parameter RMS gradients of this 0.5B model are about 1e-5 to 5e-5, so eps dominates the Adam denominator and the update becomes momentum SGD 10-100x smaller than lr 2e-6 implies: pg_clipfrac averages 8e-5 over steps 1-10 (control 2e-3), the training score first reaches 0.3 at step 35 (control step 5), and held-out strict accuracy ends at 0.486 against 0.566 with the default eps, while every per-step metric looks stable. No crash, RUN_EXIT 0."
-  },
-  {
-    "id": "infrastructure/r1d15_math_grpo",
-    "title": "Numerical policy divergence in a completed math GRPO run",
-    "family": "Infrastructure",
-    "tags": [
-      "verl",
-      "grpo",
-      "sequence-mis",
-      "numerical-consistency",
-      "hybrid-backend"
-    ],
-    "model": "DeepSeek-R1-Distill-Qwen-1.5B",
-    "dataset": "MATH 1460-question subset (train); AIME 2024 / 2025 (held-out)",
-    "framework": "verl / GRPO + sequence-MIS",
-    "image": "verl-vllm0.8.5-torch2.6.0-flashattn2.7.4-cu124-py3.10",
-    "created": "2026-11-06",
-    "license": "Apache-2.0",
-    "brief": "DeepSeek-R1-Distill-Qwen-1.5B trains with GRPO + sequence-MIS and the run completes with improving AIME, but the BF16 FSDP2 learner forward and the vLLM rollout forward compute materially different token probabilities for the same synchronized weights.",
-    "issue": "Training DeepSeek-R1-Distill-Qwen-1.5B with GRPO + sequence-MIS on the MATH 1460-question subset (440 steps). With both forwards at bfloat16, the recorded token-weighted mean absolute logprob difference is 0.0112137 nat/token over 1.03 billion response tokens, the maximum sampled-token probability difference reaches 0.999926 (step 252), the max absolute logprob difference is 17.5485 (step 326), the mean sequence ESS fraction collapses to 0.0989, and 5.65% of sequences are mis-rejected by the sequence log-ratio gate. An FP16 arm of the same experiment measures 0.00135637 nat/token with ESS 0.9506 -- an 8.27x separation -- while both arms learn and finish with finite optimizer records, and BF16 finishes within 2.81 / 2.71 points of FP16 on AIME 2024 / 2025 avg@32: the run looks healthy and is not."
   },
   {
     "id": "data/qwen25_gsm8k_grpo",
