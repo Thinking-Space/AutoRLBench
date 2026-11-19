@@ -6536,7 +6536,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.0,
     "durationMs": 92340292,
-    "steps": 2,
+    "steps": 6250,
     "costUsd": null
   },
   {
@@ -6676,7 +6676,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.514286,
     "durationMs": 86000,
-    "steps": 2,
+    "steps": 13,
     "costUsd": null
   },
   {
@@ -6690,7 +6690,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.257143,
     "durationMs": 99000,
-    "steps": 2,
+    "steps": 19,
     "costUsd": null
   },
   {
@@ -6816,7 +6816,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.333333,
     "durationMs": 81000,
-    "steps": 2,
+    "steps": 14,
     "costUsd": null
   },
   {
@@ -6830,7 +6830,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.7,
     "durationMs": 105000,
-    "steps": 2,
+    "steps": 20,
     "costUsd": null
   },
   {
@@ -6956,7 +6956,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.24,
     "durationMs": 69000,
-    "steps": 2,
+    "steps": 12,
     "costUsd": null
   },
   {
@@ -6970,7 +6970,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.32,
     "durationMs": 60000,
-    "steps": 2,
+    "steps": 13,
     "costUsd": null
   },
   {
@@ -7096,7 +7096,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.05,
     "durationMs": 56000,
-    "steps": 2,
+    "steps": 10,
     "costUsd": null
   },
   {
@@ -7110,7 +7110,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.057143,
     "durationMs": 55000,
-    "steps": 2,
+    "steps": 9,
     "costUsd": null
   },
   {
@@ -7236,7 +7236,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.3,
     "durationMs": 101000,
-    "steps": 2,
+    "steps": 12,
     "costUsd": null
   },
   {
@@ -7250,7 +7250,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.0,
     "durationMs": 207000,
-    "steps": 2,
+    "steps": 11,
     "costUsd": null,
     "sourceRunId": "20261116-204434",
     "sessionId": "01a1e463-9534-7152-91de-93f9f056fbc3",
@@ -7268,7 +7268,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.3,
     "durationMs": 93000,
-    "steps": 2,
+    "steps": 11,
     "costUsd": null
   },
   {
@@ -7282,7 +7282,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.0,
     "durationMs": 0,
-    "steps": 2,
+    "steps": 13,
     "costUsd": null,
     "sourceRunId": "20261116-200356-sol-rescue",
     "sessionId": "01a1e422-42fc-7d81-a9c2-12616b9f762f",
@@ -7556,7 +7556,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.01666,
     "durationMs": 122000,
-    "steps": 2,
+    "steps": 18,
     "costUsd": null
   },
   {
@@ -7570,7 +7570,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.2,
     "durationMs": 98000,
-    "steps": 2,
+    "steps": 13,
     "costUsd": null
   },
   {
@@ -7696,7 +7696,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.0,
     "durationMs": 131000,
-    "steps": 2,
+    "steps": 18,
     "costUsd": null,
     "sourceRunId": "20261117-044257",
     "sessionId": "01a1e61a-0c91-7c92-8081-51404148a518",
@@ -7714,7 +7714,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": true,
     "score": 1.0,
     "durationMs": 153000,
-    "steps": 2,
+    "steps": 20,
     "costUsd": null,
     "sourceRunId": "20261117-044624",
     "sessionId": "01a1e61d-33ab-7923-9b5f-8cf94eb423af",
@@ -7876,7 +7876,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.35,
     "durationMs": 129000,
-    "steps": 2,
+    "steps": 9,
     "costUsd": null
   },
   {
@@ -7890,7 +7890,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.0,
     "durationMs": 118000,
-    "steps": 2,
+    "steps": 9,
     "costUsd": null
   },
   {
@@ -8508,7 +8508,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.35,
     "durationMs": 666000,
-    "steps": 2,
+    "steps": 12,
     "costUsd": null
   },
   {
@@ -8522,7 +8522,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.0,
     "durationMs": 418000,
-    "steps": 2,
+    "steps": 9,
     "costUsd": null
   },
   {
@@ -8592,7 +8592,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.328571,
     "durationMs": 76000,
-    "steps": 2,
+    "steps": 12,
     "costUsd": null
   },
   {
@@ -8606,7 +8606,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.31428,
     "durationMs": 86000,
-    "steps": 2,
+    "steps": 13,
     "costUsd": null
   },
   {
@@ -8746,7 +8746,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": true,
     "score": 1.0,
     "durationMs": 131000,
-    "steps": 2,
+    "steps": 22,
     "costUsd": null
   },
   {
@@ -8760,7 +8760,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.292,
     "durationMs": 70000,
-    "steps": 2,
+    "steps": 11,
     "costUsd": null
   },
   {
@@ -8900,7 +8900,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.6,
     "durationMs": 186000,
-    "steps": 2,
+    "steps": 17,
     "costUsd": null,
     "rejudgmentSource": "issue-rejudgments.json"
   },
@@ -8915,7 +8915,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.6,
     "durationMs": 182000,
-    "steps": 2,
+    "steps": 14,
     "costUsd": null,
     "rejudgmentSource": "issue-rejudgments.json"
   },
@@ -9320,7 +9320,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": false,
     "score": 0.94,
     "durationMs": 81000,
-    "steps": 2,
+    "steps": 16,
     "costUsd": null
   },
   {
@@ -9334,7 +9334,7 @@ window.AUTORLBENCH_RUNS = [
     "passed": true,
     "score": 0.966,
     "durationMs": 74000,
-    "steps": 2,
+    "steps": 13,
     "costUsd": null
   },
   {
