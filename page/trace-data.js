@@ -762,6 +762,17 @@
  * the 0.8 gate). The eleven trajectories were rebuilt per agent
  * type and audited clean of network access. The published
  * issue-judgment total below moves 383 -> 394.
+ * The swe_grader_silent_mislabel Gemini record was published late,
+ * on 19 Nov 2026: its two earlier attempts died in an upstream 403
+ * (the round note above describes them as they were), and the
+ * fifth attempt -- through the yeysai.com backup gateway after two
+ * 403s and four 503 saturation windows -- completed a 77-minute
+ * session. The judgment: 0.75, fail -- verdict 1.0, root cause
+ * 0.75, evidence 0.5 (the diagnosis mistakes 30 empty-patch records
+ * for a fifth root cause and misses the 0/194 and 21-undecidable
+ * evidence items), leaving the task at six passes of eleven issue
+ * records. The published issue-judgment total below moves
+ * 394 -> 395.
  * The 175 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -770,6 +781,10 @@
  * passes are now 1/11 and 6/10. Prior results, new dimension scores, reasons,
  * and provenance are recorded in issue-rejudgments.json. Agent trajectories
  * and Solution results are unchanged.
+ * On 19 Nov 2026, the 11 Issue diagnoses for verl_taco_difficulty_mismatch
+ * were rejudged with the capability-mismatch rubric. Ten now pass; the
+ * prior results, dimension scores, reasons, and provenance are in
+ * issue-rejudgments-taco-difficulty.json. Solution/agent traces are unchanged.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
  */
 window.AUTORLBENCH_RUNS = [
@@ -781,11 +796,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.55,
+    "passed": true,
+    "score": 0.97,
     "durationMs": 1527000,
     "steps": 21,
-    "costUsd": 7.3342
+    "costUsd": 7.3342,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "infrastructure/verl_moe_token_normalization",
@@ -1075,11 +1091,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.82,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 586000,
     "steps": 24,
-    "costUsd": 2.8544
+    "costUsd": 2.8544,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1089,11 +1106,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.82,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 839000,
     "steps": 30,
-    "costUsd": 0.7528
+    "costUsd": 0.7528,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1103,11 +1121,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.85,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 2655000,
     "steps": 54,
-    "costUsd": 5.7029
+    "costUsd": 5.7029,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1117,11 +1136,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.42,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 786000,
     "steps": 41,
-    "costUsd": 7.9214
+    "costUsd": 7.9214,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1131,11 +1151,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.52,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 943000,
     "steps": 31,
-    "costUsd": 6.948
+    "costUsd": 6.948,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1145,11 +1166,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.84,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 2716000,
     "steps": 42,
-    "costUsd": 14.0503
+    "costUsd": 14.0503,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1160,10 +1182,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.52,
+    "score": 0.85,
     "durationMs": 2077000,
     "steps": 53,
-    "costUsd": 23.7769
+    "costUsd": 23.7769,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1173,11 +1196,12 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.83,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1997000,
     "steps": 31,
-    "costUsd": 0.9666
+    "costUsd": 0.9666,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1188,10 +1212,11 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": true,
-    "score": 0.99,
+    "score": 1.0,
     "durationMs": 523000,
     "steps": 40,
-    "costUsd": 2.9649
+    "costUsd": 2.9649,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "reward/idea_awm_reward_diagnosis",
@@ -8174,7 +8199,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 0,
     "steps": 139,
-    "costUsd": 10.8555
+    "costUsd": 10.8555,
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -9436,6 +9462,20 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 689000,
     "steps": 39,
     "costUsd": 4.2973
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "gemini4-swe-grader",
+    "file": "agent-trace/gemini4-swe-grader.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.75,
+    "durationMs": 4600000,
+    "steps": 96,
+    "costUsd": 25.6995
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

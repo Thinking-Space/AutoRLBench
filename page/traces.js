@@ -78,6 +78,12 @@
 
     /* ---- Data shaping -------------------------------------------------- */
 
+    /* Task groups are headed by the task's folder name (the last path
+       segment of its id) rather than its display title. */
+    function folderName(id) {
+        return String(id || '').split('/').pop();
+    }
+
     function runsByTask() {
         const map = {};
         for (const run of RUNS) {
@@ -99,6 +105,7 @@
         const q = query.trim().toLowerCase();
         if (!q) return true;
         if (task.title.toLowerCase().includes(q)) return true;
+        if (folderName(task.id).toLowerCase().includes(q)) return true;
         return runs.some(run =>
             String(run.model || '').toLowerCase().includes(q)
             || String(run.agent || '').toLowerCase().includes(q));
@@ -207,7 +214,7 @@
             <details class="traces-group">
                 <summary>
                     <span class="traces-group-caret" aria-hidden="true">›</span>
-                    <span class="traces-group-title">${escHtml(task.title)}</span>
+                    <span class="traces-group-title">${escHtml(folderName(task.id))}</span>
                     <span class="traces-group-meta">${escHtml(meta)}</span>
                 </summary>
                 <div class="traces-group-body">${body}</div>

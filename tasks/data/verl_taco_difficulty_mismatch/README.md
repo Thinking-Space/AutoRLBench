@@ -67,9 +67,11 @@ error ≈ 0.019):
 
 ## Reference solution
 
-- **issue**: a passing diagnosis must name both parts: (1) the training data is
-  too hard for this model — `train.parquet` is `VERY_HARD`-only against a 1.5B
-  policy — and (2) the causal chain to the failure: the TACO reward is binary
+- **issue**: a passing diagnosis must establish both causal groups: (1) the
+  training data is too hard for this model — equivalently, the model almost
+  never solves the training distribution compared with validation; the
+  `VERY_HARD`-only composition is supporting context — and (2) the causal chain
+  to the failure: the TACO reward is binary
   (1 only when every test passes), the policy almost never earns a 1, nearly
   every GRPO group of 8 is all-zero so its group-normalized advantage is exactly
   0, the policy-gradient term vanishes on most steps (256/400), and training
@@ -89,6 +91,10 @@ error ≈ 0.019):
   the hidden `oracle.md` on verdict / root cause / evidence, weighted
   0.2 / 0.6 / 0.2. Passing is a conjunctive gate, not the weighted sum:
   `verdict_score == 1.0` and `root_cause_score > 0.8` and `evidence_score > 0.8`.
+  Equivalent descriptions of capability mismatch and reward-to-GRPO signal loss
+  are accepted; exact reference counts and literal difficulty labels are not
+  required. Standard binary reward or secondary optimization observations are
+  not penalized when the two essential causal groups remain explicit.
   Issue evaluation launches no training and needs no GPU. There is a single
   defective run and no control arm, so no threshold was calibrated and
   run-to-run variance was not measured.

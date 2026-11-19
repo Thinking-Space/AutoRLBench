@@ -7,6 +7,12 @@ Expected verdict: **unhealthy**.
 The training data is too hard for this model, so GRPO receives almost no
 learning signal. Both parts are essential:
 
+Equivalent wording is accepted: "the model almost never solves this training
+distribution, so binary reward becomes sparse" expresses the same mechanism as
+calling the rows `VERY_HARD`. The exact difficulty label and reference counts
+are calibration details, not mandatory recall items. Standard binary scoring is
+an amplifier of the mismatch, not by itself a separate task defect.
+
 1. **Data difficulty.** `workspace/taco_verl/train.parquet` contains only TACO
    `VERY_HARD` problems (2329 rows), while `workspace/taco_verl/test.parquet`
    is the 184-row TACO `EASY` validation set. The training set is far beyond
@@ -24,6 +30,10 @@ on the validation problems). The mismatch by itself is not the failure
 mechanism: the run would stall the same way with a `VERY_HARD` validation set.
 
 ## Observable impact
+
+These values are representative evidence, not an exact-number checklist. Any
+visible train/validation gap, reward/group statistic, and held-out consequence
+that establishes the same causal links is sufficient.
 
 From `workspace/logs/qwen2_5_1.5b_instruct_taco_fsdp_20261021_080557.log`
 (400/400 steps, 145 steps per epoch) and the per-step rollout dumps in

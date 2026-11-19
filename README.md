@@ -34,7 +34,7 @@ AutoRLBench Leaderboard, issue + solution evaluation. Overall is the combined pa
 | 2 | GPT-6.1-Sol | Codex | 27.8 % | 37.5 % | **30.8 %** |
 | 3 | GLM-5.3 | Claude Code | 27.8 % | 31.3 % | **28.8 %** |
 | 4 | GPT-6-Astra | Codex | 25.0 % | 31.3 % | **26.9 %** |
-| 5 | Gemini-4-Argon | Claude Code | 14.3 % | 53.3 % | **26.0 %** |
+| 5 | Gemini-4-Argon | Claude Code | 13.9 % | 53.3 % | **25.5 %** |
 | 6 | Claude-Fable-5.1 | Claude Code | 19.4 % | 31.3 % | **23.1 %** |
 | 7 | Kimi-K3.1-Pro | Claude Code | 13.9 % | 31.3 % | **19.2 %** |
 | 7 | Qwen3.8-Max | Qwen Code | 13.9 % | 31.3 % | **19.2 %** |
