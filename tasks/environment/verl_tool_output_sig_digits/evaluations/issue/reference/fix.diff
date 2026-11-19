@@ -1,0 +1,48 @@
+--- a/verl/experimental/agent_loop/tool_agent_loop.py
++++ b/verl/experimental/agent_loop/tool_agent_loop.py
+@@ -29,7 +29,7 @@
+     register,
+ )
+ from verl.experimental.agent_loop.tool_parser import FunctionCall, ToolParser
+-from verl.experimental.agent_loop.utils import build_gpt_oss_tool_response_text, shorten_numeric_literals
++from verl.experimental.agent_loop.utils import build_gpt_oss_tool_response_text
+ from verl.tools.function_tool import FunctionTool, normalize_function_tool_return
+ from verl.tools.schemas import ToolResponse
+ from verl.utils.profiler import simple_timer
+@@ -459,8 +459,6 @@
+                 await tool.release(instance_id)
+ 
+         tool_response_text = tool_execution_response.text
+-        if tool_response_text:
+-            tool_response_text = shorten_numeric_literals(tool_response_text)
+         if tool_response_text and len(tool_response_text) > self.max_tool_response_length:
+             if self.tool_response_truncate_side == "left":
+                 tool_response_text = "(truncated)..." + tool_response_text[-self.max_tool_response_length :]
+--- a/verl/experimental/agent_loop/utils.py
++++ b/verl/experimental/agent_loop/utils.py
+@@ -13,25 +13,9 @@
+ # limitations under the License.
+ 
+ import os
+-import re
+ from typing import Any
+ 
+ 
+-_NUMERIC_LITERAL = re.compile(r"-?\d+\.\d+(?:[eE][-+]?\d+)?|-?\d+(?:[eE][-+]?\d+)?")
+-
+-
+-def shorten_numeric_literals(text: str, max_digits: int = 6) -> str:
+-    """Render numeric literals longer than ``max_digits`` digits in ``%g`` form with ``max_digits`` significant digits."""
+-
+-    def _fmt(m: re.Match) -> str:
+-        tok = m.group(0)
+-        if len(tok.lstrip("-").replace(".", "")) <= max_digits:
+-            return tok
+-        return f"{float(tok):.{max_digits}g}"
+-
+-    return _NUMERIC_LITERAL.sub(_fmt, text)
+-
+-
+ def resolve_config_path(config_path: str) -> str:
+     """Resolve agent loop configuration file path.
+ 
