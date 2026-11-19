@@ -29,6 +29,7 @@ const LEADERBOARD_MODELS = [
     { model: 'Claude-Fable-5.1', agent: 'Claude Code', logo: 'anthropic' },
     { model: 'GLM-5.3', agent: 'Claude Code', logo: 'glm' },
     { model: 'DeepSeek-V4-Pro', agent: 'Claude Code', logo: 'deepseek' },
+    { model: 'DeepSeek-V4.1-Flash', agent: 'Claude Code', logo: 'deepseek' },
     { model: 'Kimi-K3', agent: 'Claude Code', logo: 'kimi' },
     { model: 'Kimi-K3.1-Pro', agent: 'Claude Code', logo: 'kimi' },
     { model: 'Gemini-4-Argon', agent: 'Claude Code', logo: 'googlegemini' },
