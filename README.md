@@ -30,17 +30,17 @@ AutoRLBench Leaderboard, issue + solution evaluation. Overall is the combined pa
 
 | # | Model | Agent | Issue Score | Solution Score | Overall |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | GPT-6.1-Sol | Codex | 30.0 % | 33.3 % | **31.0 %** |
-| 2 | DeepSeek-V4.1-Flash | Claude Code | 32.5 % | 23.5 % | **29.8 %** |
-| 3 | GPT-6-Astra | Codex | 30.0 % | 27.8 % | **29.3 %** |
-| 3 | GLM-5.3 | Claude Code | 30.0 % | 27.8 % | **29.3 %** |
+| 1 | GPT-6.1-Sol | Codex | 30.0 % | 31.6 % | **30.5 %** |
+| 2 | DeepSeek-V4.1-Flash | Claude Code | 32.5 % | 22.2 % | **29.3 %** |
+| 3 | GPT-6-Astra | Codex | 30.0 % | 26.3 % | **28.8 %** |
+| 3 | GLM-5.3 | Claude Code | 30.0 % | 26.3 % | **28.8 %** |
 | 5 | Gemini-4-Argon | Claude Code | 13.9 % | 53.3 % | **25.5 %** |
-| 6 | Grok-4.7 | Grok Build | 22.5 % | 27.8 % | **24.1 %** |
-| 7 | Claude-Fable-5.1 | Claude Code | 20.0 % | 27.8 % | **22.4 %** |
-| 8 | Qwen3.8-Max | Qwen Code | 17.5 % | 27.8 % | **20.7 %** |
-| 9 | Kimi-K3.1-Pro | Claude Code | 15.0 % | 27.8 % | **19.0 %** |
-| 10 | Kimi-K3 | Claude Code | 5.0 % | 16.7 % | **8.6 %** |
-| 11 | DeepSeek-V4-Pro | Claude Code | 5.1 % | 5.6 % | **5.3 %** |
+| 6 | Grok-4.7 | Grok Build | 22.5 % | 26.3 % | **23.7 %** |
+| 7 | Claude-Fable-5.1 | Claude Code | 20.0 % | 26.3 % | **22.0 %** |
+| 7 | Qwen3.8-Max | Qwen Code | 17.5 % | 31.6 % | **22.0 %** |
+| 9 | Kimi-K3.1-Pro | Claude Code | 15.0 % | 26.3 % | **18.6 %** |
+| 10 | Kimi-K3 | Claude Code | 5.0 % | 15.8 % | **8.5 %** |
+| 11 | DeepSeek-V4-Pro | Claude Code | 5.1 % | 5.3 % | **5.2 %** |
 
 ## Tasks
 

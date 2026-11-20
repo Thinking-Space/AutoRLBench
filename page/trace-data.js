@@ -854,6 +854,23 @@
  * clean of network access. The published issue-judgment total
  * below moves 425 -> 435, the solution-run total 185 -> 195, and
  * the solution-record reconciliation anchor 185 -> 195.
+ * The ten swe_grader_silent_mislabel solution records were
+ * re-published on 20 Nov 2026 from the formal re-run of 19-20 Nov
+ * (graded by the in-trial deterministic verifier, 0 GPU). The
+ * withheld batch -- see the withdrawal note above -- ran under the
+ * simplified pr66-simple template instruction; this round ran
+ * against the audited task tree whose solution instruction is
+ * byte-identical to the published package (verified per run from
+ * the session stores). One pass: Qwen3.8-Max scores 1.0 -- the
+ * only repair whose grader survives the falsified-gate and all
+ * four calibration metrics. The nine fails are graded zeros;
+ * DeepSeek-V4-Pro is a no-report capability zero (139 turns, clean
+ * exit, no report.md written; the first run's machine was killed
+ * and the round was completed from the re-run). The ten
+ * trajectories were rebuilt per agent type (the codex ones at
+ * per-item granularity) and audited clean of network access. The
+ * published solution-run total below moves 195 -> 205, and the
+ * solution-record reconciliation anchor 195 -> 205.
  * The 195 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -10543,6 +10560,146 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "3ebc6320-8e9d-477e-8ff0-12bd8d90abd3",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "c5c274bcd8e13aa74176cbca5ca893607b8f847e6c83e7cdfbb3c105c2adb8f6"
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "gpt6astra-swe-grader-sol",
+    "file": "agent-trace/gpt6astra-swe-grader-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 291000,
+    "steps": 16,
+    "costUsd": null
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "gpt61sol-swe-grader-sol",
+    "file": "agent-trace/gpt61sol-swe-grader-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 433000,
+    "steps": 46,
+    "costUsd": null
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "fable51-swe-grader-sol",
+    "file": "agent-trace/fable51-swe-grader-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1438000,
+    "steps": 30,
+    "costUsd": 39.0358
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "glm53-swe-grader-sol",
+    "file": "agent-trace/glm53-swe-grader-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 5969000,
+    "steps": 180,
+    "costUsd": 40.1562
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "kimi-swe-grader-sol",
+    "file": "agent-trace/kimi-swe-grader-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 4007000,
+    "steps": 65,
+    "costUsd": 15.1124
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "kimi31-swe-grader-sol",
+    "file": "agent-trace/kimi31-swe-grader-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2167000,
+    "steps": 139,
+    "costUsd": 8.011
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "dsv4-swe-grader-sol",
+    "file": "agent-trace/dsv4-swe-grader-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 6109000,
+    "steps": 104,
+    "costUsd": 38.273
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "qwen38-swe-grader-sol",
+    "file": "agent-trace/qwen38-swe-grader-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 3306000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "grok47-swe-grader-sol",
+    "file": "agent-trace/grok47-swe-grader-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 14446000,
+    "steps": 206,
+    "costUsd": null
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "dsv41flash-swe-grader-sol",
+    "file": "agent-trace/dsv41flash-swe-grader-sol.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 4717000,
+    "steps": 199,
+    "costUsd": 15.7916
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];
