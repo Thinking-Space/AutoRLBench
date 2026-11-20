@@ -871,7 +871,24 @@
  * per-item granularity) and audited clean of network access. The
  * published solution-run total below moves 195 -> 205, and the
  * solution-record reconciliation anchor 195 -> 205.
- * The 195 solution records are reconciled against AutoRLBench validation-first
+ * The ten r1v_clevr_count_range_mismatch issue records were
+ * published on 20 Nov 2026 from the local cybertron-evaluate sweeps
+ * of 19-20 Nov (ten models; no Gemini run; the task ships
+ * issue-only). The task pins a single-question training set: every
+ * one of the 68,000 training rows asks "How many items are there
+ * in the image?" with answers 3-10 in equal shares, so the policy
+ * learns to return the total object count whatever is asked --
+ * out-of-distribution accuracy peaks at 0.675 at step 100 and
+ * falls to 0.251 at step 400 while in-distribution accuracy ends
+ * at 0.980, and the in-distribution held-out set (same question,
+ * same answer range) cannot see the problem. One pass: Qwen3.8-Max
+ * scores a perfect 1.0; DeepSeek-V4.1-Flash (0.96) holds the full
+ * root cause at evidence exactly 0.8 on the strict gate; the other
+ * eight return the correct verdict with partial root-cause credit.
+ * The ten trajectories were rebuilt per agent type (the codex ones
+ * at per-item granularity) and audited clean of network access.
+ * The published issue-judgment total below moves 435 -> 445.
+ * The 205 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
  * (11) and swe_grader_silent_mislabel (10) were rejudged with gpt-5.6-terra
@@ -10700,6 +10717,146 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 4717000,
     "steps": 199,
     "costUsd": 15.7916
+  },
+  {
+    "task": "data/r1v_clevr_count_range_mismatch",
+    "slug": "gpt6astra-clevr-count",
+    "file": "agent-trace/gpt6astra-clevr-count.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.446667,
+    "durationMs": 161000,
+    "steps": 12,
+    "costUsd": null
+  },
+  {
+    "task": "data/r1v_clevr_count_range_mismatch",
+    "slug": "gpt61sol-clevr-count",
+    "file": "agent-trace/gpt61sol-clevr-count.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.446667,
+    "durationMs": 110000,
+    "steps": 12,
+    "costUsd": null
+  },
+  {
+    "task": "data/r1v_clevr_count_range_mismatch",
+    "slug": "fable51-clevr-count",
+    "file": "agent-trace/fable51-clevr-count.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.333333,
+    "durationMs": 293000,
+    "steps": 11,
+    "costUsd": 9.1053
+  },
+  {
+    "task": "data/r1v_clevr_count_range_mismatch",
+    "slug": "glm53-clevr-count",
+    "file": "agent-trace/glm53-clevr-count.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.575,
+    "durationMs": 1291000,
+    "steps": 40,
+    "costUsd": 9.4732
+  },
+  {
+    "task": "data/r1v_clevr_count_range_mismatch",
+    "slug": "kimi-clevr-count",
+    "file": "agent-trace/kimi-clevr-count.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.61,
+    "durationMs": 244000,
+    "steps": 28,
+    "costUsd": 5.0776
+  },
+  {
+    "task": "data/r1v_clevr_count_range_mismatch",
+    "slug": "kimi31-clevr-count",
+    "file": "agent-trace/kimi31-clevr-count.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 264000,
+    "steps": 20,
+    "costUsd": 2.1175
+  },
+  {
+    "task": "data/r1v_clevr_count_range_mismatch",
+    "slug": "dsv4-clevr-count",
+    "file": "agent-trace/dsv4-clevr-count.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.62,
+    "durationMs": 1935000,
+    "steps": 25,
+    "costUsd": 8.8833
+  },
+  {
+    "task": "data/r1v_clevr_count_range_mismatch",
+    "slug": "qwen38-clevr-count",
+    "file": "agent-trace/qwen38-clevr-count.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1794000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "data/r1v_clevr_count_range_mismatch",
+    "slug": "grok47-clevr-count",
+    "file": "agent-trace/grok47-clevr-count.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.66,
+    "durationMs": 526000,
+    "steps": 84,
+    "costUsd": null
+  },
+  {
+    "task": "data/r1v_clevr_count_range_mismatch",
+    "slug": "dsv41flash-clevr-count",
+    "file": "agent-trace/dsv41flash-clevr-count.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 2378000,
+    "steps": 35,
+    "costUsd": 3.2192
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

@@ -1,0 +1,28 @@
+{
+  "category": "data",
+  "framework": "r1-v",
+  "task": "r1v_clevr_count_range_mismatch",
+  "verdict": "unhealthy",
+  "root_cause": [
+    {
+      "name": "single_question_training_set_ignores_question_at_eval",
+      "where": "workspace/data (built by environment/build_data.py from leonardPKU/clevr_cogen_a_train and RyanWW/Super-CLEVR); workspace/run_grpo.sh passes the ordinary count+sformat rewards",
+      "observed": "all 68,000 training rows ask the single question 'How many items are there in the image?' with answers 3-10 in equal shares, while the out-of-distribution held-out set asks ~995 distinct Super-CLEVR questions and 864 of its 1,000 answers are 0-2; the in-distribution val set mirrors the training set, so it cannot see the problem. With one question the prompt text carries no reward information, so the exact-match reward reinforces only 'output the total object count', and the policy applies that behaviour to every question: out-of-distribution predictions drift into the 3-10 range and accuracy falls from 0.675 at step 100 to 0.251 at step 400 while in-distribution accuracy ends at 0.980",
+      "expected": "the training set must ask varied questions whose answer distribution covers what the held-out sets measure, so the reward can teach question-conditional counting"
+    }
+  ],
+  "evidence_metrics": [
+    "out-of-distribution accuracy (1000 Super-CLEVR items, greedy): 0.103 at step 0, peaks at 0.675 at step 100, then 0.528 / 0.346 / 0.208 / 0.239 / 0.243 / 0.251 to step 400",
+    "in-distribution accuracy (500 items, the same single question and 3-10 range): 0.602 at step 0 rising to 0.980 at step 400",
+    "parsed out-of-distribution predictions in the training answer range 3-10 grow from 225 at step 100 to 626 at step 400, against only 136 gold answers in that range; accuracy on the 864 gold-0-2 items falls from 0.734 at step 100 to 0.272 at step 400",
+    "late out-of-distribution outputs describe the whole scene and return its size (example: 'How many metal biplanes have the same size as the rubber truck?', gold 0, output lists eight vehicles and answers 8)",
+    "training completes 400/400 steps with the exact-match reward averaging 0.886 over steps 1-50 and 0.929-0.978 over every later 50-step block; nothing fails loudly"
+  ],
+  "fix": {
+    "must": [
+      "name both halves: the single-question 3-10 training set against the varied mostly-0-2 out-of-distribution questions, and the chain from one-question prompts through the total-count reward to question-ignoring behaviour",
+      "cite the prediction-range drift (225 to 626 predictions in 3-10 against 136 golds) as the directional evidence",
+      "reject 'distribution shift only', 'over-training only', learning rate, KL coefficient, missing early stopping, reward-function defects, the evaluation script, and token-limit attributions as the primary root cause"
+    ]
+  }
+}

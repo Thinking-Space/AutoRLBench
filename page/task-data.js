@@ -823,5 +823,27 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The launch gate reads the manifest three times across three processes, exports swallow exit statuses, and a self-comparison stays permanently true -- ten defects in five masking groups keep the gate from ever noticing the divergence.",
     "issue": "The query-pool launch gate is supposed to fail closed when the pools it reads diverge, but it never does: the manifest is read three times across three processes, exported exit statuses are swallowed, a self-comparison stays permanently true, and seven further defects across five masking groups (assertion suppression, subshell scope loss, a trap that resets the status, and the like) keep every failure path silent. The frozen calibration table records four gate-metric outcomes over the 24 rebuilt pools."
+  },
+  {
+    "id": "data/r1v_clevr_count_range_mismatch",
+    "title": "Single-question training set: the policy stops reading the question",
+    "family": "Data",
+    "tags": [
+      "r1-v",
+      "trl",
+      "grpo",
+      "vlm",
+      "clevr",
+      "train-eval-mismatch",
+      "issue-only"
+    ],
+    "model": "Qwen2-VL-2B-Instruct",
+    "dataset": "CLEVR-CoGenT-A counting (68k single-question rows + Super-CLEVR OOD)",
+    "framework": "R1-V / GRPO with TRL 0.14.0",
+    "image": "verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10",
+    "created": "2026-11-15",
+    "license": "Apache-2.0",
+    "brief": "Every training row asks the same question with answers 3-10, so the policy learns to return the total object count whatever is asked: OOD accuracy peaks at 0.675 then falls to 0.251 while in-distribution accuracy ends at 0.980.",
+    "issue": "Training Qwen2-VL-2B-Instruct with GRPO on CLEVR-CoGenT-A counting questions, every one of the 68,000 training rows asks \"How many items are there in the image?\" with answers 3-10 in equal shares, so the policy learns to return the total object count whatever is asked. Out-of-distribution accuracy (995 distinct Super-CLEVR questions over 1,000 rows, 864 of whose answers are 0-2) peaks at 0.675 at step 100 and falls to 0.251 at step 400 while in-distribution accuracy ends at 0.980 -- and workspace/data/val, the in-distribution held-out set, has the training set's single question and answer range, so it cannot see the problem. Code, rewards and hyperparameters are the trainer's ordinary recipe."
   }
 ];
