@@ -30,7 +30,7 @@ AutoRLBench Leaderboard, issue + solution evaluation. Overall is the combined pa
 
 | # | Model | Agent | Issue Score | Solution Score | Overall |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 1 | DeepSeek-V4.1-Flash | Claude Code | 31.8 % | 22.2 % | **29.0 %** |
+| 1 | DeepSeek-V4.1-Flash | Claude Code | 31.8 % | 26.3 % | **30.2 %** |
 | 2 | GPT-6.1-Sol | Codex | 27.3 % | 31.6 % | **28.6 %** |
 | 2 | GLM-5.3 | Claude Code | 29.5 % | 26.3 % | **28.6 %** |
 | 4 | GPT-6-Astra | Codex | 27.3 % | 26.3 % | **27.0 %** |

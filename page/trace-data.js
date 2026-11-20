@@ -911,7 +911,28 @@
  * codex ones at per-item granularity) and audited clean of network
  * access. The published issue-judgment total below moves
  * 445 -> 475.
- * The 205 solution records are reconciled against AutoRLBench validation-first
+ * The eleven verl_taco_wrong_expected_output solution records were
+ * re-published on 20 Nov 2026 from the local re-run of 19-20 Nov
+ * (eleven models including DeepSeek V4.1 Flash, replacing the
+ * fifteen-day-old first round in place): one pass, DeepSeek-V4.1-
+ * Flash at 1.0; the ten fails are graded by beijing 4xH800 BATCH
+ * replays (the taco grader crashes the verifier container in-trial),
+ * and Gemini is a capability no-report zero (39 tool uses, clean
+ * exit, no report.md written). The DeepSeek-V4.1-Flash
+ * verl_moe_token_normalization solution record was published from
+ * the full-rebuild replay (job 1721452): the rerun completed
+ * 150/150 steps, its final val-core/openai/gsm8k/acc/mean@1 =
+ * 0.453125 clears the 0.4 gate, but the grader's config-integrity
+ * check rejects the repair -- calculate_per_token_loss was flipped
+ * to false where the task requires it to remain enabled (metrics
+ * passed; the config flag caught the shortcut), and the replay
+ * input was rebuilt from local artifacts after an earlier pull
+ * deleted the remote run dir. The twelve trajectories were rebuilt
+ * per agent type (the codex ones at per-item granularity) and
+ * audited clean of network access. The published solution-run
+ * total below moves 205 -> 206, and the solution-record
+ * reconciliation anchor 205 -> 206.
+ * The 206 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
  * (11) and swe_grader_silent_mislabel (10) were rejudged with gpt-5.6-terra
@@ -6074,24 +6095,6 @@ window.AUTORLBENCH_RUNS = [
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
-    "slug": "gpt6astra-taco-wrong-output-sol",
-    "file": "agent-trace/gpt6astra-taco-wrong-output-sol.json",
-    "model": "GPT-6-Astra",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 21933547,
-    "steps": 415,
-    "costUsd": 124.8701,
-    "sourceRunId": "20261113-134714-bc8d22ec",
-    "sessionId": "01a1d373-fdc5-7462-9773-de2a1ce4a945",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "b9f253b54660185e7666e3fedc73d08847cc35fe1ae2af1afb1d9b22418dd800"
-  },
-  {
-    "task": "data/verl_taco_wrong_expected_output",
     "slug": "gpt61sol-taco-wrong-output",
     "file": "agent-trace/gpt61sol-taco-wrong-output.json",
     "model": "GPT-6.1-Sol",
@@ -6104,24 +6107,6 @@ window.AUTORLBENCH_RUNS = [
     "steps": 30,
     "costUsd": 0.8936,
     "rejudgmentSource": "issue-rejudgments.json"
-  },
-  {
-    "task": "data/verl_taco_wrong_expected_output",
-    "slug": "gpt61sol-taco-wrong-output-sol",
-    "file": "agent-trace/gpt61sol-taco-wrong-output-sol.json",
-    "model": "GPT-6.1-Sol",
-    "agent": "codex",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 14315382,
-    "steps": 313,
-    "costUsd": 11.2634,
-    "sourceRunId": "20261113-134323-fa31074a",
-    "sessionId": "01a1d370-75b8-7cf1-a52a-95789100974d",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "0f85d14911e9f51384d35b832a06790d9868f10f0abc8bea44109e03e179e67e"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -6140,24 +6125,6 @@ window.AUTORLBENCH_RUNS = [
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
-    "slug": "fable51-taco-wrong-output-sol",
-    "file": "agent-trace/fable51-taco-wrong-output-sol.json",
-    "model": "Claude-Fable-5.1",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 635000,
-    "steps": 20,
-    "costUsd": 20.1887,
-    "sourceRunId": "20261116-231317",
-    "sessionId": "dc9cef7f-8a5b-47dc-aa14-08ec2f6d480b",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "86ff71f88d9b82dcd6bdc22eb4b9bb9640836ed459121fc6f9ef866d6e06f0fd"
-  },
-  {
-    "task": "data/verl_taco_wrong_expected_output",
     "slug": "glm53-taco-wrong-output",
     "file": "agent-trace/glm53-taco-wrong-output.json",
     "model": "GLM-5.3",
@@ -6170,24 +6137,6 @@ window.AUTORLBENCH_RUNS = [
     "steps": 54,
     "costUsd": 9.1929,
     "rejudgmentSource": "issue-rejudgments.json"
-  },
-  {
-    "task": "data/verl_taco_wrong_expected_output",
-    "slug": "glm53-taco-wrong-output-sol",
-    "file": "agent-trace/glm53-taco-wrong-output-sol.json",
-    "model": "GLM-5.3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 2149489,
-    "steps": 156,
-    "costUsd": 32.4527,
-    "sourceRunId": "20261112-201646-6d1b13c4",
-    "sessionId": "69222893-93e8-4b7d-8e90-0a313d23314c",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "01f65a1b62c44a4f6aaafbe274c29dd36e9fa4c2276d89ec9455c321f34db656"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -6206,24 +6155,6 @@ window.AUTORLBENCH_RUNS = [
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
-    "slug": "kimi-taco-wrong-output-sol",
-    "file": "agent-trace/kimi-taco-wrong-output-sol.json",
-    "model": "Kimi-K3",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 2938091,
-    "steps": 108,
-    "costUsd": 29.5234,
-    "sourceRunId": "20261112-205456-467c0b4b",
-    "sessionId": "3fdfe370-4b75-4bd1-acfa-a7037ae47ec0",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "56001b6746c9a402874d91806e98aa8d98ef55f4d53b20356c34305bb6458e03"
-  },
-  {
-    "task": "data/verl_taco_wrong_expected_output",
     "slug": "kimi31-taco-wrong-output",
     "file": "agent-trace/kimi31-taco-wrong-output.json",
     "model": "Kimi-K3.1-Pro",
@@ -6236,24 +6167,6 @@ window.AUTORLBENCH_RUNS = [
     "steps": 19,
     "costUsd": 2.3914,
     "rejudgmentSource": "issue-rejudgments.json"
-  },
-  {
-    "task": "data/verl_taco_wrong_expected_output",
-    "slug": "kimi31-taco-wrong-output-sol",
-    "file": "agent-trace/kimi31-taco-wrong-output-sol.json",
-    "model": "Kimi-K3.1-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 3195050,
-    "steps": 71,
-    "costUsd": 8.1093,
-    "sourceRunId": "20261113-064214-65144085",
-    "sessionId": "26a082db-2501-41b5-8e93-236b9f620c66",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "23088b4ce9d71714996072c46ca79811fd2230681dcb3ab7b7b45e34bb558d65"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -6272,24 +6185,6 @@ window.AUTORLBENCH_RUNS = [
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
-    "slug": "dsv4-taco-wrong-output-sol",
-    "file": "agent-trace/dsv4-taco-wrong-output-sol.json",
-    "model": "DeepSeek-V4-Pro",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 21515496,
-    "steps": 379,
-    "costUsd": 135.3685,
-    "sourceRunId": "20261112-214619-5d7914ce",
-    "sessionId": "4d13066e-e1a1-4132-99ce-8b56dbc3fd21",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "0005d8a9a6bd3df3541634bb5d9d892672993197d9544738244805f41ce69bb7"
-  },
-  {
-    "task": "data/verl_taco_wrong_expected_output",
     "slug": "gemini4-taco-wrong-output",
     "file": "agent-trace/gemini4-taco-wrong-output.json",
     "model": "Gemini-4-Argon",
@@ -6302,24 +6197,6 @@ window.AUTORLBENCH_RUNS = [
     "steps": 13,
     "costUsd": 2.8455,
     "rejudgmentSource": "issue-rejudgments.json"
-  },
-  {
-    "task": "data/verl_taco_wrong_expected_output",
-    "slug": "gemini4-taco-wrong-output-sol",
-    "file": "agent-trace/gemini4-taco-wrong-output-sol.json",
-    "model": "Gemini-4-Argon",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 10324853,
-    "steps": 165,
-    "costUsd": 53.6754,
-    "sourceRunId": "20261113-034733-f9d82168",
-    "sessionId": "d46e3d64-1538-4e2d-99b1-9f813b088949",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "274575d2615a2b0c3ca4419541c661e3deb91d6715964b8884ae768d3b16ef60"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -6338,23 +6215,6 @@ window.AUTORLBENCH_RUNS = [
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
-    "slug": "qwen38-taco-wrong-output-sol",
-    "file": "agent-trace/qwen38-taco-wrong-output-sol.json",
-    "model": "Qwen3.8-Max",
-    "agent": "qwen-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 3668536,
-    "steps": 51,
-    "sourceRunId": "20261113-174425-e905f582",
-    "sessionId": "b54339fe-8089-453d-990d-ca5611f03846",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "7aa0c785564cb3a2bdd71267811744d47a742116966cbbc2b2be157cb1753f2c"
-  },
-  {
-    "task": "data/verl_taco_wrong_expected_output",
     "slug": "grok47-taco-wrong-output",
     "file": "agent-trace/grok47-taco-wrong-output.json",
     "model": "Grok-4.7",
@@ -6367,23 +6227,6 @@ window.AUTORLBENCH_RUNS = [
     "steps": 14,
     "costUsd": null,
     "rejudgmentSource": "issue-rejudgments.json"
-  },
-  {
-    "task": "data/verl_taco_wrong_expected_output",
-    "slug": "grok47-taco-wrong-output-sol",
-    "file": "agent-trace/grok47-taco-wrong-output-sol.json",
-    "model": "Grok-4.7",
-    "agent": "grok-build",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 1167661,
-    "steps": 25,
-    "sourceRunId": "20261113-184747-4c91a68c",
-    "sessionId": "40b6d318-0085-4992-b8d8-27aefd6c8594",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "2662fd9d4b6db533fba52479364d83f047ce4998e185c21d8f80591022675d93"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -9334,24 +9177,6 @@ window.AUTORLBENCH_RUNS = [
     "traceSha256": "d88d9c143504a4bc80f4a91b3e86ec8b20bff8427f06bebd4d621526ac30d8f4"
   },
   {
-    "task": "data/verl_taco_wrong_expected_output",
-    "slug": "dsv41flash-taco-wrong-output-sol",
-    "file": "agent-trace/dsv41flash-taco-wrong-output-sol.json",
-    "model": "DeepSeek-V4.1-Flash",
-    "agent": "claude-code",
-    "effort": "max",
-    "level": "solution",
-    "passed": false,
-    "score": 0.0,
-    "durationMs": 6334000,
-    "steps": 256,
-    "costUsd": 23.6983,
-    "sourceRunId": "20261118-163120",
-    "sessionId": "ae2b229e-3760-4b95-bb51-bba2e036752d",
-    "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "d18ab01351e61e6c843564fcaf5fab753a97b56bf6caeae9f38ae09d4e1dd8ec"
-  },
-  {
     "task": "algorithm/verl_grpo_advantage_broadcast",
     "slug": "dsv41flash-grpo-advantage-broadcast-sol",
     "file": "agent-trace/dsv41flash-grpo-advantage-broadcast-sol.json",
@@ -10613,7 +10438,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 291000,
     "steps": 16,
-    "costUsd": null
+    "costUsd": null,
+    "sourceRunId": "20261119-191006",
+    "sessionId": "01a1f381-4258-75f3-88ea-04cb23dbd9be",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "1cd49b4ea15ae3840c97061016d725ac3c1d96ee8f9987fcf0339cc66ede2a2d"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -10627,7 +10456,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 433000,
     "steps": 46,
-    "costUsd": null
+    "costUsd": null,
+    "sourceRunId": "20261119-200249",
+    "sessionId": "01a1f3b1-db17-74d0-a941-38317fdbae9d",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "09a46581ef07b78f65a4e3f44fc671e60cb19a776f90fb498344bd72a098de79"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -10641,7 +10474,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 1438000,
     "steps": 30,
-    "costUsd": 39.0358
+    "costUsd": 39.0358,
+    "sourceRunId": "20261119-192841",
+    "sessionId": "8a2fadac-344f-486f-af60-c9dc343329fa",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "adac074ddbd8256e5bb01eec1a57851b3d4a3e8b6bd425c1873de695f4f4efd3"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -10655,7 +10492,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 5969000,
     "steps": 180,
-    "costUsd": 40.1562
+    "costUsd": 40.1562,
+    "sourceRunId": "20261119-173522",
+    "sessionId": "efcda7c2-3c8c-4b6f-b00d-307acbb341f3",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "136ba6f14cd532c2f645adad67c02c1f708b4c01e7c19a9a9f77204896c3809f"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -10669,7 +10510,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 4007000,
     "steps": 65,
-    "costUsd": 15.1124
+    "costUsd": 15.1124,
+    "sourceRunId": "20261119-203610",
+    "sessionId": "290c37e0-6c48-4cc2-9018-bea753ea0302",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "5dddc9e2c1874f2dabd0f72b459db3ed7a2d6bee1f78c0c00b507eab3b20378f"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -10683,7 +10528,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 2167000,
     "steps": 139,
-    "costUsd": 8.011
+    "costUsd": 8.011,
+    "sourceRunId": "20261119-173522",
+    "sessionId": "1bbf5106-eedc-4e8d-a923-9fbb139b6c24",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "1b1c9bc048cef76a7ffa91c1821419a9b0fe72db81a3efd17e161f7a3f85ad7b"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -10697,7 +10546,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 6109000,
     "steps": 104,
-    "costUsd": 38.273
+    "costUsd": 38.273,
+    "sourceRunId": "20261120-001626",
+    "sessionId": "48320d84-7326-4f9f-b275-6278c14096aa",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "8b6fa30240e0c0298e4164a0cf21165a281ebd8e02f2287c6053f1a392fae965"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -10711,7 +10564,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 3306000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "sourceRunId": "20261119-182533",
+    "sessionId": "recovered-from-stream",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "6d9dff27733190685dd17fdbfe9f121d1014c34684f895039627295dc52cb484"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -10725,7 +10582,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 14446000,
     "steps": 206,
-    "costUsd": null
+    "costUsd": null,
+    "sourceRunId": "20261119-193011",
+    "sessionId": "unknown",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "57244519288dd65a300c83de632f81b1c35a30bcadc7f641b3d67079cd3b17bc"
   },
   {
     "task": "environment/swe_grader_silent_mislabel",
@@ -10739,7 +10600,11 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 4717000,
     "steps": 199,
-    "costUsd": 15.7916
+    "costUsd": 15.7916,
+    "sourceRunId": "20261119-173522",
+    "sessionId": "1e8b2942-cfce-45ae-b13d-5425a1b90c85",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "7cfa0ae67c44482506ca8ef79a4b9e016877e105030ac6a9371492fa498fe4e9"
   },
   {
     "task": "data/r1v_clevr_count_range_mismatch",
@@ -11300,6 +11165,222 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1923000,
     "steps": 122,
     "costUsd": 10.985
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "fable51-taco-wrong-output-sol",
+    "file": "agent-trace/fable51-taco-wrong-output-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1908000,
+    "steps": 17,
+    "costUsd": 17.4653,
+    "sourceRunId": "20261119-195950",
+    "sessionId": "1328ae09-27ae-4482-9ceb-504747878a05",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "975541b7d95f5427cd83cd279858dcb9087e927441076a34b40cfa67681b3c7b"
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "dsv41flash-taco-wrong-output-sol",
+    "file": "agent-trace/dsv41flash-taco-wrong-output-sol.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 2872000,
+    "steps": 213,
+    "costUsd": 16.8609,
+    "sourceRunId": "20261120-080244",
+    "sessionId": "aa47d82d-488e-4947-8812-83da03be2a35",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "6b8c0dc22e49283af2a198b282406d64d4eddf98c187a871555135d852743422"
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "gemini4-taco-wrong-output-sol",
+    "file": "agent-trace/gemini4-taco-wrong-output-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2683000,
+    "steps": 40,
+    "costUsd": 9.5642,
+    "sourceRunId": "20261119-195950",
+    "sessionId": "e5b0e3e1-5aec-4db7-9f80-398304b585f8",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "921d6f40da21d9e21229252735c9930f65edece52374377634ae39cc1a055459"
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "gpt6astra-taco-wrong-output-sol",
+    "file": "agent-trace/gpt6astra-taco-wrong-output-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 306000,
+    "steps": 24,
+    "costUsd": null,
+    "sourceRunId": "20261119-221426",
+    "sessionId": "01a1f42a-ea69-74b1-9b07-bba6e87df0bc",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "7b6129b59a32e56d827771cec0902590a5c1c9b5ed94795eccef777255034e12"
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "grok47-taco-wrong-output-sol",
+    "file": "agent-trace/grok47-taco-wrong-output-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 5963000,
+    "steps": 191,
+    "costUsd": null,
+    "sourceRunId": "20261119-222950",
+    "sessionId": "unknown",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "4763a6cb4f34417ee820f472f1602394391318f274a326277d49e474a650d23f"
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "gpt61sol-taco-wrong-output-sol",
+    "file": "agent-trace/gpt61sol-taco-wrong-output-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 226000,
+    "steps": 17,
+    "costUsd": null,
+    "sourceRunId": "20261119-222247",
+    "sessionId": "01a1f432-9127-7903-887d-c20f702a1de1",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "4f3dbca9063298bebbb6dff10f426b726808f7a3cb70daad8ec04a0fa3a0111d"
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "qwen38-taco-wrong-output-sol",
+    "file": "agent-trace/qwen38-taco-wrong-output-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 4778000,
+    "steps": 2,
+    "costUsd": null,
+    "sourceRunId": "20261120-004721",
+    "sessionId": "recovered-from-stream",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "b4177a90f097ed8894bcab807903bb47b4fe905f9e613dae8ccea4044063bdd2"
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "glm53-taco-wrong-output-sol",
+    "file": "agent-trace/glm53-taco-wrong-output-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 3895000,
+    "steps": 119,
+    "costUsd": 26.9479,
+    "sourceRunId": "20261120-031101",
+    "sessionId": "a8a38ebf-3889-48fe-8625-60747bd52320",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "f2b9792148ea44ac12cd501d22de6e7a7a8de198d00e3ff52af84ec05e4bc31e"
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "dsv4-taco-wrong-output-sol",
+    "file": "agent-trace/dsv4-taco-wrong-output-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 7078000,
+    "steps": 210,
+    "costUsd": 65.1419,
+    "sourceRunId": "20261120-031134",
+    "sessionId": "df39896f-6af9-40de-8977-2097ef762def",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "25e741df22d602269226572389d334a89469f9dbd4d06c35114899acbb9b2949"
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "kimi-taco-wrong-output-sol",
+    "file": "agent-trace/kimi-taco-wrong-output-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 10738000,
+    "steps": 276,
+    "costUsd": 54.5645,
+    "sourceRunId": "20261120-041913",
+    "sessionId": "3cbfda79-9809-4ba7-986d-d1a256ff5046",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a773c423500ae8f7c445f1c0097c5e13bdb4ea96cf4a6663d1ba81b6d397dd06"
+  },
+  {
+    "task": "data/verl_taco_wrong_expected_output",
+    "slug": "kimi31-taco-wrong-output-sol",
+    "file": "agent-trace/kimi31-taco-wrong-output-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2281000,
+    "steps": 98,
+    "costUsd": 22.167,
+    "sourceRunId": "20261120-072127",
+    "sessionId": "d962e945-ef41-480d-b5dc-57ee997cc000",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a0780f718ca4d7312e03e65b600b37afb8fb45f3b4c6a60bd300f3b83db86ce6"
+  },
+  {
+    "task": "infrastructure/verl_moe_token_normalization",
+    "slug": "dsv41flash-moe-token-sol",
+    "file": "agent-trace/dsv41flash-moe-token-sol.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 6974000,
+    "steps": 334,
+    "costUsd": 32.6759,
+    "sourceRunId": "20261119-160315",
+    "sessionId": "9124bb7b-3924-4259-ad0c-0d1ed4bdddce",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "1156b28437124d2d6092340f2a5ac76c1fec2aa822a7f35d0a669b34588173be"
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];
