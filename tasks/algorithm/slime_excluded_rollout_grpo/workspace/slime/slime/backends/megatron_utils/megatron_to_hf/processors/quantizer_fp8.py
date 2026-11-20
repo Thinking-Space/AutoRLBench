@@ -1,0 +1,149 @@
+import re
+
+import torch
+
+from slime.backends.megatron_utils.kernels.fp8_kernel import blockwise_cast_to_fp8_triton
+
+from ...sglang import quant_weight_ue8m0, should_deepgemm_weight_requant_ue8m0, transform_scale_ue8m0
+
+
+def quantize_params_fp8(args, megatron_name, converted_named_params, quantization_config, transform_ue8m0=True):
+    assert quantization_config["quant_method"] == "fp8"
+    fmt = quantization_config.get("fmt", "e4m3")
+    assert fmt == "e4m3", f"Unsupported FP8 format: {fmt}"
+    assert quantization_config["activation_scheme"] == "dynamic"
+    weight_block_size = quantization_config.get("weight_block_size", None)
+    force_ue8m0_scale = getattr(args, "force_fp8_ue8m0_scale", False)
+
+    decoder_layers_pattern = r"module\.module\.decoder\.layers\.(\d+)\.(.+)"
+    match = re.match(decoder_layers_pattern, megatron_name)
+
+    if not match:
+        # check mtp layers
+        mtp_layer_pattern = r"module\.module\.mtp\.layers\.(\d+)\.(.+)"
+        match = re.match(mtp_layer_pattern, megatron_name)
+        if not match:
+            return converted_named_params
+        layer_idx, rest = match.groups()
+        rest = rest.replace("transformer_layer.", "")
+    else:
+        layer_idx, rest = match.groups()
+
+    # experts
+    expert_pattern = r"mlp.experts\.(.+)\.weight(\d+)"
+    match = re.match(expert_pattern, rest)
+    if match:
+        rest, expert_idx = match.groups()
+        if rest in [
+            "linear_fc1",
+            "linear_fc2",
+        ]:
+            quantize_named_params = []
+            for converted_name, param in converted_named_params:
+                # skip bf16 weight_scale and input_scale
+                # TODO: find a clearer way.
+                if converted_name.endswith("_scale"):
+                    continue
+                quantize_named_params.extend(
+                    _quantize_param(
+                        converted_name,
+                        param,
+                        weight_block_size,
+                        transform_ue8m0,
+                        force_ue8m0_scale=force_ue8m0_scale,
+                    )
+                )
+
+            return quantize_named_params
+
+    # shared expert
+    shared_expert_pattern = r"mlp.shared_experts\.(.+)"
+    match = re.match(shared_expert_pattern, rest)
+    if match:
+        rest = match.groups()[0]
+        if rest in [
+            "linear_fc1.weight",
+            "linear_fc2.weight",
+        ]:
+            quantize_named_params = []
+            for converted_name, param in converted_named_params:
+                quantize_named_params.extend(
+                    _quantize_param(
+                        converted_name,
+                        param,
+                        weight_block_size,
+                        transform_ue8m0,
+                        force_ue8m0_scale=force_ue8m0_scale,
+                    )
+                )
+
+            return quantize_named_params
+
+    if rest in [
+        "self_attention.linear_proj.weight",
+        "self_attention.linear_qkv.weight",
+        "mlp.linear_fc1.weight",
+        "mlp.linear_fc2.weight",
+        # mla
+        "self_attention.linear_q_proj.weight",
+        "self_attention.linear_q_down_proj.weight",
+        "self_attention.linear_q_up_proj.weight",
+        "self_attention.linear_kv_down_proj.weight",
+        "self_attention.linear_kv_up_proj.weight",
+        # indexer
+        "self_attention.wq_b.weight",
+        "self_attention.wk.weight",
+        # linear attention
+        "self_attention.linear_attn.in_proj_qkv.weight",
+        "self_attention.linear_attn.in_proj_z.weight",
+        "self_attention.linear_attn.out_proj.weight",
+    ]:
+        quantize_named_params = []
+        for converted_name, param in converted_named_params:
+            quantize_named_params.extend(
+                _quantize_param(
+                    converted_name,
+                    param,
+                    weight_block_size,
+                    transform_ue8m0,
+                    force_ue8m0_scale=force_ue8m0_scale,
+                )
+            )
+
+        return quantize_named_params
+
+    # for other parameters, we just return the original converted_named_params
+    return converted_named_params
+
+
+def _quantize_param(
+    name,
+    weight,
+    weight_block_size,
+    transform_ue8m0=True,
+    force_ue8m0_scale=False,
+):
+    assert name.endswith(".weight"), f"Expected weight parameter, got {name}"
+    FP8_MIN = torch.finfo(torch.float8_e4m3fn).min
+    FP8_MAX = torch.finfo(torch.float8_e4m3fn).max
+    if weight_block_size is not None:
+        runtime_requires_ue8m0 = bool(
+            should_deepgemm_weight_requant_ue8m0
+            and should_deepgemm_weight_requant_ue8m0(weight_block_size=weight_block_size)
+        )
+        if force_ue8m0_scale or runtime_requires_ue8m0:
+            qweight, scale = quant_weight_ue8m0(weight, weight_block_size=weight_block_size)
+            # Hopper keeps the power-of-two scales in the canonical FP32 block
+            # layout. Only the Blackwell DeepGEMM runtime consumes packed UE8M0.
+            if runtime_requires_ue8m0 and transform_ue8m0:
+                scale = transform_scale_ue8m0(scale, mn=qweight.shape[-2])
+        else:
+            qweight, scale = blockwise_cast_to_fp8_triton(weight, weight_block_size)
+        scale_name = name.replace(".weight", ".weight_scale_inv")
+    else:
+        # per tensor quant
+        scale = weight.abs().max().clamp(min=1e-12).to(torch.float32) / FP8_MAX
+        qweight = (weight / scale).clamp(min=FP8_MIN, max=FP8_MAX).to(torch.float8_e4m3fn)
+        scale = scale.view(1)
+        scale_name = name.replace(".weight", ".weight_scale")
+    return [(name, qweight), (scale_name, scale)]

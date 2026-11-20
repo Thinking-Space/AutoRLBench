@@ -888,6 +888,29 @@
  * The ten trajectories were rebuilt per agent type (the codex ones
  * at per-item granularity) and audited clean of network access.
  * The published issue-judgment total below moves 435 -> 445.
+ * The ten slime_excluded_rollout_grpo, ten
+ * verl_old_log_prob_from_reference and ten
+ * verl_quantized_rollout_restart issue records were published on
+ * 20 Nov 2026 from the local cybertron-evaluate sweeps (ten models
+ * each; no Gemini run; all three tasks ship issue-only).
+ * slime_excluded_rollout_grpo pins GRPO credit-assignment drift
+ * during multi-turn tool rollouts: aborted rollouts are excluded
+ * from the advantage normalization, so the learning signal for
+ * completed trajectories flips sign -- two passes (Qwen3.8-Max and
+ * DeepSeek-V4.1-Flash at 1.0), Kimi-K3.1-Pro (0.96) at evidence
+ * exactly 0.8. verl_old_log_prob_from_reference pins the trainer
+ * recomputing PPO "old" log-probs with the frozen reference model
+ * instead of the actor -- the clip becomes a 20% per-token leash
+ * around the base model; no pass, the best at 0.32 with zero
+ * root-cause credit. verl_quantized_rollout_restart pins the
+ * rollout worker losing the vLLM quantization scales across its
+ * sleep/wake restart: all 192 responses across three recorded
+ * batches hit the 16,384-token limit with blank output -- one
+ * pass (GLM-5.3 at 0.964), Grok-4.7 (0.96) at evidence exactly
+ * 0.8. The thirty trajectories were rebuilt per agent type (the
+ * codex ones at per-item granularity) and audited clean of network
+ * access. The published issue-judgment total below moves
+ * 445 -> 475.
  * The 205 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -10857,6 +10880,426 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2378000,
     "steps": 35,
     "costUsd": 3.2192
+  },
+  {
+    "task": "algorithm/slime_excluded_rollout_grpo",
+    "slug": "gpt6astra-excluded-rollout",
+    "file": "agent-trace/gpt6astra-excluded-rollout.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 78000,
+    "steps": 14,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/slime_excluded_rollout_grpo",
+    "slug": "gpt61sol-excluded-rollout",
+    "file": "agent-trace/gpt61sol-excluded-rollout.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 75000,
+    "steps": 14,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/slime_excluded_rollout_grpo",
+    "slug": "fable51-excluded-rollout",
+    "file": "agent-trace/fable51-excluded-rollout.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 3201000,
+    "steps": 12,
+    "costUsd": 6.1366
+  },
+  {
+    "task": "algorithm/slime_excluded_rollout_grpo",
+    "slug": "glm53-excluded-rollout",
+    "file": "agent-trace/glm53-excluded-rollout.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 1241000,
+    "steps": 52,
+    "costUsd": 8.7772
+  },
+  {
+    "task": "algorithm/slime_excluded_rollout_grpo",
+    "slug": "kimi-excluded-rollout",
+    "file": "agent-trace/kimi-excluded-rollout.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 170000,
+    "steps": 17,
+    "costUsd": 0.602
+  },
+  {
+    "task": "algorithm/slime_excluded_rollout_grpo",
+    "slug": "kimi31-excluded-rollout",
+    "file": "agent-trace/kimi31-excluded-rollout.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 430000,
+    "steps": 13,
+    "costUsd": 1.2883
+  },
+  {
+    "task": "algorithm/slime_excluded_rollout_grpo",
+    "slug": "dsv4-excluded-rollout",
+    "file": "agent-trace/dsv4-excluded-rollout.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 2141000,
+    "steps": 28,
+    "costUsd": 8.013
+  },
+  {
+    "task": "algorithm/slime_excluded_rollout_grpo",
+    "slug": "qwen38-excluded-rollout",
+    "file": "agent-trace/qwen38-excluded-rollout.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 951000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/slime_excluded_rollout_grpo",
+    "slug": "grok47-excluded-rollout",
+    "file": "agent-trace/grok47-excluded-rollout.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 463000,
+    "steps": 85,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/slime_excluded_rollout_grpo",
+    "slug": "dsv41flash-excluded-rollout",
+    "file": "agent-trace/dsv41flash-excluded-rollout.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1134000,
+    "steps": 55,
+    "costUsd": 5.411
+  },
+  {
+    "task": "algorithm/verl_old_log_prob_from_reference",
+    "slug": "gpt6astra-old-logprob",
+    "file": "agent-trace/gpt6astra-old-logprob.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.075,
+    "durationMs": 74000,
+    "steps": 10,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/verl_old_log_prob_from_reference",
+    "slug": "gpt61sol-old-logprob",
+    "file": "agent-trace/gpt61sol-old-logprob.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.15,
+    "durationMs": 66000,
+    "steps": 9,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/verl_old_log_prob_from_reference",
+    "slug": "fable51-old-logprob",
+    "file": "agent-trace/fable51-old-logprob.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 354000,
+    "steps": 9,
+    "costUsd": 1.3061
+  },
+  {
+    "task": "algorithm/verl_old_log_prob_from_reference",
+    "slug": "glm53-old-logprob",
+    "file": "agent-trace/glm53-old-logprob.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 834000,
+    "steps": 54,
+    "costUsd": 9.9783
+  },
+  {
+    "task": "algorithm/verl_old_log_prob_from_reference",
+    "slug": "kimi-old-logprob",
+    "file": "agent-trace/kimi-old-logprob.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.12,
+    "durationMs": 219000,
+    "steps": 24,
+    "costUsd": 0.769
+  },
+  {
+    "task": "algorithm/verl_old_log_prob_from_reference",
+    "slug": "kimi31-old-logprob",
+    "file": "agent-trace/kimi31-old-logprob.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 655000,
+    "steps": 14,
+    "costUsd": 2.7449
+  },
+  {
+    "task": "algorithm/verl_old_log_prob_from_reference",
+    "slug": "dsv4-old-logprob",
+    "file": "agent-trace/dsv4-old-logprob.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.32,
+    "durationMs": 3090000,
+    "steps": 76,
+    "costUsd": 22.8472
+  },
+  {
+    "task": "algorithm/verl_old_log_prob_from_reference",
+    "slug": "qwen38-old-logprob",
+    "file": "agent-trace/qwen38-old-logprob.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.16,
+    "durationMs": 1646000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/verl_old_log_prob_from_reference",
+    "slug": "grok47-old-logprob",
+    "file": "agent-trace/grok47-old-logprob.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.32,
+    "durationMs": 1667000,
+    "steps": 134,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/verl_old_log_prob_from_reference",
+    "slug": "dsv41flash-old-logprob",
+    "file": "agent-trace/dsv41flash-old-logprob.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.16,
+    "durationMs": 1047000,
+    "steps": 65,
+    "costUsd": 6.6123
+  },
+  {
+    "task": "infrastructure/verl_quantized_rollout_restart",
+    "slug": "gpt6astra-quantized-restart",
+    "file": "agent-trace/gpt6astra-quantized-restart.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 88000,
+    "steps": 10,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_quantized_rollout_restart",
+    "slug": "gpt61sol-quantized-restart",
+    "file": "agent-trace/gpt61sol-quantized-restart.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 90000,
+    "steps": 19,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_quantized_rollout_restart",
+    "slug": "fable51-quantized-restart",
+    "file": "agent-trace/fable51-quantized-restart.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 341000,
+    "steps": 12,
+    "costUsd": 1.3441
+  },
+  {
+    "task": "infrastructure/verl_quantized_rollout_restart",
+    "slug": "glm53-quantized-restart",
+    "file": "agent-trace/glm53-quantized-restart.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.964,
+    "durationMs": 2039000,
+    "steps": 66,
+    "costUsd": 13.4056
+  },
+  {
+    "task": "infrastructure/verl_quantized_rollout_restart",
+    "slug": "kimi-quantized-restart",
+    "file": "agent-trace/kimi-quantized-restart.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.58,
+    "durationMs": 515000,
+    "steps": 48,
+    "costUsd": 2.2018
+  },
+  {
+    "task": "infrastructure/verl_quantized_rollout_restart",
+    "slug": "kimi31-quantized-restart",
+    "file": "agent-trace/kimi31-quantized-restart.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 492000,
+    "steps": 21,
+    "costUsd": 2.6523
+  },
+  {
+    "task": "infrastructure/verl_quantized_rollout_restart",
+    "slug": "dsv4-quantized-restart",
+    "file": "agent-trace/dsv4-quantized-restart.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 3645000,
+    "steps": 49,
+    "costUsd": 14.6267
+  },
+  {
+    "task": "infrastructure/verl_quantized_rollout_restart",
+    "slug": "qwen38-quantized-restart",
+    "file": "agent-trace/qwen38-quantized-restart.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.93,
+    "durationMs": 1353000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_quantized_rollout_restart",
+    "slug": "grok47-quantized-restart",
+    "file": "agent-trace/grok47-quantized-restart.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.96,
+    "durationMs": 363000,
+    "steps": 121,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_quantized_rollout_restart",
+    "slug": "dsv41flash-quantized-restart",
+    "file": "agent-trace/dsv41flash-quantized-restart.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.95,
+    "durationMs": 1923000,
+    "steps": 122,
+    "costUsd": 10.985
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

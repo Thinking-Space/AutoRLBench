@@ -845,5 +845,64 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "Every training row asks the same question with answers 3-10, so the policy learns to return the total object count whatever is asked: OOD accuracy peaks at 0.675 then falls to 0.251 while in-distribution accuracy ends at 0.980.",
     "issue": "Training Qwen2-VL-2B-Instruct with GRPO on CLEVR-CoGenT-A counting questions, every one of the 68,000 training rows asks \"How many items are there in the image?\" with answers 3-10 in equal shares, so the policy learns to return the total object count whatever is asked. Out-of-distribution accuracy (995 distinct Super-CLEVR questions over 1,000 rows, 864 of whose answers are 0-2) peaks at 0.675 at step 100 and falls to 0.251 at step 400 while in-distribution accuracy ends at 0.980 -- and workspace/data/val, the in-distribution held-out set, has the training set's single question and answer range, so it cannot see the problem. Code, rewards and hyperparameters are the trainer's ordinary recipe."
+  },
+  {
+    "id": "algorithm/slime_excluded_rollout_grpo",
+    "title": "GRPO credit assignment drifts during multi-turn tool rollouts",
+    "family": "Algorithm",
+    "tags": [
+      "grpo",
+      "reward-normalization",
+      "tool-use",
+      "aborted-rollouts",
+      "issue-only"
+    ],
+    "model": "Qwen3.5-0.8B",
+    "dataset": "Offline ticket catalog (128 training / 16 held-out, disjoint IDs)",
+    "framework": "slime v0.3.2 / GRPO with SGLang and Megatron",
+    "image": "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-18",
+    "license": "Apache-2.0",
+    "brief": "Aborted tool rollouts are excluded from the advantage normalization, so the learning signal for completed trajectories flips sign.",
+    "issue": "A complete Slime GRPO run with multi-turn tool rollouts shows how tool timeouts change the sign of the learning signal for completed trajectories: the masked-observation GRPO advantage normalization excludes the aborted rollouts from its denominator, so completed trajectories receive a flipped advantage (−0.707 → +0.132 across the 32 optimizer updates)."
+  },
+  {
+    "id": "algorithm/verl_old_log_prob_from_reference",
+    "title": "Old log-probs computed by the reference model pin GRPO to the base model",
+    "family": "Algorithm",
+    "tags": [
+      "ppo-ratio",
+      "old-log-prob",
+      "reference-policy",
+      "silent-stall",
+      "issue-only"
+    ],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "GSM8K",
+    "framework": "verl 0.8.0 / GRPO with FSDP and colocated vLLM",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-18",
+    "license": "Apache-2.0",
+    "brief": "The trainer recomputes the PPO \"old\" log-probs with the frozen reference model instead of the actor, so the clip becomes a ±20% leash around the base model.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K in verl, the trainer recomputes the PPO \"old\" log-probs with the frozen reference model instead of the actor (_compute_old_log_prob calls ref_policy_wg.compute_ref_log_prob). The PPO clip therefore becomes a ±20% per-token leash around the base model: nothing errors, the gradient norm looks normal, but held-out accuracy moves only from 0.4382 to 0.4647 in 60 steps, against 0.4329 to 0.5451 for the same recipe with the correct old-log-prob source."
+  },
+  {
+    "id": "infrastructure/verl_quantized_rollout_restart",
+    "title": "Math rollouts exhaust the output budget",
+    "family": "Infrastructure",
+    "tags": [
+      "rollout-collapse",
+      "quantized-inference",
+      "long-generation",
+      "issue-only"
+    ],
+    "model": "Nemotron-Research-Reasoning-Qwen-1.5B",
+    "dataset": "Skywork math",
+    "framework": "verl online policy distillation with vLLM 0.24.0",
+    "image": "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12",
+    "created": "2026-11-19",
+    "license": "Apache-2.0",
+    "brief": "The rollout worker loses the vLLM quantization scales across its sleep/wake restart: every response hits the token limit with blank output.",
+    "issue": "During VeRL online policy distillation of Nemotron-Research-Reasoning-Qwen-1.5B on Skywork math, the rollout worker reports a successful weight refresh, then prints a blank answer: all 192 responses across the three recorded batches hit the 16,384-token limit. The rollout worker loses the vLLM quantization scales across its sleep/wake restart; preserving the scales reduces the exhausted count to 8/192 with the same model and prompts."
   }
 ];

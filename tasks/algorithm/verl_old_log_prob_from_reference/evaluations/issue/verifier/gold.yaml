@@ -1,0 +1,13 @@
+category: algorithm
+framework: verl
+task: verl_old_log_prob_from_reference
+verdict: unhealthy
+root_cause:
+  - verl/trainer/ppo/ray_trainer.py RayPPOTrainer._compute_old_log_prob computes old_log_probs (and the entropys behind actor/entropy) with self.ref_policy_wg.compute_ref_log_prob, the frozen reference model, instead of the actor's self.actor_rollout_wg.compute_log_prob; the unmodified PPO loss takes its ratio and 0.2 clip against the base model, so tokens that move more than 20% from the base model in the direction of their advantage get no gradient and the policy stays near the base model
+evidence_metrics:
+  - held-out accuracy moves only 0.4382 to 0.4647 (numeric re-score 0.4701 to 0.4845) while the same recipe with the actor call reaches 0.5451 (seed 42) and 0.5171 (seed 43)
+  - actor/kl_loss stays at or below 0.0024 for all 60 steps and actor/ppo_kl is negative at every step from step 2, tracking the size of kl_loss — the old log-probs behave like the reference model's, not the sampling policy's
+  - actor/pg_clipfrac is 0.0065-0.0118 from step 10 on against 0.0006 at step 1, and actor/entropy stays at 0.55 to 0.50 because it is the reference model's entropy on the rollouts
+fix:
+  must:
+    - compute old_log_probs with the actor (self.actor_rollout_wg.compute_log_prob) as in fix.diff

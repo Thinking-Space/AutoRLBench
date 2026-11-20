@@ -1,0 +1,65 @@
+[sbatch] ENGINE=nvfp4
+WARNING 09-13 03:34:37 [config.py:70] Support for Transformers v4 is deprecated. The Transformers v4 codepath will become unmaintained in vLLM v0.22.0 and will be removed in vLLM v0.24.0. Please upgrade to Transformers v5: pip install --upgrade transformers
+[gen] ENGINE=nvfp4 model=/historical/shared/qat/models/nvfp4-1p5b/w4a4-state
+[gen] 16 prompts, max_tokens=16384
+[gen] first prompt: '<｜begin▁of▁sentence｜><｜User｜>33. How many six-digit numbers are there in which all digits are odd?<｜Assistant｜><think>\n'
+INFO 09-13 03:34:49 [utils.py:240] non-default args: {'dtype': 'bfloat16', 'seed': 42, 'max_model_len': 16896, 'distributed_executor_backend': 'external_launcher', 'enable_prefix_caching': False, 'gpu_memory_utilization': 0.75, 'max_num_batched_tokens': 16896, 'disable_log_stats': True, 'enable_chunked_prefill': False, 'enable_sleep_mode': True, 'model': '/historical/shared/qat/models/nvfp4-1p5b/w4a4-state'}
+INFO 09-13 03:34:49 [model.py:568] Resolved architecture: Qwen2ForCausalLM
+INFO 09-13 03:34:49 [model.py:1697] Using max model len 16896
+WARNING 09-13 03:34:50 [arg_utils.py:2318] This model does not officially support disabling chunked prefill. Disabling this manually may cause the engine to crash or produce incorrect outputs.
+INFO 09-13 03:34:50 [parallel.py:769] Using external launcher for distributed inference.
+INFO 09-13 03:34:50 [parallel.py:829] Disabling V1 multiprocessing for external launcher.
+WARNING 09-13 03:34:50 [modelopt.py:1024] Detected ModelOpt NVFP4 checkpoint (quant_algo=NVFP4). Please note that the format is experimental and could change in future.
+INFO 09-13 03:34:50 [vllm.py:886] Asynchronous scheduling is enabled.
+INFO 09-13 03:34:50 [kernel.py:212] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'])
+INFO 09-13 03:34:50 [compilation.py:303] Enabled custom fusions: act_quant
+INFO 09-13 03:34:52 [core.py:109] Initializing a V1 LLM engine (v0.21.0) with config: model='/historical/shared/qat/models/nvfp4-1p5b/w4a4-state', speculative_config=None, tokenizer='/historical/shared/qat/models/nvfp4-1p5b/w4a4-state', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=16896, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=False, quantization=modelopt_fp4, quantization_config=None, enforce_eager=False, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False), seed=42, served_model_name=/historical/shared/qat/models/nvfp4-1p5b/w4a4-state, enable_prefix_caching=False, enable_chunked_prefill=False, pooler_config=None, compilation_config={'mode': <CompilationMode.VLLM_COMPILE: 3>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['none'], 'ir_enable_torch_wrap': True, 'splitting_ops': ['vllm::unified_attention_with_output', 'vllm::unified_mla_attention_with_output', 'vllm::mamba_mixer2', 'vllm::mamba_mixer', 'vllm::short_conv', 'vllm::linear_attention', 'vllm::plamo2_mamba_mixer', 'vllm::gdn_attention_core', 'vllm::gdn_attention_core_xpu', 'vllm::olmo_hybrid_gdn_full_forward', 'vllm::kda_attention', 'vllm::sparse_attn_indexer', 'vllm::rocm_aiter_sparse_attn_indexer', 'vllm::deepseek_v4_attention', 'vllm::unified_kv_cache_update', 'vllm::unified_mla_kv_cache_update'], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'compile_sizes': [], 'compile_ranges_endpoints': [16896], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'size_asserts': False, 'alignment_asserts': False, 'scalar_asserts': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.FULL_AND_PIECEWISE: (2, 1)>, 'cudagraph_num_of_warmups': 1, 'cudagraph_capture_sizes': [1, 2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232, 240, 248, 256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432, 448, 464, 480, 496, 512], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': False, 'fuse_act_quant': True, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False, 'fuse_act_padding': False}, 'max_cudagraph_capture_size': 512, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': False, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native']), enable_flashinfer_autotune=False, moe_backend='auto')
+INFO 09-13 03:34:52 [parallel_state.py:1723] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank N/A, EPLB rank N/A
+INFO 09-13 03:34:53 [topk_topp_sampler.py:70] FlashInfer top-p/top-k sampling disabled via VLLM_USE_FLASHINFER_SAMPLER=0; using PyTorch-native sampler.
+INFO 09-13 03:34:54 [gpu_model_runner.py:4857] Starting to load model /historical/shared/qat/models/nvfp4-1p5b/w4a4-state...
+INFO 09-13 03:34:54 [__init__.py:687] Using FlashInferCutlassNvFp4LinearKernel for NVFP4 GEMM
+INFO 09-13 03:34:58 [cuda.py:372] Using FLASHINFER attention backend out of potential backends: ['FLASHINFER', 'FLASH_ATTN', 'TRITON_ATTN', 'FLEX_ATTENTION'].
+INFO 09-13 03:34:58 [selector.py:130] Using HND KV cache layout for FLASHINFER backend.
+INFO 09-13 03:34:58 [weight_utils.py:938] Filesystem type for checkpoints: BEEGFS. Checkpoint size: 1.56 GiB. Available RAM: 3734.29 GiB.
+INFO 09-13 03:34:58 [weight_utils.py:961] Auto-prefetch is disabled because the filesystem (BEEGFS) is not a recognized network FS (NFS/Lustre). If you want to force prefetching, start vLLM with --safetensors-load-strategy=prefetch.
+INFO 09-13 03:34:59 [default_loader.py:397] Loading weights took 0.36 seconds
+INFO 09-13 03:35:00 [gpu_model_runner.py:4959] Model loading took 1.61 GiB memory and 5.198066 seconds
+INFO 09-13 03:35:10 [backends.py:1089] Using cache directory: /historical/home/.cache/vllm/torch_compile_cache/465adae939/rank_0_0/backbone for vLLM's torch.compile
+INFO 09-13 03:35:10 [backends.py:1148] Dynamo bytecode transform time: 9.69 s
+INFO 09-13 03:35:15 [backends.py:378] Cache the graph of compile range (1, 16896) for later use
+INFO 09-13 03:35:22 [backends.py:393] Compiling a graph for compile range (1, 16896) takes 10.97 s
+INFO 09-13 03:35:26 [decorators.py:708] saved AOT compiled function to /historical/home/.cache/vllm/torch_compile_cache/torch_aot_compile/30caf670b69f3a8d482195d54bfa7fb6a0b7ba6c6689484a53ff42ad11a8da3a/rank_0_0/model
+INFO 09-13 03:35:26 [monitor.py:53] torch.compile took 25.55 s in total
+INFO 09-13 03:35:26 [monitor.py:81] Initial profiling/warmup run took 0.24 s
+INFO 09-13 03:35:36 [utils.py:60] `_KV_CACHE_LAYOUT_OVERRIDE` variable detected. Setting KV cache layout to HND.
+INFO 09-13 03:35:36 [gpu_model_runner.py:6063] Profiling CUDA graph memory: PIECEWISE=51 (largest=512), FULL=51 (largest=512)
+WARNING 09-13 03:35:37 [flashinfer.py:405] Using TRTLLM prefill attention (auto-detected).
+INFO 09-13 03:35:38 [gpu_model_runner.py:6142] Estimated CUDA graph memory: 0.78 GiB total
+INFO 09-13 03:35:38 [gpu_worker.py:462] Available KV cache memory: 196.06 GiB
+INFO 09-13 03:35:38 [gpu_worker.py:477] CUDA graph memory profiling is enabled (default since v0.21.0). The current --gpu-memory-utilization=0.7500 is equivalent to --gpu-memory-utilization=0.7471 without CUDA graph memory profiling. To maintain the same effective KV cache size as before, increase --gpu-memory-utilization to 0.7529. To disable, set VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS=0.
+INFO 09-13 03:35:38 [kv_cache_utils.py:1710] GPU KV cache size: 7,342,256 tokens
+INFO 09-13 03:35:38 [kv_cache_utils.py:1711] Maximum concurrency for 16,896 tokens per request: 434.56x
+INFO 09-13 03:35:39 [kernel_warmup.py:44] Skipping FlashInfer autotune because it is disabled.
+INFO 09-13 03:35:39 [kernel_warmup.py:69] Warming up FlashInfer attention.
+INFO 09-13 03:35:49 [gpu_model_runner.py:6243] Graph capturing finished in 8 secs, took 0.37 GiB
+INFO 09-13 03:35:49 [gpu_worker.py:621] CUDA graph pool memory: 0.37 GiB (actual), 0.78 GiB (estimated), difference: 0.4 GiB (108.4%).
+INFO 09-13 03:35:49 [jit_monitor.py:54] Kernel JIT monitor activated — Triton JIT compilations during inference will be logged as warnings.
+INFO 09-13 03:35:49 [core.py:299] init engine (profile, create kv cache, warmup model) took 48.92 s (compilation: 25.55 s)
+INFO 09-13 03:35:50 [block_pool.py:471] Successfully reset prefix cache
+INFO 09-13 03:35:51 [cumem.py:209] CuMemAllocator: sleep freed 197.77 GiB memory in total, of which 1.63 GiB is backed up in CPU and the rest 196.13 GiB is discarded directly.
+INFO 09-13 03:35:51 [gpu_worker.py:178] Sleep mode freed 199.79 GiB memory, 1.86 GiB memory is still in use.
+INFO 09-13 03:35:51 [abstract.py:331] It took 0.949289 seconds to fall asleep.
+INFO 09-13 03:35:51 [abstract.py:349] It took 0.063060 seconds to wake up tags ['weights'].
+[gen] slept and woke (weights) as verl does
+[gen] RESYNC applied over 112 layers
+INFO 09-13 03:35:52 [abstract.py:349] It took 0.786386 seconds to wake up tags ['kv_cache'].
+[gen] woke (kv_cache), matching verl's second wake
+WARNING 09-13 03:35:53 [jit_monitor.py:103] Triton kernel JIT compilation during inference: _compute_slot_mapping_kernel. This causes a latency spike; consider extending warmup to cover this shape/config.
+[gen] RESULT engine=nvfp4 n=16
+[gen]   finish_reason: {'stop': 16}
+[gen]   clip_ratio   : 0.0000   (training: on-policy 1.0, off-policy 0.016-0.031)
+[gen]   mean_len     : 4763.5  (training: on-policy 16384.0, off-policy ~6400)
+[gen]   min/max len  : 1556/8252
+[gen]   shortest tail: ':\n\\[\n(x + y)^2 = x^2 + 2xy + y^2\n\\]\n\\[\n(x - y)^2 = x^2 - 2xy + y^2\n\\]\nSubtracting the two:\n\\[\n(x^2 + 2xy + y^2) - (x^2 - 2xy + y^2) = x² + 2xy + y² - x² + 2xy - y² = 4xy\n\\]\nSo, 4xy = 20, hence:\n\n\\(4xy = 20 \\implies xy =5\\).\n\nLooking at options, 5 is option d.\n\nThus, the correct answer is:\n\n\\boxed{d}'
+recorded-node-02:4126130:2908 [0] NCCL INFO ENV/Plugin: Could not find: libnccl-env.so
+recorded-node-02:4126130:4126130 [0] NCCL INFO ENV/Plugin: Closing env plugin ncclEnvDefault
