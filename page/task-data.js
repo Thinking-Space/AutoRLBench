@@ -803,5 +803,25 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The reasoning-strip regex needs both thinking tags, but the chat template prefills the opening tag into the prompt, so the judge grades a multi-thousand-token reasoning block on every sample while every logged metric looks normal.",
     "issue": "Training MiniCPM5-2.6B with GRPO on a CHIMERA pass@1-6 set, the helper that is supposed to strip the model's reasoning before judging removes nothing: re.sub(r\"<think language>([\\s\\S]*?)</think language>\", \"\", text) needs both tags, but the chat template prefills the opening tag into the prompt, so the judge grades a multi-thousand-token reasoning block on every sample while every logged metric looks normal (defective run 619439, 717 rollout steps; the answer-only control 630255 reached 595)."
+  },
+  {
+    "id": "data/query_pool_gate_divergence",
+    "title": "Launch gate never notices the query-pool divergence",
+    "family": "Data",
+    "tags": [
+      "query-pool",
+      "data-pipeline",
+      "launch-gate",
+      "silent-failure",
+      "shell-exit-status"
+    ],
+    "model": "none (CPU-only gate diagnosis)",
+    "dataset": "24 query pools rebuilt by prepare",
+    "framework": "bash launch gate + Python manifest readers",
+    "image": "verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10",
+    "created": "2026-11-16",
+    "license": "Apache-2.0",
+    "brief": "The launch gate reads the manifest three times across three processes, exports swallow exit statuses, and a self-comparison stays permanently true -- ten defects in five masking groups keep the gate from ever noticing the divergence.",
+    "issue": "The query-pool launch gate is supposed to fail closed when the pools it reads diverge, but it never does: the manifest is read three times across three processes, exported exit statuses are swallowed, a self-comparison stays permanently true, and seven further defects across five masking groups (assertion suppression, subshell scope loss, a trap that resets the status, and the like) keep every failure path silent. The frozen calibration table records four gate-metric outcomes over the 24 rebuilt pools."
   }
 ];

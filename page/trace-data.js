@@ -835,7 +835,26 @@
  * ones at per-item granularity) and audited clean of network
  * access. The published issue-judgment total below moves
  * 405 -> 425.
- * The 185 solution records are reconciled against AutoRLBench validation-first
+ * The ten query_pool_gate_divergence issue records and ten solution
+ * records were published on 20 Nov 2026 from the local
+ * cybertron-evaluate sweeps of 19-20 Nov (ten models each; no Gemini
+ * run). The task pins a launch-gate query-pool divergence: the gate
+ * reads the manifest three times across three processes, exports
+ * swallow exit statuses, and a self-comparison stays permanently
+ * true -- ten defects in five masking groups keep the gate from
+ * ever noticing the divergence. No pass on either level. Issue
+ * round: every model returns the correct verdict; Qwen3.8-Max
+ * (0.873) reaches root cause 0.9 but evidence 0.667, and
+ * Kimi-K3.1-Pro (0.813) sits at root cause exactly 0.8 on the
+ * strict gate. Solution round: the in-trial deterministic verifier
+ * (CPU-second replay) rejects every repair; DeepSeek-V4-Pro is a
+ * no-report capability zero (normal exit after full workload, no
+ * report.md written). The twenty trajectories were rebuilt per
+ * agent type (the codex ones at per-item granularity) and audited
+ * clean of network access. The published issue-judgment total
+ * below moves 425 -> 435, the solution-run total 185 -> 195, and
+ * the solution-record reconciliation anchor 185 -> 195.
+ * The 195 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
  * (11) and swe_grader_silent_mislabel (10) were rejudged with gpt-5.6-terra
@@ -10204,6 +10223,326 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2792000,
     "steps": 152,
     "costUsd": 13.6382
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "gpt6astra-query-pool",
+    "file": "agent-trace/gpt6astra-query-pool.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.633333,
+    "durationMs": 94000,
+    "steps": 12,
+    "costUsd": null
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "gpt61sol-query-pool",
+    "file": "agent-trace/gpt61sol-query-pool.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 93000,
+    "steps": 11,
+    "costUsd": null
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "fable51-query-pool",
+    "file": "agent-trace/fable51-query-pool.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.5,
+    "durationMs": 351000,
+    "steps": 10,
+    "costUsd": 7.8231
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "glm53-query-pool",
+    "file": "agent-trace/glm53-query-pool.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.762857,
+    "durationMs": 1057000,
+    "steps": 26,
+    "costUsd": 5.8775
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "kimi-query-pool",
+    "file": "agent-trace/kimi-query-pool.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.69334,
+    "durationMs": 243000,
+    "steps": 20,
+    "costUsd": 0.6806
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "kimi31-query-pool",
+    "file": "agent-trace/kimi31-query-pool.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.813333,
+    "durationMs": 395000,
+    "steps": 16,
+    "costUsd": 0.9685
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "dsv4-query-pool",
+    "file": "agent-trace/dsv4-query-pool.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.693333,
+    "durationMs": 1991000,
+    "steps": 28,
+    "costUsd": 7.3632
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "qwen38-query-pool",
+    "file": "agent-trace/qwen38-query-pool.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.873333,
+    "durationMs": 1292000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "grok47-query-pool",
+    "file": "agent-trace/grok47-query-pool.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.786667,
+    "durationMs": 321000,
+    "steps": 47,
+    "costUsd": null
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "dsv41flash-query-pool",
+    "file": "agent-trace/dsv41flash-query-pool.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.693333,
+    "durationMs": 444000,
+    "steps": 24,
+    "costUsd": 2.5863
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "gpt6astra-query-pool-sol",
+    "file": "agent-trace/gpt6astra-query-pool-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 128000,
+    "steps": 12,
+    "costUsd": null,
+    "sourceRunId": "20261120-032637",
+    "sessionId": "01a1f546-a115-72a2-9833-a7b8bf9ddf69",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a9f11ef3ba26b1f7542e69424e7d979a4cc4f639468c41274c459052d765f39e"
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "gpt61sol-query-pool-sol",
+    "file": "agent-trace/gpt61sol-query-pool-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 128000,
+    "steps": 12,
+    "costUsd": null,
+    "sourceRunId": "20261120-032911",
+    "sessionId": "01a1f548-f78d-7460-b3e7-53bcd0ac9065",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "8dfe6d3c4e5235f3213daf83db35b47ceba3a45237c40ea2eb2c74eb87356aca"
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "fable51-query-pool-sol",
+    "file": "agent-trace/fable51-query-pool-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1143000,
+    "steps": 22,
+    "costUsd": 28.7245,
+    "sourceRunId": "20261120-045206",
+    "sessionId": "f9abcc01-835a-43ed-8f0e-caaeb058c16e",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "c209b3378f79903bf1ce9f72cfc51179a4a8ddabcc09b2eef74cf32e5db3d5c1"
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "glm53-query-pool-sol",
+    "file": "agent-trace/glm53-query-pool-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1939000,
+    "steps": 37,
+    "costUsd": 7.7164,
+    "sourceRunId": "20261120-020444",
+    "sessionId": "7546d3de-1f32-45ed-a2d1-268eebd10acb",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "cfe1ece40f61439cd78cdc41909c44e3e2597c94c6d220ac15950faf4e339987"
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "kimi-query-pool-sol",
+    "file": "agent-trace/kimi-query-pool-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 722000,
+    "steps": 31,
+    "costUsd": 6.7241,
+    "sourceRunId": "20261120-023759",
+    "sessionId": "de6bb3ba-7a2e-428a-8c04-7cdc0db5f018",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a64096d46e58106a602fd474a2c23badc823bd845228c5b3e62c671620400dc9"
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "kimi31-query-pool-sol",
+    "file": "agent-trace/kimi31-query-pool-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1176000,
+    "steps": 51,
+    "costUsd": 2.8815,
+    "sourceRunId": "20261120-020444",
+    "sessionId": "5c85ac9b-473b-4d14-827f-bc21ef8b269f",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "afbfa0ca59b1803bc8a8e13006da9ce916933b64c4cee423290bb0a3c12e9a50"
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "dsv4-query-pool-sol",
+    "file": "agent-trace/dsv4-query-pool-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 6937000,
+    "steps": 55,
+    "costUsd": 23.6623,
+    "sourceRunId": "20261120-022446",
+    "sessionId": "41f8f13c-a308-418d-ba69-844eb8fe152c",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "b54e7b248a53e6585c6cb94c6ec9ef34f5e61a7981c8fcf0ef974afc175da458"
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "qwen38-query-pool-sol",
+    "file": "agent-trace/qwen38-query-pool-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2146000,
+    "steps": 2,
+    "costUsd": null,
+    "sourceRunId": "20261120-025026",
+    "sessionId": "recovered-from-stream",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "35b97c86681958a2b1165fd6310856023e629a450e01c36cfdf5335bd5304a8c"
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "grok47-query-pool-sol",
+    "file": "agent-trace/grok47-query-pool-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1328000,
+    "steps": 75,
+    "costUsd": null,
+    "sourceRunId": "20261120-042933",
+    "sessionId": "unknown",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "8d956b4bbc16b7ab65c46656405d34c07c5101e49b61c9b82b87dd49e459731b"
+  },
+  {
+    "task": "data/query_pool_gate_divergence",
+    "slug": "dsv41flash-query-pool-sol",
+    "file": "agent-trace/dsv41flash-query-pool-sol.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 475000,
+    "steps": 33,
+    "costUsd": 4.5332,
+    "sourceRunId": "20261120-042043",
+    "sessionId": "3ebc6320-8e9d-477e-8ff0-12bd8d90abd3",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "c5c274bcd8e13aa74176cbca5ca893607b8f847e6c83e7cdfbb3c105c2adb8f6"
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

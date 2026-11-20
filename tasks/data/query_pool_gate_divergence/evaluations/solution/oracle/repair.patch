@@ -1,0 +1,268 @@
+diff -ruN a/scripts/launch_run.sh b/scripts/launch_run.sh
+--- a/scripts/launch_run.sh	2026-11-18 03:20:57.150272000 +0000
++++ b/scripts/launch_run.sh	2026-11-18 03:26:46.312518000 +0000
+@@ -7,6 +7,10 @@
+ # validates the pool against its manifest and the unusable-instance registry, derives the run
+ # identity from the manifest, and sets the rollout batch configuration. The trainer is started
+ # only if the gate is satisfied.
++#
++# The gate parses the manifest exactly once, in the validator below, and the validator emits the
++# values it has already checked as KEY=VALUE lines for this shell to read back. Every later
++# consumer then sees numbers that went through the checks.
+ 
+ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ WORK_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+@@ -42,8 +46,9 @@
+ verify_sha256 "${POOL_MANIFEST}" "${POOL_MANIFEST_SHA256}" "pool manifest"
+ verify_sha256 "${POOL_REGISTRY}" "${POOL_REGISTRY_SHA256}" "unusable-instance registry"
+ 
+-python3 - "${TRAIN_FILE}" "${POOL_MANIFEST}" "${POOL_REGISTRY}" <<'PY'
++_POOL_VALIDATION="$(python3 - "${TRAIN_FILE}" "${POOL_MANIFEST}" "${POOL_REGISTRY}" <<'PY'
+ import json
++import os
+ import sys
+ from collections import Counter
+ 
+@@ -53,28 +58,104 @@
+ with open(registry_path, encoding="utf-8") as handle:
+     registry_payload = json.load(handle)
+ 
++
++def as_count(value, label):
++    """Coerce a manifest or environment count to a non-negative int, or raise a readable error."""
++    if isinstance(value, bool):
++        raise RuntimeError(f"{label} must be an integer, got {value!r}")
++    if isinstance(value, int):
++        number = value
++    elif isinstance(value, float):
++        if not value.is_integer():
++            raise RuntimeError(f"{label} must be an integer, got {value!r}")
++        number = int(value)
++    elif isinstance(value, str):
++        try:
++            number = int(value.strip())
++        except ValueError as exc:
++            raise RuntimeError(f"{label} must be an integer, got {value!r}") from exc
++    else:
++        raise RuntimeError(f"{label} must be an integer, got {value!r}")
++    if number < 0:
++        raise RuntimeError(f"{label} must be non-negative, got {value!r}")
++    return number
++
++
++# Semantic ordering for the log line and the run tag; unknown sources are appended alphabetically.
++SOURCE_ORDER = ("swe_smith", "swe_rebench", "r2e_gym")
++SOURCE_ALIASES = {"swe_smith": "s", "swe_rebench": "rebench", "r2e_gym": "r2e"}
++
++
++def ordered_sources(counts):
++    head = [source for source in SOURCE_ORDER if source in counts]
++    tail = sorted(source for source in counts if source not in head)
++    return head + tail
++
++
+ expected_tools = ("execute_bash", "think", "complete_plan", "finish")
+-expected_sources = manifest.get("source_counts")
+-if not isinstance(expected_sources, dict) or not expected_sources:
+-    raise RuntimeError(f"manifest source_counts must be a non-empty object: {expected_sources!r}")
+-try:
+-    expected_sources = {str(source): int(count) for source, count in expected_sources.items()}
+-except (TypeError, ValueError) as exc:
+-    raise RuntimeError(f"manifest source_counts must contain integer counts: {expected_sources!r}") from exc
+-if any(count <= 0 for count in expected_sources.values()):
+-    raise RuntimeError(f"manifest source_counts must be positive: {expected_sources!r}")
+-expected_total = int(manifest.get("total_queries", sum(expected_sources.values())))
+-if expected_total != sum(expected_sources.values()):
++raw_sources = manifest.get("source_counts")
++if not isinstance(raw_sources, dict) or not raw_sources:
++    raise RuntimeError(f"manifest source_counts must be a non-empty object: {raw_sources!r}")
++expected_sources = {
++    str(source): as_count(count, f"manifest source_counts[{source!r}]")
++    for source, count in raw_sources.items()
++}
++source_sum = sum(expected_sources.values())
++if source_sum <= 0:
++    raise RuntimeError(f"manifest source_counts must not sum to zero: {expected_sources!r}")
++# A zero count is legitimate: build_pool.py records the requested mix, and a source at weight 0
++# is part of that mix. Only non-zero sources are expected to appear in the data file.
++expected_nonzero = {source: count for source, count in expected_sources.items() if count > 0}
++if "total_queries" in manifest:
++    expected_total = as_count(manifest["total_queries"], "manifest total_queries")
++else:
++    expected_total = source_sum
++if expected_total != source_sum:
+     raise RuntimeError(
+         f"manifest total_queries does not match source_counts: total={expected_total} "
+-        f"source_sum={sum(expected_sources.values())}"
++        f"source_sum={source_sum}"
+     )
++
++# Optional independent assertion that the pool is the *intended* experiment, not merely a pool
++# that agrees with its own manifest. Unset by default; the digest pins above still apply.
++intended_total = os.environ.get("POOL_EXPECTED_TOTAL", "").strip()
++if intended_total:
++    if as_count(intended_total, "POOL_EXPECTED_TOTAL") != expected_total:
++        raise RuntimeError(
++            f"pool total does not match POOL_EXPECTED_TOTAL: pool={expected_total} "
++            f"expected={intended_total}"
++        )
++intended_spec = os.environ.get("POOL_EXPECTED_SOURCE_COUNTS", "").strip()
++if intended_spec:
++    intended_counts = {}
++    for chunk in intended_spec.split(","):
++        chunk = chunk.strip()
++        if not chunk:
++            continue
++        if "=" not in chunk:
++            raise RuntimeError(f"POOL_EXPECTED_SOURCE_COUNTS entry must be source=count: {chunk!r}")
++        name, _, count = chunk.partition("=")
++        name = name.strip()
++        intended_counts[name] = as_count(count, f"POOL_EXPECTED_SOURCE_COUNTS[{name!r}]")
++    intended_nonzero = {name: count for name, count in intended_counts.items() if count > 0}
++    if intended_nonzero != expected_nonzero:
++        raise RuntimeError(
++            "pool composition does not match POOL_EXPECTED_SOURCE_COUNTS: "
++            f"pool={expected_nonzero} expected={intended_nonzero}"
++        )
++
+ excluded_identities = []
++skipped_registry = Counter()
+ for item in registry_payload.get("selected", []):
+     source = item.get("source")
+     instance_id = item.get("instance_id")
+-    if source not in expected_sources or not instance_id:
++    if not isinstance(source, str) or not source or not instance_id:
+         raise RuntimeError(f"invalid registry entry: {item}")
++    if source not in expected_nonzero:
++        # The registry is a repo-wide record of unusable instances; entries for sources this
++        # pool does not draw from are irrelevant here, not corrupt.
++        skipped_registry[source] += 1
++        continue
+     excluded_identities.append((source, instance_id))
+ if len(excluded_identities) != len(set(excluded_identities)):
+     raise RuntimeError("duplicate source/instance entries in the registry")
+@@ -104,34 +185,73 @@
+     raise RuntimeError(
+         f"expected {expected_total} unique queries, got rows={len(identities)} unique={len(set(identities))}"
+     )
+-if dict(source_counts) != expected_sources:
+-    raise RuntimeError(f"unexpected source counts: {dict(source_counts)}")
+-if manifest.get("source_counts") != expected_sources:
+-    raise RuntimeError(f"manifest source counts do not match: {manifest.get('source_counts')}")
++observed_sources = dict(source_counts)
++if observed_sources != expected_nonzero:
++    raise RuntimeError(
++        f"unexpected source counts: observed={observed_sources} manifest={expected_nonzero}"
++    )
+ present_exclusions = sorted(set(identities) & excluded_identities)
+ if present_exclusions:
+     raise RuntimeError(f"unusable instances remain in the query pool: {present_exclusions}")
+ manifest_excluded_counts = manifest.get("excluded_instance_counts", {})
+ if any(
+     manifest_excluded_counts.get(source, 0) != expected_excluded_counts.get(source, 0)
+-    for source in expected_sources
++    for source in expected_nonzero
+ ):
+     raise RuntimeError(
+         "manifest does not match the unusable-instance registry: "
+         f"manifest={manifest_excluded_counts} expected={dict(expected_excluded_counts)}"
+     )
+-print(
++
++# Emit the validated values for the shell to consume, so the manifest is parsed exactly once and
++# every downstream consumer sees numbers that went through the checks above.
++mix_order = ordered_sources(expected_nonzero)
++source_mix = ",".join(f"{source}={expected_nonzero[source]}" for source in mix_order)
++mix_slug = "_".join(
++    "{}{}".format(
++        SOURCE_ALIASES.get(source) or "".join(ch for ch in source if ch.isalnum()),
++        round(expected_nonzero[source] * 100 / expected_total),
++    )
++    for source in mix_order
++)
++message = (
+     "Validated mixed query pool: "
+-    f"rows={expected_total} sources={dict(source_counts)} excluded_images={len(excluded_identities)}"
++    f"rows={len(identities)} sources={observed_sources} excluded_images={len(excluded_identities)}"
+ )
++if skipped_registry:
++    message += f" skipped_out_of_pool_registry={dict(skipped_registry)}"
++print(f"POOL_TOTAL={expected_total}")
++print(f"POOL_SOURCE_MIX={source_mix}")
++print(f"POOL_MIX_SLUG={mix_slug}")
++print(f"POOL_MESSAGE={message}")
+ PY
++)"
+ 
+-if [ "${POOL_VALIDATE_ONLY:-0}" = "1" ]; then
+-   echo "Mixed query pool validate-only check complete."
+-   exit 0
+-fi
++# A bare assignment (unlike `export VAR="$(...)"`, which returns the export builtin's status)
++# propagates the subshell's exit status, so a validator failure aborts here under `set -e`
++# instead of silently yielding an empty value.
++POOL_TOTAL=""
++POOL_SOURCE_MIX=""
++POOL_MIX_SLUG=""
++while IFS='=' read -r _pool_key _pool_value; do
++   case "${_pool_key}" in
++      POOL_TOTAL) POOL_TOTAL="${_pool_value}" ;;
++      POOL_SOURCE_MIX) POOL_SOURCE_MIX="${_pool_value}" ;;
++      POOL_MIX_SLUG) POOL_MIX_SLUG="${_pool_value}" ;;
++      POOL_MESSAGE) echo "${_pool_value}" ;;
++   esac
++done <<<"${_POOL_VALIDATION}"
++unset _pool_key _pool_value _POOL_VALIDATION
++
++for _pool_field in POOL_TOTAL POOL_SOURCE_MIX POOL_MIX_SLUG; do
++   if [ -z "${!_pool_field}" ]; then
++      echo "pool validator did not emit ${_pool_field}" >&2
++      exit 1
++   fi
++done
++unset _pool_field
++export POOL_TOTAL
+ 
+-export POOL_TOTAL="$(python3 -c 'import json,os; print(json.load(open(os.environ["POOL_MANIFEST"]))["total_queries"])')"
+ export PROJECT_NAME="${PROJECT_NAME:-agentic_rl_mixed_pool}"
+ 
+ if [ -z "${RUN_TAG:-}" ]; then
+@@ -139,7 +259,7 @@
+    if [ -z "${_JOB_ID}" ] || [ "${_JOB_ID}" = "local" ]; then
+       _JOB_ID="$(date -u +%Y%m%d_%H%M%S)"
+    fi
+-   export RUN_TAG="mixed${POOL_TOTAL}_s50_rebench35_r2e15_grpo_lr3e6_${_JOB_ID}"
++   export RUN_TAG="mixed${POOL_TOTAL}_${POOL_MIX_SLUG}_grpo_lr3e6_${_JOB_ID}"
+    unset _JOB_ID
+ fi
+ 
+@@ -150,10 +270,28 @@
+ export ROLLOUT_SHUFFLE=1
+ export ROLLOUT_SEED="${ROLLOUT_SEED:-42}"
+ 
++# The pool size comes from the manifest, so the batch sizes have to be checked against it here
++# rather than assumed.
++if [ "${OVER_SAMPLING_BATCH_SIZE}" -lt "${ROLLOUT_BATCH_SIZE}" ]; then
++   echo "OVER_SAMPLING_BATCH_SIZE=${OVER_SAMPLING_BATCH_SIZE} must be >= ROLLOUT_BATCH_SIZE=${ROLLOUT_BATCH_SIZE}" >&2
++   exit 1
++fi
++if [ "${OVER_SAMPLING_BATCH_SIZE}" -gt "${POOL_TOTAL}" ]; then
++   echo "OVER_SAMPLING_BATCH_SIZE=${OVER_SAMPLING_BATCH_SIZE} exceeds query pool size ${POOL_TOTAL}" >&2
++   exit 1
++fi
++
+ echo "Mixed-pool agentic RL:"
+ echo "  RUN_TAG=${RUN_TAG}"
+ echo "  TRAIN_FILE=${TRAIN_FILE}"
+ echo "  NUM_ROLLOUT=${NUM_ROLLOUT} RBS=${ROLLOUT_BATCH_SIZE} OS=${OVER_SAMPLING_BATCH_SIZE} N=${N_SAMPLES_PER_PROMPT}"
+-echo "  SOURCE_MIX=$(python3 -c 'import json,os; print(json.load(open(os.environ["POOL_MANIFEST"]))["source_counts"])') SHUFFLE_SEED=${ROLLOUT_SEED}"
++echo "  SOURCE_MIX=${POOL_SOURCE_MIX} SHUFFLE_SEED=${ROLLOUT_SEED}"
++
++# Exits last so that validate-only exercises the run tag and the batch guards, not just the pool
++# checks. Everything above this point is pure validation and exports.
++if [ "${POOL_VALIDATE_ONLY:-0}" = "1" ]; then
++   echo "Mixed query pool validate-only check complete."
++   exit 0
++fi
+ 
+ exec python3 -B "${SCRIPT_DIR}/consume_pool.py"
