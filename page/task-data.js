@@ -762,5 +762,46 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The rollout masks tokenizer-unreachable output IDs while the FSDP actor normalizes over all 152,064 LM-head rows: the 399 unreachable rows accumulate probability mass and shift every valid token log-probability.",
     "issue": "Training DeepSeek-R1-Distill-Qwen-7B with GRPO on Skywork-OR1-RL-Data, actor and rollout log-probabilities diverge on the same generated tokens: the vLLM rollout masks token IDs outside the tokenizer vocabulary (151,665 IDs) before sampling, while the FSDP actor normalizes log-probabilities and entropy over the full 152,064-row LM head, so the 399 unreachable padded rows accumulate probability mass (reconstructed from the shipped raw logits at 0.9955-0.9974 on later positions). Mean rollout-versus-actor log-probability differences on three 16,384-token responses reach 4.873, 4.869 and 4.768 across the 275-step recorded continuation."
+  },
+  {
+    "id": "infrastructure/padding-attention-mask",
+    "title": "Quantized GRPO scores depend on batch layout",
+    "family": "Infrastructure",
+    "tags": [
+      "attention-mask",
+      "layout-sensitivity",
+      "policy-gradient",
+      "issue-only"
+    ],
+    "model": "DeepSeek-R1-Distill-Qwen-1.5B",
+    "dataset": "DAPO-Math-17k",
+    "framework": "PyTorch 2.11 / Transformers 5.5.3 / GRPO with vLLM 0.24.0",
+    "image": "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12",
+    "created": "2026-11-13",
+    "license": "Apache-2.0",
+    "brief": "The custom attention is registered in the attention-function registry but missing from the separate mask-builder registry, so mask preprocessing returns None and real tokens attend to padding keys through SDPA.",
+    "issue": "Training DeepSeek-R1-Distill-Qwen-1.5B with GRPO on DAPO-Math-17k, changing left padding alters the actor's log-probabilities and policy gradients for the exact same response: the custom attention implementation is registered only in the attention-function registry and missing from Transformers' separate mask-builder registry (ALL_MASK_ATTENTION_FUNCTIONS), so mask preprocessing returns None, and real-token queries attend to preceding padding keys through SDPA even though the position IDs keep real-token positions aligned. Training still completes rollouts and finite optimizer steps without raising an error (same-token logprob MAE 0.287 vs 0.007 with the registration restored)."
+  },
+  {
+    "id": "reward/miles_judge_thinking_strip_failure",
+    "title": "Judge reads the whole reasoning block",
+    "family": "Reward",
+    "tags": [
+      "miles",
+      "grpo",
+      "llm-judge",
+      "thinking-mode",
+      "regex",
+      "silent-regression",
+      "issue-only"
+    ],
+    "model": "MiniCPM5-2.6B",
+    "dataset": "CHIMERA pass@1-6 (SFT base on GPT-OSS-synthesized data)",
+    "framework": "miles (slime fork) / GRPO with a deepseek-v4-flash judge",
+    "image": "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-17",
+    "license": "Apache-2.0",
+    "brief": "The reasoning-strip regex needs both thinking tags, but the chat template prefills the opening tag into the prompt, so the judge grades a multi-thousand-token reasoning block on every sample while every logged metric looks normal.",
+    "issue": "Training MiniCPM5-2.6B with GRPO on a CHIMERA pass@1-6 set, the helper that is supposed to strip the model's reasoning before judging removes nothing: re.sub(r\"<think language>([\\s\\S]*?)</think language>\", \"\", text) needs both tags, but the chat template prefills the opening tag into the prompt, so the judge grades a multi-thousand-token reasoning block on every sample while every logged metric looks normal (defective run 619439, 717 rollout steps; the answer-only control 630255 reached 595)."
   }
 ];

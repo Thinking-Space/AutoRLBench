@@ -811,6 +811,30 @@
  * of network access. The published solution-run total below moves
  * 175 -> 185, and the solution-record reconciliation anchor
  * 175 -> 185.
+ * The ten padding-attention-mask and ten
+ * miles_judge_thinking_strip_failure issue records were published
+ * on 20 Nov 2026 from the local cybertron-evaluate sweeps of 19-20
+ * Nov (ten models each; no Gemini run; both tasks ship issue-only).
+ * padding-attention-mask pins a Transformers double-registry trap:
+ * the custom attention is registered in the attention-function
+ * registry but missing from the separate mask-builder registry
+ * (ALL_MASK_ATTENTION_FUNCTIONS), so mask preprocessing returns
+ * None and real-token queries attend to preceding padding keys
+ * through SDPA while position IDs stay aligned -- one pass
+ * (Qwen3.8-Max 0.966); GLM-5.3 (0.925) and DeepSeek-V4.1-Flash
+ * (0.95) hold the root cause but fall short on evidence, the other
+ * seven lose root-cause credit with the correct verdict.
+ * miles_judge_thinking_strip_failure pins a four-line helper that
+ * reads correctly in isolation: the reasoning-strip regex needs
+ * both thinking tags, but the chat template prefills the opening
+ * tag into the prompt, so the judge grades a multi-thousand-token
+ * reasoning block on every sample while every logged metric looks
+ * normal -- no pass; DeepSeek-V4.1-Flash (0.95) is the best at
+ * evidence 0.75, DeepSeek-V4-Pro is a no-answer structural zero.
+ * The twenty trajectories were rebuilt per agent type (the codex
+ * ones at per-item granularity) and audited clean of network
+ * access. The published issue-judgment total below moves
+ * 405 -> 425.
  * The 185 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -9900,6 +9924,286 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "cc9cd8ed-a886-4099-b980-9cd496f354d5",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "d6a43e44d17ff7e3926d4f21ec8ebf7c2b79d58ea1cd450e355fd34d98a280af"
+  },
+  {
+    "task": "infrastructure/padding-attention-mask",
+    "slug": "gpt6astra-padding-mask",
+    "file": "agent-trace/gpt6astra-padding-mask.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.32,
+    "durationMs": 82000,
+    "steps": 11,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/padding-attention-mask",
+    "slug": "gpt61sol-padding-mask",
+    "file": "agent-trace/gpt61sol-padding-mask.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 0,
+    "steps": 12,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/padding-attention-mask",
+    "slug": "fable51-padding-mask",
+    "file": "agent-trace/fable51-padding-mask.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 321000,
+    "steps": 12,
+    "costUsd": 10.5536
+  },
+  {
+    "task": "infrastructure/padding-attention-mask",
+    "slug": "glm53-padding-mask",
+    "file": "agent-trace/glm53-padding-mask.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.925,
+    "durationMs": 1231000,
+    "steps": 30,
+    "costUsd": 6.7598
+  },
+  {
+    "task": "infrastructure/padding-attention-mask",
+    "slug": "kimi-padding-mask",
+    "file": "agent-trace/kimi-padding-mask.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 393000,
+    "steps": 30,
+    "costUsd": 1.3422
+  },
+  {
+    "task": "infrastructure/padding-attention-mask",
+    "slug": "kimi31-padding-mask",
+    "file": "agent-trace/kimi31-padding-mask.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 545000,
+    "steps": 31,
+    "costUsd": 4.4512
+  },
+  {
+    "task": "infrastructure/padding-attention-mask",
+    "slug": "dsv4-padding-mask",
+    "file": "agent-trace/dsv4-padding-mask.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.314286,
+    "durationMs": 1824000,
+    "steps": 22,
+    "costUsd": 7.4061
+  },
+  {
+    "task": "infrastructure/padding-attention-mask",
+    "slug": "qwen38-padding-mask",
+    "file": "agent-trace/qwen38-padding-mask.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.966,
+    "durationMs": 974000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/padding-attention-mask",
+    "slug": "grok47-padding-mask",
+    "file": "agent-trace/grok47-padding-mask.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.325,
+    "durationMs": 1672000,
+    "steps": 95,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/padding-attention-mask",
+    "slug": "dsv41flash-padding-mask",
+    "file": "agent-trace/dsv41flash-padding-mask.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.95,
+    "durationMs": 1137000,
+    "steps": 83,
+    "costUsd": 7.6633
+  },
+  {
+    "task": "reward/miles_judge_thinking_strip_failure",
+    "slug": "gpt6astra-thinking-strip",
+    "file": "agent-trace/gpt6astra-thinking-strip.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 101000,
+    "steps": 12,
+    "costUsd": null
+  },
+  {
+    "task": "reward/miles_judge_thinking_strip_failure",
+    "slug": "gpt61sol-thinking-strip",
+    "file": "agent-trace/gpt61sol-thinking-strip.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.257143,
+    "durationMs": 137000,
+    "steps": 17,
+    "costUsd": null
+  },
+  {
+    "task": "reward/miles_judge_thinking_strip_failure",
+    "slug": "fable51-thinking-strip",
+    "file": "agent-trace/fable51-thinking-strip.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.22,
+    "durationMs": 550000,
+    "steps": 14,
+    "costUsd": 12.7948
+  },
+  {
+    "task": "reward/miles_judge_thinking_strip_failure",
+    "slug": "glm53-thinking-strip",
+    "file": "agent-trace/glm53-thinking-strip.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 7442000,
+    "steps": 177,
+    "costUsd": 63.4443
+  },
+  {
+    "task": "reward/miles_judge_thinking_strip_failure",
+    "slug": "kimi-thinking-strip",
+    "file": "agent-trace/kimi-thinking-strip.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.26,
+    "durationMs": 1025000,
+    "steps": 50,
+    "costUsd": 3.1772
+  },
+  {
+    "task": "reward/miles_judge_thinking_strip_failure",
+    "slug": "kimi31-thinking-strip",
+    "file": "agent-trace/kimi31-thinking-strip.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.23334,
+    "durationMs": 967000,
+    "steps": 33,
+    "costUsd": 3.6307
+  },
+  {
+    "task": "reward/miles_judge_thinking_strip_failure",
+    "slug": "dsv4-thinking-strip",
+    "file": "agent-trace/dsv4-thinking-strip.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1135000,
+    "steps": 28,
+    "costUsd": 7.1568
+  },
+  {
+    "task": "reward/miles_judge_thinking_strip_failure",
+    "slug": "qwen38-thinking-strip",
+    "file": "agent-trace/qwen38-thinking-strip.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.31428,
+    "durationMs": 2142000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "reward/miles_judge_thinking_strip_failure",
+    "slug": "grok47-thinking-strip",
+    "file": "agent-trace/grok47-thinking-strip.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 595000,
+    "steps": 138,
+    "costUsd": null
+  },
+  {
+    "task": "reward/miles_judge_thinking_strip_failure",
+    "slug": "dsv41flash-thinking-strip",
+    "file": "agent-trace/dsv41flash-thinking-strip.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.95,
+    "durationMs": 2792000,
+    "steps": 152,
+    "costUsd": 13.6382
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

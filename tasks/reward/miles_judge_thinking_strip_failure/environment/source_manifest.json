@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repo": "miles (Apache-2.0 fork of slime)",
+    "note": "workspace/ is the tree exported from the recorded checkout, with the path sanitizations recorded below. No metric value anywhere in this task was altered."
+  },
+  "replacements": [
+    {
+      "what": "judge API key",
+      "original": "sk-<redacted 32 hex>",
+      "replacement": "not shipped",
+      "where": "original job entry command line",
+      "reason": "The recorded launch command passed --judge-api-key in cleartext. The entry line is not shipped; task.toml's training.script_args reproduces the run's flags with the credential omitted."
+    },
+    {
+      "what": "judge endpoint URL",
+      "original": "third-party completion endpoint used by the recorded run",
+      "replacement": "not shipped",
+      "where": "original job entry command line (--rm-url)",
+      "reason": "The harness supplies the judge, so the endpoint is not part of the shipped configuration."
+    },
+    {
+      "what": "outbound proxy host",
+      "original": "http://whitelist-proxy.<internal>:7891",
+      "replacement": "not shipped",
+      "where": "original job entry command line (--judge-proxy)",
+      "reason": "Internal hostname; omitted from script_args."
+    },
+    {
+      "what": "absolute judge-template path",
+      "original": "/user/<username>/rl_data/miles/chimera_judge_gt_equiv_reasonfirst.txt",
+      "replacement": "rl_data/chimera_judge_gt_equiv_reasonfirst.txt",
+      "where": "task.toml training.script_args --judge-prompt-template",
+      "reason": "The template was an out-of-repo asset referenced by absolute path. It is now shipped inside workspace/ and referenced relatively, so the task is self-contained."
+    },
+    {
+      "what": "checkpoint and model paths",
+      "original": "/user/<username>/outputs/miles_ckpt/${JOB_ID}_... and /user/<username>/miles_ckpt/<...>_s5097_load",
+      "replacement": "not shipped",
+      "where": "original job entry CKPT_PATH / MEGATRON_MODEL_PATH",
+      "reason": "Absolute user paths. No checkpoint paths are shipped."
+    },
+    {
+      "what": "environment image",
+      "original": "internal registry image (llm-rl/ngc-2506 lineage)",
+      "replacement": "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb...",
+      "where": "task.toml [environment].image",
+      "reason": "The recorded image is private and cannot be pulled publicly, so task.toml pins a shared public image instead. The issue tier reads only frozen evidence and starts no training."
+    },
+    {
+      "what": "packaging-only metadata in frozen metrics",
+      "original": "\"task_id\": \"miles_judge_thinking_strip_failure\" and the run_once block whose note said the collapse had been identified",
+      "replacement": "removed",
+      "where": "workspace/outputs/metrics.json",
+      "reason": "The task_id named the defect and the run_once note stated the verdict; both would be visible answer hints to the agent. No metric value was changed.",
+      "sha256_before": "3be5a04789909727632672ef7ecfa1c1eb4ba938f9b96aa588de60c683a915ce",
+      "sha256_after": "0f836f2c0e692b1144c4c2f0e6888f6174c0754622fc6c9be854a1145918a077"
+    },
+    {
+      "what": "recorded job entry command",
+      "original": "platform entry line carrying the reward/judge flags and the credential/endpoint flags",
+      "replacement": "sanitized copy at workspace/outputs/launch_command.txt",
+      "where": "workspace/outputs/launch_command.txt",
+      "reason": "The effective reward/judge configuration must be visible in the agent's workspace, because task.toml is not mounted into the agent stage."
+    },
+    {
+      "what": "absolute user paths in the declared launch script",
+      "original": "/user/<username>/... and /para_hdd/user/<username>/... defaults in run-minicpm5-26b-short-math-8k-colocate.sh",
+      "replacement": "/models/..., /datasets/..., /data/... neutral defaults",
+      "where": "workspace/scripts/minicpm5/2_6b/short_rl/run-minicpm5-26b-short-math-8k-colocate.sh",
+      "reason": "Machine-specific usernames and storage paths. They are not part of the defect, and the issue tier does not execute the script.",
+      "sha256_before": "e3ad85d330153a883cd630c3b0342c79280ce88861e601f1aa7c44ff15491eff",
+      "sha256_after": "c7af846960b0c40a7dead1d87f167e6cf44dc6eac9c8232a3af00bd5daab1cd2"
+    }
+  ],
+  "remaining_scan_hits": [
+    {
+      "pattern": "modelbest|codeup",
+      "verdict": "upstream wording, left in place",
+      "detail": "Submodule URLs plus unrelated upstream scripts and docs. They describe the framework tree, not the recorded run."
+    },
+    {
+      "pattern": "/user/|/para_hdd/",
+      "verdict": "upstream launch-script defaults, left in place",
+      "detail": "The declared launch script is sanitized; remaining hits are in upstream community recipes, setup scripts, tests, and docs. They are framework defaults, not the recorded run."
+    },
+    {
+      "pattern": "whitelist-proxy|cybertron",
+      "verdict": "upstream wording, left in place",
+      "detail": "Internal proxy hostname in upstream miles scripts/docs (scripts/setup/proxy.sh, docs/e2b-stress-test-report.md, a community recipe). It is framework content, not the recorded run; no metric or root cause depends on it."
+    },
+    {
+      "pattern": "*_fixed.jinja|solution_io.py",
+      "verdict": "upstream framework files, not this task's solution",
+      "detail": "Upstream chat-template assets for Qwen/MiniMax/Kimi and a coder1 utility. They are not the fix for extract_non_reasoning_content; the shipped helper is the buggy version, and the tests only assert paired-tag inputs."
+    }
+  ],
+  "omitted_from_workspace": [
+    {
+      "what": "Megatron-LM, sglang, mbridge",
+      "reason": "Git submodules; present as empty directories in the export. Not vendored, matching reward/slime_retool_length_reward_bonus which ships only the framework package."
+    },
+    {
+      "what": "model weights and checkpoints",
+      "reason": "Per CONTRIBUTING: weights are never shipped in the task."
+    },
+    {
+      "what": "rollout dumps",
+      "reason": "Deleted before packaging, so no per-sample dumps are included. The per-step trace under workspace/outputs/ carries the evidence."
+    }
+  ],
+  "added_for_evidence": [
+    {
+      "what": "model/chat_template.jinja",
+      "source": "the MiniCPM5 tokenizer's own chat template, taken verbatim from a MiniCPM5 checkpoint of the same family (16A3B RL ckpt)",
+      "why": "The defect is that this template prefills the opening '<think>' into the prompt when enable_thinking=true, so the generated response carries only the closing tag and the paired regex in extract_non_reasoning_content matches nothing. Without the template in the workspace the agent could not observe that prefill, and the task would not be solvable from the shipped evidence alone. The file is byte-identical to the tokenizer asset; no metric or log was changed.",
+      "where": "workspace/model/chat_template.jinja",
+      "sha256": "cc945752db555d60949b16989df4ccfeb52a313d6b4b5c5229dd786e2e9fcf1c"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "category": "reward",
+  "framework": "miles",
+  "task": "miles_judge_thinking_strip_failure",
+  "verdict": "unhealthy",
+  "root_cause": [
+    {
+      "name": "paired_regex_strip_no_op_under_prefilled_think_tag",
+      "where": "workspace/miles/rollout/rm_hub/llm_judge.py::extract_non_reasoning_content (called on both the response and the reference at lines 258-259); workspace/model/chat_template.jinja add_generation_prompt block; the run's --apply-chat-template-kwargs sets enable_thinking to true",
+      "observed": "the helper strips reasoning with a paired-tag regex that requires the opening think tag to be present in the text, but the chat template prefills the opening tag into the prompt when enable_thinking is true, so the decoded response carries only the closing tag; the regex matches nothing, the strip is a no-op, and the judge receives the multi-thousand-token reasoning block together with the answer on every sample",
+      "expected": "reasoning is stripped regardless of which side supplied the opening tag -- for example, cut at the last closing tag when no opening tag is present -- so the judge grades only the answer"
+    }
+  ],
+  "evidence_metrics": [
+    "the recorded run's trace covers 717 rollout steps with rollout/raw_reward rising from 0.324 (minimum) to 0.617 at the final step and response lengths of roughly 8.3k-9.6k tokens -- every logged metric looks normal, and nothing records what the judge received",
+    "the launch command ships with --apply-chat-template-kwargs '{\"enable_thinking\": true}', a reason-first judge template, judge deepseek-v4-flash, temperature 0.0 and max_tokens 4096",
+    "the template's add_generation_prompt block emits both tags when enable_thinking is false (the paired regex would work) but prefills only the opening tag into the prompt when true -- the defect bites only in this run's thinking-enabled configuration",
+    "applying the helper's regex to a response of the shipped shape (reasoning, closing tag, answer, no opening tag) returns the input unchanged -- the reproduction is constructible from the shipped code without any training or GPU",
+    "the original rollout dumps were deleted before packaging; the per-step trace under workspace/outputs/ is the run-level evidence and the code-level reproduction is the strongest available signal"
+  ],
+  "fix": {
+    "must": [
+      "name extract_non_reasoning_content and its paired-tag assumption",
+      "connect the chat template's enable_thinking prefill of the opening tag to the response lacking that tag",
+      "state that the judge therefore graded the whole reasoning block plus the answer on every sample",
+      "reject the judge model, response length, truncation, the KL coefficient, and \"training did not improve\" as the root cause"
+    ]
+  }
+}

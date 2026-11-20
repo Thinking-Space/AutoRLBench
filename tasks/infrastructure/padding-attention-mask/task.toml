@@ -1,0 +1,25 @@
+title = "Quantized GRPO scores depend on batch layout"
+license = "CC-BY-NC-4.0"
+created_date = "2026-11-05"
+domain = "infrastructure"
+tags = ["attention-mask", "layout-sensitivity", "policy-gradient", "issue-only"]
+[submitter]
+name = "Yong Yan"
+[model]
+name = "DeepSeek-R1-Distill-Qwen-1.5B@ad9f0ae0864d7fbcd1cd905e3c6c5b069cc8b562"
+[dataset]
+name = "DAPO-Math-17k@65877096c24ffa7abc4e4fa5edb95cf3413a5674; AIME24@58e32b4b387f34192acdacbdf602510c459a6525"
+[training]
+framework = "pytorch-transformers-vllm"
+algo = "grpo"
+script = "scripts/train.sh"
+script_args = []
+[environment]
+image = "verlai/verl:vllm024.dev2@sha256:b867883b0dd011363e69ab2ab344922a28c5bd0409e2a324e3ee70fb27ca7543"
+image_stack = "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12"
+gpus = 1
+[environment.env]
+WANDB_MODE = "offline"
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "The same response receives different actor token scores and policy gradients under two physical prompt layouts."
