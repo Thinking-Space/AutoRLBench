@@ -1,0 +1,313 @@
+#!/bin/bash
+# Qwen3-8B - Kernel Bench RL Training (with ZMQ Sandbox)
+#
+# Config:
+#   Training:  8 GPU, TP=4, DP=2, CP=1 (dense model, full attention)
+#   Rollout:   sglang TP=4, 2 engines, FA3 backend
+#   Data:      kernel_bench_data.jsonl (250 CUDA kernel generation tasks)
+#   GRPO:      TIS enabled, rm-type=triton (ZMQ sandbox for CUDA kernel eval)
+#
+# Key parameters (override via env vars):
+#   NUM_ROLLOUT            default 200
+#   ROLLOUT_BATCH_SIZE     default 8
+#   N_SAMPLES_PER_PROMPT   default 8
+#   MAX_TOKENS_PER_GPU     default 10240
+#   TENSOR_PARALLEL_SIZE   default 4
+#   MILES_MAX_RESPONSE_LEN default 32768
+#   SANDBOX_PORT           default 5555
+
+set -x
+unset http_proxy HTTP_PROXY https_proxy HTTPS_PROXY no_proxy NO_PROXY
+
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+export CLUSTER=${CLUSTER:-ningxia_h100}
+source scripts/setup/env.sh
+bash scripts/setup/setup.sh
+export SLIME_SCRIPT_NUM_GPUS=$GPUS_PER_NODE
+
+# ============================================================
+# Path configuration
+# ============================================================
+BASE_DIR="$(cd "${WORK_DIR}/.." && pwd)"
+
+MODEL_PATH=${MODEL_PATH:-${BASE_DIR}/models/qwen3-8b-sft}
+export MODEL_PATH
+export MEGATRON_MODEL_PATH=${MEGATRON_MODEL_PATH:-${BASE_DIR}/checkpoints/qwen3-8b-sft-megatron}
+export CKPT_PATH=${BASE_DIR}/checkpoints
+export SGLANG_PATH=${WORK_DIR}/sglang
+export PYTHONPATH=.:Megatron-LM/:mbridge:${SGLANG_PATH}/python
+
+TRAIN_FILE="${BASE_DIR}/data/train/kernel_bench_data.jsonl"
+export ARG_MODE=true_on_policy
+export WANDB_API_KEY=${WANDB_API_KEY:-i_dont_have_wandb_key}
+export TENSORBOARD_DIR=${TENSORBOARD_DIR:-${BASE_DIR}/exp_log/tensorboard/qwen3_8b_kernel_bench}
+USE_WANDB=${USE_WANDB:-0}
+
+# ============================================================
+# Sandbox configuration (ZMQ Triton Bench Server)
+# ============================================================
+SANDBOX_DIR="${BASE_DIR}/sandbox"
+export SANDBOX_PORT=${SANDBOX_PORT:-5555}
+export SANDBOX_HOST=${SANDBOX_HOST:-127.0.0.1}
+export SANDBOX_ADDR="tcp://${SANDBOX_HOST}"
+export TRITON_HOME=${TRITON_HOME:-${BASE_DIR}/triton_home}
+export SANDBOX_READY_TIMEOUT=${SANDBOX_READY_TIMEOUT:-180}
+mkdir -p "${TRITON_HOME}/torch_" "${TRITON_HOME}/triton_" "${TRITON_HOME}/content_"
+
+# ============================================================
+# Configurable parameters
+# ============================================================
+NUM_ROLLOUT=${NUM_ROLLOUT:-200}
+
+if [ "${SKIP_KILL:-0}" != "1" ]; then
+  pkill -9 sglang || true
+  sleep 3
+  ray stop --force || true
+  pkill -9 ray || true
+  pkill -f "python3 train.py" || true
+  sleep 3
+  pkill -9 ray || true
+  pkill -f "python3 train.py" || true
+  pkill -9 redis || true
+else
+  echo "SKIP_KILL=1: skip pkill/ray stop cleanup"
+fi
+
+set -ex
+export PYTHONBUFFERED=16
+
+NVLINK_COUNT=$(nvidia-smi topo -m 2>/dev/null | grep -o 'NV[0-9][0-9]*' | wc -l || echo 0)
+HAS_NVLINK=$([[ "$NVLINK_COUNT" -gt 0 ]] && echo 1 || echo 0)
+echo "HAS_NVLINK: $HAS_NVLINK (detected $NVLINK_COUNT NVLink references)"
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+source "${SCRIPT_DIR}/models/qwen3-8B.sh"
+
+MODEL_ARGS+=(
+  --bf16
+  --accumulate-allreduce-grads-in-fp32
+  --attention-softmax-in-fp32
+)
+
+# ============================================================
+# Parallelism
+#   TP=4 for dense 8B model → DP=2 on 8 GPUs
+#   sglang TP=4 (32 heads / 4 = 8 per shard), 2 engines
+# ============================================================
+TENSOR_PARALLEL_SIZE=${TENSOR_PARALLEL_SIZE:-4}
+CONTEXT_PARALLEL_SIZE=${CONTEXT_PARALLEL_SIZE:-1}
+ROLLOUT_NUM_GPUS_PER_ENGINE=${ROLLOUT_NUM_GPUS_PER_ENGINE:-4}
+
+# ============================================================
+# Batch & memory configuration
+# ============================================================
+ROLLOUT_BATCH_SIZE=${ROLLOUT_BATCH_SIZE:-8}
+N_SAMPLES_PER_PROMPT=${N_SAMPLES_PER_PROMPT:-8}
+GLOBAL_BATCH_SIZE=$((ROLLOUT_BATCH_SIZE * N_SAMPLES_PER_PROMPT))
+
+MAX_TOKENS_PER_GPU=${MAX_TOKENS_PER_GPU:-10240}
+LOGPROBS_MAX_TOKENS_PER_GPU=${LOGPROBS_MAX_TOKENS_PER_GPU:-10240}
+LOG_PROBS_CHUNK_SIZE=1024
+
+SGLANG_MEM_FRACTION=${SGLANG_MEM_FRACTION:-0.60}
+
+MILES_MAX_PROMPT_LEN="${MILES_MAX_PROMPT_LEN:-4096}"
+MILES_MAX_RESPONSE_LEN="${MILES_MAX_RESPONSE_LEN:-32768}"
+
+# sglang context = max_position_embeddings = 40960
+SGLANG_CONTEXT_LEN=${SGLANG_CONTEXT_LEN:-40960}
+SGLANG_MAX_PREFILL_TOKENS=${SGLANG_MAX_PREFILL_TOKENS:-${SGLANG_CONTEXT_LEN}}
+# ~6 concurrent 40k requests' KV cache
+SGLANG_MAX_TOTAL_TOKENS=${SGLANG_MAX_TOTAL_TOKENS:-250000}
+SGLANG_MAX_RUNNING_REQUESTS=${SGLANG_MAX_RUNNING_REQUESTS:-256}
+SGLANG_SCHEDULE_CONSERVATIVENESS=${SGLANG_SCHEDULE_CONSERVATIVENESS:-1.2}
+
+RUN_TAG="$(date +%Y%m%d_%H%M%S)"
+EXP_NAME="qwen3_8b_kernel_bench_${RUN_TAG}"
+
+CKPT_ARGS=(
+  --hf-checkpoint $MODEL_PATH
+  --load $MEGATRON_MODEL_PATH
+  --save ${CKPT_PATH}/${EXP_NAME}/
+  --save-interval 20
+  --async-save
+)
+
+ROLLOUT_ARGS=(
+  --prompt-data $TRAIN_FILE
+  --input-key question
+  --label-key final_answer
+  --reward-key score
+  --apply-chat-template
+  --rollout-shuffle
+  --rm-type triton
+  --num-rollout ${NUM_ROLLOUT}
+  --rollout-batch-size ${ROLLOUT_BATCH_SIZE}
+  --n-samples-per-prompt ${N_SAMPLES_PER_PROMPT}
+  --rollout-max-prompt-len ${MILES_MAX_PROMPT_LEN}
+  --rollout-max-response-len ${MILES_MAX_RESPONSE_LEN}
+  --rollout-temperature 1.0
+  --global-batch-size ${GLOBAL_BATCH_SIZE}
+  --balance-data
+)
+
+PERF_ARGS=(
+  --train-backend megatron
+  --tensor-model-parallel-size ${TENSOR_PARALLEL_SIZE}
+  --context-parallel-size ${CONTEXT_PARALLEL_SIZE}
+  --sequence-parallel
+  --pipeline-model-parallel-size 1
+  --expert-model-parallel-size 1
+  --expert-tensor-parallel-size 1
+  --attention-backend ${ATTENTION_BACKEND:-flash}
+  --use-dynamic-batch-size
+  --max-tokens-per-gpu ${MAX_TOKENS_PER_GPU}
+  --log-probs-max-tokens-per-gpu ${LOGPROBS_MAX_TOKENS_PER_GPU}
+  --log-probs-chunk-size ${LOG_PROBS_CHUNK_SIZE}
+  --recompute-granularity full
+  --recompute-method uniform
+  --recompute-num-layers 1
+)
+
+GRPO_ARGS=(
+  --advantage-estimator grpo
+  --kl-loss-coef 0.00
+  --kl-loss-type low_var_kl
+  --entropy-coef 0.00
+  --eps-clip 0.2
+  --eps-clip-high 0.28
+  --use-tis
+)
+
+OPTIMIZER_ARGS=(
+  --optimizer adam
+  --lr 1e-6
+  --lr-decay-style constant
+  --weight-decay 0.1
+  --adam-beta1 0.9
+  --adam-beta2 0.98
+  --optimizer-cpu-offload
+  --overlap-cpu-optimizer-d2h-h2d
+  --use-precision-aware-optimizer
+)
+
+WANDB_ARGS=(--use-tensorboard)
+if [ "${USE_WANDB}" = "1" ]; then
+  WANDB_ARGS+=(
+    --use-wandb
+    --wandb-project ${WANDB_PROJECT:-miles-qwen3-8b}
+  )
+  if [ -n "${WANDB_TEAM:-}" ]; then
+    WANDB_ARGS+=(--wandb-team "${WANDB_TEAM}")
+  fi
+fi
+
+SGLANG_ARGS=(
+  --rollout-num-gpus-per-engine ${ROLLOUT_NUM_GPUS_PER_ENGINE}
+  --sglang-mem-fraction-static ${SGLANG_MEM_FRACTION}
+  --sglang-max-running-requests ${SGLANG_MAX_RUNNING_REQUESTS}
+  --sglang-schedule-conservativeness ${SGLANG_SCHEDULE_CONSERVATIVENESS}
+
+  --sglang-attention-backend fa3
+  --sglang-context-length ${SGLANG_CONTEXT_LEN}
+  --sglang-max-prefill-tokens ${SGLANG_MAX_PREFILL_TOKENS}
+  --sglang-max-total-tokens ${SGLANG_MAX_TOTAL_TOKENS}
+
+  --sglang-enable-metrics
+)
+
+mkdir -p ${CKPT_PATH}/${EXP_NAME}/dump_details
+MISC_ARGS=(
+  --dump-details ${CKPT_PATH}/${EXP_NAME}/dump_details
+  --attention-dropout 0.0
+  --hidden-dropout 0.0
+)
+
+RUNTIME_ENV_JSON="{
+  \"env_vars\": {
+    \"PYTHONPATH\":  \".:./Megatron-LM:./mbridge:${SGLANG_PATH}/python\",
+    \"CUDA_DEVICE_MAX_CONNECTIONS\": \"1\",
+    \"NCCL_NVLS_ENABLE\": \"${HAS_NVLINK}\",
+    \"SGLANG_ALLOW_OVERWRITE_LONGER_CONTEXT_LEN\": \"1\",
+    \"NVTE_DEBUG\": \"${NVTE_DEBUG:-1}\",
+    \"NVTE_DEBUG_LEVEL\": \"${NVTE_DEBUG_LEVEL:-2}\",
+    \"NVTE_FUSED_ATTN\": \"0\",
+    \"NVTE_UNFUSED_ATTN\": \"0\",
+    \"SGLANG_CLIP_MAX_NEW_TOKENS_ESTIMATION\": \"10000\",
+    \"TORCHDYNAMO_DISABLE\": \"1\",
+    \"SANDBOX_ADDR\": \"${SANDBOX_ADDR}\",
+    \"SANDBOX_PORT\": \"${SANDBOX_PORT}\",
+    \"TRITON_HOME\": \"${TRITON_HOME}\"
+  }
+}"
+
+bash scripts/setup/ray_start.sh
+
+echo "============================================================"
+echo "Qwen3-8B Kernel Bench: ${NUM_ROLLOUT} rollouts"
+echo "  TP=${TENSOR_PARALLEL_SIZE}, DP=$((8 / TENSOR_PARALLEL_SIZE)), CP=${CONTEXT_PARALLEL_SIZE}"
+echo "  samples=${N_SAMPLES_PER_PROMPT}, batch=${ROLLOUT_BATCH_SIZE}, global_batch=${GLOBAL_BATCH_SIZE}"
+echo "  prompt_max=${MILES_MAX_PROMPT_LEN}, response_max=${MILES_MAX_RESPONSE_LEN}"
+echo "  sglang: TP=${ROLLOUT_NUM_GPUS_PER_ENGINE}, engines=$((8 / ROLLOUT_NUM_GPUS_PER_ENGINE)), mem=${SGLANG_MEM_FRACTION}"
+echo "  TIS=on, FA3=on, rm_type=triton (sandbox)"
+echo "  sandbox: ${SANDBOX_ADDR}:${SANDBOX_PORT}"
+echo "  EXP=${EXP_NAME}"
+echo "  BASE_DIR: ${BASE_DIR}"
+echo "============================================================"
+
+# ---- Start ZMQ sandbox server and wait for ready ----
+SANDBOX_LOG="${CKPT_PATH}/${EXP_NAME}/sandbox.log"
+mkdir -p "$(dirname "${SANDBOX_LOG}")"
+echo "Starting sandbox server on port ${SANDBOX_PORT} ..."
+cd "${SANDBOX_DIR}" && python run_server.py --port "${SANDBOX_PORT}" > "${SANDBOX_LOG}" 2>&1 &
+SANDBOX_PID=$!
+cd "${WORK_DIR}"
+echo "sandbox pid=${SANDBOX_PID}, log=${SANDBOX_LOG}"
+
+python3 -c "
+import os, socket, time, sys
+host = os.environ['SANDBOX_HOST']
+port = int(os.environ['SANDBOX_PORT'])
+timeout = int(os.environ.get('SANDBOX_READY_TIMEOUT', '180'))
+deadline = time.time() + timeout
+while time.time() < deadline:
+    try:
+        s = socket.create_connection((host, port), timeout=2)
+        s.close()
+        break
+    except (ConnectionRefusedError, OSError):
+        time.sleep(2)
+else:
+    print(f'ERROR: sandbox {host}:{port} not ready within {timeout}s')
+    sys.exit(1)
+print(f'sandbox ready: {host}:{port}')
+"
+echo "Sandbox server ready."
+
+ray job submit --address="http://${MASTER_ADDR}:8265" \
+  --runtime-env-json="${RUNTIME_ENV_JSON}" \
+  -- python3 train.py \
+  --actor-num-nodes ${WORLD_SIZE} \
+  --actor-num-gpus-per-node ${GPUS_PER_NODE} \
+  --colocate \
+  --start-rollout-id 0 \
+  --skip-eval-before-train \
+  "${MODEL_ARGS[@]}" \
+  "${CKPT_ARGS[@]}" \
+  "${ROLLOUT_ARGS[@]}" \
+  "${OPTIMIZER_ARGS[@]}" \
+  "${GRPO_ARGS[@]}" \
+  "${WANDB_ARGS[@]}" \
+  "${PERF_ARGS[@]}" \
+  "${SGLANG_ARGS[@]}" \
+  "${MISC_ARGS[@]}" "$@"
+
+bash $WORK_DIR/scripts/setup/ray_end.sh
+
+# Clean up sandbox
+if [ -n "${SANDBOX_PID:-}" ] && kill -0 "${SANDBOX_PID}" 2>/dev/null; then
+  echo "Stopping sandbox server (pid=${SANDBOX_PID}) ..."
+  kill "${SANDBOX_PID}" 2>/dev/null || true
+fi
+echo "Qwen3-8B Kernel Bench done! EXP=${EXP_NAME}"
