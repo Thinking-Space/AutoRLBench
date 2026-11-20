@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repo": "miles (Apache-2.0 fork of slime)",
+    "note": "workspace/ is the tree exported at the commit before the collective fix. The frozen master log is the recorded run's own output, sanitized in place; no line was dropped and no metric value was altered. The launch script's user paths are sanitized and the referenced judge template is shipped; see below."
+  },
+  "replacements": [
+    {
+      "what": "judge API key",
+      "original": "sk-<redacted 32 hex>",
+      "replacement": "sk-REDACTED",
+      "where": "workspace/outputs/train.20260715.log (3 occurrences)",
+      "reason": "The recorded launch command passed --judge-api-key in cleartext and the value appears in the log; redacted."
+    },
+    {
+      "what": "judge endpoint",
+      "original": "third-party completion endpoint used by the recorded run",
+      "replacement": "https://judge.example.invalid/v1/chat/completions",
+      "where": "workspace/outputs/train.20260715.log (3 occurrences)",
+      "reason": "Third-party endpoint; not related to the defect."
+    },
+    {
+      "what": "outbound proxy host",
+      "original": "http://whitelist-proxy.<internal>:7891",
+      "replacement": "http://proxy.example.invalid:7891",
+      "where": "workspace/outputs/train.20260715.log (11 occurrences)",
+      "reason": "Internal hostname."
+    },
+    {
+      "what": "absolute user paths",
+      "original": "/user/<username>/...",
+      "replacement": "/workspace/...",
+      "where": "workspace/outputs/train.20260715.log (170 occurrences)",
+      "reason": "Absolute home path; rewritten to the in-container workspace root so the log reads cleanly. Path shape is preserved."
+    },
+    {
+      "what": "checkpoint output path in launch_command.txt",
+      "original": "${JOB_ID}_chimera2.6b-iter38_chimera-rl-5000_grpo-dsv4flash-b64",
+      "replacement": "not shipped",
+      "where": "workspace/outputs/launch_command.txt",
+      "reason": "Not needed to reproduce the run's configuration; omitted together with the other absolute paths."
+    },
+    {
+      "what": "environment image",
+      "original": "internal registry image (llm-rl/ngc-2506 lineage)",
+      "replacement": "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb...",
+      "where": "task.toml [environment].image",
+      "reason": "The recorded image is private and cannot be pulled publicly, so task.toml pins a shared public image instead. The issue tier reads only frozen evidence and starts no training."
+    },
+    {
+      "what": "absolute user paths in the declared launch script",
+      "original": "/user/<username>/... and /para_hdd/user/<username>/... defaults in run-minicpm5-26b-short-math-8k-colocate.sh",
+      "replacement": "/models/..., /datasets/..., /data/... neutral defaults",
+      "where": "workspace/scripts/minicpm5/2_6b/short_rl/run-minicpm5-26b-short-math-8k-colocate.sh",
+      "reason": "Machine-specific usernames and storage paths; not part of the defect, and the issue tier does not execute the script.",
+      "sha256_before": "e3ad85d330153a883cd630c3b0342c79280ce88861e601f1aa7c44ff15491eff",
+      "sha256_after": "c7af846960b0c40a7dead1d87f167e6cf44dc6eac9c8232a3af00bd5daab1cd2"
+    }
+  ],
+  "log_sanitization": {
+    "sha256_before": "c735a1a12e430d8cd65d5f56519d1648ffc4eda59b857b732431b011a77e4fae",
+    "sha256_after": "86c8006751ce7210578344806df58c19db2904446f253180825dce4589e8f361"
+  },
+  "remaining_scan_hits": [
+    {
+      "pattern": "modelbest|codeup",
+      "verdict": "upstream wording, left in place",
+      "detail": "Submodule URLs and unrelated upstream scripts under workspace/. They describe the framework tree, not the recorded run."
+    },
+    {
+      "pattern": "10\\.163\\.\\d+\\.\\d+|gpu\\d+|node gpu",
+      "verdict": "recorded-run hostnames, left in place",
+      "detail": "SGLang health-check IP and worker node name in the master log. They identify the recorded cluster, not the defect; credentials and absolute user paths are sanitized."
+    },
+    {
+      "pattern": "whitelist-proxy|cybertron",
+      "verdict": "upstream wording, left in place",
+      "detail": "Internal proxy hostname in upstream miles scripts/docs. It is framework content, not the recorded run; no metric or root cause depends on it."
+    },
+    {
+      "pattern": "*_fixed.jinja|solution_io.py",
+      "verdict": "upstream framework files, not this task's solution",
+      "detail": "Upstream chat-template assets for Qwen/MiniMax/Kimi and a coder1 utility. They are not the fix for the collective in policy_loss_function."
+    }
+  ],
+  "omitted_from_workspace": [
+    {
+      "what": "the other three crash arms (569622, 569920, 570089)",
+      "reason": "Each job directory is ~450 MB; the master log of the recorded arm is shipped and the other rounds are cited in the README and oracle."
+    },
+    {
+      "what": "Megatron-LM, sglang, mbridge",
+      "reason": "Git submodules; present as empty directories in the export, matching the other tasks."
+    },
+    {
+      "what": "model weights and checkpoints",
+      "reason": "Per CONTRIBUTING: weights are never shipped."
+    }
+  ],
+  "added_for_evidence": [
+    {
+      "what": "rl_data/chimera_judge_template_verdict_first.txt",
+      "source": "The pairwise judge template referenced by the recorded launch command; copied verbatim from the sibling CHIMERA task package.",
+      "where": "workspace/rl_data/chimera_judge_template_verdict_first.txt",
+      "reason": "task.toml and launch_command.txt reference this path; without it the recorded configuration is not self-contained. The judge is a distractor, not the root cause.",
+      "sha256": "9a198aab0607182937aa6db98a32534f5a4087e08c38ab639ab14849511303ca"
+    }
+  ]
+}

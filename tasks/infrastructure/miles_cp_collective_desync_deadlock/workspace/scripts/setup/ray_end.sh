@@ -1,0 +1,1 @@
+cp -r /tmp/ray /data/logs/ray

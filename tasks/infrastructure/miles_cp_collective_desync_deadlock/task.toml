@@ -1,0 +1,42 @@
+title = "Context-parallel ranks wait on different collectives"
+license = "Apache-2.0"
+created_date = "2026-11-18"
+domain = "infrastructure"
+tags = ["miles", "grpo", "context-parallel", "collective", "deadlock", "logdiff", "issue-only"]
+
+[submitter]
+name = "anbingxu"
+
+[model]
+name = "MiniCPM5-2.6B (CHIMERA SFT)"
+
+[dataset]
+name = "CHIMERA RL (5000 prompts)"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "scripts/minicpm5/2_6b/short_rl/run-minicpm5-26b-short-math-8k-colocate.sh"
+script_args = [
+  "--rm-type", "llm_judge",
+  "--judge-model", "deepseek-v4-flash",
+  "--judge-prompt-template", "rl_data/chimera_judge_template_verdict_first.txt",
+  "--judge-kwargs", "enable_thinking=false,temperature=0.0,max_tokens=4096",
+  "--no-load-optim",
+  "--no-load-rng",
+  "--finetune",
+]
+
+[environment]
+# The recorded run used an internal registry image that cannot be pulled publicly.
+# The issue tier only reads frozen evidence and never starts training, so the
+# closest shared stack is pinned instead. Not smoke-tested against this script.
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+
+# The recorded run used 8 GPUs on one node; the issue tier starts no training.
+gpus = 0
+
+[outcome]
+failure_type = "collective_desync"
+failure_reason = "The ground-truth verdict is unhealthy because policy_loss_function places dist.all_reduce(per_sample_max, group=cp.group) inside the locally-evaluated `if per_sample_max_list:` branch, so with context-parallel size 4 a rank with an empty local sample list (for example, no local samples) skips the collective while the others enter it; a sample with no response tokens is separately padded with -inf, but a rank with no samples has no entries at all. The ranks then block on different collectives and the run dies only when the 10-minute watchdog fires (`Timeout(ms)=600000`, `distributed_timeout_minutes 10`), which is why the log shows a timeout rather than the cause"

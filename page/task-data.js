@@ -904,5 +904,27 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The rollout worker loses the vLLM quantization scales across its sleep/wake restart: every response hits the token limit with blank output.",
     "issue": "During VeRL online policy distillation of Nemotron-Research-Reasoning-Qwen-1.5B on Skywork math, the rollout worker reports a successful weight refresh, then prints a blank answer: all 192 responses across the three recorded batches hit the 16,384-token limit. The rollout worker loses the vLLM quantization scales across its sleep/wake restart; preserving the scales reduces the exhausted count to 8/192 with the same model and prompts."
+  },
+  {
+    "id": "infrastructure/miles_cp_collective_desync_deadlock",
+    "title": "Context-parallel ranks wait on different collectives",
+    "family": "Infrastructure",
+    "tags": [
+      "miles",
+      "grpo",
+      "context-parallel",
+      "collective",
+      "deadlock",
+      "logdiff",
+      "issue-only"
+    ],
+    "model": "MiniCPM5-2.6B (CHIMERA SFT)",
+    "dataset": "CHIMERA RL (5000 prompts)",
+    "framework": "miles (Megatron backend) / GRPO with context parallelism 4",
+    "image": "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-18",
+    "license": "Apache-2.0",
+    "brief": "The per-sample log-difference reduction is issued inside a branch each rank evaluates locally, so a rank with an empty local sample list skips the collective while the others enter it -- and the job dies only when the 10-minute watchdog fires.",
+    "issue": "Training MiniCPM5-2.6B with GRPO under context parallelism 4 in miles, policy_loss_function places dist.all_reduce(per_sample_max, group=cp.group) inside the locally-evaluated `if per_sample_max_list:` branch: a rank whose local sample list is empty under zigzag chunking skips the collective while the other ranks enter it. The ranks then block on different collectives and the job dies only when the 10-minute watchdog fires (Timeout(ms)=600000), so the log shows a timeout rather than the cause. The same recipe was killed four times at different rounds (r86/r28/r18/untimed) -- the probabilistic signature of the fault."
   }
 ];

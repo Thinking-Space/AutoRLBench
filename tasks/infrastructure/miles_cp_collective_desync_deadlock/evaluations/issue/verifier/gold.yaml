@@ -1,0 +1,13 @@
+category: infrastructure
+framework: miles
+task: miles_cp_collective_desync_deadlock
+verdict: unhealthy
+root_cause:
+  - miles/backends/training_utils/loss.py policy_loss_function issues the per-sample log-difference all_reduce (dist.all_reduce over parallel_state.cp.group) inside the locally-evaluated "if per_sample_max_list" guard; with context-parallel size 4 and zigzag chunking, a rank whose local sample list is empty skips the collective while the other ranks enter it, so the ranks wait on different collectives and the job dies only when the 10-minute watchdog fires
+evidence_metrics:
+  - the frozen log shows the watchdog firing at Timeout(ms)=600000 with ranks blocked on different collectives - Rank 0 in a 6-element ALLREDUCE (the per_sample_max reduction) and Rank 2 in a large RECV - the signature of a desync, not a slow peer
+  - the same recipe was killed at different rounds across four recorded jobs (r86, r28, r18), so the fault is probabilistic and a single successful run is not evidence of health
+  - no exception, OOM or NCCL error is logged at the point of failure; the run hangs and the log reports the timeout reporter, not the cause
+fix:
+  must:
+    - move the per_sample_max all_reduce (and its dependent reduction) out of the rank-local conditional so every context-parallel rank participates in the collective unconditionally, as in the upstream fix commit

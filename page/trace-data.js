@@ -932,6 +932,21 @@
  * audited clean of network access. The published solution-run
  * total below moves 205 -> 206, and the solution-record
  * reconciliation anchor 205 -> 206.
+ * The ten miles_cp_collective_desync_deadlock issue records were
+ * published on 20 Nov 2026 from the local cybertron-evaluate sweep
+ * (ten models; no Gemini run; the task ships issue-only). The task
+ * pins a context-parallel collective deadlock: the per-sample
+ * log-difference reduction is issued inside a branch each rank
+ * evaluates locally, so a rank with an empty local sample list
+ * skips the collective while the others enter it -- the job dies
+ * only when the 10-minute watchdog fires. The same recipe was
+ * killed four times at different rounds (r86/r28/r18/untimed), the
+ * probabilistic signature of the fault. No pass: Qwen3.8-Max (0.9)
+ * holds the full root cause but evidence 0.5; the other nine
+ * return the correct verdict with zero root-cause credit. The ten
+ * trajectories were rebuilt per agent type (the codex ones at
+ * per-item granularity) and audited clean of network access. The
+ * published issue-judgment total below moves 475 -> 485.
  * The 206 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -11381,6 +11396,146 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "9124bb7b-3924-4259-ad0c-0d1ed4bdddce",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "1156b28437124d2d6092340f2a5ac76c1fec2aa822a7f35d0a669b34588173be"
+  },
+  {
+    "task": "infrastructure/miles_cp_collective_desync_deadlock",
+    "slug": "gpt6astra-cp-deadlock",
+    "file": "agent-trace/gpt6astra-cp-deadlock.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 128000,
+    "steps": 15,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/miles_cp_collective_desync_deadlock",
+    "slug": "gpt61sol-cp-deadlock",
+    "file": "agent-trace/gpt61sol-cp-deadlock.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 93000,
+    "steps": 11,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/miles_cp_collective_desync_deadlock",
+    "slug": "fable51-cp-deadlock",
+    "file": "agent-trace/fable51-cp-deadlock.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 5808000,
+    "steps": 59,
+    "costUsd": 22.8651
+  },
+  {
+    "task": "infrastructure/miles_cp_collective_desync_deadlock",
+    "slug": "glm53-cp-deadlock",
+    "file": "agent-trace/glm53-cp-deadlock.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 1297000,
+    "steps": 40,
+    "costUsd": 9.9048
+  },
+  {
+    "task": "infrastructure/miles_cp_collective_desync_deadlock",
+    "slug": "kimi-cp-deadlock",
+    "file": "agent-trace/kimi-cp-deadlock.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 2133000,
+    "steps": 32,
+    "costUsd": 1.4391
+  },
+  {
+    "task": "infrastructure/miles_cp_collective_desync_deadlock",
+    "slug": "kimi31-cp-deadlock",
+    "file": "agent-trace/kimi31-cp-deadlock.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 1502000,
+    "steps": 55,
+    "costUsd": 4.812
+  },
+  {
+    "task": "infrastructure/miles_cp_collective_desync_deadlock",
+    "slug": "dsv4-cp-deadlock",
+    "file": "agent-trace/dsv4-cp-deadlock.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.25,
+    "durationMs": 5285000,
+    "steps": 61,
+    "costUsd": 14.2451
+  },
+  {
+    "task": "infrastructure/miles_cp_collective_desync_deadlock",
+    "slug": "qwen38-cp-deadlock",
+    "file": "agent-trace/qwen38-cp-deadlock.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 1261000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/miles_cp_collective_desync_deadlock",
+    "slug": "grok47-cp-deadlock",
+    "file": "agent-trace/grok47-cp-deadlock.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 544000,
+    "steps": 126,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/miles_cp_collective_desync_deadlock",
+    "slug": "dsv41flash-cp-deadlock",
+    "file": "agent-trace/dsv41flash-cp-deadlock.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 1359000,
+    "steps": 107,
+    "costUsd": 8.6757
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];
