@@ -118,7 +118,7 @@ prepare ──▶ agent ──▶ [rerun] ──▶ verifier
 
 Each stage runs in its own container from the same prebuilt image. Oracles and verifiers are mounted only into the verifier stage.
 
-At the solution level the agent repairs the workspace and submits `report.md` — it does **not** launch training itself. The harness clears the task's log roots, re-runs the experiment on the repaired workspace, and grades only that fresh run. No `report.md`, no rerun and no grading: the task scores 0. A solution task without a `run_spec.json` (a pure protocol repair, say) skips the rerun but is bound by the same report gate.
+At the solution level the agent repairs the workspace and submits `report.md` — it does **not** launch training itself. The harness clears the task's log roots, re-runs the experiment on the repaired workspace, and grades only that fresh run. No `report.md`, no rerun and no grading: the task scores 0.
 
 ## Repository layout
 
@@ -138,11 +138,12 @@ At the solution level the agent repairs the workspace and submits `report.md` �
 tasks/<domain>/<task_id>/
 ├── README.md               # summary, difficulty, reference solution, verification
 ├── task.toml               # metadata and environment image
+├── run_spec.json            # harness rerun command, environment, timeout, and log roots
 ├── workspace/              # the run as the agent sees it: code, config, logs, metrics
 ├── environment/prepare.sh  # fetches pinned models and datasets (only stage with network)
 └── evaluations/
     ├── issue/              # instruction.md · oracle.md · verifier/
-    └── solution/           # instruction.md · oracle/ · verifier/ (grader_spec.json · run_spec.json)
+    └── solution/           # instruction.md · oracle/ · verifier/ (grader_spec.json)
 ```
 
 ## Quick start
@@ -161,13 +162,13 @@ python3 -m autorlbench harbor-evaluate tasks/reward --agent codex --model <model
 
 `harbor-evaluate` records each run under `outputs/harbor-evaluate/<task_id>/<agent>-<model>/<timestamp>/`: the command as an executable `command.sh`, the effective Harbor command, a live `prepare.log` and `harbor.log` (both `tail -f`-able while the run is going), and the final `report.json`. Only stage-start lines go to the terminal; everything else lands in those log files.
 
-`rerun` is the submitter-side environment check: it runs the task's `prepare.sh` and then the experiment its `run_spec.json` declares, on the workspace exactly as the task author left it — no agent, no verifier, no report gate. Each run records itself under `outputs/rerun/<task_id>/<timestamp>/` in the same layout as `harbor-evaluate`: the command as an executable `command.sh`, live `tail -f`-able `prepare.log` and `rerun.log`, the final `report.json`, the experiment's logs under `results/`, and the workspace copy. `passed` in the report means both stages ran to completion, while the experiment's own exit code is recorded but not judged, since a buggy run is expected to fail.
+`rerun` is the submitter-side environment check: the framework pulls the digest-pinned shared image, launches prepare and rerun containers from it, runs `prepare.sh`, and then starts the experiment that the task-root `run_spec.json` declares — no agent, no verifier, no report gate. Each run records itself under `outputs/rerun/<task_id>/<timestamp>/` in the same layout as `harbor-evaluate`: the command as an executable `command.sh`, live `tail -f`-able `prepare.log` and `rerun.log`, the final `report.json`, the experiment's logs under `results/`, and the workspace copy. For contribution review, a few training steps in `rerun.log` are enough to show that the image and `prepare.sh` can start the experiment; the experiment's own exit code is not judged, since a buggy run is expected to fail.
 
 Run `python3 -m autorlbench --help` for every option. The issue verifier calls an OpenAI-compatible judge through `OPENAI_BASE_URL` and `OPENAI_API_KEY`.
 
 ## Contributing
 
-We welcome both problematic runs and healthy reference runs. Bring the issue materials, or add the repaired run when it exists; an agent does the packaging — inside a clone of this repository, using the [package-task](skills/package-task/SKILL.md) skill. Every task runs in one of the eight fixed shared images in [ENVIRONMENTS.md](ENVIRONMENTS.md): run your buggy run in one of them and ship that run's artifacts — a defect that reproduces in none of the eight may submit its own environment configuration with an explanation instead. Contribute **two valid tasks** and you become a co-author on the benchmark paper. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution guide](https://thinking-space.github.io/AutoRLBench/contribute.html).
+We welcome both problematic runs and healthy reference runs. Bring the issue materials, or add the repaired run when it exists; an agent does the packaging — inside a clone of this repository, using the [package-task](skills/package-task/SKILL.md) skill. Every task runs in one of the eight fixed shared images in [ENVIRONMENTS.md](ENVIRONMENTS.md): run your buggy run in one of them and ship that run's artifacts. There is no custom-image exception. The final contribution gate is the [validate-task](skills/validate-task/SKILL.md) review, including the startup rerun logs. Contribute **two valid tasks** and you become a co-author on the benchmark paper. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [contribution guide](https://thinking-space.github.io/AutoRLBench/contribute.html).
 
 ## License
 

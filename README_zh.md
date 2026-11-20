@@ -118,7 +118,7 @@ prepare ──▶ agent ──▶ [rerun] ──▶ verifier
 
 各阶段各自起容器，用的是同一个预构建镜像。oracle 与 verifier 只挂进 verifier 阶段。
 
-solution 层里 agent 只负责修 workspace 并提交 `report.md`，**不自己启动训练**。harness 会清掉任务声明的日志目录，在修好的 workspace 上重跑实验，只对这一遍的新日志判分。没交 `report.md` 就不重跑也不判分，直接记 0 分。没有 `run_spec.json` 的 solution 任务（比如纯协议修复）不触发重跑，但同样受 report 门槛约束。
+solution 层里 agent 只负责修 workspace 并提交 `report.md`，**不自己启动训练**。harness 会清掉任务声明的日志目录，在修好的 workspace 上重跑实验，只对这一遍的新日志判分。没交 `report.md` 就不重跑也不判分，直接记 0 分。
 
 ## 目录
 
@@ -138,11 +138,12 @@ solution 层里 agent 只负责修 workspace 并提交 `report.md`，**不自己
 tasks/<domain>/<task_id>/
 ├── README.md               # 摘要、难度、参考解、判分方式
 ├── task.toml               # 元数据与环境镜像
+├── run_spec.json            # harness 重跑命令、环境、超时与日志根目录
 ├── workspace/              # agent 看到的那次运行：代码、配置、日志、指标
 ├── environment/prepare.sh  # 拉取钉死版本的模型与数据集（唯一联网阶段）
 └── evaluations/
     ├── issue/              # instruction.md · oracle.md · verifier/
-    └── solution/           # instruction.md · oracle/ · verifier/（grader_spec.json · run_spec.json）
+    └── solution/           # instruction.md · oracle/ · verifier/（grader_spec.json）
 ```
 
 ## 快速开始
@@ -159,13 +160,13 @@ python3 -m autorlbench rerun tasks/reward/slime_retool_length_reward_bonus
 python3 -m autorlbench harbor-evaluate tasks/reward --agent codex --model <model>
 ```
 
-`rerun` 是面向任务提交者的环境检查：跑任务的 `prepare.sh`，再按 `run_spec.json` 声明的实验在任务作者留下的 workspace 上原样重跑——不跑 agent、不跑 verifier、没有 report 门槛。每次运行记录在 `outputs/rerun/<task_id>/<时间戳>/` 下，布局与 `harbor-evaluate` 一致：可执行的 `command.sh`、可 `tail -f` 的实时 `prepare.log` 与 `rerun.log`、最终的 `report.json`、实验日志 `results/`，以及 workspace 拷贝。report 里的 `passed` 表示两个阶段都完整跑完，实验自身的退出码只记录不判定，因为 buggy run 本来就预期失败。
+`rerun` 是面向任务提交者的环境检查：框架拉取 digest-pinned 共享镜像，拉起对应的 prepare 与 rerun 容器，先运行 `prepare.sh`，再按任务根目录 `run_spec.json` 声明的实验启动训练——不跑 agent、不跑 verifier、没有 report 门槛。每次运行记录在 `outputs/rerun/<task_id>/<时间戳>/` 下，布局与 `harbor-evaluate` 一致：可执行的 `command.sh`、可 `tail -f` 的实时 `prepare.log` 与 `rerun.log`、最终的 `report.json`、实验日志 `results/`，以及 workspace 拷贝。贡献审核只要求 `rerun.log` 中出现几个真实训练 step，足以证明镜像和 `prepare.sh` 能把实验启动起来；实验自身的退出码不用于判定，因为 buggy run 本来就预期失败。
 
 全部参数见 `python3 -m autorlbench --help`。issue 档的 verifier 通过 `OPENAI_BASE_URL` 与 `OPENAI_API_KEY` 调用 OpenAI 兼容的 judge。
 
 ## 贡献
 
-有问题的 run 和健康的对照 run 都欢迎。带上 issue 所需材料即可，已有修复版本时再补上 solution 运行；打包由 agent 在本仓库的 clone 中、用 [package-task](skills/package-task/SKILL.md) skill 完成。所有任务都跑在 [ENVIRONMENTS.md](ENVIRONMENTS.md) 中 8 个固定的共享镜像之一上：请在这 8 个环境之一里跑你的 buggy run，并提交那次运行的产物；8 个镜像都无法复现的缺陷，也可以单独提交自己的环境配置并说明原因。贡献**两个有效任务**即可成为 benchmark 论文的共同作者。详见 [CONTRIBUTING.md](CONTRIBUTING.md) 与[贡献指南](https://thinking-space.github.io/AutoRLBench/contribute.html)。
+有问题的 run 和健康的对照 run 都欢迎。带上 issue 所需材料即可，已有修复版本时再补上 solution 运行；打包由 agent 在本仓库的 clone 中、用 [package-task](skills/package-task/SKILL.md) skill 完成。所有任务都跑在 [ENVIRONMENTS.md](ENVIRONMENTS.md) 中 8 个固定的共享镜像之一上：请在这 8 个环境之一里跑你的 buggy run，并提交那次运行的产物；没有 custom image 例外。最终贡献门槛是 [validate-task](skills/validate-task/SKILL.md) 审查，包括启动性 rerun 的日志。贡献**两个有效任务**即可成为 benchmark 论文的共同作者。详见 [CONTRIBUTING.md](CONTRIBUTING.md) 与[贡献指南](https://thinking-space.github.io/AutoRLBench/contribute.html)。
 
 ## 许可
 

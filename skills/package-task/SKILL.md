@@ -33,6 +33,7 @@ For finished tasks, see `tasks/reward/slime_retool_length_reward_bonus/` (issue 
 tasks/<domain>/<task_id>/
 ├── README.md                     # for reviewers, not visible to the agent
 ├── task.toml                     # task card: metadata + environment
+├── run_spec.json                 # the harness's startup/rerun command
 ├── workspace/                    # defective side's code, launch script, and frozen evidence
 ├── environment/
 │   ├── prepare.sh                # the only networked stage: fetch model, fetch data
@@ -48,15 +49,14 @@ tasks/<domain>/<task_id>/
     └── solution/                 # optional: fix, then the harness reruns
         ├── instruction.md
         ├── oracle/
-        └── verifier/{test.sh,tests/grade_submission.py,resources/{grader_spec.json,run_spec.json}}
+        └── verifier/{test.sh,tests/grade_submission.py,resources/grader_spec.json}
 ```
 
 Do not produce `agent_trace.json`, `environment/Dockerfile`, `requirements.txt`, or `validation/`.
 Tasks do not ship their own image: `environment.image` in `task.toml` is the digest-pinned pullable
 reference of one of the eight fixed shared images in
 [ENVIRONMENTS.md](../../ENVIRONMENTS.md), and `environment.image_stack` is that row's stack
-label. The only path to a different image is the documented exception: a defect that reproduces
-in none of the eight (see the Environment rules).
+label. There is no custom-image exception.
 
 ## Required inputs
 
@@ -68,8 +68,7 @@ If any item is missing, stop and ask. Field list in [reference.md](reference.md#
 - Logs of the failed run (keep W&B too if present)
 - Environment: the shared image from [ENVIRONMENTS.md](../../ENVIRONMENTS.md) the buggy run
   was executed in — if the recorded run used anything else, it must be re-run in the chosen
-  shared image before packaging (exception: a user-supplied environment configuration for a
-  defect that reproduces in none of the eight); plus the GPU count to declare
+  shared image before packaging; plus the GPU count to declare
 - For each asset: source (HF repo or URL), the 40-char revision or wheel SHA-256 + byte size to pin, destination
 - Only when you will build a solution tier (see [Does the task get a solution tier?](#does-the-task-get-a-solution-tier)):
   metric key, one log sample, `final_step`, `required_final_score`, and **how many runs per side** the threshold was
@@ -93,7 +92,7 @@ Form 2 **publishes only the defective side**. Putting both sides in `workspace/`
 | Defective-side code + launch script + run artifacts | `workspace/` |
 | Changed files from the control side | `evaluations/solution/oracle/` |
 | Control-side run results and curves | `evaluations/solution/oracle/` (used to calibrate the threshold) |
-| The environment the run used | Must map to one of the eight shared images in [ENVIRONMENTS.md](../../ENVIRONMENTS.md) — the closest row wins, and a run recorded elsewhere is re-run in it first (exception: a separately submitted environment configuration with its justification) |
+| The environment the run used | Must map to one of the eight shared images in [ENVIRONMENTS.md](../../ENVIRONMENTS.md) — the closest row wins, and a run recorded elsewhere is re-run in it first |
 | The raw `README.md` | Rewrite as the task `README.md` |
 
 ## Does the task get a solution tier?
@@ -137,7 +136,11 @@ repository first (fork it if they plan to open a PR) — do not generate the tas
    `fetch_hf.py` from an existing task's `environment/`, then write `environment/prepare.sh`, `task.toml`, and `README.md`.
 7. **Offline self-check.** With a solution tier, replay the grader on the log samples once per side: the defective side must
    fail and the control side must pass.
-8. **Validate.** `python3 -m autorlbench validate tasks/<domain>/<task_id>` must report no errors.
+8. **Validate with the validate-task skill.** Do not stop at schema validation. Run the
+   [validate-task](../validate-task/SKILL.md) review (or hand the finished task to an agent
+   that runs it) and fix every `BLOCKER`. Its verdict must be `READY`, or `READY WITH FOLLOW-UP`
+   only when the remaining `MAJOR` findings are explicitly approved by a maintainer. The review
+   includes the packaged validator, the shared-image rule, and the startup rerun logs.
 9. **Emit the PR body.** Compose it per [pr-body-template.md](pr-body-template.md) from the finished README — task path,
    summary sentence, identity table, evidence numbers — and present it to the
    user to paste into the PR. Do not write it into the task directory.
@@ -195,13 +198,6 @@ is not byte-for-byte reproducible, do not pin it with a checksum.
   chosen image lacks go into `prepare.sh` (`pip install --target` into
   `$AUTORLBENCH_PREPARED/pysite`, exposed via `PYTHONPATH`). The recorded buggy run must
   have been executed in the chosen image: when it was not, re-run it there before packaging.
-- **The exception:** a defect that reproduces in none of the eight shared images may ship
-  its own environment. Then the user supplies a separate environment configuration — an
-  image they built and pushed to a public registry, pinned by a single digest-pinned
-  `FROM` line — and `environment.image` / `environment.image_stack` come from it. The task
-  README must explain why no shared image fits, and the exception is reviewed by the
-  maintainers; a gap `prepare.sh` could bridge does not qualify. If the user has neither a
-  shared-image run nor a justified separate environment, stop and ask for one of the two.
 - `prepare.sh` is the only networked stage. Invoke the task-local `fetch_hf.py` with the image's own interpreter; it
   downloads whole HF repos into the shared caches and hard-links the bytes into the workspace. Fetches are cache-first
   without checksum verification, so record each pinned 40-char revision in a comment next to the call, and for anything
@@ -234,8 +230,8 @@ is not byte-for-byte reproducible, do not pin it with a checksum.
 - [ ] With a solution tier: `instruction.md` forbids launching training and requires `report.md`; its command, env and budget match `run_spec.json`
 - [ ] Workspace has the launch script and failure logs; sanitize scan shows only upstream hits
 - [ ] `task.toml` declares an integer `gpus` count (no device ids); `env` values are strings, no `AUTORLBENCH_*`
-- [ ] The environment is one of the eight shared images in `ENVIRONMENTS.md`, digest-pinned in `task.toml`, and the recorded buggy run was executed in it — or the exception applies and the task ships the separately submitted environment configuration with its justification in the README
+- [ ] The environment is one of the eight shared images in `ENVIRONMENTS.md`, digest-pinned in `task.toml`, and the recorded buggy run was executed in it
 - [ ] Every fetched asset has a pinned 40-char revision or verified wheel sha256 + byte size, and a `--dest` the launch script reads
-- [ ] `python3 -m autorlbench validate <task_dir>` reports no errors
+- [ ] The `validate-task` skill reports `READY`, or `READY WITH FOLLOW-UP` with maintainer approval
 - [ ] The PR body was emitted per [pr-body-template.md](pr-body-template.md) from the finished README
 - [ ] With a solution tier: README states how many runs per side calibrated the threshold, and which steps were not verified

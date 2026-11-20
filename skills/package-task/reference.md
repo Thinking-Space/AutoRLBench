@@ -45,7 +45,7 @@ Keep only code and launch scripts, plus the training settings, hyperparameters, 
 
 ### Environment and assets
 
-- Environment: the shared image from `ENVIRONMENTS.md` (the eight fixed images) the buggy run was executed in — a run recorded elsewhere must be re-run in the chosen shared image first; exception: a separately submitted environment configuration (digest-pinned Dockerfile + justification) for a defect that reproduces in none of the eight
+- Environment: the shared image from `ENVIRONMENTS.md` (the eight fixed images) the buggy run was executed in — a run recorded elsewhere must be re-run in the chosen shared image first; there is no custom-image exception
 - GPU count to declare under `[environment] gpus` in `task.toml` (never device ids)
 - Each HF asset: repo (`org/name`), `--type` (`model` or `dataset`), the pinned 40-char commit sha, `--dest`
 - URL assets (e.g. pure-Python wheels the image lacks): URL, SHA-256, byte size
@@ -185,9 +185,9 @@ Otherwise the run is scored 0.
 
 Call out any trap that would make the rerun produce the wrong run, since the agent is the only one who can fix it beforehand: a budget baked into the launch script that the rerun does not override (`--num-rollout 3000` where the protocol wants 70), a launcher that builds its own Ray runtime-env JSON so `WANDB_DIR` never reaches the training process, a guard that refuses a run-name that already exists. State what the agent must change, not what the defect is.
 
-## solution/verifier/resources/run_spec.json
+## run_spec.json
 
-The machine-readable half of the same protocol: what the harness runs, with what environment, for how long, and which log roots it clears first. Values may reference `$AUTORLBENCH_RESULTS` / `$AUTORLBENCH_WORKSPACE`; the harness expands them per backend. `env` must not declare `AUTORLBENCH_*` itself.
+The task-root, machine-readable half of the same protocol: what the harness runs, with what environment, for how long, and which log roots it clears first. Values may reference `$AUTORLBENCH_RESULTS` / `$AUTORLBENCH_WORKSPACE`; the harness expands them per backend. `env` must not declare `AUTORLBENCH_*` itself. The submitter-side startup rerun uses this same command after `prepare.sh`.
 
 ```json
 {
@@ -199,7 +199,7 @@ The machine-readable half of the same protocol: what the harness runs, with what
 }
 ```
 
-`timeout_s` is the run's real wall-clock budget — without it the generic evaluation timeout applies and cuts a multi-hour run off at the knees. Omit the file entirely for a solution task with nothing to re-run (a pure protocol repair): the report gate still applies, the rerun is simply skipped.
+`timeout_s` is the run's real wall-clock budget — without it the generic evaluation timeout applies and cuts a multi-hour run off at the knees. Every contributed task needs this file so the submitter-side startup rerun has a command to launch.
 
 ## solution/oracle/README.md
 
@@ -346,9 +346,7 @@ Common naming sets: `training_reward_key` / `required_training_reward` / `traini
 
 ## Environment image
 
-`environment.image` in `task.toml` is the pullable, **digest-pinned** registry reference (`repo[:tag]@sha256:<digest>`) the runtime actually pulls; `environment.image_stack` is the row's stack label from the table. Both come from the **eight fixed shared images** in `ENVIRONMENTS.md` — never build, push, or modify an image for a task on this path, and never modify the existing ones (their contents are the shared ground-truth environment of every task that names them). Pick the row closest to the recorded stack; framework or dependency versions the image lacks are layered on per task in `prepare.sh` (`pip install --target` into `$AUTORLBENCH_PREPARED/pysite`). The recorded buggy run must have been executed in the chosen image — re-run it there when the original run used a different stack.
-
-**The exception:** a defect that reproduces in none of the eight shared images may ship its own environment. The user supplies a separate environment configuration — an image they built and pushed to a public registry, pinned by a single digest-pinned `FROM` line — and `environment.image` / `environment.image_stack` come from it. The task README must explain why no shared image fits, and the maintainers review the exception; a gap `prepare.sh` could bridge does not qualify.
+`environment.image` in `task.toml` is the pullable, **digest-pinned** registry reference (`repo[:tag]@sha256:<digest>`) the runtime actually pulls; `environment.image_stack` is the row's stack label from the table. Both come from the **eight fixed shared images** in `ENVIRONMENTS.md` — never build, push, or modify an image for a task, and never modify the existing ones (their contents are the shared ground-truth environment of every task that names them). Pick the row closest to the recorded stack; framework or dependency versions the image lacks are layered on per task in `prepare.sh` (`pip install --target` into `$AUTORLBENCH_PREPARED/pysite`). The recorded buggy run must have been executed in the chosen image — re-run it there when the original run used a different stack. There is no custom-image exception.
 
 The framework (verl / slime) usually travels with the task's workspace checkout rather than the image; environments that bake it in lead their stack label with its version (e.g. `slime-v0.3.2-...`).
 
@@ -442,14 +440,17 @@ failure_reason = "<one sentence from the filtered diff, with the user-given metr
 `failure_type` only needs to be non-empty. Values used by existing tasks: `reward_hacking`, `evaluation_under_sampling`,
 `data_difficulty_mismatch`, `retriever_query_device_copy`, `training_collapse`, `implementation_bug`.
 
-The validator rejects:
+The packaged validator rejects:
 
-- Missing `image`, or `image` that is not a digest-pinned pullable reference (normally one of the eight shared images in `ENVIRONMENTS.md`; a different reference is valid only on the documented exception path)
+- Missing `image`, or `image` that is not a digest-pinned pullable reference
 - Legacy fields `conda` / `requirements` / `dockerfile`
 - `script` that is absolute, contains `..`, or points to a file not in `workspace/`
 - `script_args` without `script`; `script_args` that is not a list of strings
 - `env` values that are not strings (`CUDA_VISIBLE_DEVICES = 0` is rejected), or that set `AUTORLBENCH_*`
 - `gpus` that is not a non-negative integer
+
+The `validate-task` review additionally rejects any image and stack pair that is not one of
+the eight rows in `ENVIRONMENTS.md`, and any task without a task-root `run_spec.json`.
 
 Declaring `framework` without `script` only gives a warning, but the task card relies on it to record how the task runs, so do not omit it.
 

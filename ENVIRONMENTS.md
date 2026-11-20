@@ -3,9 +3,8 @@
 Every task runs in one of the **eight fixed shared images** below — digest-pinned, publicly
 pullable, and maintained by the benchmark. A task submitter must run their buggy run inside
 one of these environments: the recorded evidence shipped in `workspace/` (logs, metrics, W&B)
-comes from a run executed in that image, and `task.toml` pins the same image. Only when the
-defect reproduces in none of the eight may a task ship its own environment instead — as a
-separate environment configuration submitted with a written justification (see below).
+comes from a run executed in that image, and `task.toml` pins the same image. There is no
+custom-image exception.
 
 In `task.toml`, reference the image by its digest-pinned pullable reference from the table,
 plus the row's stack label:
@@ -45,20 +44,6 @@ run's stack does not exactly match a row, pick the closest row and bridge the ga
 `prepare.sh` — and re-run the buggy run in that image, so the workspace's recorded evidence
 comes from the environment the task declares.
 
-**The exception:** if the defect reproduces in none of the eight — the bug itself lives in a
-baked-in layer, say — the task may ship its own environment instead. The submitter
-contributes a separate environment configuration: an image they built and pushed to a public
-registry, pinned by a single digest-pinned `FROM` line, plus an explanation of why no shared
-image fits. The maintainers review these exceptions; an environment the closest row could
-carry via `prepare.sh` does not qualify.
-
-### Accepted exception environments
-
-| `image_stack` | Digest-pinned reference | Why no shared image fits |
-| --- | --- | --- |
-| `areal-v2.0.0-sglang0.5.10.post1-torch2.9.1-flashattn2.8.3-cu129-py3.12` | `ghcr.io/areal-project/areal-runtime:v2.0.0-sglang@sha256:7ce1a21eee7cbdba6d1ac3d5cb5e1162edc392b8d499c9d5d7e17a1cf79276e3` | AReaL v2.0.0 decoupled PPO runs on SGLang 0.5.10.post1 with its sgl-kernel layer compiled against torch 2.9.1+cu129; no shared row carries this ABI (closest: torch 2.8.0 / 2.10.0). The AReaL framework itself is pure Python, but the recorded evidence (frozen 87-step runs, per-token dumps) comes from this image. Used by `areal_kpop_binary_kl_fp32_nan_mask` (PR #35), `areal_icepop_mask_window_too_narrow` (PR #34) and `areal_disk_weight_update_on_sglang` (PR #36). |
-| `slime-v0.3.0` | `slimerl/slime:v0.3.0@sha256:cb669a8f421cc3082d384427dacc8678ec9f836efbf1f17f01ede113e01583dc` | The shared slime row is v0.3.2 (SGLang 0.5.15 / torch 2.11); these GUI-RL diagnosis tasks ship frozen evidence (service logs, rollout audits, a 768-trajectory history) recorded on the v0.3.0 runtime, and re-running on the v0.3.2 stack would break provenance. Used by `slime_dapo_lookahead_boundary_abort` and `slime_judge_router_admission_starvation` (PR #38). |
-
 `prepare.sh` (the task's `environment/` directory) is the only networked stage. It runs in a
 throwaway container of that image, with `$AUTORLBENCH_WORKSPACE`, `$AUTORLBENCH_MODELS`,
 `$AUTORLBENCH_DATASETS` and `$AUTORLBENCH_PREPARED` writable, before the agent or verifier ever
@@ -85,6 +70,5 @@ What a task needs in between — a couple of run-time variables — goes in `[en
 
 So the decision rule when packaging a task: pick the closest row in the table, run the buggy
 run in that image, and do the rest in `prepare.sh`. Framework or dependency versions the chosen
-image does not carry are layered on per task as above — not baked into a new image. A dedicated
-environment is the exception that needs a justification, never a shortcut for a stack the
-closest row could carry.
+image does not carry are layered on per task as above — never baked into a new image. If no
+shared image can support the experiment even with `prepare.sh`, the run cannot be contributed.

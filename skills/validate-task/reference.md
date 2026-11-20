@@ -24,10 +24,25 @@ find <task-path>/workspace -type f \
 
 # Check large or generated files before submission.
 find <task-path> -type f -size +10M -print
+
+# Locate the newest submitter-side rerun output.
+find outputs/rerun/<task_id> -mindepth 1 -maxdepth 1 -type d -print
 ```
 
 Interpret these commands as starting points. A successful command is not a
 successful validation; inspect the named files and their relationships.
+
+## Rerun startup evidence
+
+The required rerun output is `outputs/rerun/<task_id>/<timestamp>/`. Read
+`command.sh`, `run.log`, `prepare.log`, and `rerun.log` directly. The check passes when
+`prepare.sh` completes and `rerun.log` then shows at least two distinct non-initialization
+training steps, with no image, dependency, model, or dataset error before them. An
+intentional early stop is acceptable; a missing log, an initialization-only log, a
+timeout, or a setup traceback is a `BLOCKER`.
+
+Do not use this startup check to replace the frozen buggy-run evidence in `workspace/`.
+It only proves that the shared image and `prepare.sh` can launch the experiment.
 
 ## Complete RL experiment
 
@@ -92,6 +107,8 @@ documented by the submitter.
 | Only a few scripts reproduce a helper-level bug | Package the full framework and launch a complete training experiment that exposes the behavior. |
 | No buggy-run logs | Re-run the experiment in the declared environment and package full stdout/stderr plus metric history. |
 | Logs come from a different environment or workspace | Regenerate the evidence in the exact declared image and defective workspace. |
+| No rerun output under `outputs/rerun/` | Run the submitter-side rerun until a few training steps appear, then revalidate. |
+| `rerun.log` only shows startup banners | Fix the launch path or logging, rerun until real training steps appear, then revalidate. |
 | Metadata and README disagree | Correct both and rerun the harness validator. |
 | Root cause is only a symptom | Trace the symptom to code, config, data processing, or reward logic and rewrite the oracle. |
 | Oracle has multiple causes without a partial-credit rule | State how many causes are required and how partial attribution is scored. |

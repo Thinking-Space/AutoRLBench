@@ -3,9 +3,10 @@ name: validate-task
 description: >-
   Reviews an AutoRLBench task before submission. Checks the package against
   the harness schema, verifies that it contains a complete RL experiment and
-  buggy-run evidence, and reports BLOCKER / MAJOR / MINOR findings with concrete
-  adjustment suggestions. Use when asked to validate, review, audit, or check
-  a task under tasks/ or a candidate task directory.
+  buggy-run evidence, inspects the submitter-side rerun logs under outputs/,
+  and reports BLOCKER / MAJOR / MINOR findings with concrete adjustment
+  suggestions. Use when asked to validate, review, audit, or check a task under
+  tasks/ or a candidate task directory.
 ---
 
 # validate-task
@@ -17,8 +18,8 @@ review report with a readiness verdict and actionable recommendations.
 ## Inputs
 
 - Required: the task path, normally `tasks/<domain>/<task_id>/`.
-- Optional: whether an expensive buggy-run reproduction is allowed. Do not run it
-  by default; ask first because it may consume GPUs for hours.
+- Required: an existing rerun output directory for that task, or explicit permission to
+  run the startup check because it may consume GPUs for hours.
 - If the task path is omitted, ask the user for it. Do not guess among tasks.
 
 ## Workflow
@@ -44,16 +45,28 @@ review report with a readiness verdict and actionable recommendations.
    failure symptom. Check that the evidence can support the oracle without
    asking the reader to trust a claim.
 
-4. **Optionally reproduce.** Only with user approval, run the submitter-side
-   reproduction:
+4. **Check the startup rerun.** Locate the newest run under
+   `outputs/rerun/<task_id>/<timestamp>/`. If no output exists, ask for permission to run:
 
    ```bash
    python3 -m autorlbench rerun <task-path>
    ```
 
-   A completed execution whose buggy outcome reappears is strong evidence. A
-   non-reproduction is a `BLOCKER` unless the task README explains a verified
-   external constraint; “it worked on my machine” is not sufficient.
+   The rerun is a startup check, not a full reproduction of the historical buggy outcome:
+   a few training steps are enough. Inspect `command.sh`, `run.log`, `prepare.log`,
+   `rerun.log`, and `results/` directly. Treat the rerun as successful only when:
+
+   - `command.sh` invoked `python3 -m autorlbench rerun` on the exact task path;
+   - `prepare.log` / `run.log` show `prepare.sh` completed without a setup error;
+   - `rerun.log` contains evidence of at least two distinct non-initialization training
+     steps, or `results/` contains equivalent task-declared step artifacts;
+   - no image, dependency, model, or dataset error precedes those steps.
+
+   The command may be interrupted after those steps; do not require the full experiment,
+   `report.json`, or a zero experiment exit code. If a complete `report.json` exists, it
+   must say `passed: true` and `rerun.timed_out: false`; an intentionally interrupted
+   startup check is judged from `rerun.log` instead. Missing or failed startup evidence is
+   a `BLOCKER`; “it worked on my machine” is not sufficient.
 
 5. **Write the report.** Use the format below, quote exact paths, and make every
    finding actionable. Prefer specific evidence over generic advice.
@@ -65,13 +78,14 @@ review report with a readiness verdict and actionable recommendations.
 - The directory is `tasks/<domain>/<task_id>/`; `domain` is one of
   `configuration`, `reward`, `data`, `environment`, `algorithm`, or
   `infrastructure`, and the task ID is stable, descriptive, and snake_case.
-- Required files exist: `README.md`, `task.toml`, `workspace/`,
+- Required files exist: `README.md`, `task.toml`, `run_spec.json`, `workspace/`,
   `evaluations/issue/{instruction.md,oracle.md,verifier/test.sh}`, and
-  `environment/prepare.sh` when remote assets are needed.
+  `environment/prepare.sh`.
 - `task.toml` and `README.md` agree on title, model, dataset, framework,
   algorithm, GPU count, run time, and failure description.
-- `environment.image` is a digest-pinned image from `ENVIRONMENTS.md`, unless
-  the task uses the documented exception and the README justifies it.
+- `environment.image` is a digest-pinned image from `ENVIRONMENTS.md` and
+  `environment.image_stack` is that row's stack label. Reject every custom image; there is
+  no exception.
 - `environment.gpus` is an integer count that the launch script actually needs.
   Reject GPU device IDs or unrelated host settings.
 - No `AUTORLBENCH_*` variable is set by the task. Secrets, tokens, private
@@ -134,6 +148,18 @@ review report with a readiness verdict and actionable recommendations.
   the read-only historical snapshot during evaluation.
 - Environment variables and in-container paths match the launch script and task
   card exactly.
+
+### 4a. Rerun startup evidence
+
+- The rerun output follows `outputs/rerun/<task_id>/<timestamp>/` and contains
+  `command.sh`, `run.log`, `prepare.log`, `rerun.log`, and either `report.json` or the
+  artifacts left by an intentional early stop.
+- `rerun.log` proves that the shared image and `prepare.sh` were sufficient to start the
+  experiment and reach a few real training steps. Initialization messages, a launcher
+  banner, or a process start without a step do not qualify.
+- The workspace still carries the complete historical buggy-run logs used as frozen
+  evidence; the startup rerun does not replace those logs and does not need to reproduce
+  the final metric outcome.
 
 ### 5. Root cause and issue tier
 
@@ -209,6 +235,7 @@ review report with a readiness verdict and actionable recommendations.
 ## Summary
 
 - Two or three sentences describing task quality and the decisive blocker, if any.
+- The rerun output path and the highest training step observed in `rerun.log`.
 
 ## Findings
 

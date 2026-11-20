@@ -380,8 +380,8 @@ written anywhere else are ignored. Do not copy, edit, or fabricate log
 metrics. Otherwise the run is scored 0.</pre>
                             <p class="guide-file-caption">Solution level: repair the workspace and submit report.md — the harness reruns training itself, then grades only that fresh run. Three traps, including a baked-in --num-rollout 3000.</p>
                         </div>
-                        <div class="guide-file-panel" id="p-runspec" role="region" aria-label="evaluations/solution/verifier/resources/run_spec.json" hidden>
-                            <div class="guide-file-panel-head"><span class="guide-file-panel-path">evaluations/solution/verifier/resources/run_spec.json</span><span class="guide-file-panel-note">rerun</span></div>
+                        <div class="guide-file-panel" id="p-runspec" role="region" aria-label="run_spec.json" hidden>
+                            <div class="guide-file-panel-head"><span class="guide-file-panel-path">run_spec.json</span><span class="guide-file-panel-note">rerun</span></div>
                             <pre>{
   "schema_version": 1,
   "command": "mkdir -p \"$AUTORLBENCH_RESULTS/experiment_logs\" &amp;&amp; bash examples/retool/retool_qwen3_4b_rl.sh",
@@ -484,7 +484,7 @@ metrics. Otherwise the run is scored 0.</pre>
                     </div>
                     <div class="guide-file-rows">
                         <div><span>Workspace</span>The code that reproduces the defect, plus that run's artifacts — logs, W&B, per-step metrics. The same tree with the fix, when you have it: anything else that differs confounds the comparison.</div>
-                        <div><span>Environment</span><p>Run your buggy run in one of the eight shared environments listed in <a href="https://github.com/Thinking-Space/AutoRLBench/blob/main/ENVIRONMENTS.md" target="_blank" rel="noopener noreferrer">ENVIRONMENTS.md</a> and ship that run's artifacts. If none of them reproduces the defect, you may submit your own environment configuration with an explanation.</p></div>
+                        <div><span>Environment</span><p>Run your buggy run in one of the eight shared environments listed in <a href="https://github.com/Thinking-Space/AutoRLBench/blob/main/ENVIRONMENTS.md" target="_blank" rel="noopener noreferrer">ENVIRONMENTS.md</a> and ship that run's artifacts. There is no custom-image exception.</p></div>
                         <div><span>README</span>The defect, the fix as a diff, the measured outcome of both arms, and every plausible-but-wrong diagnosis.</div>
                     </div>
                 </article>
@@ -493,7 +493,7 @@ metrics. Otherwise the run is scored 0.</pre>
                         <span>02</span>
                         <div>
                             <h3>Package with agent</h3>
-                            <p>Packaging runs inside a clone of this repository: the <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task" target="_blank" rel="noopener noreferrer">package-task</a> skill writes into <code>tasks/</code>, copies its scaffolding from an existing task, and validates with the harness shipped in the repo — and the generated task lands one <code>git push</code> away from a PR. Fork, then clone your fork and run the agent from the repo root:</p>
+                            <p>Packaging runs inside a clone of this repository: the <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/package-task" target="_blank" rel="noopener noreferrer">package-task</a> skill writes into <code>tasks/</code>, copies its scaffolding from an existing task, and hands the finished task to the <a href="https://github.com/Thinking-Space/AutoRLBench/tree/main/skills/validate-task" target="_blank" rel="noopener noreferrer">validate-task</a> review — and the generated task lands one <code>git push</code> away from a PR. Fork, then clone your fork and run the agent from the repo root:</p>
                         </div>
                         <button type="button" id="copy-agent-prompt">Copy</button>
                     </div>
@@ -501,7 +501,7 @@ metrics. Otherwise the run is scored 0.</pre>
 cd AutoRLBench</pre>
                     <p class="guide-muted">Keep the raw material outside <code>tasks/</code>, then paste this prompt:</p>
                     <pre id="agent-prompt">Package &lt;path-to-your_task&gt; as an AutoRLBench task using the package-task skill at skills/package-task in this repository.</pre>
-                    <p class="guide-muted">The agent decides whether the task is issue-only or gets a solution tier, and validates with zero errors.</p>
+                    <p class="guide-muted">The agent decides whether the task is issue-only or gets a solution tier; the final gate is a READY verdict from validate-task.</p>
                 </article>
                 <article class="submit-way" id="pr">
                     <div class="submit-way-head">
@@ -515,7 +515,7 @@ cd AutoRLBench</pre>
 git add tasks/your-task-name
 git commit -m "Add your-task-name"
 git push -u origin contrib/your-task-name</pre>
-                    <p class="guide-muted">Before opening the PR, you can check that the buggy run actually runs in the packaged task: <code>python3 -m autorlbench rerun tasks/&lt;domain&gt;/&lt;task_id&gt;</code> — the experiment does not have to run to completion, one training step is enough and you can stop the run. If you ran the check, say so in one sentence after the pasted PR body.</p>
+                    <p class="guide-muted">Before opening the PR, run <code>python3 -m autorlbench rerun tasks/&lt;domain&gt;/&lt;task_id&gt;</code> until a few training steps appear in <code>outputs/rerun/&lt;task_id&gt;/&lt;timestamp&gt;/rerun.log</code>, then stop it. validate-task reads that output to confirm the shared image and <code>prepare.sh</code> can start the experiment.</p>
                 </article>
             </div>
         </section>

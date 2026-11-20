@@ -27,14 +27,14 @@ samples.
 [ENVIRONMENTS.md](ENVIRONMENTS.md) whose stack is closest to your run, **run the buggy run
 inside that image**, and ship that run's artifacts — the recorded evidence must come from
 the environment the task declares. Framework or dependency versions the image lacks, and
-other small environment touches, reside in separate scripts rather than a new image. If
-the defect reproduces in none of the eight, you may submit your own environment
-configuration with an explanation — details in [ENVIRONMENTS.md](ENVIRONMENTS.md).
+other small environment touches, reside in `environment/prepare.sh` rather than a new image.
+There is no custom-image exception.
 - **The README** states the defect, the fix as a diff, the measured outcome of both arms,
 and every plausible-but-wrong diagnosis. If you ran each arm once, say so — a
 single-seed result supports margins, not variance.
 - **Leave out** model weights, checkpoints, and anything derivable from what you did
-ship. Record how to obtain them in the scripts instead.
+ship. `environment/prepare.sh` must download or rebuild them, along with every other
+runtime environment addition the chosen shared image lacks.
 
 Without a fixed run, the task is issue-only (diagnosis). A fixed run does not guarantee a
 solution level: not every defect has a canonical fix or a reproducible post-fix outcome, and
@@ -98,17 +98,8 @@ Package <path-to-your_task> as an AutoRLBench task using the package-task skill 
 
 It produces `tasks/<domain>/<task_id>/` in the [task layout](README.md#task-layout),
 with the environment you ran the buggy run in recorded — digest-pinned — in the
-task's `task.toml` (see [ENVIRONMENTS.md](ENVIRONMENTS.md)); on the exception path,
-your separate environment configuration and its justification are submitted with the PR.
-
-```bash
-python3 -m autorlbench validate tasks/<domain>/<task_id>
-```
-
-It must report zero errors.
-
-Schema validation does not prove that the task is a complete, evidence-backed
-RL experiment. Ask an agent to review the task with the
+task's `task.toml` (see [ENVIRONMENTS.md](ENVIRONMENTS.md)). The packaging skill does not
+stop at schema validation: ask an agent to review the finished task with the
 [validate-task](skills/validate-task/SKILL.md) skill before opening the PR:
 
 ```text
@@ -123,14 +114,21 @@ derived from the finished task README — paste it into the PR description (you 
 details, but keep the base format). Include the raw material only if it is
 small enough to be useful as evidence.
 
-Before opening the PR, you can use the repo's `rerun` command to check that the buggy run
-actually runs in the packaged task — it runs the task's `prepare.sh`, then launches the
-experiment:
+Before opening the PR, use the repo's `rerun` command to check that the shared image and
+the task's `prepare.sh` can start the experiment. The framework pulls the digest-pinned
+shared image, launches prepare and rerun containers from it, runs `prepare.sh`, and then
+starts the experiment declared by `run_spec.json`:
 
 ```bash
 python3 -m autorlbench rerun tasks/<domain>/<task_id>
 ```
 
-The experiment does not have to run to completion: once training has produced a step, the
-environment is verified and you can stop the run. If you ran the check, say so in one
-sentence after the pasted PR body.
+The experiment does not have to run to completion: a few training steps are enough. Watch
+`outputs/rerun/<task_id>/<timestamp>/rerun.log`, and stop the run after it has produced
+those steps. The persistent output also contains `command.sh`, `prepare.log`, `run.log`,
+the experiment's `results/`, and the salvaged workspace copy; a run that finishes
+naturally also writes `report.json`. The
+`validate-task` review reads these logs and treats a rerun as successful only when the
+experiment reached a few steps without failing on image, dependency, model, or dataset
+setup. If you interrupted the startup check after those steps, say so in one sentence
+after the pasted PR body.
