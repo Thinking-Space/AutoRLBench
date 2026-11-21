@@ -1,0 +1,48 @@
+{
+  "metric_definition": "d=train_logprob-rollout_logprob, K3=clip(exp(clip(d,-20,20))-1-clip(d,-20,20),-10,10)",
+  "support_audit": "For active rows with abs(sum(exp(q_head))-1)<=2e-5, 1..20 positive-mass IDs and sampled token in support, score p(y|support)=p_log(y)-logsumexp(p_log on that support). Does not recover unfiltered SGLang logits.",
+  "frozen_trajectory_diagnostic": {
+    "128k_two_compactions": {
+      "support_validation_fraction": 1.0,
+      "trajectory_count": 16,
+      "primary_pre_group_mask": {
+        "tokens": 2170820,
+        "abs_diff": 0.11976003976229788,
+        "k3": 0.05100390546873087,
+        "signed_train_minus_roll": -0.06702650576287003,
+        "ratio_above_2_fraction": 0.008922895495711299,
+        "k3_clipped_fraction": 6.679503597718834e-05
+      },
+      "same_tokens_conditioned_pre_group_mask": {
+        "tokens": 2170820,
+        "abs_diff": 0.10564040729472587,
+        "k3": 0.04696672958476478,
+        "signed_train_minus_roll": -0.04703718652842184,
+        "ratio_above_2_fraction": 0.009882440736680148,
+        "k3_clipped_fraction": 6.172782635133267e-05
+      },
+      "mean_log_trainer_support_mass": -0.019989319278772157
+    },
+    "256k_zero_compactions": {
+      "support_validation_fraction": 1.0,
+      "trajectory_count": 16,
+      "primary_pre_group_mask": {
+        "tokens": 1748296,
+        "abs_diff": 0.11332270200175062,
+        "k3": 0.04625335077961398,
+        "signed_train_minus_roll": -0.06146927663206366,
+        "ratio_above_2_fraction": 0.008482545289813624,
+        "k3_clipped_fraction": 5.719855219024696e-05
+      },
+      "same_tokens_conditioned_pre_group_mask": {
+        "tokens": 1748296,
+        "abs_diff": 0.1002847210737157,
+        "k3": 0.042824114283089465,
+        "signed_train_minus_roll": -0.042903859846090575,
+        "ratio_above_2_fraction": 0.009311352311050302,
+        "k3_clipped_fraction": 5.491061010263708e-05
+      },
+      "mean_log_trainer_support_mass": -0.018565416818009804
+    }
+  }
+}
