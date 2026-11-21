@@ -1,0 +1,37 @@
+title = "Tool observations are silently rounded and GRPO trains the agent to stop using the tool"
+license = "Apache-2.0"
+created_date = "2026-11-19"
+domain = "environment"
+tags = ["verl", "grpo", "multi-turn", "tool-use", "python-tool", "gsm-hard", "observation-formatting", "issue-only"]
+
+[submitter]
+name = "pkulium"
+affiliation = "Iowa State University"
+
+[model]
+name = "Qwen3-1.7B (non-thinking chat template)"
+
+[dataset]
+name = "GSM-Hard (reasoning-machines/gsm-hard, MIT): 1,319 rows split by sha1 of the question into 1,066 train / 253 held-out"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_tool_gsm_hard.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+# trainer.n_gpus_per_node=1: FSDP actor and the colocated vLLM rollout share one GPU.
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "environment_bug"
+failure_reason = "verl/experimental/agent_loop/tool_agent_loop.py::ToolAgentLoop._call_tool passes every tool observation through verl/experimental/agent_loop/utils.py::shorten_numeric_literals, which rewrites any number with more than six digits as a 6-significant-digit %g literal (the program prints 475501268356, the agent reads 4.75501e+11); on GSM-Hard's large exact answers tool-assisted final answers become wrong and the exact numeric reward scores them 0 (rollouts/1.jsonl: 123 rollouts with exponent-form observations score 0.065 against 0.543 without the tool), GRPO trains the agent to stop calling the tool (num_turns 3.17 -> 2.31 at step 10 -> 2.01; held-out tool-call rate 0.466 -> 0.008), training score still rises, and held-out accuracy averages 0.5668 over steps 20-60 against 0.6625 for the same recipe with verbatim observations (seed 43: 0.5225 vs 0.6545)."
+
+[security]
+requires_isolated_stages = true

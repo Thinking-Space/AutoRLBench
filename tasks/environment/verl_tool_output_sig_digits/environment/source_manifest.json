@@ -1,0 +1,39 @@
+{
+  "upstream": {
+    "framework": "verl",
+    "repository": "https://github.com/volcengine/verl",
+    "tag": "v0.8.0",
+    "note": "workspace/verl is vendored from the verl v0.8.0 tag (verl/ package without its *.md files and example shell/ directories)."
+  },
+  "recorded_run": {
+    "path": "workspace/results/tool_gsm_hard_seed42",
+    "command": "SEED=42 RUN_NAME=tool_gsm_hard_seed42 bash run_tool_gsm_hard.sh",
+    "runtime": "Apptainer 1.4.0, apptainer exec --nv, SIF built from verlai/verl@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6; workspace mounted at /workspace; models/ and raw/ bind-mounted read-only from the pinned downloads listed in prepare.sh; 1 x A100-SXM4-80GB"
+  },
+  "thinning": [
+    "rollouts/: kept 1.jsonl, 30.jsonl, 60.jsonl of the 60 per-step dumps",
+    "wandb/: dropped run-*.wandb, the latest-run symlink, the debug*.log symlinks and logs/debug-core.log (a symlink into the container home directory); kept files/ and logs/debug.log, logs/debug-internal.log",
+    "data/ (rebuilt by data_prep/gsm_hard.py on every run), outputs/ (Hydra run directory) and __pycache__/ were not shipped"
+  ],
+  "rewrites_applied_to_frozen_evidence": [
+    {
+      "file": "workspace/results/tool_gsm_hard_seed42/train.log",
+      "replacements": {
+        "<compute node hostname>": "HOSTNAME_REDACTED",
+        "<compute node IP address>": "IP_REDACTED"
+      },
+      "occurrences": 3,
+      "sha256_before": "fc379a0b61581ad86a75d9fd0b819df6bb074f39191e72ae7ff2d0ecbd7886a7",
+      "sha256_after": "28bb5e6134f49cae2355b1c36afba8d9f5df307595106be3a7bff0d70e1cd9c4"
+    }
+  ],
+  "sanitize_scan": {
+    "pattern": "broken|fixed|<host>|<ip>|<user>|<host path>",
+    "remaining_hits": "the word 'fixed' only in upstream text (verl's kl_ctrl config value 'type': 'fixed' printed in train.log and wandb logs/debug.log) and in model-generated solutions"
+  },
+  "notes_on_frozen_evidence": [
+    "Tool executions ran inside the container with the image's Python interpreter, in a temporary directory, with a 5 s timeout.",
+    "train.log ends with benign vLLM engine-shutdown messages printed after training and the final validation completed (exit status 0).",
+    "tools/python_tool.py keeps the module docstring it had when the runs were recorded."
+  ]
+}
