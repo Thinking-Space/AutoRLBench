@@ -1,0 +1,14 @@
+--- a/handoff_supervisor.py
++++ b/handoff_supervisor.py
+@@ -63,7 +63,10 @@
+         if not path.exists():
+             # The attempt may have restored a previously accepted checkpoint
+             # and failed before its first update; use its exact source binding.
+-            launch=obj(ROOT/'evidence'/f'{prefix}-launch-{ticket}.json')
++            launch=obj(ROOT/'evidence/libero-continuous'/ticket/'launch.json')
++            if (launch.get('ticket')!=ticket
++                    or launch.get('starting_checkpoint',{}).get('global_step')!=marker):
++                raise ValueError('The failed continuous attempt has another starting checkpoint or ticket')
+             reference=launch['source_acceptance'];path=ROOT/reference['path']
+             raw=small(path)
+             if hashlib.sha256(raw).hexdigest()!=reference['sha256']:

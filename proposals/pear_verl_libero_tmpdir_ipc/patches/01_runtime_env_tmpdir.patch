@@ -1,0 +1,14 @@
+--- a/continuous_driver.py
++++ b/continuous_driver.py
+@@ -197,8 +197,9 @@
+     forwarded = ("TRITON_BACKENDS_IN_TREE", "VERL_FILE_LOGGER_PATH", "PEAR_TQ_NAMESPACE", "PEAR_SIM_POOL_NAMESPACE",
+                  "TENSORBOARD_DIR", "WANDB_MODE", "WANDB_DIR", "WANDB_CONFIG_DIR", "WANDB_CACHE_DIR",
+                  "WANDB_DATA_DIR", "WANDB_DISABLE_GIT", "WANDB_DISABLE_CODE", "WANDB__DISABLE_STATS",
+-                 "WANDB__DISABLE_META", "WANDB__DISABLE_MACHINE_INFO", "PYTHONPATH", "PEAR_CONTINUOUS_TICKET",
+-                 "TMPDIR", "TEMP", "TMP")
++                 "WANDB__DISABLE_META", "WANDB__DISABLE_MACHINE_INFO", "PYTHONPATH", "PEAR_CONTINUOUS_TICKET")
++    # Remote workers inherit their node holder's short personal directory FD.
++    # Forwarding the canonical CPU TMPDIR breaks vLLM's 107-byte Unix socket limit.
+     overrides += ["++ray_kwargs.ray_init.runtime_env.env_vars." + key + "=" + json.dumps(environment[key])
+                   for key in forwarded]
+     overrides.append("++ray_kwargs.ray_init.runtime_env.env_vars.WORK_DIR=" + str(ROOT / "work"))
