@@ -1,0 +1,31 @@
+title = "pandas turns integer ground truths into floats, so every GRPO reward is zero"
+license = "Apache-2.0"
+created_date = "2026-11-20"
+domain = "data"
+tags = ["verl", "grpo", "math", "pandas", "silent-zero-reward", "issue-only"]
+
+[submitter]
+name = "Sikuan Yan"
+
+[model]
+name = "Qwen/Qwen3-4B"
+
+[dataset]
+name = "Integer-answer math pool from Skywork-OR1 (math), POLARIS-53K and DAPO-Math-17k (workspace/data/pool_clean.jsonl, 81,882 problems, decontaminated against AIME 2025/2026)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+
+# The recorded run uses two GPUs (two vLLM replicas at TP=1, FSDP world size 2);
+# run_grpo.sh defaults NGPU to 2.
+gpus = 2
+
+[outcome]
+failure_type = "silent_reward_failure"
+failure_reason = "data/pool_clean.jsonl stores every integer answer as a JSON float (15625.0; an earlier pandas read_json/to_json round trip inferred float64 because one answer, 3.8e65, exceeds int64), scripts/make_rl_data.py writes ground_truth = str(r.answer), i.e. \"17.0\", and scripts/math_reward.py scores with inspect_ai match_str(numeric=True), which takes the numeric path only for targets that pass str.isnumeric(), so every sample scores 0: critic/score/mean is 0.0 at all 5 steps and actor/grad_norm and actor/ppo_kl are exactly 0, while 141 of 256 step-1 responses end with the numerically correct answer and the length-clip ratio (0.41-0.48) matches the control arm with integer-normalized ground truths, which scores 0.50-0.56."
