@@ -1,0 +1,32 @@
+title = "fp8 KV-cache scales are lost across verl's vLLM sleep, so every rollout is \"!!!!\" to the cap"
+license = "Apache-2.0"
+created_date = "2026-11-20"
+domain = "configuration"
+tags = ["verl", "grpo", "vllm", "fp8-kv-cache", "sleep-mode", "issue-only"]
+
+[submitter]
+name = "Sikuan Yan"
+
+[model]
+name = "Qwen/Qwen3-4B"
+
+[dataset]
+name = "Integer-answer math pool from Skywork-OR1 (math), POLARIS-53K and DAPO-Math-17k (workspace/data/pool_clean.jsonl, 81,882 problems, decontaminated against AIME 2025/2026)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo.sh"
+
+[environment]
+image = "ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128@sha256:6f7c302c0161a6c32d978faade165c86c153575baf028e729d7eebe44c06f683"
+image_stack = "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12"
+
+# The recorded run uses two GPUs (two vLLM replicas at TP=1, FSDP world size 2);
+# run_grpo.sh defaults NGPU to 2. verl v0.8.0 ships in workspace/verl; the image
+# already carries verl's Python dependencies.
+gpus = 2
+
+[outcome]
+failure_type = "rollout_engine_corruption"
+failure_reason = "run_grpo.sh enables vLLM kv_cache_dtype=fp8 for the rollout; verl v0.8.0 puts vLLM >= 0.8.5 to sleep at level 2 after every rollout (verl/third_party/vllm VLLM_SLEEP_LEVEL=2, vLLMHttpServer._sleep_hybrid), which discards vLLM 0.11's per-layer Attention._k_scale/_v_scale GPU tensors, and the actor weight sync on wake-up does not restore them (they become 0.0), so attention over the fp8 cache is degenerate: every response decodes '!' (token 0) to the 16,384-token cap, response_length/clip_ratio is 1.0, critic/score/mean is 0.0 and actor/grad_norm exactly 0 at all 3 steps (224 of 256 step-1 responses are only '!'), while the same run with kv_cache_dtype=auto scores 0.78-0.83 with clip ratio 0.09-0.14."
