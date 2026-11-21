@@ -1,0 +1,29 @@
+title = "Math accuracy slips while training perplexity falls"
+license = "CC-BY-NC-4.0"
+created_date = "2026-11-19"
+domain = "reward"
+tags = ["distillation", "heldout-regression", "math"]
+
+[submitter]
+name = "Yong Yan"
+
+[model]
+name = "Nemotron-Research-Reasoning-Qwen-1.5B@3441fcdf8c6e81a2959e6352ff50122e3c677d72"
+
+[dataset]
+name = "Skywork-OR1 math, original processed training split"
+
+[training]
+framework = "VeRL / vLLM"
+algo = "Online policy distillation"
+script = "train.sh"
+script_args = []
+
+[environment]
+image = "verlai/verl:vllm024.dev2@sha256:b867883b0dd011363e69ab2ab344922a28c5bd0409e2a324e3ee70fb27ca7543"
+image_stack = "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12"
+gpus = 2
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "Held-out math accuracy drops from 54 to 36 correct answers out of 240 between steps 30 and 60 while logged perplexity falls and all evaluation answers still finish naturally."
