@@ -413,6 +413,52 @@ class RerunCommandTests(unittest.TestCase):
         self.assertTrue((run_dir / "results").is_dir())
         self.assertEqual(list(self.root.glob("work/autorlbench-run-*")), [])
 
+    def test_issue_only_task_reruns_on_the_local_backend(self) -> None:
+        # The submitter command defaults to solution, but a task package may only ship
+        # an issue evaluation. Its level-neutral run_spec must still execute, and local
+        # prepare must use the staged environment path rather than Docker's mount path.
+        import shutil
+
+        from autorlbench.core.types import EvaluationConfig
+        from autorlbench.evaluation.evaluator import TaskEvaluator
+        from tests.test_harbor_evaluator import create_task
+
+        task_root = create_task(self.root, "issue_only_fixture")
+        shutil.rmtree(task_root / "evaluations" / "solution")
+        (task_root / "workspace" / "train.sh").write_text(
+            "#!/usr/bin/env bash\necho packaged-rerun-ran\n",
+            encoding="utf-8",
+        )
+        write_spec(
+            task_root,
+            {
+                **VALID,
+                "command": "bash train.sh",
+                "env": {},
+                "timeout_s": 60,
+            },
+        )
+        work_dir = self.root / "work"
+
+        result = TaskEvaluator("local").rerun(
+            task_root,
+            EvaluationConfig(
+                backend="local",
+                work_dir=work_dir,
+                models_dir=self.root / "models",
+                datasets_dir=self.root / "datasets",
+            ),
+        )
+
+        run_dir = next((work_dir / "issue_only_fixture").glob("*"))
+        self.assertTrue(result.passed)
+        self.assertEqual(result.evaluation_level, "issue")
+        self.assertEqual(result.metrics["exit_code"], 0)
+        self.assertIn(
+            "packaged-rerun-ran",
+            (run_dir / "rerun.log").read_text(encoding="utf-8"),
+        )
+
 
 class ShippedRunSpecTests(unittest.TestCase):
     """Every run_spec.json in tasks/ has to load, and declare what the protocol needs."""
