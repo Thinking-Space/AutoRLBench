@@ -138,7 +138,8 @@
         },
         modelLogos: {
             Fable: 'anthropic.png', DeepSeek: 'deepseek.png', GLM: 'glm.png', Astra: 'openai.png',
-            Sol: 'openai.png', Gemini: 'googlegemini.png', 'Kimi K3': 'kimi.png', 'Kimi 3.1': 'kimi.png'
+            Sol: 'openai.png', Gemini: 'googlegemini.png', 'Kimi K3': 'kimi.png', 'Kimi 3.1': 'kimi.png',
+            Qwen: 'qwen.png', Grok: 'xai.png'
         },
         times: {
             issue: [['Astra',59.25,11.41], ['Sol',16.66,12.73], ['Gemini',22.8,19.06], ['GLM',24.15,17.65], ['Kimi 3.1',26.71,20.82], ['Fable',29.97,16.65], ['Qwen',29.58,27.73], ['Grok',21.1,13.62], ['DeepSeek',36.55,32.87], ['Kimi K3',40.4,16.44]],
