@@ -1,0 +1,33 @@
+title = "FSDP2 parameter grouping drops weights and bucketed sync skips the first chunk"
+license = "Apache-2.0"
+created_date = "2026-11-21"
+domain = "infrastructure"
+tags = ["fsdp2", "dtensor", "optimizer-groups", "weight-sync", "zmq-ipc", "rollout-staleness"]
+
+[submitter]
+name = "Bo Chen"
+affiliation = "University of Hong Kong"
+
+[model]
+name = "Qwen/Qwen2.5-1.5B-Instruct"
+
+[dataset]
+name = "Countdown (Jiayi-Pan/Countdown-Tasks-3to4): 32,768 train / 1,024 disjoint test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_countdown.sh"
+
+[environment]
+image = "ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128@sha256:6f7c302c0161a6c32d978faade165c86c153575baf028e729d7eebe44c06f683"
+image_stack = "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "build_optimizer overwrites param_groups keyed by (device, dtype, ndim), leaving only 2 of 338 FSDP2 DTensor parameters in AdamW, while BucketedWeightReceiver.receive_weights calls on_bucket_received outside the bucket loop and drops the first 2,025.5 MiB chunk; Countdown step-45 accuracy ends at 0.0410 / 0.0449 against 0.4658 / 0.4883 in the control."
