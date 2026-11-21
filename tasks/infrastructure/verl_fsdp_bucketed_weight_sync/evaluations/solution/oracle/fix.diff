@@ -1,0 +1,43 @@
+--- a/verl/workers/config/optimizer.py
++++ b/verl/workers/config/optimizer.py
+@@ -268,14 +268,4 @@
+             f"Available optimizers: {dir(module)}"
+         ) from e
+ 
+-    param_groups = {}
+-    for param in parameters:
+-        if isinstance(param, dict):
+-            param_groups[id(param)] = param
+-            continue
+-        if not param.requires_grad:
+-            continue
+-        key = (param.device, param.dtype, param.ndim)
+-        param_groups[key] = {"params": [param]}
+-
+-    return optimizer_cls(list(param_groups.values()), **optimizer_args)
++    return optimizer_cls(parameters, **optimizer_args)
+--- a/verl/workers/rollout/vllm_rollout/bucketed_weight_transfer.py
++++ b/verl/workers/rollout/vllm_rollout/bucketed_weight_transfer.py
+@@ -237,7 +237,6 @@
+             self._init_buffer()
+ 
+             # receive bucket and update weights
+-            weights, tensor = [], None
+             while True:
+                 metadata = self.socket.recv_pyobj()
+                 weights, tensor = [], None
+@@ -248,12 +247,12 @@
+                     if self.use_shm:
+                         tensor = tensor.to(self.device)
+                     weights.append((name, tensor))
++                on_bucket_received(weights)
+                 get_torch_device().synchronize()
+                 self.socket.send(b"")
++                del weights, tensor
+                 if metadata["is_last"]:
+                     break
+-            on_bucket_received(weights)
+-            del weights, tensor
+         finally:
+             self._cleanup()
+ 
