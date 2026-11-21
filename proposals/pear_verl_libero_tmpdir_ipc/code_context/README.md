@@ -1,0 +1,6 @@
+# Source context
+before/与after/包含continuous_driver.py及handoff_supervisor.py的完整小型模块快照。原件哈希分别匹配修复前归档和当时45项CPU准入凭证；对外副本仅改内部地址/节点等标签。provenance/source_manifest.json记录原件与导出的SHA-256。
+
+这些模块依赖完整项目及内部调度组件，供维护者审阅、diff和定位，不构成自包含RL workspace。本包的校验程序只用AST解析它们，绝不导入或执行生产调度逻辑。
+
+patches/01_runtime_env_tmpdir.patch只对应主问题；02_recovery_binding.patch只对应关联失败恢复修复。before/after及patch同时保留给维护者，这个目录不是给被测agent看的workspace，正式任务必须将修复答案移到隐藏oracle。
