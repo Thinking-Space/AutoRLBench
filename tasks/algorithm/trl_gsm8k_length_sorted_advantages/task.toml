@@ -1,0 +1,32 @@
+title = "Length-sorted micro-batches leave GRPO advantages behind"
+license = "Apache-2.0"
+created_date = "2026-11-22"
+domain = "algorithm"
+tags = ["trl", "grpo", "gsm8k", "advantage-misalignment", "micro-batching", "vendored-framework"]
+
+[submitter]
+name = "Yaolun Zhang"
+
+[model]
+name = "Qwen2.5-1.5B-Instruct"
+
+[dataset]
+name = "GSM8K (train for RL, test for held-out evaluation)"
+
+[training]
+framework = "TRL"
+algo = "grpo"
+script = "run_grpo.sh"
+
+[environment]
+image = "ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128@sha256:6f7c302c0161a6c32d978faade165c86c153575baf028e729d7eebe44c06f683"
+image_stack = "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12"
+# One GPU, matching the recorded runs: train_grpo.py runs TRL GRPOTrainer as a
+# single process with colocated vLLM generation (vllm_gpu_memory_utilization
+# 0.3). The recorded runs used one H100 NVL (94 GB) and 12 CPU cores; the
+# startup check also completed on one H200.
+gpus = 1
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "The vendored TRL 0.27.2 in workspace/trl has a local GRPOTrainer._sort_by_completion_length, called from _prepare_inputs on every generation batch, that reorders the batch by completion length but only for tensors with dim() >= 2, so the (B,) advantages tensor stays in the pre-sort order and compute_loss weights each completion with another completion's advantage. Rewards, advantages and rollouts.jsonl are logged before the sort and are all correct, yet the batch reward decays from 0.102 (steps 1-20) to 0.028 (steps 81-100) and greedy GSM8K test accuracy goes from 0.0144 to 0.0000, while the same workspace with advantages sorted along reaches 0.7384."

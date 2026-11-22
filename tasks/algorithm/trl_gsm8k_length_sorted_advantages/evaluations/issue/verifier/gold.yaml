@@ -1,0 +1,13 @@
+category: algorithm
+framework: TRL
+task: trl_gsm8k_length_sorted_advantages
+verdict: unhealthy
+root_cause:
+  - workspace/trl/trainer/grpo_trainer.py::GRPOTrainer._sort_by_completion_length (a local addition to the vendored TRL 0.27.2, called from _prepare_inputs on every generation batch) reorders only tensors with dim() >= 2 by completion length; advantages has shape (B,) and stays in the pre-sort order, so compute_loss weights each completion with another completion's advantage
+evidence_metrics:
+  - eval/gsm8k_accuracy 0.0144 at step 0 and 0.0000 at step 100 (greedy, 1,319 GSM8K test items); an in-order control reaches 0.7384
+  - batch reward 0.102 over steps 1-20, 0.028 over steps 81-100, with frac_reward_zero_std 0.46 at the start (mixed groups, a usable signal)
+  - rollouts.jsonl - every logged reward matches re-checked correctness (32 correct rows, all reward 1), so the reward path, including reward_num_workers, is correct
+fix:
+  must:
+    - reorder advantages together with the token tensors (e.g. value.dim() >= 1), or remove the length sort
