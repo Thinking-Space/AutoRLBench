@@ -1,0 +1,102 @@
+{
+ "source": "raw workspace re-run in the shared image with run_resume.sh (see README)",
+ "renamed": [],
+ "dropped": [
+  "data/rl_train.parquet, data/rl_val.parquet (rebuilt by run_grpo.sh via scripts/make_rl_data.py)",
+  "third_party/ (recreated by environment/prepare.sh)",
+  "outputs/<date>/ hydra run dirs",
+  "outputs/stage1/checkpoints/global_step_2 (~47 GB FSDP checkpoint; rewritten by every run of run_resume.sh)",
+  "outputs/stage1/rollouts/2.jsonl, outputs/stage2/rollouts/4.jsonl (slimmed: first and last of each stage kept, plus step 3)",
+  "outputs/stage*/wandb/*/run-*.wandb (W&B binary history; embeds host paths, user and host names, so it cannot be sanitized in place; metrics.jsonl carries the same per-step history), wandb tmp/ dirs and symlinks (latest-run, debug*.log, debug-core.log -> host cache)",
+  "scripts/build_pool.py (an early pool-assembly helper with machine-specific absolute paths; not used by run_resume.sh / run_grpo.sh)"
+ ],
+ "rewritten": [
+  {
+   "from": "outputs/stage1/train.log",
+   "to": "outputs/stage1/train.log",
+   "sha256_before": "07b55e5c67dd5f74b18165f9b9c3c30dbcf8a2d5b52c4330056c3d2308c8bb3e",
+   "sha256_after": "3106794bcab01ce5e6f5c9e81dc67704842813620b7801b10f252d7b1fb64c73",
+   "changes": "paths/host/IP/username sanitized (internal IPs -> 10.0.0.1, host names -> host)"
+  },
+  {
+   "from": "outputs/stage1/metrics.jsonl",
+   "to": "outputs/stage1/metrics.jsonl",
+   "sha256_before": "d3bef3c3b34a1244028b0d4a8818dd64925a8615635c805e5fea78102b800544",
+   "sha256_after": "d3bef3c3b34a1244028b0d4a8818dd64925a8615635c805e5fea78102b800544",
+   "changes": "unchanged"
+  },
+  {
+   "from": "outputs/stage2/train.log",
+   "to": "outputs/stage2/train.log",
+   "sha256_before": "7cb6c41f3c2ccd48e952158dc893d7f16ec20eb85818b4d5e06577421de36e66",
+   "sha256_after": "13983b57f8f648b31c9191b84375d18d0db8dc0d6575cb568eee45288dbbc324",
+   "changes": "paths/host/IP/username sanitized (internal IPs -> 10.0.0.1, host names -> host)"
+  },
+  {
+   "from": "outputs/stage2/metrics.jsonl",
+   "to": "outputs/stage2/metrics.jsonl",
+   "sha256_before": "74772e0c160e21ab7b8fc7cac4c5e7dd73109f67ffce252da0b0bf34411bfb3e",
+   "sha256_after": "74772e0c160e21ab7b8fc7cac4c5e7dd73109f67ffce252da0b0bf34411bfb3e",
+   "changes": "unchanged"
+  }
+ ],
+ "upstream_hits": [
+  {
+   "file": "outputs/stage1/train.log",
+   "words": [
+    "fixed",
+    "broken",
+    "control"
+   ],
+   "reason": "upstream verl config values (e.g. algorithm.kl_ctrl type 'fixed') or words inside training-pool problems / model generations; not side labels"
+  },
+  {
+   "file": "outputs/stage1/rollouts/1.jsonl",
+   "words": [
+    "fixed",
+    "broken"
+   ],
+   "reason": "upstream verl config values (e.g. algorithm.kl_ctrl type 'fixed') or words inside training-pool problems / model generations; not side labels"
+  },
+  {
+   "file": "outputs/stage1/wandb/offline-run-20261122_203018-8mjvc32a/logs/debug.log",
+   "words": [
+    "fixed",
+    "control"
+   ],
+   "reason": "upstream verl config values (e.g. algorithm.kl_ctrl type 'fixed') or words inside training-pool problems / model generations; not side labels"
+  },
+  {
+   "file": "outputs/stage2/train.log",
+   "words": [
+    "fixed",
+    "control"
+   ],
+   "reason": "upstream verl config values (e.g. algorithm.kl_ctrl type 'fixed') or words inside training-pool problems / model generations; not side labels"
+  },
+  {
+   "file": "outputs/stage2/rollouts/3.jsonl",
+   "words": [
+    "fixed",
+    "broken"
+   ],
+   "reason": "upstream verl config values (e.g. algorithm.kl_ctrl type 'fixed') or words inside training-pool problems / model generations; not side labels"
+  },
+  {
+   "file": "outputs/stage2/rollouts/5.jsonl",
+   "words": [
+    "fixed",
+    "broken"
+   ],
+   "reason": "upstream verl config values (e.g. algorithm.kl_ctrl type 'fixed') or words inside training-pool problems / model generations; not side labels"
+  },
+  {
+   "file": "outputs/stage2/wandb/offline-run-20261122_204609-93nlm8fr/logs/debug.log",
+   "words": [
+    "fixed",
+    "control"
+   ],
+   "reason": "upstream verl config values (e.g. algorithm.kl_ctrl type 'fixed') or words inside training-pool problems / model generations; not side labels"
+  }
+ ]
+}

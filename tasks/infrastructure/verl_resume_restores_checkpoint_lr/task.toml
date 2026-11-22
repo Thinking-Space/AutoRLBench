@@ -1,0 +1,32 @@
+title = "Resuming from a checkpoint silently restores the old learning rate"
+license = "Apache-2.0"
+created_date = "2026-11-22"
+domain = "infrastructure"
+tags = ["verl", "grpo", "math", "checkpoint-resume", "lr-scheduler", "silent-config-override", "issue-only"]
+
+[submitter]
+name = "Sikuan Yan"
+affiliation = "LMU Munich"
+
+[model]
+name = "Qwen/Qwen3-4B"
+
+[dataset]
+name = "Integer-answer math pool from Skywork-OR1 (math), POLARIS-53K and DAPO-Math-17k (workspace/data/pool_clean.jsonl, 81,882 problems, decontaminated against AIME 2025/2026)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_resume.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+
+# The recorded run uses two GPUs (two vLLM replicas at TP=1, FSDP world size 2);
+# run_grpo.sh defaults NGPU to 2.
+gpus = 2
+
+[outcome]
+failure_type = "silent_config_override"
+failure_reason = "run_resume.sh trains stage 1 at actor_rollout_ref.actor.optim.lr=1e-6, checkpoints at step 2, and resumes stage 2 with optim.lr=2e-6 (the effective config printed in stage2/train.log shows 'lr': 2e-06). verl builds the optimizer and the constant LambdaLR scheduler from the new config, then FSDPCheckpointManager.load_checkpoint (verl/utils/checkpoint/fsdp_checkpoint_manager.py) calls optimizer.load_state_dict and lr_scheduler.load_state_dict, which restore the checkpoint's param-group lr/initial_lr and the scheduler's base_lrs [1e-06]; every later scheduler step recomputes lr = base_lr * 1.0 = 1e-6. Nothing warns: actor/lr is 1e-06 at steps 3-5 of stage 2 while the configured value is 2e-6. A control that keeps the configured learning rates after loading (same checkpoint, data, seed and budget) logs actor/lr 2e-06 at steps 3-5."
