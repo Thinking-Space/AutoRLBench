@@ -1,0 +1,13 @@
+category: configuration
+framework: verl
+task: verl_vllm011_fp8_kv_scale_sleep
+verdict: unhealthy
+root_cause:
+  - run_grpo.sh sets the rollout KV cache dtype to fp8 while verl v0.8.0 sleeps vLLM at level 2 after every rollout, and vLLM 0.11 keeps the per-layer fp8 KV scales Attention._k_scale / _v_scale as plain GPU tensors in the freed weight pool, so the wake-up weight reload never restores them and they are 0.0 when attention runs
+evidence_metrics:
+  - every response is "!" (token 0) to the 16,384-token cap from step 1, with response_length/clip_ratio 1.0, critic/score/mean 0.0 and actor/grad_norm exactly 0 at all 3 steps, while the identical run with kv_cache_dtype=auto scores 0.832 / 0.789 / 0.777
+  - 224 of the 256 step-1 rollout responses consist only of "!" and the rest are 87-99.98% "!" mixed with random tokens
+  - the host-side k_scale_float stays 1.0 while the GPU k_scale/v_scale go 1.0 to 0.0 across sleep(level=2)/wake/reload, so no log line looks abnormal; fp8 without the sleep (free_cache_engine=False) or on vLLM 0.17 stays healthy
+fix:
+  must:
+    - use kv_cache_dtype auto, disable the level-2 sleep (free_cache_engine=False), or re-initialise the fp8 KV scales after each weight sync

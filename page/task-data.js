@@ -926,5 +926,48 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The per-sample log-difference reduction is issued inside a branch each rank evaluates locally, so a rank with an empty local sample list skips the collective while the others enter it -- and the job dies only when the 10-minute watchdog fires.",
     "issue": "Training MiniCPM5-2.6B with GRPO under context parallelism 4 in miles, policy_loss_function places dist.all_reduce(per_sample_max, group=cp.group) inside the locally-evaluated `if per_sample_max_list:` branch: a rank whose local sample list is empty under zigzag chunking skips the collective while the other ranks enter it. The ranks then block on different collectives and the job dies only when the 10-minute watchdog fires (Timeout(ms)=600000), so the log shows a timeout rather than the cause. The same recipe was killed four times at different rounds (r86/r28/r18/untimed) -- the probabilistic signature of the fault."
+  },
+  {
+    "id": "reward/verl_inventory_agent_compound",
+    "title": "Inventory GRPO reaches clean validation saturation despite incorrect training transactions",
+    "family": "Reward",
+    "tags": [
+      "verl",
+      "grpo",
+      "tool-use",
+      "issue-only",
+      "recorded-run",
+      "local-draft",
+      "container-validation-pending"
+    ],
+    "model": "Qwen3-1.7B",
+    "dataset": "Synthetic inventory orders, 1,280 training rows and 24 validation orders",
+    "framework": "verl 0.6.1 / GRPO with async vLLM",
+    "image": "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12",
+    "created": "2026-11-20",
+    "license": "Apache-2.0",
+    "brief": "Timeout retries apply the mutation twice, released stock keeps paying progress reward, ordinary validation shares the training order families, and a restart binds 294 AdamW moments to the wrong parameters -- yet mean reward rises and every validation curve saturates at 100%.",
+    "issue": "Training Qwen3-1.7B with GRPO on synthetic inventory orders shows rising mean reward (0.977 to 1.024) and validation curves that saturate at 100% by update 10, while the training transactions are wrong: timeout-affected orders retry with a fresh key and apply the mutation twice, released stock keeps paying progress reward that the training clamps leave negative-side free, ordinary validation draws from the training order families, and the step-10 restart binds 294 populated AdamW moments to the wrong parameters. The final candidate batch holds 48 timeout-enabled trajectories at 0/48 strict success (208/208 on the others), against 360/360 in the paired repaired run; strict training success is 71.875% against 99.922%."
+  },
+  {
+    "id": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "title": "fp8 KV-cache scales are lost across verl's vLLM sleep, so every rollout is \"!!!\" to the cap",
+    "family": "Configuration",
+    "tags": [
+      "verl",
+      "grpo",
+      "vllm",
+      "fp8-kv-cache",
+      "sleep-mode",
+      "issue-only"
+    ],
+    "model": "Qwen3-4B",
+    "dataset": "Integer-answer math pool from Skywork-OR1, POLARIS-53K and DAPO-Math-17k (81,882 problems)",
+    "framework": "verl 0.8.0 / GRPO with vLLM 0.11.0",
+    "image": "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12",
+    "created": "2026-11-20",
+    "license": "Apache-2.0",
+    "brief": "verl's level-2 vLLM sleep frees the weights pool; on wake-up, load_weights() never restores vLLM 0.11's per-layer fp8 KV-cache scales, so every rollout decodes as \"!\" to the 16,384-token cap with zero reward from step 1 -- while the host-side scale mirror stays 1.0.",
+    "issue": "Training Qwen3-4B with verl GRPO on an integer-answer math pool with an fp8 rollout KV cache on vLLM 0.11: verl's level-2 sleep and weight reload zero the KV-cache scales (_k_scale/_v_scale become 0, never restored by load_weights), so every response is \"!\" repeated to the 16,384-token cap and the reward and gradient are exactly zero from step 1 (critic/score/mean 0.000 against the auto-KV control arm's 0.832/0.789/0.777; 224 of 256 step-1 responses are only \"!\"). The host-side _k_scale_float stays 1.0 and the entropy looks normal, so the logs read like a temperature or precision problem."
   }
 ];

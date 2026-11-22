@@ -947,6 +947,42 @@
  * trajectories were rebuilt per agent type (the codex ones at
  * per-item granularity) and audited clean of network access. The
  * published issue-judgment total below moves 475 -> 485.
+ * The ten verl_inventory_agent_compound issue records were
+ * published on 22 Nov 2026 from the local cybertron-evaluate sweep
+ * (ten models; no Gemini run; the task ships issue-only). The task
+ * pins a five-way compound fault in a tool-use inventory GRPO run:
+ * timeout-affected orders retry with a fresh key and apply the
+ * mutation twice, released stock keeps paying progress reward that
+ * the clamps leave negative-side free, ordinary validation draws
+ * from the training order families, and the step-10 restart binds
+ * 294 populated AdamW moments to the wrong parameters -- while
+ * mean reward rises (0.977 -> 1.024) and every validation curve
+ * saturates at 100%, so the clean metrics mask the faults;
+ * timeout-enabled training trajectories hold 0/48 strict success
+ * against 360/360 in the paired repaired run. No pass: Qwen3.8-Max
+ * (0.727) and DeepSeek-V4.1-Flash (0.66) lead with root cause 0.6;
+ * GPT-6-Astra, GPT-6.1-Sol and Kimi-K3.1-Pro misjudge the run
+ * healthy. The ten trajectories were rebuilt per agent type (the
+ * codex ones at per-item granularity) and audited clean of network
+ * access. The published issue-judgment total below moves 485 -> 495.
+ * The ten verl_vllm011_fp8_kv_scale_sleep issue records were
+ * published on 22 Nov 2026 from the local cybertron-evaluate sweep
+ * (ten models; no Gemini run; the task ships issue-only). The task
+ * pins verl's level-2 vLLM sleep: on wake-up, load_weights() pushes
+ * the actor checkpoint back but never restores vLLM 0.11's per-layer
+ * fp8 KV-cache scales (_k_scale/_v_scale drop to 0), so every
+ * response decodes as "!" repeated to the 16,384-token cap with
+ * reward and gradient exactly zero from step 1 -- while the
+ * host-side scale mirror stays 1.0 and the entropy looks normal,
+ * so the logs read like a temperature or precision problem
+ * (224 of 256 step-1 responses are only "!"; the control arm with
+ * auto KV scores 0.832/0.789/0.777 against fp8's three zeros). No
+ * pass: every model returns the correct verdict; GLM-5.3 (0.66),
+ * Claude-Fable-5.1 (0.634), Kimi-K3.1-Pro (0.607) and GPT-6.1-Sol
+ * (0.58) reach root cause 0.5, the other six hold zero root-cause
+ * credit. The ten trajectories were rebuilt per agent type (the
+ * codex ones at per-item granularity) and audited clean of network
+ * access. The published issue-judgment total below moves 495 -> 505.
  * The 206 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -11536,6 +11572,286 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1359000,
     "steps": 107,
     "costUsd": 8.6757
+  },
+{
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "gpt6astra-inventory",
+    "file": "agent-trace/gpt6astra-inventory.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 100000,
+    "steps": 12,
+    "costUsd": null
+},
+{
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "gpt61sol-inventory",
+    "file": "agent-trace/gpt61sol-inventory.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0333,
+    "durationMs": 100000,
+    "steps": 13,
+    "costUsd": null
+},
+{
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "fable51-inventory",
+    "file": "agent-trace/fable51-inventory.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 240000,
+    "steps": 14,
+    "costUsd": 1.7339
+},
+{
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "glm53-inventory",
+    "file": "agent-trace/glm53-inventory.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.5067,
+    "durationMs": 996000,
+    "steps": 42,
+    "costUsd": 7.0813
+},
+{
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "kimi-inventory",
+    "file": "agent-trace/kimi-inventory.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3733,
+    "durationMs": 555000,
+    "steps": 44,
+    "costUsd": 1.6791
+},
+{
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "kimi31-inventory",
+    "file": "agent-trace/kimi31-inventory.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3533,
+    "durationMs": 889000,
+    "steps": 24,
+    "costUsd": 2.0049
+},
+{
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "dsv4-inventory",
+    "file": "agent-trace/dsv4-inventory.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2333,
+    "durationMs": 1567000,
+    "steps": 70,
+    "costUsd": 5.6205
+},
+{
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "qwen38-inventory",
+    "file": "agent-trace/qwen38-inventory.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.7267,
+    "durationMs": 1834000,
+    "steps": 2,
+    "costUsd": null
+},
+{
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "grok47-inventory",
+    "file": "agent-trace/grok47-inventory.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.5733,
+    "durationMs": 438000,
+    "steps": 94,
+    "costUsd": null
+},
+{
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "dsv41flash-inventory",
+    "file": "agent-trace/dsv41flash-inventory.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.66,
+    "durationMs": 1652000,
+    "steps": 123,
+    "costUsd": 11.0557
+  },
+  {
+    "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "slug": "gpt6astra-fp8-kv-sleep",
+    "file": "agent-trace/gpt6astra-fp8-kv-sleep.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3125,
+    "durationMs": 94000,
+    "steps": 14,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "slug": "gpt61sol-fp8-kv-sleep",
+    "file": "agent-trace/gpt61sol-fp8-kv-sleep.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.58,
+    "durationMs": 89000,
+    "steps": 15,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "slug": "fable51-fp8-kv-sleep",
+    "file": "agent-trace/fable51-fp8-kv-sleep.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.634,
+    "durationMs": 285000,
+    "steps": 13,
+    "costUsd": 1.4495
+  },
+  {
+    "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "slug": "glm53-fp8-kv-sleep",
+    "file": "agent-trace/glm53-fp8-kv-sleep.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.66,
+    "durationMs": 1074000,
+    "steps": 34,
+    "costUsd": 7.1277
+  },
+  {
+    "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "slug": "kimi-fp8-kv-sleep",
+    "file": "agent-trace/kimi-fp8-kv-sleep.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.34,
+    "durationMs": 104000,
+    "steps": 15,
+    "costUsd": 0.4624
+  },
+  {
+    "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "slug": "kimi31-fp8-kv-sleep",
+    "file": "agent-trace/kimi31-fp8-kv-sleep.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6067,
+    "durationMs": 255000,
+    "steps": 13,
+    "costUsd": 1.0
+  },
+  {
+    "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "slug": "dsv4-fp8-kv-sleep",
+    "file": "agent-trace/dsv4-fp8-kv-sleep.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 3758000,
+    "steps": 77,
+    "costUsd": 9.8622
+  },
+  {
+    "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "slug": "qwen38-fp8-kv-sleep",
+    "file": "agent-trace/qwen38-fp8-kv-sleep.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.35,
+    "durationMs": 967000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "slug": "grok47-fp8-kv-sleep",
+    "file": "agent-trace/grok47-fp8-kv-sleep.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3067,
+    "durationMs": 603000,
+    "steps": 148,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
+    "slug": "dsv41flash-fp8-kv-sleep",
+    "file": "agent-trace/dsv41flash-fp8-kv-sleep.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3636,
+    "durationMs": 2281000,
+    "steps": 201,
+    "costUsd": 20.0747
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

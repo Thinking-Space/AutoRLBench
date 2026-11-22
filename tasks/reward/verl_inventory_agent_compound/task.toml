@@ -1,0 +1,34 @@
+title = "Inventory GRPO reaches clean validation saturation despite incorrect training transactions"
+license = "Apache-2.0"
+created_date = "2026-11-20"
+domain = "reward"
+tags = ["verl", "grpo", "tool-use", "issue-only", "recorded-run", "local-draft", "container-validation-pending"]
+
+[submitter]
+name = "Pengyi Li"
+
+[model]
+name = "Qwen/Qwen3-1.7B"
+
+[dataset]
+name = "Synthetic inventory orders, 1,280 training rows and 24 validation orders"
+
+[training]
+framework = "veRL v0.6.1"
+algo = "grpo"
+script = "run.sh"
+
+[environment]
+# Target for replay. The recorded runs used MLSpace.
+image = "ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128@sha256:6f7c302c0161a6c32d978faade165c86c153575baf028e729d7eebe44c06f683"
+image_stack = "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12"
+gpus = 1
+prepare = "environment/prepare.sh"
+
+[environment.env]
+SWANLAB_MODE = "local"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "The run's training transactions diverge from the inventory contract despite 100% clean held-out success at update 30."

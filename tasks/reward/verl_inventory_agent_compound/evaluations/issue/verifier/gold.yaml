@@ -1,0 +1,53 @@
+{
+  "category": "reward",
+  "framework": "verl",
+  "task": "verl_inventory_agent_compound",
+  "verdict": "unhealthy",
+  "root_cause": [
+    {
+      "name": "validation_split_leakage_at_order_family_boundary",
+      "where": "workspace/inventory_tasks/data.py (ordinary validation split chosen at the derived-row level while training retains rows sharing parent_scenario_id)",
+      "observed": "the data builder expands orders into wording variants and splits at the derived-row level, so all 12 ordinary validation orders have a training sibling sharing parent_scenario_id even though the prompt text and variant scenario_id differ; the 12 independent evaluation orders have no training parents",
+      "expected": "the split is made at the parent-order level so ordinary validation orders are genuinely unseen"
+    },
+    {
+      "name": "non_idempotent_retry_after_committed_reservation",
+      "where": "workspace/inventory_tasks/domain.py:124 (receipt cache keys by transport attempt in the training arm: f\"{request_id}:attempt-{attempt}\")",
+      "observed": "the environment commits the first mutation before losing its receipt to the injected timeout; the retried logical request misses the first receipt because the cache key includes the attempt number, so the reservation is applied again and the ledger becomes over-reserved; at step 30 none of the 48 timeout-enabled trajectories succeeds strictly while all 208 others do",
+      "expected": "the receipt outlives the transport attempt, so a retry of the same logical request is recognized and not re-applied"
+    },
+    {
+      "name": "positive_only_progress_clips_reversible_actions",
+      "where": "workspace/inventory_tasks/domain.py:138 (progress_reward += PROGRESS_WEIGHT * (max(0, delta) if self.training else delta))",
+      "observed": "the training environment credits 0.1 * max(0, delta) per ledger change, so releases have zero cost; reserving, releasing and reserving one unit earns progress 0.2 versus 0.1 for a single reserve with the same final ledger and terminal receipt; the retained native traces do not show the policy taking this exploit",
+      "expected": "progress credits net movement toward the requested reservation, so reversible cycles cannot inflate return"
+    },
+    {
+      "name": "incomplete_receipt_receives_full_terminal_score",
+      "where": "workspace/inventory_tasks/domain.py:170-175 (correctness None for a scorable-but-incomplete receipt, then terminal_reward /= FORMAT_WEIGHT in the training arm)",
+      "observed": "the receipt parser accepts a syntactically valid JSON object even when it omits required fields; correctness is None and the training scorer divides the remaining 0.2 format component by 0.2 after dropping the mandatory 0.8 correctness component, so an incomplete receipt gets terminal score 1 despite strict success 0; a bad but fully scorable receipt gets terminal 0.2; the retained traces do not show the policy taking this exploit",
+      "expected": "an unscorable receipt gets zero correctness and the original format score of 0.2, never a reweighted full score"
+    },
+    {
+      "name": "positional_optimizer_restore_after_parameter_re_enumeration",
+      "where": "workspace/mechanism_tasks/adam_binding.py (rebuild_parameter_groups refills positions within equal shape/dtype/layout buckets; wired into verl/utils/checkpoint/fsdp_checkpoint_manager.py at the step-10 restart)",
+      "observed": "after the checkpoint restart the optimizer rebuilds group order within equal-signature buckets while the saved state IDs keep their original order, so optimizer.load_state_dict attaches saved AdamW first and second moments to different parameter names for 294 of 310 positions; the probe records show restored moments matching the positional source rather than the semantic source for all probed changed bindings",
+      "expected": "the saved state is bound by parameter identity so moments follow names across re-enumeration"
+    }
+  ],
+  "evidence_metrics": [
+    "joining data_evidence/train.jsonl and val.jsonl by parent_scenario_id shows all 12 ordinary validation orders have a training sibling while the 12 independent evaluation orders have none",
+    "at step 30, strict success is 0/48 on timeout-enabled training trajectories and 208/208 on the others; the ledger becomes over-reserved by the double commit",
+    "the scorer's progress accumulation over the ledger deltas establishes that releases remove units without deducting reward (reserve/release/reserve earns 0.2 versus 0.1 for one reserve at the same end state)",
+    "the receipt parser and scorer establish that valid JSON missing a required field yields format 1, correctness None, terminal reward 1 and strict success 0",
+    "the saved identity and first-update fingerprints in outputs/resume/ show the restart moved 294 of 310 parameter positions and restored moments match the positional rather than semantic source, with the first optimizer step observed",
+    "mean training reward rises from 0.977 (updates 1-5) to 1.024 (updates 26-30) while late strict training success averages 71.875%, and both validation probes reach 100% by update 10 and stay there -- the clean validation result is genuine for the recorded probe and compatible with the broken training transactions"
+  ],
+  "fix": {
+    "must": [
+      "name all five independent causes: order-family validation leakage, non-idempotent retry after a committed reservation, positive-only progress clipping, incomplete-receipt full terminal score, and positional AdamW restore",
+      "use the recorded clean probe to delimit the training-failure claim rather than attributing it to a held-out accuracy crash",
+      "do not count proposed repairs, generalization beyond the recorded probe, or effects for which the workspace contains no evidence"
+    ]
+  }
+}
