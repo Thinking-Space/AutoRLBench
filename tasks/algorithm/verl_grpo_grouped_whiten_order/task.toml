@@ -1,0 +1,33 @@
+title = "GRPO advantage gather misaligns prompts while KL straight-through squares sequence ratios"
+license = "Apache-2.0"
+created_date = "2026-11-20"
+domain = "algorithm"
+tags = ["grpo", "advantage-estimation", "permutation-bug", "kl-penalty", "straight-through-estimator", "gradient-scaling"]
+
+[submitter]
+name = "Bo Chen"
+affiliation = "University of Hong Kong"
+
+[model]
+name = "Qwen/Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train (7,360 after a 500-character question filter) / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_gsm8k.sh"
+
+[environment]
+image = "ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128@sha256:6f7c302c0161a6c32d978faade165c86c153575baf028e729d7eebe44c06f683"
+image_stack = "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "grouped_whiten gathers standardized per-prompt advantages using the forward sort index instead of its inverse, and kl_penalty routes low_var_kl into a straight-through branch that squares the sequence-summed log-ratio; forward actor/kl_loss stays small while backward KL gradients blow up, holding GSM8K step-50 accuracy at 0.4610 / 0.4640 against 0.5588 / 0.5368 in the control."

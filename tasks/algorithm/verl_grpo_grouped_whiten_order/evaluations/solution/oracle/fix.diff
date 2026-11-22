@@ -1,0 +1,95 @@
+--- a/verl/utils/torch_functional.py
++++ b/verl/utils/torch_functional.py
+@@ -337,33 +337,7 @@
+     if not shift_mean:
+         whitened += mean
+     return whitened
+-
+-
+-def grouped_whiten(
+-    values: torch.Tensor,
+-    group_ids: torch.Tensor,
+-    eps: float = 1e-6,
+-    scale_by_std: bool = True,
+-) -> torch.Tensor:
+-    if values.numel() == 0:
+-        return values
+-    order = torch.argsort(group_ids, stable=True)
+-    sorted_vals = values.index_select(0, order)
+-    sorted_groups = group_ids.index_select(0, order)
+-    _, counts = torch.unique_consecutive(sorted_groups, return_counts=True)
+-
+-    whitened_groups = []
+-    for grp in torch.split(sorted_vals, counts.tolist()):
+-        if grp.numel() <= 1:
+-            whitened_groups.append(torch.zeros_like(grp))
+-        else:
+-            mean = torch.mean(grp)
+-            std = torch.std(grp)
+-            whitened_groups.append((grp - mean) / (std + eps) if scale_by_std else (grp - mean))
+ 
+-    whitened = torch.cat(whitened_groups, dim=0)
+-    return torch.gather(whitened, 0, order)
+-
+ 
+ def get_response_mask(response_id: torch.Tensor, eos_token: int | list[int] = 2, dtype=torch.int64):
+     """
+--- a/verl/trainer/ppo/core_algos.py
++++ b/verl/trainer/ppo/core_algos.py
+@@ -302,15 +302,30 @@
+             shape is (bs, response_length)
+     """
+     scores = token_level_rewards.sum(dim=-1)
++
++    id2score = defaultdict(list)
++    id2mean = {}
++    id2std = {}
+ 
+     with torch.no_grad():
+-        group_ids = as_torch_index(index, device=scores.device)
+-        scores = verl_F.grouped_whiten(
+-            scores,
+-            group_ids,
+-            eps=epsilon,
+-            scale_by_std=norm_adv_by_std_in_grpo,
+-        )
++        bsz = scores.shape[0]
++        for i in range(bsz):
++            id2score[index[i]].append(scores[i])
++        for idx in id2score:
++            if len(id2score[idx]) == 1:
++                id2mean[idx] = torch.tensor(0.0)
++                id2std[idx] = torch.tensor(1.0)
++            elif len(id2score[idx]) > 1:
++                scores_tensor = torch.stack(id2score[idx])
++                id2mean[idx] = torch.mean(scores_tensor)
++                id2std[idx] = torch.std(scores_tensor)
++            else:
++                raise ValueError(f"no score in prompt index: {idx}")
++        for i in range(bsz):
++            if norm_adv_by_std_in_grpo:
++                scores[i] = (scores[i] - id2mean[index[i]]) / (id2std[index[i]] + epsilon)
++            else:
++                scores[i] = scores[i] - id2mean[index[i]]
+         scores = scores.unsqueeze(-1) * response_mask
+ 
+     return scores, scores
+@@ -2121,11 +2136,15 @@
+         kl_estimate
+     """
+     forward_score = kl_penalty_forward(logprob, ref_logprob, kl_penalty)
+-    if kl_penalty in ("kl", "k1", "abs", "mse", "k2"):
++    if not kl_penalty.endswith("+") or kl_penalty in ("mse", "k2"):
+         return forward_score
+ 
+-    seq_log_ratio = (logprob - ref_logprob).sum(dim=-1, keepdim=True)
+-    backward_score = 0.5 * seq_log_ratio.square().expand_as(logprob)
++    """
++    The expectation of k1 and k3 estimator is the expected value of KL, but the expected gradient of k1 and k3
++    estimator is not the expected gradient of KL. On the other hand k2 estimator gives right gradient estimator, 
++    so we use a straight through trick here if the kl_penalty method ends with '+', e.g., k3+. 
++    """
++    backward_score = 0.5 * (logprob - ref_logprob).square()
+ 
+     return backward_score - backward_score.detach() + forward_score.detach()
+ 

@@ -1,0 +1,14 @@
+category: algorithm
+framework: verl
+task: verl_grpo_grouped_whiten_order
+verdict: unhealthy
+root_cause:
+  - verl/utils/torch_functional.py grouped_whiten returns torch.gather(whitened, 0, order) with the forward sort permutation instead of scattering standardized advantages back through its inverse, so with sequence-length batch balancing interleaving samples from the same prompt, trajectories receive another row's advantage while batch mean and variance stay plausible
+  - verl/trainer/ppo/core_algos.py kl_penalty replaces the upstream guard with a whitelist that omits the configured low_var_kl, routing it into the straight-through branch where backward_score squares the sequence-summed log-ratio and broadcasts it across every token; forward actor/kl_loss stays small while backward KL gradients scale by about L_i per token and about L_i^2 per sequence, pulling updates back toward the reference model
+evidence_metrics:
+  - held-out accuracy (re-scored) stays flat at 0.4625 / 0.4579 / 0.4610 while the control reaches 0.5588 (seed 42) and 0.5368 (seed 43) from step-0 values 0.4587 / 0.4663
+  - actor/kl_loss reads 0.00795 at step 50 and actor/pg_clipfrac stays under 0.001, while actor/loss equals actor/pg_loss + 0.001 * actor/kl_loss with residual 4.17e-9 — the forward bookkeeping hides the backward gradient scaling
+  - the single-fix ablations stay below threshold — grouped_whiten fixed alone reaches 0.4807 / 0.4905 and kl_penalty fixed alone reaches 0.4102 / 0.3654, both under 0.51
+fix:
+  must:
+    - scatter standardized advantages back with the inverse permutation (or compute per-UID standardization directly) and restore the upstream kl_penalty guard with per-token backward_score, as in fix.diff

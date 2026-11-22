@@ -969,5 +969,47 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "verl's level-2 vLLM sleep frees the weights pool; on wake-up, load_weights() never restores vLLM 0.11's per-layer fp8 KV-cache scales, so every rollout decodes as \"!\" to the 16,384-token cap with zero reward from step 1 -- while the host-side scale mirror stays 1.0.",
     "issue": "Training Qwen3-4B with verl GRPO on an integer-answer math pool with an fp8 rollout KV cache on vLLM 0.11: verl's level-2 sleep and weight reload zero the KV-cache scales (_k_scale/_v_scale become 0, never restored by load_weights), so every response is \"!\" repeated to the 16,384-token cap and the reward and gradient are exactly zero from step 1 (critic/score/mean 0.000 against the auto-KV control arm's 0.832/0.789/0.777; 224 of 256 step-1 responses are only \"!\"). The host-side _k_scale_float stays 1.0 and the entropy looks normal, so the logs read like a temperature or precision problem."
+  },
+  {
+    "id": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "title": "FSDP2 parameter grouping drops weights and bucketed sync skips the first chunk",
+    "family": "Infrastructure",
+    "tags": [
+      "fsdp2",
+      "dtensor",
+      "optimizer-groups",
+      "weight-sync",
+      "zmq-ipc",
+      "rollout-staleness"
+    ],
+    "model": "Qwen2.5-1.5B-Instruct",
+    "dataset": "Countdown (Jiayi-Pan/Countdown-Tasks-3to4): 32,768 train / 1,024 disjoint test",
+    "framework": "verl (GRPO, commit 4b9c14f2) / FSDP2 + async colocated vLLM 0.11.0",
+    "image": "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12",
+    "created": "2026-11-21",
+    "license": "Apache-2.0",
+    "brief": "build_optimizer collapses 338 parameters into 2 through a (device, dtype, ndim) dict overwrite, and bucketed weight sync only loads the last bucket -- the 2 survivors sit there, so ppo_kl stays near zero and the run looks healthy while held-out accuracy stalls.",
+    "issue": "Training Qwen2.5-1.5B-Instruct with GRPO under FSDP2 on Countdown-Tasks-3to4, build_optimizer collapses 338 trainable parameters down to 2 by overwriting a (device, dtype, ndim) dict, and BucketedWeightReceiver.receive_weights calls on_bucket_received outside the receive loop so only the last weight bucket ever loads into vLLM. Nothing crashes, update_weights reports done every step, and held-out accuracy only moves from 0.0117 to 0.0410 in 45 steps against 0.4658 in the control."
+  },
+  {
+    "id": "algorithm/verl_grpo_grouped_whiten_order",
+    "title": "GRPO advantage gather misaligns prompts while KL straight-through squares sequence ratios",
+    "family": "Algorithm",
+    "tags": [
+      "grpo",
+      "advantage-estimation",
+      "permutation-bug",
+      "kl-penalty",
+      "straight-through-estimator",
+      "gradient-scaling"
+    ],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "GSM8K (openai/gsm8k main): 7,473 train (7,360 after a 500-character question filter) / 1,319 test",
+    "framework": "verl (GRPO, commit 4b9c14f2) / FSDP + vLLM 0.11.0 colocated",
+    "image": "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12",
+    "created": "2026-11-20",
+    "license": "Apache-2.0",
+    "brief": "grouped_whiten gathers standardized advantages in the forward sort order so trajectories receive each other's advantages, and kl_penalty routes low_var_kl into a straight-through branch that squares the sequence-summed log-ratio -- forward loss looks clean while backward gradients swamp the update.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, grouped_whiten indexes standardized advantages with the forward sort order instead of inverting it, and kl_penalty routes low_var_kl into a straight-through branch that squares the sequence-summed log-ratio. Forward actor/kl_loss looks small and clean, but backward KL gradients overwhelm policy updates and hold step-50 accuracy at 0.4610 against 0.5588."
   }
 ];

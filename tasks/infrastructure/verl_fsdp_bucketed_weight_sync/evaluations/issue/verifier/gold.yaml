@@ -1,0 +1,14 @@
+category: infrastructure
+framework: verl
+task: verl_fsdp_bucketed_weight_sync
+verdict: unhealthy
+root_cause:
+  - build_optimizer groups parameters in a dict keyed by (device, dtype, ndim) and overwrites on collision, so under FSDP2 only 2 of 338 trainable DTensor parameters (model.layers.27.mlp.down_proj.weight and model.norm.weight) reach AdamW while gradient norms still log normally
+  - BucketedWeightReceiver.receive_weights calls on_bucket_received outside the receive loop, so when the 3,389.5 MiB weights split into two 2,048 MB buckets only the trailing is_last bucket reaches vLLM, and update_weights still reports done every step
+evidence_metrics:
+  - held-out val accuracy moves only 0.0117 to 0.0410 over 45 steps against 0.4658 / 0.4883 in the two control seeds, with actor/ppo_kl near zero because the only two trained parameters both sit in the only bucket that syncs
+  - fixing only build_optimizer exposes the unsynced first bucket (ppo_kl climbs to 0.0159 / 0.0764, accuracy stalls at 0.1650 / 0.2695); fixing only receive_weights leaves 336 of 338 parameters frozen (0.0459 / 0.0664)
+  - update_weights done prints every step and actor/grad_norm stays 0.38-1.16, so no error or staleness signal surfaces the pair
+fix:
+  must:
+    - pass parameters directly to the optimizer class in build_optimizer, and invoke on_bucket_received(weights) inside the receive loop so every transferred bucket updates the rollout model

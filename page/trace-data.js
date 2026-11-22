@@ -983,6 +983,43 @@
  * credit. The ten trajectories were rebuilt per agent type (the
  * codex ones at per-item granularity) and audited clean of network
  * access. The published issue-judgment total below moves 495 -> 505.
+ * The ten verl_fsdp_bucketed_weight_sync issue records and their ten
+ * solution runs were published on 22 Nov 2026 from the local
+ * cybertron-evaluate sweep (ten models; no Gemini run). The task pins
+ * two mutually masking bugs in an FSDP2 GRPO run: build_optimizer
+ * overwrites a (device, dtype, ndim) dict and collapses 338 trainable
+ * parameters into 2, while BucketedWeightReceiver.receive_weights
+ * fires on_bucket_received outside the receive loop so only the last
+ * weight bucket loads into vLLM -- the 2 surviving parameters happen
+ * to sit in that last bucket, so ppo_kl stays near zero and
+ * update_weights reports done every step while held-out accuracy
+ * moves only 0.0117 to 0.0410 in 45 steps against 0.4658 in the
+ * control. No pass at either level: on the issue side GLM-5.3 (0.6)
+ * is the only model with root-cause credit (0.5, the optimizer
+ * half); four models misjudge the run healthy; the Claude-Fable-5.1
+ * run ends without a deliverable. On the solution side five runs
+ * change nothing and record deterministic zeros, one ends without a
+ * report, and the replayed repairs all grade 0 -- the two defects
+ * must both be fixed for the gate. The published issue-judgment
+ * total below moves 505 -> 515 and the solution-run total 206 -> 216.
+ * The ten verl_grpo_grouped_whiten_order issue records and their ten
+ * solution runs were published on 22 Nov 2026 from the local
+ * cybertron-evaluate sweep (ten models; no Gemini run). The task
+ * pins two compounding gradient bugs in a GRPO run: grouped_whiten
+ * indexes standardized advantages with the forward sort order
+ * instead of inverting it, so trajectories receive each other's
+ * advantages, and kl_penalty routes low_var_kl into a
+ * straight-through branch that squares the sequence-summed
+ * log-ratio -- forward actor/kl_loss looks small and clean while
+ * backward KL gradients overwhelm policy updates and hold step-50
+ * accuracy at 0.4610 against 0.5588. No pass at either level: every
+ * model returns the correct verdict on the issue side, but only
+ * Claude-Fable-5.1, Kimi-K3.1-Pro and DeepSeek-V4.1-Flash reach root
+ * cause 0.5 (each naming one of the two defects; no model joins
+ * both); the solution runs split into four deterministic zeros for
+ * unchanged workspaces and sixteen replayed repairs that grade 0 --
+ * again both defects must be fixed. The published issue-judgment
+ * total below moves 515 -> 525 and the solution-run total 216 -> 226.
  * The 206 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -11852,6 +11889,585 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2281000,
     "steps": 201,
     "costUsd": 20.0747
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "gpt6astra-bucket-sync",
+    "file": "agent-trace/gpt6astra-bucket-sync.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 70000,
+    "steps": 12,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "gpt61sol-bucket-sync",
+    "file": "agent-trace/gpt61sol-bucket-sync.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 85000,
+    "steps": 14,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "fable51-bucket-sync",
+    "file": "agent-trace/fable51-bucket-sync.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 443000,
+    "steps": 10,
+    "costUsd": 1.0018
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "glm53-bucket-sync",
+    "file": "agent-trace/glm53-bucket-sync.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 2447000,
+    "steps": 79,
+    "costUsd": 66.9849
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "kimi-bucket-sync",
+    "file": "agent-trace/kimi-bucket-sync.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1,
+    "durationMs": 453000,
+    "steps": 26,
+    "costUsd": 0.9362
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "kimi31-bucket-sync",
+    "file": "agent-trace/kimi31-bucket-sync.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.088,
+    "durationMs": 376000,
+    "steps": 23,
+    "costUsd": 5.7508
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "dsv4-bucket-sync",
+    "file": "agent-trace/dsv4-bucket-sync.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 1341000,
+    "steps": 60,
+    "costUsd": 4.025
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "qwen38-bucket-sync",
+    "file": "agent-trace/qwen38-bucket-sync.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2833,
+    "durationMs": 1894000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "grok47-bucket-sync",
+    "file": "agent-trace/grok47-bucket-sync.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.1429,
+    "durationMs": 234000,
+    "steps": 57,
+    "costUsd": null
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "dsv41flash-bucket-sync",
+    "file": "agent-trace/dsv41flash-bucket-sync.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.125,
+    "durationMs": 1154000,
+    "steps": 84,
+    "costUsd": 8.6666
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "gpt6astra-bucket-sync-sol",
+    "file": "agent-trace/gpt6astra-bucket-sync-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 148000,
+    "steps": 19,
+    "costUsd": null,
+    "sourceRunId": "20261122-114334"
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "gpt61sol-bucket-sync-sol",
+    "file": "agent-trace/gpt61sol-bucket-sync-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 165000,
+    "steps": 24,
+    "costUsd": null,
+    "sourceRunId": "20261122-114013"
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "fable51-bucket-sync-sol",
+    "file": "agent-trace/fable51-bucket-sync-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 497000,
+    "steps": 8,
+    "costUsd": 2.0296,
+    "sourceRunId": "20261122-121554"
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "glm53-bucket-sync-sol",
+    "file": "agent-trace/glm53-bucket-sync-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2040000,
+    "steps": 97,
+    "costUsd": 95.6309,
+    "sourceRunId": "20261122-114013"
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "kimi-bucket-sync-sol",
+    "file": "agent-trace/kimi-bucket-sync-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 6627000,
+    "steps": 130,
+    "costUsd": 15.2549,
+    "sourceRunId": "20261122-122444"
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "kimi31-bucket-sync-sol",
+    "file": "agent-trace/kimi31-bucket-sync-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1746000,
+    "steps": 64,
+    "costUsd": 14.151,
+    "sourceRunId": "20261122-141749"
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "dsv4-bucket-sync-sol",
+    "file": "agent-trace/dsv4-bucket-sync-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 3012000,
+    "steps": 88,
+    "costUsd": 9.9643,
+    "sourceRunId": "20261122-144732"
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "qwen38-bucket-sync-sol",
+    "file": "agent-trace/qwen38-bucket-sync-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 5238000,
+    "steps": 2,
+    "costUsd": null,
+    "sourceRunId": "20261122-114637"
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "grok47-bucket-sync-sol",
+    "file": "agent-trace/grok47-bucket-sync-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1527000,
+    "steps": 277,
+    "costUsd": null,
+    "sourceRunId": "20261122-131435"
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "dsv41flash-bucket-sync-sol",
+    "file": "agent-trace/dsv41flash-bucket-sync-sol.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2923000,
+    "steps": 260,
+    "costUsd": 30.2007,
+    "sourceRunId": "20261122-134038"
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "gpt6astra-whiten-order",
+    "file": "agent-trace/gpt6astra-whiten-order.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2667,
+    "durationMs": 78000,
+    "steps": 13,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "gpt61sol-whiten-order",
+    "file": "agent-trace/gpt61sol-whiten-order.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2667,
+    "durationMs": 88000,
+    "steps": 15,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "fable51-whiten-order",
+    "file": "agent-trace/fable51-whiten-order.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6333,
+    "durationMs": 697000,
+    "steps": 12,
+    "costUsd": 1.5059
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "glm53-whiten-order",
+    "file": "agent-trace/glm53-whiten-order.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3333,
+    "durationMs": 989000,
+    "steps": 64,
+    "costUsd": 11.189
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "kimi-whiten-order",
+    "file": "agent-trace/kimi-whiten-order.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3333,
+    "durationMs": 216000,
+    "steps": 29,
+    "costUsd": 0.861
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "kimi31-whiten-order",
+    "file": "agent-trace/kimi31-whiten-order.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6333,
+    "durationMs": 1212000,
+    "steps": 41,
+    "costUsd": 11.8289
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "dsv4-whiten-order",
+    "file": "agent-trace/dsv4-whiten-order.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3333,
+    "durationMs": 1133000,
+    "steps": 55,
+    "costUsd": 3.2429
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "qwen38-whiten-order",
+    "file": "agent-trace/qwen38-whiten-order.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3333,
+    "durationMs": 1315000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "grok47-whiten-order",
+    "file": "agent-trace/grok47-whiten-order.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3333,
+    "durationMs": 905000,
+    "steps": 141,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "dsv41flash-whiten-order",
+    "file": "agent-trace/dsv41flash-whiten-order.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.625,
+    "durationMs": 898000,
+    "steps": 69,
+    "costUsd": 6.0004
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "gpt6astra-whiten-order-sol",
+    "file": "agent-trace/gpt6astra-whiten-order-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 76000,
+    "steps": 12,
+    "costUsd": null,
+    "sourceRunId": "20261122-114402"
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "gpt61sol-whiten-order-sol",
+    "file": "agent-trace/gpt61sol-whiten-order-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 106000,
+    "steps": 15,
+    "costUsd": null,
+    "sourceRunId": "20261122-114013"
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "fable51-whiten-order-sol",
+    "file": "agent-trace/fable51-whiten-order-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 445000,
+    "steps": 15,
+    "costUsd": 2.7436,
+    "sourceRunId": "20261122-123826"
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "glm53-whiten-order-sol",
+    "file": "agent-trace/glm53-whiten-order-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 3377000,
+    "steps": 231,
+    "costUsd": 50.2753,
+    "sourceRunId": "20261122-114013"
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "kimi-whiten-order-sol",
+    "file": "agent-trace/kimi-whiten-order-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2704000,
+    "steps": 76,
+    "costUsd": 2.8748,
+    "sourceRunId": "20261122-124624"
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "kimi31-whiten-order-sol",
+    "file": "agent-trace/kimi31-whiten-order-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1044000,
+    "steps": 49,
+    "costUsd": 3.7236,
+    "sourceRunId": "20261122-133159"
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "dsv4-whiten-order-sol",
+    "file": "agent-trace/dsv4-whiten-order-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 2836000,
+    "steps": 80,
+    "costUsd": 10.652,
+    "sourceRunId": "20261122-134957"
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "qwen38-whiten-order-sol",
+    "file": "agent-trace/qwen38-whiten-order-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1019000,
+    "steps": 2,
+    "costUsd": null,
+    "sourceRunId": "20261122-114548"
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "grok47-whiten-order-sol",
+    "file": "agent-trace/grok47-whiten-order-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 431000,
+    "steps": 98,
+    "costUsd": null,
+    "sourceRunId": "20261122-120319"
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "dsv41flash-whiten-order-sol",
+    "file": "agent-trace/dsv41flash-whiten-order-sol.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1882000,
+    "steps": 178,
+    "costUsd": 15.1076,
+    "sourceRunId": "20261122-121108"
   }
 ];
-window.AUTORLBENCH_TRACE_TASKS = [];
