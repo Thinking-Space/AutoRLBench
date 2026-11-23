@@ -33,7 +33,14 @@ const TEAM = [
     { name: 'Jialin Ren', handle: 'BugSmith', affiliation: 'Tsinghua University'},
     { name: 'Shulin Tian', handle: 'shulin16', affiliation: 'Nanyang Technological University'},
     { name: 'Haoxuan Pan', handle: 'merak0514', affiliation: 'Tsinghua University'},
-    { name: 'Qingfeng He', handle: 'heqf21', affiliation: 'Tsinghua University'}
+    { name: 'Qingfeng He', handle: 'heqf21', affiliation: 'Tsinghua University'},
+    { name: 'Yong Yan', handle: 'RADLEWIS', affiliation: 'Tsinghua University'},
+    { name: 'Bo Chen', handle: 'bochencs', affiliation: 'University of Hong Kong'},
+    { name: 'Yaolun Zhang', handle: 'Mercury7353', affiliation: 'Oregon State University'},
+    { name: 'Pengcheng Huang', handle: 'passionate11', affiliation: 'Northeastern University'},
+    { name: 'anbingxu', handle: 'Alstratic', affiliation: 'University of Chinese Academy of Sciences'},
+    { name: 'Sikuan Yan', handle: 'yansikuan', affiliation: 'LMU Munich'},
+    { name: 'pkulium', handle: 'pkulium', affiliation: 'Iowa State University'}
 ];
 
 /* The institution wall below the team grid is derived from the affiliations
@@ -78,5 +85,11 @@ const INSTITUTION_LOGOS = {
     'Southwest Jiaotong University': 11,
     'Shanghai Jiao Tong University': 12,
     'Shanghai Innovation Institute': 13,
-    'University of Illinois Urbana-Champaign': 14
+    'University of Illinois Urbana-Champaign': 14,
+    'University of Hong Kong': 15,
+    'Oregon State University': 16,
+    'Northeastern University': 17,
+    'University of Chinese Academy of Sciences': 18,
+    'LMU Munich': 19,
+    'Iowa State University': 20
 };
