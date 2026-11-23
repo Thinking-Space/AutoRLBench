@@ -68,10 +68,14 @@ models use `--agent claude-code`; GPT-family uses `--agent codex`; Qwen uses
 container and takes credentials from the harbor process env / `.env`. Always request the
 highest reasoning tier: `--agent-kwarg reasoning_effort=max`.
 
-**Task scope**: 32 tasks in 6 domains under `tasks/`, 23 of which carry
+**Task scope**: 50 tasks in 6 domains under `tasks/`, 21 of which carry
 `evaluations/solution/` (full list in reference.md, appendix A). `task_root` accepts a
 single task directory, a domain directory (`tasks/reward`), or several paths at once;
-`tasks/` itself does not work (its direct children are domains, not tasks).
+`tasks/` itself does not work (its direct children are domains, not tasks). **When the
+user asks for an evaluation without naming a task, the default is the whole benchmark**:
+pass all six domain directories in one command
+(`tasks/configuration tasks/reward tasks/data tasks/environment tasks/algorithm
+tasks/infrastructure`), which expands to every task.
 
 **Start small**: before a full sweep, run one light task once (e.g.
 `tasks/configuration/trl_gsm8k_eos_mismatch`) to confirm the agent works and keys are
@@ -204,15 +208,15 @@ that "pass" by pulling upstream sources are invalid; flag them in the aggregate.
 
 ## 4. Batch sweeps and aggregation
 
-One model's round = 1 trial on each of the 32 issue tasks + each of the 23 solution tasks.
+One model's round = 1 trial on every issue task + every task that carries `evaluations/solution/`.
 Ready-made scripts (copy to the repo root or run directly as
 `bash skills/harbor-evaluate/examples/...`):
 
 ```bash
-# issue level: all 32 tasks
+# issue level: all tasks under tasks/ (no explicit list → the script discovers every task)
 bash skills/harbor-evaluate/examples/run-issue.sh claude-code <model-id> [judge-model]
 
-# solution level: all 23 tasks that have solutions
+# solution level: all tasks that have solutions (auto-discovered the same way)
 bash skills/harbor-evaluate/examples/run-solution.sh claude-code <model-id>
 
 # aggregate: scan outputs/harbor-evaluate, print per-task score/validity + totals

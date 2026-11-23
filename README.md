@@ -18,8 +18,7 @@ A benchmark and open call for valuable, reproducible RL runs. Each task is a rea
 
 ## 🚀 News 
 
-- **17 Nov 2026** — We’ve just updated the AutoRLBench [blog](https://thinking-space.github.io/AutoRLBench/blog.html) with what we learned from evaluating agents on real RL training failures..
-- **6 Nov 2026** — We release the second version of the task list: 32 tasks, 24 of which support solution-level evaluation.
+- **17 Nov 2026** — We’ve just updated the AutoRLBench [blog](https://thinking-space.github.io/AutoRLBench/blog.html) with what we learned from evaluating agents on real RL training failures.
 - **2 Nov 2026** — We release the first version of the task list: 18 tasks, 13 of which support solution-level evaluation.
 - **24 Oct 2026** — Call for contributions officially open, and Kimi-K3.1-Pro added to the leaderboard.
 - **19 Oct 2026** — GitHub repo and website released.
@@ -147,6 +146,16 @@ tasks/<domain>/<task_id>/
 ```
 
 ## Quick start
+
+The fastest way to run an evaluation is to hand it to an AI agent. Clone this repo, open your agent in it, and paste this one line:
+
+```text
+Read skills/harbor-evaluate/SKILL.md and follow it to evaluate <model> with agent <agent> on <task-root> at the issue level — e.g. tasks/reward/trl_gsm8k_threaded_reward_order with agent codex.
+```
+
+The agent picks up the [harbor-evaluate skill](skills/harbor-evaluate/SKILL.md) and runs the whole flow for you: environment and credential setup, launching and monitoring the trial, validity checks on each `report.json`, and score aggregation. Swap `issue` for `solution` to evaluate repairs instead.
+
+To drive the harness yourself:
 
 ```bash
 # Validate a task

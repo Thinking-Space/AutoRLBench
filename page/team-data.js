@@ -13,6 +13,7 @@ const TEAM = [
     { name: 'Yuan Gao', handle: 'Zaogezi', affiliation: 'Tsinghua University' },
     { name: 'Lifan Yuan', handle: 'lifan-yuan', affiliation: 'University of Illinois Urbana-Champaign' },
     { name: 'Cheng Qian', handle: 'qiancheng-apodex', affiliation: 'University of Illinois Urbana-Champaign' },
+    { name: 'Hao Peng', handle: 'h-peng17', affiliation: 'Tsinghua University' },
     { name: 'Zixuan Fu', handle: 'Zixuan-Fu', affiliation: 'Tsinghua University' },
     { name: 'Yaxuan Li', handle: 'YaxuanLi-cn', affiliation: 'Tsinghua University' },
     { name: 'Zixi Chen', handle: 'Jccc1025', affiliation: 'Tsinghua University' },
@@ -38,9 +39,8 @@ const TEAM = [
     { name: 'Bo Chen', handle: 'bochencs', affiliation: 'University of Hong Kong'},
     { name: 'Yaolun Zhang', handle: 'Mercury7353', affiliation: 'Oregon State University'},
     { name: 'Pengcheng Huang', handle: 'passionate11', affiliation: 'Northeastern University'},
-    { name: 'anbingxu', handle: 'Alstratic', affiliation: 'University of Chinese Academy of Sciences'},
-    { name: 'Sikuan Yan', handle: 'yansikuan', affiliation: 'LMU Munich'},
-    { name: 'pkulium', handle: 'pkulium', affiliation: 'Iowa State University'}
+    { name: 'Bingxu An', handle: 'Alstratic', affiliation: 'University of Chinese Academy of Sciences'},
+    { name: 'Sikuan Yan', handle: 'yansikuan', affiliation: 'LMU Munich'}
 ];
 
 /* The institution wall below the team grid is derived from the affiliations

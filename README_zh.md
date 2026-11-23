@@ -18,7 +18,7 @@
 <p align="center"><img src="assets/ai-trains-ai.jpeg" alt="AI Trains AI" width="480"></p>
 
 ## 🚀 新闻
-- **2026 年 11 月 6 日** — 公开第二版任务列表：共 32 个任务，其中 24 个支持 solution 级评测。
+- **2026 年 11 月 17 日** — 更新 AutoRLBench [博客](https://thinking-space.github.io/AutoRLBench/blog.html)，分享我们在真实 RL 训练失败上评测 agent 的发现。
 - **2026 年 11 月 2 日** — 公开第一版任务列表：共 18 个任务，其中 13 个支持 solution 级评测。
 - **2026 年 10 月 24 日** — 正式开始征集贡献（call for contributions），并在 leaderboard 中加入 Kimi-K3.1-Pro 评测结果。
 - **2026 年 10 月 19 日** — 发布 GitHub 仓库与网站。
@@ -147,6 +147,16 @@ tasks/<domain>/<task_id>/
 ```
 
 ## 快速开始
+
+最快的评测方式是直接交给 AI agent：克隆本仓库、在仓库里打开你的 agent，粘贴下面这一行即可：
+
+```text
+Read skills/harbor-evaluate/SKILL.md and follow it to evaluate <model> with agent <agent> on <task-root> at the issue level — e.g. tasks/reward/trl_gsm8k_threaded_reward_order with agent codex.
+```
+
+agent 会加载 [harbor-evaluate skill](skills/harbor-evaluate/SKILL.md) 并跑完全程：环境与凭证准备、评测的启动与监控、逐份 `report.json` 的有效性检查、分数聚合。把 `issue` 换成 `solution` 即可评测修复级。
+
+自己驱动评测框架：
 
 ```bash
 # 校验一个任务

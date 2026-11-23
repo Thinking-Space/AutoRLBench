@@ -149,14 +149,17 @@ graded). Details in the task's
 | want to verify the task environment itself is healthy | — | `python3 -m autorlbench rerun <task>` (maintainer-side self-check, unrelated to model evaluation; use it when triaging environment problems) |
 | the agent is completely idle | keys/gateway | check `.env`; `logs/agent/<agent>.txt` usually shows 401/timeout traces |
 
-## 7. Appendix A: task inventory (35 tasks; ✓ = has evaluations/solution)
+## 7. Appendix A: task inventory (50 tasks; ✓ = has evaluations/solution)
 
 | Domain | Task | sol |
 | --- | --- | :-: |
 | algorithm | areal_kpop_binary_kl_fp32_nan_mask |  |
+| algorithm | slime_excluded_rollout_grpo |  |
 | algorithm | trl_dapo_accumulation_normalization | ✓ |
 | algorithm | trl_granite_gsm8k_grpo |  |
 | algorithm | verl_grpo_advantage_broadcast | ✓ |
+| algorithm | verl_grpo_grouped_whiten_order | ✓ |
+| algorithm | verl_old_log_prob_from_reference |  |
 | algorithm | verl_policy_loss_padded_mask_only |  |
 | algorithm | verl_policy_loss_padded_unmasked |  |
 | algorithm | verl_reinforcepp_observation_credit |  |
@@ -166,27 +169,39 @@ graded). Details in the task's
 | configuration | verl_grpo_adamw_eps_too_large | ✓ |
 | configuration | verl_grpo_ppo_mini_batch_too_small | ✓ |
 | configuration | verl_grpo_rollout_top_p_off_policy | ✓ |
+| configuration | verl_vllm011_fp8_kv_scale_sleep |  |
+| data | query_pool_gate_divergence | ✓ |
 | data | qwen25_gsm8k_grpo |  |
+| data | r1v_clevr_count_range_mismatch |  |
 | data | verl_taco_difficulty_mismatch |  |
 | data | verl_taco_wrong_expected_output | ✓ |
 | environment | miles_miniswe_format_error_retry_fanout |  |
 | environment | sandbox_admission_starvation | ✓ |
 | environment | swe_grader_silent_mislabel | ✓ |
+| infrastructure | cc_native_websearch_self_hosted |  |
 | infrastructure | miles_async_rollout_inflight_not_evicted |  |
+| infrastructure | miles_cp_collective_desync_deadlock |  |
+| infrastructure | padding-attention-mask |  |
 | infrastructure | qwen3vl_geo3k | ✓ |
 | infrastructure | slime_dapo_lookahead_boundary_abort |  |
+| infrastructure | tokenizer-vocab-support |  |
 | infrastructure | trl_tool_history_cross_contamination |  |
 | infrastructure | verl_agent_loop_response_position_restart | ✓ |
 | infrastructure | verl_checkpoint_host_memory_oom |  |
 | infrastructure | verl_fsdp_bf16_master_weights | ✓ |
+| infrastructure | verl_fsdp_bucketed_weight_sync | ✓ |
 | infrastructure | verl_fsdp_microbatch_grad_reset |  |
 | infrastructure | verl_lora_merge_base_weight_sync | ✓ |
 | infrastructure | verl_moe_token_normalization | ✓ |
 | infrastructure | verl_pissa_vllm_adapter_request | ✓ |
+| infrastructure | verl_quantized_rollout_restart |  |
 | reward | idea_awm_reward_diagnosis | ✓ |
+| reward | miles_judge_thinking_strip_failure |  |
 | reward | slime_judge_router_admission_starvation |  |
 | reward | slime_retool_length_reward_bonus | ✓ |
 | reward | slime_search_r1_nomask | ✓ |
+| reward | trl_gsm8k_threaded_reward_order |  |
+| reward | verl_inventory_agent_compound |  |
 | reward | verl_math_verify_thread_zero_reward |  |
 
 Trust `ls tasks/<domain>/` over this table (update it when tasks are added/removed).
