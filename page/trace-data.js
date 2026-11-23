@@ -1020,6 +1020,23 @@
  * unchanged workspaces and sixteen replayed repairs that grade 0 --
  * again both defects must be fixed. The published issue-judgment
  * total below moves 515 -> 525 and the solution-run total 216 -> 226.
+ * The ten trl_gsm8k_threaded_reward_order issue records were
+ * published on 23 Nov 2026 from the local cybertron-evaluate sweep
+ * (ten models; no Gemini run; the task ships issue-only). The task
+ * pins a race in the vendored TRL's local reward_num_workers path:
+ * reward functions run on batch slices in a thread pool and the
+ * slices are concatenated with concurrent.futures.as_completed, so
+ * scores come back in finish order and the trainer attaches them to
+ * the wrong completions -- reward decays 0.066 to 0.001 while
+ * held-out accuracy falls 0.017 to 0.000 against a 0.75 control.
+ * Four passes, the first since the query-pool round: Qwen3.8-Max,
+ * Kimi-K3.1-Pro, DeepSeek-V4.1-Flash and Claude-Fable-5.1 all score
+ * 1.0; GLM-5.3 (0.95) and Grok-4.7 (0.943) hold the full root
+ * cause but fall at the evidence gate; the other four return the
+ * correct verdict with zero root-cause credit. The ten trajectories
+ * were rebuilt per agent type (the codex ones at per-item
+ * granularity) and audited clean of network access. The published
+ * issue-judgment total below moves 525 -> 535.
  * The 206 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -12469,5 +12486,145 @@ window.AUTORLBENCH_RUNS = [
     "steps": 178,
     "costUsd": 15.1076,
     "sourceRunId": "20261122-121108"
+  },
+  {
+    "task": "reward/trl_gsm8k_threaded_reward_order",
+    "slug": "gpt6astra-reward-order",
+    "file": "agent-trace/gpt6astra-reward-order.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.26,
+    "durationMs": 74000,
+    "steps": 12,
+    "costUsd": null
+  },
+  {
+    "task": "reward/trl_gsm8k_threaded_reward_order",
+    "slug": "gpt61sol-reward-order",
+    "file": "agent-trace/gpt61sol-reward-order.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 97000,
+    "steps": 14,
+    "costUsd": null
+  },
+  {
+    "task": "reward/trl_gsm8k_threaded_reward_order",
+    "slug": "fable51-reward-order",
+    "file": "agent-trace/fable51-reward-order.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 396000,
+    "steps": 11,
+    "costUsd": 1.0867
+  },
+  {
+    "task": "reward/trl_gsm8k_threaded_reward_order",
+    "slug": "glm53-reward-order",
+    "file": "agent-trace/glm53-reward-order.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.95,
+    "durationMs": 423000,
+    "steps": 30,
+    "costUsd": 3.6021
+  },
+  {
+    "task": "reward/trl_gsm8k_threaded_reward_order",
+    "slug": "kimi-reward-order",
+    "file": "agent-trace/kimi-reward-order.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3333,
+    "durationMs": 846000,
+    "steps": 63,
+    "costUsd": 1.7772
+  },
+  {
+    "task": "reward/trl_gsm8k_threaded_reward_order",
+    "slug": "kimi31-reward-order",
+    "file": "agent-trace/kimi31-reward-order.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 738000,
+    "steps": 22,
+    "costUsd": 3.2756
+  },
+  {
+    "task": "reward/trl_gsm8k_threaded_reward_order",
+    "slug": "dsv4-reward-order",
+    "file": "agent-trace/dsv4-reward-order.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2667,
+    "durationMs": 1841000,
+    "steps": 26,
+    "costUsd": 4.6571
+  },
+  {
+    "task": "reward/trl_gsm8k_threaded_reward_order",
+    "slug": "qwen38-reward-order",
+    "file": "agent-trace/qwen38-reward-order.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1157000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "reward/trl_gsm8k_threaded_reward_order",
+    "slug": "grok47-reward-order",
+    "file": "agent-trace/grok47-reward-order.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9429,
+    "durationMs": 330000,
+    "steps": 73,
+    "costUsd": null
+  },
+  {
+    "task": "reward/trl_gsm8k_threaded_reward_order",
+    "slug": "dsv41flash-reward-order",
+    "file": "agent-trace/dsv41flash-reward-order.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 649000,
+    "steps": 51,
+    "costUsd": 4.7541
   }
 ];

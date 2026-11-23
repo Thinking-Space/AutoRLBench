@@ -1011,5 +1011,27 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "grouped_whiten gathers standardized advantages in the forward sort order so trajectories receive each other's advantages, and kl_penalty routes low_var_kl into a straight-through branch that squares the sequence-summed log-ratio -- forward loss looks clean while backward gradients swamp the update.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, grouped_whiten indexes standardized advantages with the forward sort order instead of inverting it, and kl_penalty routes low_var_kl into a straight-through branch that squares the sequence-summed log-ratio. Forward actor/kl_loss looks small and clean, but backward KL gradients overwhelm policy updates and hold step-50 accuracy at 0.4610 against 0.5588."
+  },
+  {
+    "id": "reward/trl_gsm8k_threaded_reward_order",
+    "title": "Threaded reward calls return scores in finish order",
+    "family": "Reward",
+    "tags": [
+      "trl",
+      "grpo",
+      "gsm8k",
+      "reward-misalignment",
+      "concurrency",
+      "vendored-framework",
+      "issue-only"
+    ],
+    "model": "Qwen2.5-1.5B-Instruct",
+    "dataset": "GSM8K (train for RL, test for held-out evaluation)",
+    "framework": "TRL GRPO with vLLM generation",
+    "image": "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12",
+    "created": "2026-11-21",
+    "license": "Apache-2.0",
+    "brief": "The vendored TRL's reward_num_workers path concatenates thread-pool slices with as_completed, so scores come back in finish order and the trainer attaches them to the wrong completions.",
+    "issue": "Qwen2.5-1.5B-Instruct is trained with TRL GRPO on GSM8K, and the answer checker for each completion runs in its own child process. The workspace's vendored TRL has a local reward_num_workers option that calls the reward function on slices of the batch from a thread pool. It concatenates the slices with concurrent.futures.as_completed, so the scores come back in the order the threads finish and the trainer attaches them to the wrong completions -- reward decays 0.066 to 0.001 while held-out accuracy falls 0.017 to 0.000 against a 0.75 control."
   }
 ];
