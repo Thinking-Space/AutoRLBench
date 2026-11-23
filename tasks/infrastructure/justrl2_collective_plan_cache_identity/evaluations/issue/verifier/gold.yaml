@@ -5,8 +5,8 @@ verdict: unhealthy
 root_cause:
   - miles/utils/collective_plan.py::_signature omits communicator group identity from its _plans cache key, causing ranks where dp_rank == cp_rank (ranks 0 and 3 under CP=2 x DP=2) to reuse the cached dp_group 'small' plan during cp_group compute_ess_ratio_contribution while off-diagonal ranks 1 and 2 call cp_group
 evidence_metrics:
-  - step-0 eval completes at 0.10352 (seed 43: 0.10449) and critic warmup steps 0-2 pass cleanly (critic-value_loss 0.1221 -> 0.1483 -> 0.0917)
-  - on step 3 (first actor update after num_critic_only_steps=3), Watchdog catches ALLREDUCE NumelIn=8 deadlock with rank 0 in DATA_PARALLEL_GROUP (SeqNum=2) and ranks 1,2 in CONTEXT_PARALLEL_GROUP (SeqNum=3), zero actor updates completed vs 0.44531 / 0.41504 in fixed controls
+  - workspace/results/ppo_countdown/metrics.jsonl shows step-0 eval completes at 0.10352 (1,024 rows) and critic warmup steps 0-3 pass cleanly (train/critic-value_loss 0.122093 -> 0.148268 -> 0.091744 -> 0.077107)
+  - workspace/results/ppo_countdown/train.log shows on step 3 (first actor update after num_critic_only_steps=3), Watchdog catches ALLREDUCE NumelIn=8 deadlock with rank 0 in DATA_PARALLEL_GROUP (SeqNum=2) and ranks 1,2 in CONTEXT_PARALLEL_GROUP (SeqNum=3), aborting via ActorDiedError with 0 actor updates and no val_generations/29.jsonl
 fix:
   must:
     - include group in the tuple returned by miles/utils/collective_plan.py::_signature(tensor, group) so dp_group and cp_group never share cached reduction plans

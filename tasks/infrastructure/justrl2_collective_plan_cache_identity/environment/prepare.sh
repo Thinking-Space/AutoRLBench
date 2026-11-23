@@ -100,10 +100,17 @@ if [ ! -f "$MEGATRON_MODEL/latest_checkpointed_iteration.txt" ]; then
         (
             cd "$W"
             source justrl2/model_args/minicpm5-2b.sh
+            HF_TRUST_REMOTE_CODE=1 \
+            CUDA_DEVICE_MAX_CONNECTIONS=1 \
+            NVTE_FUSED_ATTN=1 \
+            NVTE_FLASH_ATTN=0 \
+            NVTE_UNFUSED_ATTN=0 \
             WORLD_SIZE=1 RANK=0 LOCAL_RANK=0 MASTER_ADDR=127.0.0.1 MASTER_PORT=29365 \
             PYTHONPATH="$W:/root/Megatron-LM:/sgl-workspace/sglang/python${PYTHONPATH:+:$PYTHONPATH}" \
                 python3 tools/convert_hf_to_torch_dist.py \
                     "${MODEL_ARGS[@]}" \
+                    --attention-backend fused \
+                    --no-gradient-accumulation-fusion \
                     --hf-checkpoint "$HF_MODEL" \
                     --save "$MEGATRON_MODEL"
         )

@@ -893,14 +893,12 @@ def compute_advantages_and_returns(args: Namespace, rollout_data: RolloutBatch) 
         ), f"Shape mismatch before whitening: advantages {all_advs.size()}, masks {all_masks.size()}"
         dp_group = parallel_state.intra_dp.group
 
-        pass
         whitened_advs_flat = distributed_masked_whiten(
             all_advs,
             all_masks,
             process_group=dp_group,
             shift_mean=True,
         )
-        pass
         chunk_lengths = [chunk.size(0) for chunk in advantages]
         advantages = list(torch.split(whitened_advs_flat, chunk_lengths))
 
@@ -1346,8 +1344,7 @@ def policy_loss_function(
                 reported_loss["logdiff_min"] = sorted_diff[0]
                 reported_loss["logdiff_max"] = sorted_diff[-1]
 
-            # Per-sample token-level max: unconditional across CP ranks so empty local CP shards
-            # never skip the CP MAX all_reduce.
+            # Per-sample token-level max across active mask tokens.
             ref_list = batch["rollout_log_probs"]
             offset = 0
             per_sample_max_list = []
