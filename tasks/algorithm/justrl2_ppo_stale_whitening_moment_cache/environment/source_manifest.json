@@ -1,0 +1,38 @@
+{
+  "staged_defects": {
+    "upstream": "openbmb/JustRL-II",
+    "commit": "75814318f243af7e39af337c1173fc3927c9635b",
+    "declaration": "This defect is staged for this benchmark task against pinned JustRL-II @ 75814318, not an unpatched upstream bug. Upstream at this commit computes local moments directly inside miles/utils/distributed_utils.py::distributed_masked_whiten without MomentReducer; evaluations/solution/oracle/fix.diff removes the cached _origins buffer from miles/utils/moments.py::MomentReducer and allocates a fresh zero origin tensor per call.",
+    "sites": [
+      "workspace/miles/utils/moments.py",
+      "workspace/miles/utils/distributed_utils.py",
+      "workspace/miles/backends/training_utils/loss.py"
+    ],
+    "environment_compatibility_changes": [
+      "miles/utils/arguments.py (SGLang 0.5.20 CLI alias shim and disable_prefill_cuda_graph default)",
+      "miles/utils/process_group_compat.py and miles/backends/megatron_utils/actor.py (ReloadableProcessGroup unwrap forwarder and Megatron collective bindings for PyTorch 2.13)",
+      "miles/backends/sglang_utils/sglang_engine.py, miles/backends/megatron_utils/update_weight/update_weight_from_distributed/mixin.py, and update_weight_from_tensor.py (begin_weight_update / end_weight_update protocol for SGLang 0.5.20.dev59)",
+      "miles/utils/tracking_utils/__init__.py and miles/ray/rollout.py (MILES_METRICS_FILE and MILES_EVAL_DUMP_DIR JSONL hooks)",
+      "miles/backends/training_utils/loss.py (strip leftover [adv-diag] debug logs, guard empty local CP shard in logdiff metrics, and use per-prompt-group DP whitening across microbatches)",
+      "run_justrl2_ppo.sh, data_prep/countdown.py, and reward/countdown_reward.py (single-node 8-GPU CP2xDP2 Countdown PPO harness)",
+      "workspace/.gitignore (anchor /models/, /datasets/, /runs/ so miles_plugins/models/ and fsdp_utils/models/ are tracked)"
+    ],
+    "dropped": []
+  },
+  "rewrites_applied_to_frozen_evidence": [
+    {
+      "file": "workspace/results/ppo_countdown/train.log",
+      "sha256_before": "4d3d529763a49c149c1aa3df7f6600d72e999b31f1456f8b022ec6464bf5d129",
+      "sha256_after": "30e220583b905e6ba58e07644a81a0b4bd00aaff7a268041035239fce842f9b1",
+      "metric_values_changed": false,
+      "replacements": [
+        "runner workspace path -> /workspace",
+        "runner output path -> /workspace/results/ppo_countdown",
+        "staged model paths -> /workspace/models/JustRL-II-base-model*",
+        "staged dataset path -> /workspace/data/countdown",
+        "internal pod IP -> 127.0.0.1"
+      ]
+    }
+  ],
+  "thinning": "Omitted TensorBoard binary event files; retained full metrics.jsonl (steps 0..29), sanitized train.log, and val_generations/{0,9,19,29}.jsonl (1,024 held-out rows each)."
+}

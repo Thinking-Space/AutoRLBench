@@ -1,0 +1,33 @@
+title = "Stale whitening moment cache corrupts PPO advantages on empty context-parallel shards"
+license = "Apache-2.0"
+created_date = "2026-11-23"
+domain = "algorithm"
+tags = ["context-parallel", "advantage-whitening", "stale-state-cache", "silent-divergence", "ppo"]
+
+[submitter]
+name = "Pan Haoxuan"
+affiliation = "ModelBest"
+
+[model]
+name = "openbmb/JustRL-II-base-model"
+
+[dataset]
+name = "Countdown (Jiayi-Pan/Countdown-Tasks-3to4): 8,192 train / 1,024 disjoint test"
+
+[training]
+framework = "miles"
+algo = "ppo"
+script = "run_justrl2_ppo.sh"
+
+[environment]
+image = "ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b"
+image_stack = "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12"
+gpus = 8
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "implementation_bug"
+failure_reason = "miles/utils/moments.py::MomentReducer caches a mutable zero origin tensor per (device, float32) and returns it from functools.reduce on empty local ZigZag CP=2 shards; in-place dist.all_reduce inside distributed_masked_whiten mutates and compounds that cached buffer across reductions without crashing or raising NaNs, blowing up pg_loss/grad_norm and pulling step-29 Countdown accuracy down to 0.2129 / 0.0342 against the 0.4170 / 0.3447 control runs."

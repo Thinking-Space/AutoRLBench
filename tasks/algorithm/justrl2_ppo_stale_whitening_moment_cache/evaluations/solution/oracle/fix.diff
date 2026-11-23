@@ -1,0 +1,18 @@
+--- a/miles/utils/moments.py
++++ b/miles/utils/moments.py
+@@ -10,14 +10,9 @@
+ 
+     def __init__(self, width: int = 4096):
+         self.width = width
+-        self._origins: dict[tuple[torch.device, torch.dtype], torch.Tensor] = {}
+ 
+     def __call__(self, values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+-        key = (values.device, torch.float32)
+-        origin = self._origins.get(key)
+-        if origin is None:
+-            origin = torch.zeros(2, device=values.device, dtype=torch.float32)
+-            self._origins[key] = origin
++        origin = torch.zeros(2, device=values.device, dtype=torch.float32)
+         blocks = (
+             torch.stack(((x * m).sum(), (x.square() * m).sum())).float()
+             for start in range(0, values.numel(), self.width)
