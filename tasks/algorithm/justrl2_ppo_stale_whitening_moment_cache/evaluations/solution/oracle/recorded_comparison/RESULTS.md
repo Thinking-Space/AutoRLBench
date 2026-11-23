@@ -26,8 +26,11 @@ Selected seed-42 defective trajectory in `metrics.jsonl`:
 - Step 14–15: `train/grad_norm` peaks at `9669.23` (step 14); step 15 `pg_loss = -2947.4529`, `grad_norm = 8364.32`.
 - Step 24–29: `train/pg_loss` reaches `-3070.9916` (step 24) and ends at `-345.7063` (step 29), while `train/critic-value_loss` stays `0.0187–0.1417`, `train/ess_ratio = 1.0`, `train/ppo_kl = 0.0`, `train/pg_clipfrac = 0.0`, and `train/train_rollout_kl = 0.001113`.
 
-Offline `grade_submission.py` replay inside the digest-pinned container at `required_final_score = 0.28`:
+Hardened `grade_submission.py` replay inside the digest-pinned container (`stage_integrity=true` with `pyarrow`) at `required_final_score = 0.28`:
 - `defective_seed42`: `passed=false, score=0.0, final_score=0.212890625` (`-0.0671` below `0.28`)
 - `defective_seed43`: `passed=false, score=0.0, final_score=0.0341796875` (`-0.2458` below `0.28`)
 - `control_seed42`: `passed=true, score=1.0, final_score=0.4169921875` (`+0.1370` margin above `0.28`; `+0.3174` above control step 0)
 - `control_seed43`: `passed=true, score=1.0, final_score=0.3447265625` (`+0.0647` margin above `0.28`; `+0.2471` above control step 0)
+
+Cold end-to-end `8 × H100` verification (`CUDA_VISIBLE_DEVICES="" environment/prepare.sh` from SHA-verified HF cache -> `fix.diff` -> first-time GPU `convert_hf_to_torch_dist.py --attention-backend fused --no-gradient-accumulation-fusion` -> 30-step PPO -> `verifier/test.sh`):
+- `control_seed42_e2e_cold` (job `1799778`): `passed=true, score=1.0, final_score=0.416015625` (`426/1024`), `stage_integrity=true`, `dump_problems=[]`.

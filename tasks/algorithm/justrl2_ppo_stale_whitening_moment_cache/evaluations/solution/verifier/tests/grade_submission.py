@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import argparse
 import ast
+from collections import Counter
+from decimal import Decimal
+from fractions import Fraction
 import hashlib
 import json
 import os
+from pathlib import Path
 import re
 import sys
-from decimal import Decimal
-from fractions import Fraction
-from pathlib import Path
 from typing import Any
 
 MAX_FILE_BYTES = 512 * 1024 * 1024
@@ -101,15 +102,31 @@ def _eval_ast(node: ast.AST, used: list[int]) -> Fraction:
     raise ValueError("disallowed ast node")
 
 
-def countdown_correct(response: str, gt: Any) -> bool:
-    if not isinstance(response, str) or gt is None:
-        return False
+def _parse_countdown_gt(gt: Any) -> tuple[tuple[int, ...], int] | None:
+    if gt is None:
+        return None
     try:
         parsed_gt = json.loads(gt) if isinstance(gt, str) else gt
-    except json.JSONDecodeError:
-        return False
+    except (TypeError, json.JSONDecodeError):
+        return None
     if not isinstance(parsed_gt, dict) or "numbers" not in parsed_gt or "target" not in parsed_gt:
+        return None
+    raw_nums = parsed_gt["numbers"]
+    raw_target = parsed_gt["target"]
+    if not isinstance(raw_nums, list) or not raw_nums or not all(type(x) is int for x in raw_nums):
+        return None
+    if type(raw_target) is not int:
+        return None
+    return tuple(raw_nums), raw_target
+
+
+def countdown_correct(response: str, gt: Any) -> bool:
+    if not isinstance(response, str):
         return False
+    parsed = _parse_countdown_gt(gt)
+    if parsed is None:
+        return False
+    nums, target = parsed
     matches = ANSWER_RE.findall(response)
     if not matches:
         return False
@@ -125,10 +142,9 @@ def countdown_correct(response: str, gt: Any) -> bool:
         val = _eval_ast(tree, used)
     except (SyntaxError, ZeroDivisionError, ValueError, RecursionError):
         return False
-    expected_nums = sorted(int(x) for x in parsed_gt["numbers"])
-    if sorted(used) != expected_nums:
+    if sorted(used) != sorted(nums):
         return False
-    return val == Fraction(int(parsed_gt["target"]))
+    return val == Fraction(target)
 
 
 RULES = {"countdown": countdown_correct}
@@ -160,10 +176,41 @@ def find_dumps(results: Path, roots: list[str], subdir: str, final_step: int) ->
     return sorted(found, key=lambda p: (p.stat().st_mtime_ns, str(p)), reverse=True)
 
 
-def score_dump(path: Path, rule: str = "countdown") -> tuple[int, int, int, list[str]]:
+def _load_trusted_test_keys(spec: dict[str, Any]) -> Counter[tuple[tuple[int, ...], int]] | None:
+    workspace = os.environ.get("AUTORLBENCH_WORKSPACE", "")
+    val_check = spec.get("val_jsonl_consistency")
+    if not workspace or not isinstance(val_check, dict):
+        return None
+    jsonl_path = Path(workspace) / val_check["path"]
+    if not jsonl_path.is_file() or jsonl_path.is_symlink():
+        return Counter()
+    keys: Counter[tuple[tuple[int, ...], int]] = Counter()
+    for line in jsonl_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            return Counter()
+        parsed = _parse_countdown_gt(row.get("label"))
+        if parsed is None:
+            return Counter()
+        keys[parsed] += 1
+    return keys
+
+
+def score_dump(
+    path: Path,
+    *,
+    final_step: int,
+    expected_dataset: str | None = "countdown",
+    trusted_test_keys: Counter[tuple[tuple[int, ...], int]] | None = None,
+    rule: str = "countdown",
+) -> tuple[int, int, int, list[str]]:
     correct_fn = RULES[rule]
     rows = correct = chars = 0
     problems: list[str] = []
+    seen_keys: Counter[tuple[tuple[int, ...], int]] = Counter()
     with path.open("r", encoding="utf-8", errors="replace") as handle:
         for lineno, line in enumerate(handle, 1):
             line = line.strip()
@@ -174,12 +221,38 @@ def score_dump(path: Path, rule: str = "countdown") -> tuple[int, int, int, list
             except json.JSONDecodeError:
                 problems.append(f"line {lineno}: not JSON")
                 continue
-            if not isinstance(row, dict) or "output" not in row or "gts" not in row:
-                problems.append(f"line {lineno}: missing output/gts")
+            if not isinstance(row, dict) or not isinstance(row.get("output"), str) or not isinstance(row.get("input"), str):
+                problems.append(f"line {lineno}: missing string input/output")
                 continue
+            if type(row.get("step")) is not int or row["step"] != final_step:
+                problems.append(f"line {lineno}: expected step={final_step}, got {row.get('step')!r}")
+                continue
+            if expected_dataset and row.get("dataset") != expected_dataset:
+                problems.append(f"line {lineno}: expected dataset={expected_dataset!r}, got {row.get('dataset')!r}")
+                continue
+            parsed_gt = _parse_countdown_gt(row.get("gts"))
+            if parsed_gt is None:
+                problems.append(f"line {lineno}: invalid gts")
+                continue
+            nums, target = parsed_gt
+            prompt_needle = f"Numbers: {list(nums)}\nTarget: {target}\n"
+            if prompt_needle not in row["input"]:
+                problems.append(f"line {lineno}: input prompt does not match gts")
+                continue
+            seen_keys[parsed_gt] += 1
             rows += 1
-            correct += int(correct_fn(row["output"], row["gts"]))
-            chars += len(row["output"]) if isinstance(row["output"], str) else 0
+            gt_obj = {"numbers": list(nums), "target": target}
+            correct += int(correct_fn(row["output"], gt_obj))
+            chars += len(row["output"])
+
+    dup_count = sum(1 for v in seen_keys.values() if v > 1)
+    if dup_count:
+        problems.append(f"duplicate held-out problem keys detected ({dup_count} duplicated problems)")
+    if trusted_test_keys is not None and seen_keys != trusted_test_keys:
+        problems.append(
+            f"dump problem set ({sum(seen_keys.values())} rows, {len(seen_keys)} unique) "
+            f"does not match fixed held-out test split ({sum(trusted_test_keys.values())} rows)"
+        )
     return rows, correct, chars, problems
 
 
@@ -208,7 +281,7 @@ def find_metrics(results: Path, roots: list[str]) -> Path | None:
     return sorted(found, key=lambda p: (p.stat().st_mtime_ns, str(p)), reverse=True)[0] if found else None
 
 
-def training_reality(results: Path, spec: dict[str, Any]) -> tuple[bool, dict[str, Any], str | None]:
+def training_reality(results: Path, spec: dict[str, Any]) -> tuple[bool, dict[str, Any], str | None, float | None]:
     final_step = spec["final_step"]
     expected_steps = spec["expected_train_steps"]
     val_key = spec.get("val_key", "eval/countdown")
@@ -219,12 +292,18 @@ def training_reality(results: Path, spec: dict[str, Any]) -> tuple[bool, dict[st
         "metrics_rows": 0,
         "rollout_steps_continuous": False,
         "actor_steps_logged": 0,
+        "critic_steps_logged": 0,
         "final_eval_logged": False,
     }
     if path is None:
-        return False, details, (
-            f"missing metrics.jsonl under {spec['log_roots']} (the shipped runner sets MILES_METRICS_FILE "
-            f"and logs rollout, training, and evaluation steps; a run without it has no step-{final_step} verification)"
+        return (
+            False,
+            details,
+            (
+                f"missing metrics.jsonl under {spec['log_roots']} (the shipped runner sets MILES_METRICS_FILE "
+                f"and logs rollout, training, and evaluation steps; a run without it has no step-{final_step} verification)"
+            ),
+            None,
         )
     rows: list[dict[str, Any]] = []
     first_problem = None
@@ -238,50 +317,98 @@ def training_reality(results: Path, spec: dict[str, Any]) -> tuple[bool, dict[st
             except json.JSONDecodeError:
                 first_problem = first_problem or f"line {lineno}: not JSON"
                 continue
-            if isinstance(row, dict):
-                rows.append(row)
+            if not isinstance(row, dict):
+                first_problem = first_problem or f"line {lineno}: JSON row must be an object"
+                continue
+            rows.append(row)
     if first_problem:
-        return False, details, f"{path.relative_to(results)}: malformed training log ({first_problem})"
+        return False, details, f"{path.relative_to(results)}: malformed training log ({first_problem})", None
 
     details["metrics_rows"] = len(rows)
-    rollout_steps = sorted(
-        {row["step"] for row in rows if row.get("step_key") == "rollout/step" and isinstance(row.get("step"), int)}
-    )
-    actor_steps = sorted(
-        {
-            row["step"]
-            for row in rows
-            if row.get("step_key") == "train/step"
-            and isinstance(row.get("step"), int)
-            and isinstance(row.get("data"), dict)
-            and "train/pg_loss" in row["data"]
-        }
-    )
-    details["rollout_steps_continuous"] = rollout_steps == list(range(expected_steps))
-    details["actor_steps_logged"] = len(actor_steps)
-    details["final_eval_logged"] = any(
-        row.get("step_key") == "eval/step"
+    rollout_steps_raw = [
+        row["step"]
+        for row in rows
+        if row.get("step_key") == "rollout/step" and type(row.get("step")) is int
+    ]
+    actor_steps_raw = [
+        row["step"]
+        for row in rows
+        if row.get("step_key") == "train/step"
+        and type(row.get("step")) is int
+        and isinstance(row.get("data"), dict)
+        and "train/pg_loss" in row["data"]
+    ]
+    critic_steps_raw = [
+        row["step"]
+        for row in rows
+        if row.get("step_key") == "train/step"
+        and type(row.get("step")) is int
+        and isinstance(row.get("data"), dict)
+        and "train/critic-value_loss" in row["data"]
+    ]
+    eval_rows = [
+        row
+        for row in rows
+        if row.get("step_key") == "eval/step"
         and row.get("step") == final_step
         and isinstance(row.get("data"), dict)
         and val_key in row["data"]
-        for row in rows
+    ]
+    rollout_steps = sorted(set(rollout_steps_raw))
+    actor_steps = sorted(set(actor_steps_raw))
+    critic_steps = sorted(set(critic_steps_raw))
+    expected_rollout_range = list(range(expected_steps))
+    expected_actor_range = list(range(num_critic_only, expected_steps))
+    details["rollout_steps_continuous"] = (
+        rollout_steps == expected_rollout_range and len(rollout_steps_raw) >= expected_steps
     )
-    expected_actor_steps = expected_steps - num_critic_only
+    details["actor_steps_logged"] = len(actor_steps)
+    details["critic_steps_logged"] = len(critic_steps)
+    logged_final_eval: float | None = None
+    if eval_rows:
+        raw_ev = eval_rows[-1]["data"].get(val_key)
+        if isinstance(raw_ev, (int, float)) and not isinstance(raw_ev, bool):
+            logged_final_eval = float(raw_ev)
+    details["final_eval_logged"] = logged_final_eval is not None
+
     if not details["rollout_steps_continuous"]:
-        return False, details, (
-            f"{path.relative_to(results)} does not show a complete run: expected rollout steps "
-            f"0..{expected_steps - 1}, got {len(rollout_steps)} unique steps"
+        return (
+            False,
+            details,
+            (
+                f"{path.relative_to(results)} does not show a complete run: expected rollout steps "
+                f"0..{expected_steps - 1}, got {len(rollout_steps)} unique steps"
+            ),
+            logged_final_eval,
         )
-    if len(actor_steps) < expected_actor_steps:
-        return False, details, (
-            f"{path.relative_to(results)} logged only {len(actor_steps)} actor policy updates "
-            f"(expected >= {expected_actor_steps} with train/pg_loss)"
+    if actor_steps != expected_actor_range:
+        return (
+            False,
+            details,
+            (
+                f"{path.relative_to(results)} logged actor policy updates {actor_steps[:5]}..{actor_steps[-3:] if actor_steps else []} "
+                f"(expected exact steps {num_critic_only}..{expected_steps - 1} with train/pg_loss)"
+            ),
+            logged_final_eval,
+        )
+    if critic_steps != expected_rollout_range:
+        return (
+            False,
+            details,
+            (
+                f"{path.relative_to(results)} logged critic updates {len(critic_steps)} steps "
+                f"(expected exact steps 0..{expected_steps - 1} with train/critic-value_loss)"
+            ),
+            logged_final_eval,
         )
     if not details["final_eval_logged"]:
-        return False, details, (
-            f"{path.relative_to(results)} has no {val_key} row at eval step {final_step}"
+        return (
+            False,
+            details,
+            f"{path.relative_to(results)} has no numeric {val_key} row at eval step {final_step}",
+            logged_final_eval,
         )
-    return True, details, None
+    return True, details, None, logged_final_eval
 
 
 def _countdown_jsonl_consistent(workspace: Path, check: dict[str, Any], *, is_val: bool) -> bool:
@@ -307,7 +434,7 @@ def _countdown_jsonl_consistent(workspace: Path, check: dict[str, Any], *, is_va
         if not isinstance(meta, dict):
             return False
         idx = meta.get("index")
-        if not isinstance(idx, int) or idx in seen or not (0 <= idx < total):
+        if type(idx) is not int or idx in seen or not (0 <= idx < total):
             return False
         seen.add(idx)
         target = int(raw_targets[idx])
@@ -372,6 +499,7 @@ def grade(spec: dict[str, Any], results: Path):
     required_max = Decimal(str(required_max)) if required_max is not None else None
     errors: list[str] = []
     dumps = find_dumps(results, spec["log_roots"], spec["dump_subdir"], final_step)
+    trusted_test_keys = _load_trusted_test_keys(spec)
     judged = None
     source = None
     rows = correct = chars = 0
@@ -384,9 +512,17 @@ def grade(spec: dict[str, Any], results: Path):
         )
     else:
         source = dumps[0]
-        rows, correct, chars, problems = score_dump(source, spec.get("rule", "countdown"))
+        rows, correct, chars, problems = score_dump(
+            source,
+            final_step=final_step,
+            expected_dataset=spec.get("expected_dataset", "countdown"),
+            trusted_test_keys=trusted_test_keys,
+            rule=spec.get("rule", "countdown"),
+        )
         mean_chars = chars / rows if rows else None
-        if rows < spec["min_rows"]:
+        if problems:
+            errors.append(f"{source.relative_to(results)} failed integrity checks: {problems[0]}")
+        elif rows < spec["min_rows"]:
             errors.append(
                 f"{source.relative_to(results)} has {rows} scored rows, fewer than the {spec['min_rows']} required"
             )
@@ -400,9 +536,14 @@ def grade(spec: dict[str, Any], results: Path):
                 errors.append(
                     f"held-out accuracy ({spec.get('rule', 'countdown')} rule) {judged:.4f} at step {final_step} is above the maximum {required_max}"
                 )
-    _, reality_details, reality_error = training_reality(results, spec)
+    _, reality_details, reality_error, logged_final_eval = training_reality(results, spec)
     if reality_error:
         errors.append(reality_error)
+    elif judged is not None and logged_final_eval is not None and abs(logged_final_eval - float(judged)) > 1e-6:
+        errors.append(
+            f"final {spec.get('val_key', 'eval/countdown')} in metrics.jsonl ({logged_final_eval:.6f}) "
+            f"does not match rescored {spec['dump_subdir']}/{final_step}.jsonl ({float(judged):.6f})"
+        )
     integrity_ok, integrity_details = stage_integrity(spec)
     if integrity_ok is False:
         errors.append(

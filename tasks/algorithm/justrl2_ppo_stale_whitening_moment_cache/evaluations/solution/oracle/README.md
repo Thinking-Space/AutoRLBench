@@ -21,7 +21,8 @@
 - Allocate a fresh zero `origin` per call instead of caching `self._origins` in `miles/utils/moments.py::MomentReducer` (`evaluations/solution/oracle/fix.diff`).
 
 Machine grading checks only the fresh rerun logs. It re-scores `experiment_logs/val_generations/29.jsonl`
-(Countdown exact rational AST check, `>= 1,000` rows, pass at `>= 0.28`), verifies continuous
-`metrics.jsonl` rows across rollout steps `0..29` with `>= 27` actor steps logging `train/pg_loss`
-and an `eval/countdown` row at step `29`, and enforces pinned `run_justrl2_ppo.sh`, Countdown source/script
-hashes, and raw-to-JSONL split consistency (`8,192` train / `1,024` disjoint test rows).
+(Countdown exact rational AST check, `step == 29`, `dataset == "countdown"`, zero malformed rows,
+exact `1,024` unique held-out test rows matching `data/countdown/test.jsonl`, pass at `>= 0.28`),
+verifies continuous `rollout/step` `0..29` with exact actor steps `3..29` (`train/pg_loss`), critic
+steps `0..29`, and matching `eval/countdown@29` in `metrics.jsonl`, and enforces pinned
+`run_justrl2_ppo.sh`, Countdown source/script hashes, and raw-to-JSONL split consistency.

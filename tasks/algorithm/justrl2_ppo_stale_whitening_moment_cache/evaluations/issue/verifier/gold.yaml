@@ -5,8 +5,8 @@ verdict: unhealthy
 root_cause:
   - miles/utils/moments.py::MomentReducer caches a mutable zero origin tensor per (device, float32) and returns it from functools.reduce(add, blocks, origin) on empty local ZigZag CP=2 shards; in-place dist.all_reduce inside distributed_masked_whiten mutates and compounds that cached buffer across reductions without crashing or raising NaNs
 evidence_metrics:
-  - completes all 30 steps with exit_code=0, even leading at step 9 (0.29102 vs 0.05664 in seed-42 control), then declines to 0.26660 at step 19 and 0.21289 at step 29 (seed 43: 0.23242 -> 0.13086 -> 0.03418) against 0.41699 / 0.34473 in controls
-  - starting at step 4 after actor updates accumulate stale moments, train/pg_loss blows up to -623.6..-3071.0..-345.7 and train/grad_norm spikes up to 9669.2 (step 29: 2525.5; control grad_norm 1.44-4.42) while train/ess_ratio=1.0, train/ppo_kl=0.0, and critic-value_loss=0.0187-0.1417 stay clean
+  - workspace/results/ppo_countdown/metrics.jsonl and val_generations/{0,9,19,29}.jsonl show all 30 steps finish without crash or NaNs, rising from 0.10059 (step 0) to 0.29102 (step 9) before degrading monotonically to 0.26660 (step 19) and 0.21289 (step 29), while eval/countdown/truncated_ratio grows from 0.20703 to 0.72754
+  - starting at step 4 after actor updates accumulate stale moments, train/pg_loss blows up to -623.6 (step 4), -2947.5 (step 15), -3070.99 (step 24), and -345.7 (step 29), and train/grad_norm spikes to 3524.0 (step 4) and 9669.2 peak (step 14; step 29: 2525.5), while train/ess_ratio=1.0, train/ppo_kl=0.0, train/pg_clipfrac=0.0, and train/critic-value_loss=0.0187-0.1417 remain nominal
 fix:
   must:
     - allocate a fresh zero tensor origin = torch.zeros(2, device=values.device, dtype=torch.float32) on each MomentReducer.__call__ instead of caching a mutable tensor in self._origins

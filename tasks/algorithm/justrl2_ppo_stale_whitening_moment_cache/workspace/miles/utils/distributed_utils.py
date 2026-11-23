@@ -3,9 +3,6 @@ from typing import Any
 
 import torch
 import torch.distributed as dist
-from miles.utils.moments import MomentReducer
-
-_moment_reducer = MomentReducer()
 from packaging.version import parse as parse_version
 from torch.distributed.distributed_c10d import (
     Backend,
@@ -17,8 +14,11 @@ from torch.distributed.distributed_c10d import (
     rendezvous,
 )
 
+from miles.utils.moments import MomentReducer
+
 
 GLOO_GROUP = None
+_moment_reducer = MomentReducer()
 
 
 def init_gloo_group():

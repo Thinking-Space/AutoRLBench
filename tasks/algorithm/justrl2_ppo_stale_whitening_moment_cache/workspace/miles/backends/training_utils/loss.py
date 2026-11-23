@@ -1365,8 +1365,7 @@ def policy_loss_function(
                 reported_loss["logdiff_min"] = sorted_diff[0]
                 reported_loss["logdiff_max"] = sorted_diff[-1]
 
-            # Per-sample token-level max: unconditional across CP ranks so empty local CP shards
-            # never skip the CP MAX all_reduce.
+            # Per-sample token-level max across active mask tokens.
             ref_list = batch["rollout_log_probs"]
             offset = 0
             per_sample_max_list = []
