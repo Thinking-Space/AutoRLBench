@@ -26,3 +26,11 @@ State the verdict, identify the concrete root cause or causes, and explain the
 causal chain using specific workspace evidence. Distinguish root causes from
 symptoms. Do not propose or implement a fix, and do not write other deliverable
 files.
+
+## Diagnosis scope
+
+A run can improve an aggregate score and still contain an implementation or
+configuration defect. Locate concrete defects and explain their direct effects
+using visible source/configuration or observed behavior. You do not need to
+prove a defect is the unique cause, reproduce every metric, or compare against
+a healthy run that is not in the workspace.

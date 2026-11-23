@@ -29,6 +29,8 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 MAX_FILE_BYTES = 512 * 1024 * 1024
 REQUIRED_SPEC_KEYS = {
     "schema_version",
@@ -185,6 +187,60 @@ def stage_integrity(spec: dict[str, Any]) -> tuple[bool | None, dict[str, Any]]:
     return all(details.values()), details
 
 
+def mask_repair_check(spec: dict[str, Any], results: Path) -> dict[str, Any]:
+    """Accept a repaired mask, positive clamping, or measured healthy alternatives.
+
+    Use the fresh resolved config beside the graded main.log, not a grep of the
+    editable launcher. A narrow band with a synchronization repair can be valid,
+    but its scalar held-out reward alone does not prove masking was stabilized.
+    """
+    if not spec.get("require_mask_repair"):
+        return {"status": "off", "errors": []}
+    logs = find_main_logs(results, spec["log_roots"])
+    if not logs:
+        return {"status": "unavailable", "errors": ["mask verification requires the fresh main.log and resolved config"]}
+    config = logs[0].with_name("config.yaml")
+    try:
+        if config.is_symlink() or not config.is_file():
+            raise ValueError("missing regular resolved config.yaml beside main.log")
+        value = yaml.safe_load(config.read_text())
+        rejection = value["actor"]["rejection_sampling"]
+        details = {"resolved_config": str(config.relative_to(results)), "configuration": rejection}
+        if rejection is None:
+            return {**details, "status": "passed", "basis": "hard rejection disabled", "errors": []}
+        action = rejection["action"]
+        lower = Decimal(str(rejection["lower"]))
+        upper = Decimal(str(rejection["upper"]))
+        if not lower.is_finite() or not upper.is_finite() or lower < 0 or upper <= 0 or lower > upper:
+            raise ValueError("invalid rejection bounds")
+        if rejection.get("metric") != "ratio" or rejection.get("level") != "token":
+            raise ValueError("changed rejection semantics require separate behavioral validation")
+        if action == "clamp" and lower > 0:
+            return {**details, "status": "passed", "basis": "positive weights replace hard token removal", "errors": []}
+        if action != "mask":
+            raise ValueError("unsupported rejection action")
+        if lower <= Decimal("0.5") and upper >= Decimal("5"):
+            return {**details, "status": "passed", "basis": "acceptance band includes the validated healthy band", "errors": []}
+        # Equivalent interventions may stabilize the original band. Require the
+        # same observable that established the defect, throughout the full run.
+        text = logs[0].read_text(encoding="utf-8", errors="replace")
+        tokens = re.findall(r"ppo_actor/update/rs_filtered_fraction\s*│\s*([^\s│]+)", text)
+        fractions = [to_number(v) for v in tokens]
+        if len(fractions) != spec["final_step"] or any(v is None or not 0 <= v <= 1 for v in fractions):
+            raise ValueError("alternative repair needs one finite masked-token fraction per training step")
+        maximum = max(fractions)
+        limit = Decimal(str(spec["alternative_masked_fraction_max"]))
+        details.update(masked_fraction_max=float(maximum), masked_fraction_limit=float(limit),
+                       masked_fraction_steps=len(fractions))
+        if maximum > limit:
+            return {**details, "status": "failed", "errors": [
+                f"narrow-band repair still rejects up to {maximum} of tokens (limit {limit})"
+            ]}
+        return {**details, "status": "passed", "basis": "alternative repair demonstrably stabilizes token retention", "errors": []}
+    except (OSError, KeyError, TypeError, ValueError, InvalidOperation, yaml.YAMLError) as exc:
+        return {"status": "unavailable", "errors": [f"mask repair verification unavailable: {exc}"]}
+
+
 def grade(spec: dict[str, Any], results: Path):
     final_step = spec["final_step"]
     baseline = Decimal(str(spec["historical_final_baseline"]))
@@ -211,6 +267,8 @@ def grade(spec: dict[str, Any], results: Path):
             f"{sorted(k for k, ok2 in integrity_details.items() if not ok2)[:12]} (and {max(0, sum(1 for ok2 in integrity_details.values() if not ok2) - 12)} more; "
             "files in pinned_sha256 by sha256)"
         )
+    repair = mask_repair_check(spec, results)
+    errors.extend(repair["errors"])
     passed = not errors
     score = 1.0 if passed else 0.0
     judged_f = float(judged) if judged is not None else None
@@ -232,6 +290,7 @@ def grade(spec: dict[str, Any], results: Path):
         "stage_integrity": integrity_ok if integrity_ok is not None else "not checked (no stage environment)",
         "stage_integrity_files": {k: v for k, v in list(integrity_details.items())[:8]},
         "stage_integrity_failed_count": sum(1 for v in integrity_details.values() if not v),
+        "mask_repair_verification": repair,
         "errors": errors,
         "passed": passed,
         "score": score,

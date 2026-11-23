@@ -106,3 +106,20 @@ Completion is required independently of metric quality: validation at the
 declared final step must be present, and evaluation beyond the fixed horizon
 is not accepted. Where training reward is graded, every training step must be
 logged. Accuracy and binary rewards must remain in their valid [0, 1] range.
+
+## Repair and evaluation contract
+
+The verifier also runs small behavioral checks on the submitted implementation.
+An improved aggregate metric alone is insufficient if the diagnosed defects
+remain. Preserve the distinction between policy-generated tokens and external
+context, and preserve information supplied by the retrieval interface.
+
+`eval/nq_test` is binary exact-match accuracy. Its reward wrapper must continue
+to return zero for wrong answers and one for correct answers; format/retrieval
+bonuses must not be mixed into the graded evaluation value. Changing the scorer's
+caller arguments can change the metric even when the scorer file is untouched.
+
+The final step-99 binary exact-match accuracy must be at least **0.28**, under
+the fixed 100-rollout budget above, and the behavioral checks must also pass.
+A high average of accuracy plus formatting or retrieval bonuses does not satisfy
+this threshold. Preserve the evaluation semantics when editing reward code.

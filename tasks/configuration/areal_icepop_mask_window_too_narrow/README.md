@@ -64,13 +64,13 @@ The control's resolved `config.yaml` differs from this run's only in `rejection_
 
 ## Reference solution
 
-- **issue**: name the narrowed IcePop window in `run.sh` ([0.67, 1.5] in place of the shipped [0.5, 5]) as the root cause, and connect it to the runaway `rs_filtered_fraction`: the masked share starts about 4× higher, then grows past 0.10 at step 43 and reaches 0.750 at step 73. Entropy blow-up, length growth and the epoch-2/3 accuracy drop are its symptoms. "Too many tokens are masked" or "train-inference mismatch" without the window override earns partial credit. "Training did not improve", the learning rate, off-policyness, reward scaling, the reward function and infrastructure all fail.
+- **issue**: locate the active ratio band/hard-mask operation and explain how rejected tokens remove or bias the training signal. Visible configuration/code plus a correctly directed rejection or downstream observation suffices. Exact steps, hidden healthy controls and proof of a unique initiating cause are not required; general drift without the masking mechanism is insufficient.
 
 ## Verification
 
-- **issue**: an LLM judge compares `agent_answer.md` with the hidden oracle on verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2. Passing requires ≥ 0.8.
+- **issue**: an LLM judge compares `agent_answer.md` with the hidden oracle on verdict / root cause / evidence, weighted 0.2 / 0.6 / 0.2. Passing requires verdict_score == 1 and both root_cause_score and evidence_score > 0.8; the weighted sum alone is insufficient.
 
-Issue-only: the in-run evaluation (`eval-rollout/reward`) is logged once per epoch with no step-0 point, so a solution threshold cannot be shown to clear the control's step-0 value. The rerun would also need the full 8-GPU MoE stack inside the image, which was not exercised in a container.
+Solution evaluation replays the fixed 87-step, three-epoch recipe and requires final held-out reward ≥ 0.645, complete logs, pinned source/data integrity, and verified removal or stabilization of the masking failure. Multiple repair routes are accepted; see the solution verifier README.
 
 Recorded runs:
 

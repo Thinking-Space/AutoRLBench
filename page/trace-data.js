@@ -1519,10 +1519,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.258,
+    "score": 0.2,
     "durationMs": 999075,
     "steps": 19,
-    "costUsd": 8.9978
+    "costUsd": 8.9978,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "改为 disk 同步并保留 [0.67,1.5] 窄带；原 job 1598993 的 main.log 与 resolved config.yaml 已拉回，修复后 grader 重判：87 步过滤率最大 0.037502（限值 0.10），替代修复路径通过，0.65353≥0.645，改记 1.0。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1536,7 +1542,13 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 1896748,
     "steps": 62,
-    "costUsd": 5.8977
+    "costUsd": 5.8977,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "已定位逐样本优势被铺到 token 轴并复制到全部回答，源码机制及直接后果足够。"
   },
   {
     "task": "infrastructure/verl_checkpoint_host_memory_oom",
@@ -1589,10 +1601,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.285714,
+    "score": 0.2,
     "durationMs": 2137565,
     "steps": 46,
-    "costUsd": 15.1968
+    "costUsd": 15.1968,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "仍未完整识别观察 token 被训练及检索正文丢弃；短回答、稀疏奖励等症状不能替代两处源码错误。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1603,10 +1621,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.25,
+    "score": 0.2,
     "durationMs": 1474838,
     "steps": 34,
-    "costUsd": 13.0687
+    "costUsd": 13.0687,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "仍未定位 batch/token 轴混淆造成的优势错配；奖励稀疏、数据格式或超时不能替代该根因。"
   },
   {
     "task": "infrastructure/verl_checkpoint_host_memory_oom",
@@ -1645,10 +1669,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.614286,
+    "score": 0.6,
     "durationMs": 1502318,
     "steps": 49,
-    "costUsd": 14.3965
+    "costUsd": 14.3965,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 0.5,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "定位了观察 token 的最终 mask 错误，但没有定位正文丢弃；保留部分分，仍不通过。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1659,10 +1689,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.26,
+    "score": 0.2,
     "durationMs": 1958372,
     "steps": 98,
-    "costUsd": 20.1001
+    "costUsd": 20.1001,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "仍未定位 batch/token 轴混淆造成的优势错配；奖励稀疏、数据格式或超时不能替代该根因。"
   },
   {
     "task": "infrastructure/verl_checkpoint_host_memory_oom",
@@ -1714,11 +1750,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.93334,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1157657,
     "steps": 31,
-    "costUsd": 15.9212
+    "costUsd": 15.9212,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "两处缺陷均定位：最终 mask 覆盖了 helper 的零值，正文在 formatter 被丢弃；原 evidence 门过细。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1729,10 +1771,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.25,
+    "score": 0.2,
     "durationMs": 2347607,
     "steps": 63,
-    "costUsd": 27.3357
+    "costUsd": 27.3357,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "仍未定位 batch/token 轴混淆造成的优势错配；奖励稀疏、数据格式或超时不能替代该根因。"
   },
   {
     "task": "infrastructure/verl_checkpoint_host_memory_oom",
@@ -1784,11 +1832,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.1,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 7316145,
     "steps": 87,
-    "costUsd": 25.3816
+    "costUsd": 25.3816,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "虽称准确率上涨这一层面健康，但明确认定正文丢弃与最终 mask=1 是真实实现错误；不要求把上涨曲线说成不学习。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1798,11 +1852,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.0,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 701089,
     "steps": 18,
-    "costUsd": 2.0703
+    "costUsd": 2.0703,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原 0 分是假阴性：答案已复现所有回答共用优势行、128 位以后为零，并解释奖惩错配。附加数据观察不应抹掉正确主因。"
   },
   {
     "task": "infrastructure/verl_checkpoint_host_memory_oom",
@@ -1840,11 +1900,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.1,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1036835,
     "steps": 20,
-    "costUsd": 0.5269
+    "costUsd": 0.5269,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "明确定位正文丢失和最终掩码覆盖；没有量化对准确率的影响，不等于否认这两处实现错误。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1854,11 +1920,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.78,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 845644,
     "steps": 26,
-    "costUsd": 0.5822
+    "costUsd": 0.5822,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原 0.78 未通过是假阴性：四条样本的最小复现、逐 token 错配与后段零权重已经足够，不必补齐隐藏统计。"
   },
   {
     "task": "infrastructure/verl_checkpoint_host_memory_oom",
@@ -1911,10 +1983,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.6334,
+    "score": 0.6,
     "durationMs": 861551,
     "steps": 36,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 0.5,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "只正确定位正文丢弃；反而声称本地 loss_mask 不用于训练、helper 已正确遮蔽观察，这与最终赋值冲突。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1925,10 +2003,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": true,
-    "score": 0.98,
+    "score": 1.0,
     "durationMs": 1385269,
     "steps": 17,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "已定位逐样本优势被铺到 token 轴并复制到全部回答，源码机制及直接后果足够。"
   },
   {
     "task": "infrastructure/verl_checkpoint_host_memory_oom",
@@ -1981,10 +2065,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.3,
+    "score": 0.2,
     "durationMs": 1038491,
     "steps": 45,
-    "costUsd": 2.3867
+    "costUsd": 2.3867,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "仍未完整识别观察 token 被训练及检索正文丢弃；短回答、稀疏奖励等症状不能替代两处源码错误。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -1995,10 +2085,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.27,
+    "score": 0.2,
     "durationMs": 1716943,
     "steps": 42,
-    "costUsd": 8.9881
+    "costUsd": 8.9881,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "仍未定位 batch/token 轴混淆造成的优势错配；奖励稀疏、数据格式或超时不能替代该根因。"
   },
   {
     "task": "infrastructure/verl_checkpoint_host_memory_oom",
@@ -2050,11 +2146,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1642157,
     "steps": 59,
-    "costUsd": 6.5516
+    "costUsd": 6.5516,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "正文丢弃与观察 token 被训练都已说清；不确定各自对准确率的边际贡献，不影响代码缺陷定位。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2065,10 +2167,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.24,
+    "score": 0.2,
     "durationMs": 3295269,
     "steps": 31,
-    "costUsd": 8.1583
+    "costUsd": 8.1583,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "仍未定位 batch/token 轴混淆造成的优势错配；奖励稀疏、数据格式或超时不能替代该根因。"
   },
   {
     "task": "infrastructure/verl_checkpoint_host_memory_oom",
@@ -2124,7 +2232,13 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.3,
     "durationMs": 1486225,
     "steps": 28,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.5,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "用长度和标题观察说明搜索消失，但没有完整定位正文丢弃及最终 mask 覆盖的双缺陷。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2135,10 +2249,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.24,
+    "score": 0.2,
     "durationMs": 2021417,
     "steps": 25,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "仍未定位 batch/token 轴混淆造成的优势错配；奖励稀疏、数据格式或超时不能替代该根因。"
   },
   {
     "task": "infrastructure/verl_checkpoint_host_memory_oom",
@@ -2660,7 +2780,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261031-103706-fe4172bd",
     "sessionId": "aaf91f31-18ca-4e44-8292-53f03cc21e16",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "9f9849707329eab95a80c92088c5077f251c3846d9590862bc8886cd524b39e5"
+    "traceSha256": "9f9849707329eab95a80c92088c5077f251c3846d9590862bc8886cd524b39e5",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "最终补丁把每条回答自己的 scalar 广播到自身 token；CPU 检查覆盖不同长度、标准化开关及批次重排，原历史重放指标仍有效。",
+    "reviewStatus": "confirmed_pass"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2678,7 +2802,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261031-103024-ef33697d",
     "sessionId": "ea4fdfda-84a2-4ec6-8527-71bc1d8d209f",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "a889b81eb868f28b9c0e464555ffc04e47b126af53058972e50704b328e7c987"
+    "traceSha256": "a889b81eb868f28b9c0e464555ffc04e47b126af53058972e50704b328e7c987",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原运行未产生可验收结果，保持失败。原记录：agent did not submit report.md",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2696,7 +2824,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261031-015727-263f2dd2",
     "sessionId": "24e6e34c-a520-412c-bea8-02985ba1a43b",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "5ab887b5f7c8da76377750318455264ec85014bef3d1b106104da2e5c700736e"
+    "traceSha256": "5ab887b5f7c8da76377750318455264ec85014bef3d1b106104da2e5c700736e",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "最终补丁把每条回答自己的 scalar 广播到自身 token；CPU 检查覆盖不同长度、标准化开关及批次重排，原历史重放指标仍有效。",
+    "reviewStatus": "confirmed_pass"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2714,7 +2846,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261031-103024-0ee2c60c",
     "sessionId": "1fd09d5d-52e0-435a-b5c9-951e3d1297d9",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "d5d48ed359cb34a2773773c38eac04d63ac9806ad5d9324bcc339e44c87b0f3d"
+    "traceSha256": "d5d48ed359cb34a2773773c38eac04d63ac9806ad5d9324bcc339e44c87b0f3d",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.054348）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2732,7 +2868,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261031-103505-0fae1eb3",
     "sessionId": "01a18fcf-ba8e-76d3-8f4e-1e9378d3bc41",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "ef5a71429eae1a9fc38fcd1cb6f7f8bfa99fc7186e5304dfd7993c00d1e8a038"
+    "traceSha256": "ef5a71429eae1a9fc38fcd1cb6f7f8bfa99fc7186e5304dfd7993c00d1e8a038",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.097826）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2750,7 +2890,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261031-102143-b3b10be8",
     "sessionId": "01a18fc3-7809-7003-816f-f81623438769",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "eafa611a3c53dfc4c3a5e665bc731363bdc947b27274872e6dbade26fdb2c868"
+    "traceSha256": "eafa611a3c53dfc4c3a5e665bc731363bdc947b27274872e6dbade26fdb2c868",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.081522）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2767,7 +2911,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261031-103505-a7bb8108",
     "sessionId": "27bde1b0-542a-4953-968f-949d21df5903",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "b4296ce589b206dd8933e879e4a9c920204226100ac356760f100b026cc61722"
+    "traceSha256": "b4296ce589b206dd8933e879e4a9c920204226100ac356760f100b026cc61722",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "最终补丁把每条回答自己的 scalar 广播到自身 token；CPU 检查覆盖不同长度、标准化开关及批次重排，原历史重放指标仍有效。",
+    "reviewStatus": "confirmed_pass"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2785,7 +2933,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261031-143228-fa22901f",
     "sessionId": "f2471c13-3919-4ddb-a5f0-3e7d4303ba0b",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "540fdc644d3bd3c7ef3e5279267d527f2d20f8d8004cd3a931043d1412f0bf18"
+    "traceSha256": "540fdc644d3bd3c7ef3e5279267d527f2d20f8d8004cd3a931043d1412f0bf18",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.000000）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2803,7 +2955,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261031-103024-8254ab91",
     "sessionId": "1f1d3564-138e-4500-a4e0-c889769cea6d",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "b38b4aa04154c85ff764bc314768d2c36091558eb35325f52a00eb29c634e2e0"
+    "traceSha256": "b38b4aa04154c85ff764bc314768d2c36091558eb35325f52a00eb29c634e2e0",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.021739）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2820,7 +2976,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261031-103909-8d3a2e81",
     "sessionId": "92785a1a-24a2-4ac6-ab52-23855382a823",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "f5b8304c76f7878921272842f29b3b8f77c7da02a17a2b6c433e677d1b340d46"
+    "traceSha256": "f5b8304c76f7878921272842f29b3b8f77c7da02a17a2b6c433e677d1b340d46",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.065217）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "infrastructure/miles_async_rollout_inflight_not_evicted",
@@ -5525,7 +5685,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261108-212933-9ccf28a5",
     "sessionId": "f0f59f11-4f65-4223-8239-32ea01027e8d",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "842a3f90c98f416f9986d8b87d01bf305b373c511faa074fe7978dad917d8922"
+    "traceSha256": "842a3f90c98f416f9986d8b87d01bf305b373c511faa074fe7978dad917d8922",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.149667）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5535,15 +5699,19 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "solution",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.0,
     "durationMs": 1273051,
     "steps": 36,
     "costUsd": 3.2742,
     "sourceRunId": "20261108-221555-9617efac",
     "sessionId": "a0e30e55-0432-4de6-ac1b-fcbe374a8730",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "b270d00dac74bb2005a40d87912e2337ddbdad16dab49a897ce4173c38068fbf"
+    "traceSha256": "b270d00dac74bb2005a40d87912e2337ddbdad16dab49a897ce4173c38068fbf",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "撤销通过：最终观察 token mask 仍为 1；同时启用 structure_format_score 后，格式正确的错答案也得 0.2。原 0.324667 是混合奖励，不能证明 EM 达到 0.28。",
+    "reviewStatus": "rejected"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5561,7 +5729,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261108-224006-3bbb74d8",
     "sessionId": "acdac1be-b2bb-4ab3-ab15-2a1220c11175",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "1dea5c7b55f2163591b102038f5f5d401c3e3e4a34998c447af96221c50f551d"
+    "traceSha256": "1dea5c7b55f2163591b102038f5f5d401c3e3e4a34998c447af96221c50f551d",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.150667）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5579,7 +5751,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261108-231044-7555efb3",
     "sessionId": "7ef7d9c6-a766-4863-a0b7-0653f0052260",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "0c251b8ce480257953142912b6d499ee9ce871959022fc65863e95b1082c3d8f"
+    "traceSha256": "0c251b8ce480257953142912b6d499ee9ce871959022fc65863e95b1082c3d8f",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原运行未产生可验收结果，保持失败。原记录：missing finite eval/nq_test at step 99",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5597,7 +5773,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261108-232100-ce49bd0d",
     "sessionId": "e3b47da8-979f-42e6-b6da-802cfc80a197",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "4b7ae28ee61665e6b2ebde54879b60408909966b39931d1579ec14326a2a80ef"
+    "traceSha256": "4b7ae28ee61665e6b2ebde54879b60408909966b39931d1579ec14326a2a80ef",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。",
+    "reviewStatus": "confirmed_pass"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5615,7 +5795,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261109-003536-c7973f92",
     "sessionId": "3488af03-8c53-4445-b28e-126ca0c5220a",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c14833ccf8bc0b8e9d55610c1a58af4715c1986c594e085809a750aa85e49e32"
+    "traceSha256": "c14833ccf8bc0b8e9d55610c1a58af4715c1986c594e085809a750aa85e49e32",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.150667）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5633,7 +5817,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261109-010918-750fbfd5",
     "sessionId": "01a1bc23-22a1-7391-8544-d2b18f9a3051",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "605d60b278a4f2831e053c797b6ac180ddab7f18f2fcf82f553c1c7a2cf48a44"
+    "traceSha256": "605d60b278a4f2831e053c797b6ac180ddab7f18f2fcf82f553c1c7a2cf48a44",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。",
+    "reviewStatus": "confirmed_pass"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5643,15 +5831,19 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "solution",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.0,
     "durationMs": 26204512,
     "steps": 896,
     "costUsd": 28.441,
     "sourceRunId": "20261109-012708-c87ba11a",
     "sessionId": "01a1bc33-822d-7342-bc16-3628d4b92e54",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "a91062f44c48db113b139bef66bdde0c1a850275d4f1a1bd1653814082adef66"
+    "traceSha256": "a91062f44c48db113b139bef66bdde0c1a850275d4f1a1bd1653814082adef66",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "撤销通过：正文和 mask 虽已修好，但结构/检索奖励把错答案评分改成 0.1、0.2 或 0.3。原 0.321867 不是二值 EM，不能用原阈值认定通过。",
+    "reviewStatus": "rejected"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5668,7 +5860,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261109-084642-b8783b52",
     "sessionId": "03128c45-f3dd-40b5-a7a2-bf98df3515d5",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "de9c5512f65c0323d3363e92970dda2083eb3750b0c4808006fe22324194029a"
+    "traceSha256": "de9c5512f65c0323d3363e92970dda2083eb3750b0c4808006fe22324194029a",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。",
+    "reviewStatus": "confirmed_pass"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5685,7 +5881,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261109-093413-b4f0d020",
     "sessionId": "6b9cfb9f-5325-49d2-8c2c-4af9005c808c",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c9b2d13bac5e5128e95f3135b03a7396f38b6918005d6490ed9c4cebb0f68326"
+    "traceSha256": "c9b2d13bac5e5128e95f3135b03a7396f38b6918005d6490ed9c4cebb0f68326",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。",
+    "reviewStatus": "confirmed_pass"
   },
   {
     "task": "reward/idea_awm_reward_diagnosis",
@@ -6341,11 +6541,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.3,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 787834,
     "steps": 26,
-    "costUsd": 5.3354
+    "costUsd": 5.3354,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "定位 [0.67,1.5] 硬过滤及零化 token 损失，并用高拒绝率连接学习信号丢失；不必证明它是唯一初始触发因素。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6363,7 +6569,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261112-231739-c5f6c06d",
     "sessionId": "01a1d056-3868-7c21-a727-b75ca4d8bef3",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "747ff23086d0d657385e9b17b986f70d3615704e44fc82abceb48a5795cc8b42"
+    "traceSha256": "747ff23086d0d657385e9b17b986f70d3615704e44fc82abceb48a5795cc8b42",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.631920）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6373,11 +6583,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.285714,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 821293,
     "steps": 27,
-    "costUsd": 0.843
+    "costUsd": 0.843,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "描述指定 ratio 带如何删除梯度并偏向高置信 token，日志和 token dump 支持机制；允许讨论漂移与约束不足的相互作用。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6395,7 +6611,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261113-134751-7075909b",
     "sessionId": "01a1d372-ebbd-79e2-8eac-395dcedb4415",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "1aad689c802f470768df133d90f2a37557c5ca0c00405eb8b99b2ef3e78ccf2e"
+    "traceSha256": "1aad689c802f470768df133d90f2a37557c5ca0c00405eb8b99b2ef3e78ccf2e",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.624530）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6405,11 +6625,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.33846,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 4998243,
     "steps": 49,
-    "costUsd": 44.3403
+    "costUsd": 44.3403,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "虽然主篇幅讨论奖励和 KL，但已明确指出固定窗口拒绝 60–75% token、更新只剩有偏子集；这一实质机制不应因附加归因被清零。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6427,7 +6653,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261113-144034-e7555401",
     "sessionId": "e2720fa9-cb6f-40b8-bf54-9b17d66bc87d",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "46186487af31f72d04c1dfe1f850966d68185954861b4601c670fa0e81e9ae97"
+    "traceSha256": "46186487af31f72d04c1dfe1f850966d68185954861b4601c670fa0e81e9ae97",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "改为 disk 同步但保留 [0.67,1.5]；原 0.65353 只能证明分数达标。缺少该次重放的逐步过滤率与 resolved config，暂记未判定。补回旧日志即可重判；取不回时重放原提交。",
+    "reviewStatus": "pending_artifacts"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6437,11 +6667,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.934,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1590427,
     "steps": 56,
-    "costUsd": 13.0553
+    "costUsd": 13.0553,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "已定位实际窄窗口与大量 token 被过滤的因果链；原先未写全精确统计不应阻止通过。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6459,7 +6695,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261112-231739-c4c9332b",
     "sessionId": "ab740462-b62d-477c-a061-6fc423305824",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "5d8d5b7fc861aaa5242475439d6514b7d6dd5fd1348ee217c682ddc762e8ce7f"
+    "traceSha256": "5d8d5b7fc861aaa5242475439d6514b7d6dd5fd1348ee217c682ddc762e8ce7f",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原运行未产生可验收结果，保持失败。原记录：main.log does not show a complete run: expected one `Train step N/87 done.` line for every N in 1..87, got 56 lines ending at 56/87",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6470,10 +6710,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.314286,
+    "score": 0.7,
     "durationMs": 1029393,
     "steps": 45,
-    "costUsd": 2.1975
+    "costUsd": 2.1975,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "答案一面指出激进窗口加重梯度饥饿，一面明确把 IcePop 称为正确工作的症状控制器；因果角色自相矛盾，保留部分分。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6491,7 +6737,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261113-004222-5ad60ea3",
     "sessionId": "f413d61d-ea13-4cfe-8e8c-2dc464560d90",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "28d683cd921842afcb2c32ab1b33ee8caba2b1d392912d17db6c3b745a1f062a"
+    "traceSha256": "28d683cd921842afcb2c32ab1b33ee8caba2b1d392912d17db6c3b745a1f062a",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "最终补丁恢复 [0.5,5]，原重放结束值 0.65807；固定文件完整性已通过，原窄硬过滤设置已消除。",
+    "reviewStatus": "confirmed_pass"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6501,11 +6751,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.3,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1717748,
     "steps": 31,
-    "costUsd": 4.8007
+    "costUsd": 4.8007,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "用有效窗口和多 rank dump 说明硬过滤不断破坏训练信号；对唯一初始触发点保持谨慎不应扣掉该机制。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6523,7 +6779,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261113-032659-70406a56",
     "sessionId": "5eb8360a-c54b-4e16-8f28-801c132667c3",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "a9313b490b83ff17dc4f5034522e2d3cf682cd4edfea9a21d095bfce059e226a"
+    "traceSha256": "a9313b490b83ff17dc4f5034522e2d3cf682cd4edfea9a21d095bfce059e226a",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.575060）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6533,11 +6793,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.94,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1727263,
     "steps": 28,
-    "costUsd": 7.8542
+    "costUsd": 7.8542,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "已定位实际窄窗口与大量 token 被过滤的因果链；原先未写全精确统计不应阻止通过。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6555,7 +6821,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261113-010413-4f71cf52",
     "sessionId": "7549e26d-5dcb-47d1-b9e8-9c707ade5162",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "9dd87845d67400ebd766f3820611eae907d4551b75cb2480122b6be2358a66e4"
+    "traceSha256": "9dd87845d67400ebd766f3820611eae907d4551b75cb2480122b6be2358a66e4",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原运行未产生可验收结果，保持失败。原记录：main.log has no `Train step` lines: the shipped runner's StatsLogger prints one per training step, so this run did not execute it",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6566,10 +6836,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.24,
+    "score": 0.3,
     "durationMs": 558120,
     "steps": 17,
-    "costUsd": 2.8941
+    "costUsd": 2.8941,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.5,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "主要归因于没有 KL 约束，未建立具体窗口/硬过滤造成学习信号损失的机制，仍不通过。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6587,7 +6863,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261113-031749-92e30c40",
     "sessionId": "def27715-db8b-4cc2-8fcb-dc8be74d950b",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "6b60e3985fb5d513c395a590c3b6f68c1bfa35733c8b883fb5d7828396d2057b"
+    "traceSha256": "6b60e3985fb5d513c395a590c3b6f68c1bfa35733c8b883fb5d7828396d2057b",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原运行未产生可验收结果，保持失败。原记录：agent did not submit report.md",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6598,10 +6878,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.36,
+    "score": 0.7,
     "durationMs": 1361982,
     "steps": 34,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "给出窗口、删除 token 和过滤率，但主要把 mask 称为漂移的下游报告而非有害机制；重判仍为部分分。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6618,7 +6904,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261113-135935-06054e05",
     "sessionId": "8db80b92-f052-493e-9014-96701385b4dc",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "3611476c0104abc108737bf2bee908304238a58f83c7742014e1c9b3f5fba704"
+    "traceSha256": "3611476c0104abc108737bf2bee908304238a58f83c7742014e1c9b3f5fba704",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原重放评分未达原验收条件（记录值 0.620170）；新增功能验收为附加条件，本次保持失败。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6628,11 +6918,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "grok-build",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.942,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 665809,
     "steps": 14,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "已定位实际窄窗口与大量 token 被过滤的因果链；原先未写全精确统计不应阻止通过。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6649,7 +6945,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261113-134536-751047be",
     "sessionId": "6f13372e-032a-40af-bfa4-e13fa2b0ed5e",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "b23d37b2dff2564095bcea2f3668409443e94c9a505bb5acf1d8960e89954fb9"
+    "traceSha256": "b23d37b2dff2564095bcea2f3668409443e94c9a505bb5acf1d8960e89954fb9",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "最终补丁启用 clamp/TIS，每个 token 保留正权重，原重放结束值 0.68518；这是消除硬删除机制的等价修复。",
+    "reviewStatus": "confirmed_pass"
   },
   {
     "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
@@ -8204,10 +8504,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.275,
+    "score": 0.2,
     "durationMs": 0,
     "steps": 104,
-    "costUsd": 8.7884
+    "costUsd": 8.7884,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "仍未定位 batch/token 轴混淆造成的优势错配；奖励稀疏、数据格式或超时不能替代该根因。"
   },
   {
     "task": "algorithm/verl_policy_loss_padded_mask_only",
@@ -8273,11 +8579,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.32,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 0,
     "steps": 110,
-    "costUsd": 39.9756
+    "costUsd": 39.9756,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "虽把同步差异放在前面，仍明确说窄硬过滤丢掉多数信号并形成自强化；已定位任务要求的机制。"
   },
   {
     "task": "configuration/verl_grpo_adamw_eps_too_large",
@@ -8573,11 +8885,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.942857,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 0,
     "steps": 103,
-    "costUsd": 9.2278
+    "costUsd": 9.2278,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "明确引用本地 mask 的 ones、最终赋值和遗漏正文的格式串，足够支撑双缺陷；无需复述健康对照。"
   },
   {
     "task": "reward/verl_math_verify_thread_zero_reward",
@@ -9297,7 +9615,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261118-092126",
     "sessionId": "9a29f429-6ad3-4c70-94db-b90b45a667e8",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "9617a73cf517db05d4b34c1c71a5a0292d56e68adc49458c4558ad601df97110"
+    "traceSha256": "9617a73cf517db05d4b34c1c71a5a0292d56e68adc49458c4558ad601df97110",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原发布结果为失败；当前仅有重放失败记录，缺少可重新计算的完整指标，本次未把缺失数据解释成通过。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "configuration/verl_grpo_rollout_top_p_off_policy",
@@ -9351,7 +9673,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261118-105933",
     "sessionId": "5e530940-33dc-490b-8627-939ba712cf42",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "79e25b6c8b78b19c1b09a49ba5fd4f990d72ac9af39a3687972dfe4a3be24929"
+    "traceSha256": "79e25b6c8b78b19c1b09a49ba5fd4f990d72ac9af39a3687972dfe4a3be24929",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原失败为重放基础设施问题，不能作为 agent 修复能力失败的证据；没有新的完整训练结果，本次维持原失败记录并标注需重放。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "infrastructure/qwen3vl_geo3k",
@@ -9405,7 +9731,11 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261119-150112",
     "sessionId": "353d37bf-a587-4ce6-8031-f2e30f4deeb9",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "5335c758562f207ff6d55ce95182b97c300e265415ac38f96a552706dec13b2b"
+    "traceSha256": "5335c758562f207ff6d55ce95182b97c300e265415ac38f96a552706dec13b2b",
+    "rejudgedAt": "2026-11-23",
+    "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
+    "auditReason": "原失败为重放基础设施问题，不能作为 agent 修复能力失败的证据；没有新的完整训练结果，本次维持原失败记录并标注需重放。",
+    "reviewStatus": "retained_failure"
   },
   {
     "task": "algorithm/trl_dapo_accumulation_normalization",

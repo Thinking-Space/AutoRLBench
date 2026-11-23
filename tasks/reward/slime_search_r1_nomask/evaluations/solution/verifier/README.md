@@ -1,14 +1,14 @@
-# Metric-only solution verifier
+# Solution verifier: functional repair and held-out accuracy
 
-`test.sh` is the single entry point. It does not use `submission.json`, an LLM,
-rules, or rubrics. It strips ANSI escapes and reconstructs `eval/nq_test` from
+`test.sh` is the single entry point. It uses deterministic metric and behavioral checks; no LLM judgment. It strips ANSI escapes and reconstructs `eval/nq_test` from
 `$AUTORLBENCH_RESULTS/experiment_logs`, including offline W&B files under
 `$AUTORLBENCH_RESULTS/experiment_logs/wandb`.
 
-`eval/nq_test` is exact-match accuracy in `[0, 1]`, the same space the frozen
-trace was logged in. The defect does not distort the metric — it distorts the
-policy — so there is no polluted channel to correct for, and grading is a
-straight accuracy comparison.
+`eval/nq_test` must remain exact-match accuracy in `[0, 1]`, the same space the
+frozen trace was logged in. The staged defects affect the policy, but a submitted
+repair can also change the metric by changing the reward wrapper's arguments.
+The functional check must establish binary-EM semantics before the logged value
+can certify that the accuracy threshold was reached.
 
 ## Horizon
 
@@ -59,6 +59,44 @@ step-99 value is its `historical_final_baseline`, `0.15333`):
   `0.0947` (loss mask fixed but rendering left), `0.127` (both defects).
 - An untrained step 0 is about `0.033`–`0.048` and fails by a wide margin.
 - The upper bound only blocks a fabricated value: accuracy cannot exceed `1.0`.
+
+### 2026-11-23：两条假通过与有效修复的对比
+
+以下均为现有提交的历史 step-99 指标；没有为本次对比重新训练。
+实现结论来自最终提交代码的行为检查。
+
+| 提交 | 原记录指标 | 正文送入模型 | 最终 observation mask=0 | 指标含义 |
+| --- | --- | --- | --- | --- |
+| Kimi-K3.1-Pro | 0.324667 | 是 | 否 | 混合奖励；格式正确的错答案也得 0.2 |
+| GPT-6.1-Sol | 0.321867 | 是 | 是 | 混合奖励；错答案可得 0.1、0.2、0.3 |
+| Qwen3.8-Max | 0.329333 | 是 | 是 | 二值 EM；错答案得 0 |
+| Gemini-4-Argon | 0.340667 | 是 | 是 | 二值 EM；错答案得 0 |
+| Grok-4.7 | 0.370667 | 是 | 是 | 二值 EM；错答案得 0 |
+| GPT-6-Astra | 0.389000 | 是 | 是 | 二值 EM；错答案得 0 |
+
+旧评测同时检查最终指标、受保护文件哈希和启动参数，但没有检查最终 mask
+或评分函数的调用参数。两条假通过没有修改受保护的 `qa_em_format.py`，而是
+在可修改的 `generate_with_search.reward_func` 中启用了
+`structure_format_score` 等参数。原来的 `format_score` 是 scorer 保留但没有
+用于计算的参数；把它改成 `structure_format_score` 会实际开启
+部分奖励。同一个 wrapper 同时用于训练和验证，因此验证均值也被抬高。
+
+这不能作为提高 EM 阈值的证据。例如，在“正确答案得 1、错误答案均得 0.2”
+的假设下，15% 正确率也会产生 `0.15 + 0.85 × 0.2 = 0.32` 的平均奖励。
+这只是说明指标污染的数值例子，不是对两条历史运行真实 EM 的反推；没有逐条
+预测，无法从一个混合奖励均值恢复准确率。
+
+如果仅把阈值调成 0.325，虽然恰好能分开这六个历史数字，但有效修复 Qwen
+只剩 0.004333 的余量，等价于 3000 个验证样本中的 13 个；调到 0.33 则会
+直接误杀该有效修复。不同指标之间的事后切分不能替代合理校准。已有同口径的
+单缺陷对照最高为 0.2237，当前有效修复最低为 0.329333，仍支持保留 0.28。
+这些有限运行也不能证明所有随机种子下两类结果都不重叠。
+
+重跑时继续使用 100 rollouts、step 99 和二值 EM ≥ 0.28，同时要求正文、
+最终 mask 和评分语义检查全部通过。原两条提交不经修改就重跑，仍应被功能
+验收拒绝；若修改了奖励或 mask 后重新训练，应记录为新提交，不能覆盖旧轨迹。
+要进一步校准数值阈值，应在同一纯 EM 口径下比较双缺陷、仅修正文、仅修 mask、
+两者全修四种配置并重复种子，而不是用受污染的 0.32 分选阈值。
 
 ## Protected files (schema 3)
 
@@ -117,8 +155,8 @@ must stay editable):
 Verified against all twenty 2026-10-30/31 measured runs with both directions:
 the guards fire on exactly the three manually-invalidated rows and stay clean
 on the other seventeen. When the workspace root itself is absent (a local
-re-grade of pulled logs), the checks report `skipped_no_workspace` and do not
-fail; the verifier container always has the root.
+re-grade of pulled logs), the legacy hash/launch checks report `skipped_no_workspace`; the mandatory
+behavioral check now marks missing source unavailable and blocks a pass.
 
 ## Why the horizon is 99 and not 199
 
@@ -147,3 +185,32 @@ The verifier writes `experiment_metrics.json`, `metrics.json`, and
 ## System rerun (`run_spec.json`)
 
 The solution protocol is debug-then-report: the agent fixes the workspace, submits `/workspace/report.md`, and does **not** launch training. The task-root `run_spec.json` drives the harness rerun stage — the command, environment (with `$AUTORLBENCH_*` references expanded per backend), timeout, and log roots — executed in the agent's workspace before this verifier runs. The harness deletes the declared log roots (`experiment_logs`) before the rerun, so grading only ever sees this fresh run's logs.
+
+## Functional acceptance (2026-11-23)
+
+Passing requires the metric gate AND `tests/check_behavior.py` on the submitted
+workspace. The probe executes the actual generator with mocked model/retriever
+IO and an independent minimal Sample implementation: passage bodies must reach the next model
+call, external observation tokens must have zero final loss weight, model tokens
+must remain trainable, and response/tokens/masks must stay aligned across turns.
+Equivalent implementations are accepted; no exact replacement string is required.
+
+The same reward wrapper scores evaluation. Wrong answers, including correctly
+formatted answers and wrong answers following a successful retrieval, must still
+score zero; correct answers score one. Pinning qa_em_format.py alone did not
+protect this contract: changing its caller's structure_format_score or
+retrieval_score arguments changed eval/nq_test to a shaped reward. Such a number
+cannot be compared to the binary-EM 0.28 threshold. The threshold and 100-rollout
+budget remain unchanged; raising the threshold would not fix the semantic leak.
+
+A log-only invocation now reports unavailable behavior evidence and cannot pass.
+The behavior probe supplies its own minimal `Sample` implementation, so editing
+the submitted framework's `Sample` class cannot make the probe accept an invalid
+generator. It also checks append-level trainability flags and zero dummy
+log-probabilities on retrieval observations. If two files report different
+values for the same evaluation step, grading fails closed instead of selecting
+the larger value.
+Historical rejudgments may combine a preserved verified replay metric with
+reconstructed final source and explicitly recorded behavioral checks; they do
+not claim a new GPU replay. If scoring semantics changed, the historical scalar
+is preserved as a shaped reward, not reinterpreted as exact-match accuracy.

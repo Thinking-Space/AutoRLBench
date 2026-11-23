@@ -20,10 +20,9 @@ logprob gap of the MoE model and up to one policy version of asynchronous drift
 (`max_head_offpolicyness: 2`, proximal staleness 1.0). The narrow window drops a much larger
 and growing share of sampled tokens, concentrated on low-probability tokens. About 42 steps
 in, the masked share stops being bounded and runs away together with entropy and response
-length. The policy then degenerates and held-out accuracy falls. A passing diagnosis names
-the narrowed window and connects it to the runaway masked fraction. Saying only that "too
-many tokens are masked", or blaming the train-inference mismatch in general, without the
-window override earns partial root-cause credit at most.
+length. The policy then degenerates and held-out accuracy falls. A passing diagnosis locates the active band/hard-mask operation and connects it
+to the lost or biased training signal. It need not prove the band is the unique
+initial trigger; general mismatch or a high rejection statistic alone is insufficient.
 
 ## Observable impact
 
@@ -38,7 +37,8 @@ window override earns partial root-cause credit at most.
 - `ppo_actor/update/entropy/avg`: 0.184 at step 0, peak 5.92 at step 65. `ppo_actor/seq_len/avg`:
   284 at step 0, peak 600 at step 68, 489 at step 86. `ppo_actor/task_reward/avg`: 0.736 at
   step 0, at most 0.807, 0.702 at step 86. `ppo_actor/no_eos_ratios/avg` stays at or below
-  0.0195, so the longer responses are not truncation.
+  0.0195, but this logger compares with padded sequence width; it does not by itself
+  prove the actual EOS/truncation rate.
 - The per-token dumps in `run/ktdump/seeds_icepop_w067_s2/` (indices 0, 1180 and 2340) hold
   the inference-engine and proximal logprobs, so the window can be evaluated
   counterfactually on the same tokens:
@@ -60,7 +60,7 @@ window override earns partial root-cause credit at most.
   narrower than the natural spread of that weight. That spread is set by the MoE
   train-inference logprob gap plus asynchronous staleness, and it is widest on sampled
   low-probability tokens.
-- Any seed. In the recorded control runs (same resolved configuration, window [0.5, 5]), the
+- Across the recorded seeds (not a claim about every possible seed). In the recorded control runs (same resolved configuration, window [0.5, 5]), the
   masked fraction stays at or below 0.046 for all 87 steps, entropy never exceeds 0.23, and
   `seq_len/avg` falls to about 220. `eval-rollout/reward` there is 0.627 / 0.652 / 0.653
   (seed 2) and 0.625 / 0.653 / 0.669 (seed 3). Two more seeds with the narrow window
@@ -85,3 +85,10 @@ window override earns partial root-cause credit at most.
   - the 1024-token generation limit;
   - the reward function, the data, or the SGLang/xccl weight sync.
 - No worker error or OOM occurs in this run. Infrastructure is not the cause.
+
+## Scoring contract
+
+The task-specific judge_prompt.md defines the complete scored cause and evidence
+groups. The detailed measurements above are supporting context, not a checklist.
+Concrete source/configuration evidence and direct functional consequences count;
+no hidden control-run numbers, exact steps, or sole-cause proof are required.

@@ -60,9 +60,18 @@ with its config in `files/config.yaml` and `workspace/outputs/2026-09-26/`):
   launch defaults for this TACO family. Entropy and length do not collapse in
   this run, so missing regularization does not explain it.
 - `verl/utils/reward_score/taco.py`, the dataset, the model, the learning rate,
-  and batch size are the healthy baseline. `[error] runtime: ...` lines in the
+  and batch size are shared baseline components, not the injected advantage defect. `[error] runtime: ...` lines in the
   log, including `IndexError('list index out of range')`, are exceptions inside
   generated programs that the scorer catches and records as failures.
 - A `keepdim` / `unsqueeze(0)` that would make `[B]` broadcast against `[B, S]`
   is not the defect; that form would raise under `B=128` and `S=4096`.
 - `prime_code` and agent-loop tool parsers are unused by this TACO launch.
+
+## Scoring contract
+
+The task-specific judge_prompt.md defines the complete scored cause and evidence
+groups. The detailed measurements above are supporting context, not a checklist.
+Concrete source/configuration evidence and direct functional consequences count;
+no hidden control-run numbers, exact steps, or sole-cause proof are required.
+
+Additional data/reward observations do not invalidate a correctly located broadcast defect.

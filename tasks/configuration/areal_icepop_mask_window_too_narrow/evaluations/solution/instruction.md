@@ -77,3 +77,13 @@ tree (`areal/`), the example entry points (`examples/`), and the project lock
 files are pinned by sha256 at grading time, so changing any of them fails the
 run, and a run that does not reach its final held-out evaluation fails the
 completeness check.
+
+## Functional repair acceptance
+
+The held-out metric must improve without retaining the diagnosed failure.
+The verifier uses the fresh resolved configuration and loss-retention behavior
+as well as the final evaluation. An alternative intervention that keeps the
+original hard rejection band must record a masked-token fraction for all 87
+steps, with a maximum at most 0.10; changing the numeric band is not the only
+accepted repair. Positive clamping is distinguished from dropping tokens. Keep
+the resolved config.yaml and full main.log under the fresh run log directory.

@@ -87,10 +87,11 @@ cause:
 
 ## Machine grading
 
-Machine grading reads only the new experiment logs under
+The metric component reads only the new experiment logs under
 `$AUTORLBENCH_RESULTS/experiment_logs`. The required held-out metric is
-`eval/nq_test`, exact-match accuracy in `[0, 1]` — the defect distorts the
-policy, not the metric, so no channel correction is needed.
+`eval/nq_test`, exact-match accuracy in `[0, 1]`. The staged defects affect the
+policy, but submitted reward-wrapper changes can also alter metric semantics.
+The functional check must confirm binary EM before accepting this number.
 
 The instruction fixes `--num-rollout 100` / `--eval-interval 10`, giving eval
 points 0, 9, …, 99. `score_mode` is `final`: the graded value is the
@@ -126,3 +127,35 @@ partial-repair states are unmeasured beyond 99 and one loss-mask-only
 defective run was still climbing (`0.2713` at step 119) when it was killed,
 so their 200-step ceilings are unmeasured. A healthy masked protocol reaches
 about `0.3733` by step 99 and about `0.4083` at step 199.
+
+## Functional acceptance (2026-11-23)
+
+Passing requires the metric gate AND `tests/check_behavior.py` on the submitted
+workspace. The probe executes the actual generator with mocked model/retriever
+IO and an independent minimal Sample implementation: passage bodies must reach the next model
+call, external observation tokens must have zero final loss weight, model tokens
+must remain trainable, and response/tokens/masks must stay aligned across turns.
+Equivalent implementations are accepted; no exact replacement string is required.
+
+The same reward wrapper scores evaluation. Wrong answers, including correctly
+formatted answers and wrong answers following a successful retrieval, must still
+score zero; correct answers score one. Pinning qa_em_format.py alone did not
+protect this contract: changing its caller's structure_format_score or
+retrieval_score arguments changed eval/nq_test to a shaped reward. Such a number
+cannot be compared to the binary-EM 0.28 threshold. The threshold and 100-rollout
+budget remain unchanged; raising the threshold would not fix the semantic leak.
+
+A log-only invocation now reports unavailable behavior evidence and cannot pass.
+The behavior probe uses an independent minimal `Sample` implementation and
+fails closed on conflicting same-step metric values, so the automatic grader
+does not rely on a later audit to reject shaped rewards or an inflated log.
+Historical rejudgments may combine a preserved verified replay metric with
+reconstructed final source and explicitly recorded behavioral checks; they do
+not claim a new GPU replay. If scoring semantics changed, the historical scalar
+is preserved as a shaped reward, not reinterpreted as exact-match accuracy.
+
+The six-submission comparison and rerun guidance are recorded in
+`../verifier/README.md` under “2026-11-23：两条假通过与有效修复的对比”.
+The two rejected values (0.324667 and 0.321867) are shaped rewards, whereas the
+four valid repairs score 0.329333–0.389000 in binary EM. They do not justify
+raising the EM threshold; the functional gate closes the observed false passes.

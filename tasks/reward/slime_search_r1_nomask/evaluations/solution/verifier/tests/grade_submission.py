@@ -17,6 +17,7 @@ import json
 import os
 import re
 import secrets
+import subprocess
 import sys
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -40,6 +41,7 @@ REQUIRED_SPEC_KEYS = {
     "historical_final_baseline",
     "required_final_score",
     "log_roots",
+    "behavior_contract",
 }
 OPTIONAL_SPEC_KEYS = {
     "required_final_score_max",
@@ -132,6 +134,8 @@ def load_spec(path: Path) -> dict[str, Any]:
                 f"{pattern!r} ({error})"
             ) from error
     value["required_launch_patterns"] = list(required)
+    if value["behavior_contract"] != "search_r1_v1":
+        raise ValueError("Search-R1 Solution grading must use behavior contract search_r1_v1")
     return value
 
 
@@ -225,6 +229,30 @@ def check_launch_script(
     return violations, ("violated" if violations else "ok")
 
 
+def check_behavior(spec: dict[str, Any], workspace: Path) -> dict[str, Any]:
+    if not spec.get("behavior_contract"):
+        return {"status": "off", "errors": []}
+    if not workspace.is_dir():
+        return {"status": "unavailable", "errors": [
+            "behavior verification requires the submitted workspace; logs alone cannot certify repair"
+        ]}
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-B", str(Path(__file__).with_name("check_behavior.py")), str(workspace.resolve())],
+            capture_output=True, text=True, timeout=45,
+        )
+        result = json.loads(completed.stdout)
+        if result.get("status") not in {"passed", "failed", "unavailable"}:
+            raise ValueError("invalid behavior probe status")
+        if completed.returncode != 0 and result["status"] == "passed":
+            raise ValueError("behavior probe exited unsuccessfully")
+        if result["status"] != "passed" and not result.get("errors"):
+            result["errors"] = ["behavior verification did not pass"]
+        return result
+    except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
+        return {"status": "unavailable", "errors": [f"behavior verification unavailable: {exc}"]}
+
+
 def log_files(results: Path, roots: list[str]) -> list[Path]:
     found = []
     for root_name in roots:
@@ -275,6 +303,7 @@ def extract(spec: dict[str, Any], results: Path):
     expected_key = spec["metric_key"]
     step_line, eval_dict = metric_patterns(expected_key)
     values: dict[int, tuple[Any, Decimal, str]] = {}
+    observations: dict[int, dict[Decimal, set[str]]] = {}
     keys_seen: set[str] = {expected_key}
     source_logs = []
     for path in log_files(results, spec["log_roots"]):
@@ -296,6 +325,7 @@ def extract(spec: dict[str, Any], results: Path):
                 value = parse_number(token)
                 if value is None:
                     continue
+                observations.setdefault(step, {}).setdefault(value, set()).add(relative)
                 rank = (mtime, relative, order)
                 previous = values.get(step)
                 if (
@@ -306,6 +336,17 @@ def extract(spec: dict[str, Any], results: Path):
                     values[step] = (rank, value, relative)
         if matched:
             source_logs.append(relative)
+
+    conflicts = []
+    for step, by_value in sorted(observations.items()):
+        if len(by_value) > 1:
+            conflicts.append({
+                "step": step,
+                "values": [
+                    {"value": float(value), "sources": sorted(sources)}
+                    for value, sources in sorted(by_value.items())
+                ],
+            })
 
     points = []
     scores = []
@@ -330,9 +371,10 @@ def extract(spec: dict[str, Any], results: Path):
             "metric_status": "available" if points else "missing",
             "eval_points": points,
             "eval_scores": scores,
+            "metric_conflicts": conflicts,
         },
     }
-    return experiment, values, keys_seen
+    return experiment, values, keys_seen, conflicts
 
 
 def select_best(values: dict[int, tuple[Any, Decimal, str]]):
@@ -362,7 +404,7 @@ def grade(
     results: Path,
     workspace: Path | None = None,
 ):
-    experiment, values, keys_seen = extract(spec, results)
+    experiment, values, keys_seen, conflicts = extract(spec, results)
     metric_key = spec["metric_key"]
     final_step = spec["final_step"]
     baseline = Decimal(str(spec["historical_final_baseline"]))
@@ -377,7 +419,13 @@ def grade(
         ).expanduser()
     protected_errors, protected_status = check_protected_files(spec, workspace)
     launch_errors, launch_status = check_launch_script(spec, workspace)
-    errors = list(protected_errors) + list(launch_errors)
+    behavior = check_behavior(spec, workspace)
+    errors = list(protected_errors) + list(launch_errors) + list(behavior["errors"])
+    if conflicts:
+        errors.append(
+            "conflicting values for the same evaluation step in experiment_logs; "
+            "the grader will not select the highest value"
+        )
     if any(not Decimal("0") <= point[1] <= Decimal("1") for point in values.values()):
         errors.append("all observed accuracy values must lie in [0, 1]")
     if final_step not in values:
@@ -420,6 +468,9 @@ def grade(
         "protected_files_status": protected_status,
         "protected_files_checked": len(spec.get("protected_files") or {}),
         "launch_guard_status": launch_status,
+        "behavior_contract": spec.get("behavior_contract"),
+        "behavior_verification": behavior,
+        "metric_conflicts": conflicts,
         "best_step": judged_step,
         "best_score": judged_float,
         "best_source_log": judged_source,

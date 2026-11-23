@@ -32,3 +32,26 @@ grader requires all three epoch-end evaluations (min_eval_rows 3) and the
 source, `examples/` entry points and lock files are sha256-pinned, so any
 repair that games the metric by editing the framework, the reward logic, the
 data or the model config fails stage integrity.
+
+## Repair acceptance (2026-11-23)
+
+The 0.645 final-score gate and 87-step completeness gate remain. The verifier now
+also reads the fresh resolved config beside the graded main.log. A restored or
+wider acceptance band, disabled hard rejection, or positive clamp weights can
+remove the original destructive hard masking. Pinned framework/scorer/data
+checks still apply.
+
+An alternative repair retaining a narrower hard mask (for example, changing
+weight synchronization) must show one finite rs_filtered_fraction per step and
+a maximum no greater than 0.10 across the complete run. This leaves margin over
+the validated healthy controls' maximum 0.046 and rejects the original runaway
+that crosses 0.10 and reaches 0.75. It is a declared acceptance boundary, not
+a claim of a universal statistical separation. Clamp's filtered_fraction counts
+clamped weights, not removed tokens, so the mask-specific cap is not applied to
+positive-clamp repairs.
+
+Missing resolved configuration or required per-step evidence is unavailable,
+not proof of successful repair. An archived high-score run without these
+artifacts must remain pending until the old artifacts are recovered or the
+same submission is replayed. Do not reject a synchronization repair solely
+because it retains the original numeric bounds.

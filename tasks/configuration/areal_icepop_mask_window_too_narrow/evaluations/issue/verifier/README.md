@@ -10,6 +10,8 @@ verdict for this task is `unhealthy`; the essential root cause is the IcePop
 token-mask window narrowed to [0.67, 1.5] by
 `actor.rejection_sampling.lower` / `actor.rejection_sampling.upper` in `run.sh`
 (the shipped `examples/math/gsm8k_icepop.yaml` window is [0.5, 5]).
+The scored mechanism is the active hard-mask band causing lost or biased signal;
+no unique-cause proof, hidden controls or exact-statistic checklist is required.
 
 `gold.yaml` is retained as a reviewer-facing reference. Machine grading
 reads `oracle.md`, not `gold.yaml`.

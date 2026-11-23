@@ -65,3 +65,17 @@ additional causes beyond these two.
 - A diagnosis that names both the observation loss mask and the title-only
   retrieval rendering, each with its correct causal role, should receive
   full `root_cause_score`; naming only one of the two is partial.
+
+## Scoring contract
+
+The task-specific judge_prompt.md defines the complete scored cause and evidence
+groups. The detailed measurements above are supporting context, not a checklist.
+Concrete source/configuration evidence and direct functional consequences count;
+no hidden control-run numbers, exact steps, or sole-cause proof are required.
+
+Recognition of the two concrete implementation failures takes precedence over
+a health adjective referring only to improving aggregate QA accuracy. Uncertainty
+about their individual contribution to the metric plateau is scientifically
+reasonable and is not a reason to deny code-mechanism credit. Older published
+snapshots end near 0.1647 (starting near 0.048); the refreshed snapshot ends near
+0.1673 (starting near 0.033). Exact historical values are not scored.
