@@ -1,0 +1,8 @@
+# Solution verifier
+
+Deterministic evaluation of `/workspace` after the system reruns `run_justrl2_ppo.sh` per `run_spec.json`:
+
+- Runs `evaluations/solution/verifier/tests/grade_submission.py`, which reads `evaluations/solution/verifier/resources/grader_spec.json` and writes `$AUTORLBENCH_RESULTS/{experiment_metrics.json,metrics.json,result.json}`.
+- **Metric space & score mode:** `heldout/countdown_exact_acc@29` is computed directly from the fresh rerun's `$AUTORLBENCH_RESULTS/experiment_logs/val_generations/29.jsonl` (`score_mode = "final"`, final step `29` of the 30-step PPO horizon `0..29` with `eval_interval = 10`) using exact AST + rational `Fraction` arithmetic over Countdown puzzles (`>= 1,000` rows, `required_final_score = "0.32"`). Unlike logged scalars, exact held-out AST evaluation cannot drift from prompt/reward rewrites.
+- **Calibration:** across 4 shared-image 8xH100 runs (2 defective: step-3 deadlock, `final_score = None` after step-0 `0.10352` / `0.10449`; 2 control: `0.44531` and `0.41504` from step-0 `0.10156` / `0.10059`), threshold `0.32` clears the control step-0 baseline by `+0.2184` (`+0.2184` margin above initial policy) and sits `-0.0950` below the lower control (`0.41504`, seed 43).
+- **Stage integrity & run reality:** verifies continuous `rollout/step` `0..29`, at least `27` `train/step` actor updates with `train/pg_loss` (steps `3..29`), `eval/step = 29` in `metrics.jsonl`, byte equality of `run_justrl2_ppo.sh` against the verifier's pristine copy, SHA-256 of raw Countdown parquet + `data_prep/countdown.py` + `reward/countdown_reward.py`, and exact prompt/label consistency of regenerated `data/countdown/{train,test}.jsonl`.
