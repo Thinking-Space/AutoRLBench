@@ -27,6 +27,16 @@ oracle.
   Evidence the oracle does not state does not count, and symptoms presented as
   root causes do not count.
 
+## Evidence: substance over wording (applies to every evidence group)
+
+Any equivalent number, case, or reproduction counts in place of the oracle's specific
+figures. Do NOT withhold an evidence group for missing oracle-recorded counts, paths,
+parameter lists, or per-batch decimals when the diagnosis gives equivalent substantive
+evidence (same wrong behavior, same comparison, same control conclusion). Oracle-recorded
+specifics that cannot be recomputed from the workspace -- private control runs, deleted
+raw artifacts, historical job archives -- are never required. Withhold an evidence group
+only when its substantive observation is absent in every equivalent form.
+
 Return exactly one JSON object with no Markdown and no additional keys:
 
 ```json

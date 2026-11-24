@@ -1,29 +1,34 @@
 {
-  "category": "infrastructure",
-  "framework": "pytorch-transformers-vllm",
-  "task": "padding-attention-mask",
-  "verdict": "unhealthy",
-  "root_cause": [
-    {
-      "name": "custom_attention_missing_mask_builder_registration",
-      "where": "workspace/vendor/qat_kv/turboquant_attn_hook.py (registers the custom attention only in ALL_ATTENTION_FUNCTIONS, line 530; no ALL_MASK_ATTENTION_FUNCTIONS registration anywhere in the workspace)",
-      "observed": "the TurboQuant custom attention implementation is registered in Transformers' attention-function registry but omitted from the separate mask-builder registry (ALL_MASK_ATTENTION_FUNCTIONS); mask preprocessing returns None for the unknown custom attention name, Qwen2 passes that None into the custom attention wrapper, and the wrapper forwards it to SDPA, so real-token queries attend to preceding padding keys even though the supplied cumulative-sum position IDs keep real-token positions aligned; the actor's log-probabilities and policy gradients for the same response therefore depend on the batch's left-padding layout",
-      "expected": "register the custom attention in the mask-builder registry as well (or otherwise supply a boolean mask that excludes the padding keys), so same-token scoring is invariant to left-padding layout"
-    }
-  ],
-  "evidence_metrics": [
-    "the historical 60-step run's per-step hf_padding_logprob_effect_mae grows monotonically from about 0.25 to 42.54288 at step 60 while the final evaluation scores 232/960",
-    "the historical run's optimizer destabilizes from around step 10: gradient norms reach the 10^5-10^6 range and the policy-gradient loss reaches several hundred through most of steps 18-40, with intermittent partial recoveries; the run completes without raising",
-    "the shared-image one-step reproduction completes a full optimizer step over 128 responses (54 correct, gradient norm 0.12818458) with three original responses shipped",
-    "workspace/evidence/same_token_control.json ships a smaller saved same-token comparison (19-token response over a 997-token padded prefix) with its two-layout log-probability comparison and gradient impact",
-    "the separate native-versus-unpadded-HF prefill discrepancy is instrumented at about 0.077 MAE throughout and is a different path mismatch, not the within-actor layout defect"
-  ],
-  "fix": {
-    "must": [
-      "name the missing ALL_MASK_ATTENTION_FUNCTIONS registration and trace the resulting None mask through the custom attention wrapper into SDPA",
-      "explain why aligned position IDs do not prevent attention to padded keys",
-      "connect the layout-dependent log-probabilities to the policy-gradient computation and the recorded padding-effect MAE trajectory",
-      "keep the native-versus-HF prefill discrepancy distinct from the within-actor layout defect (it may earn additional credit on its own)"
-    ]
+ "category": "infrastructure",
+ "framework": "pytorch-transformers-vllm",
+ "task": "padding-attention-mask",
+ "verdict": "unhealthy",
+ "root_cause": [
+  {
+   "name": "custom_attention_missing_mask_builder_registration",
+   "where": "workspace/vendor/qat_kv/turboquant_attn_hook.py (registers the custom attention only in ALL_ATTENTION_FUNCTIONS, line 530; no ALL_MASK_ATTENTION_FUNCTIONS registration anywhere in the workspace)",
+   "observed": "the TurboQuant custom attention implementation is registered in Transformers' attention-function registry but omitted from the separate mask-builder registry (ALL_MASK_ATTENTION_FUNCTIONS); mask preprocessing returns None for the unknown custom attention name, Qwen2 passes that None into the custom attention wrapper, and the wrapper forwards it to SDPA, so real-token queries attend to preceding padding keys even though the supplied cumulative-sum position IDs keep real-token positions aligned; the actor's log-probabilities and policy gradients for the same response therefore depend on the batch's left-padding layout",
+   "expected": "register the custom attention in the mask-builder registry as well (or otherwise supply a boolean mask that excludes the padding keys), so same-token scoring is invariant to left-padding layout"
   }
+ ],
+ "evidence_metrics": [
+  "the historical 60-step run's per-step hf_padding_logprob_effect_mae grows monotonically from about 0.25 to 42.54288 at step 60 while the final evaluation scores 232/960",
+  "the historical run's optimizer destabilizes from around step 10: gradient norms reach the 10^5-10^6 range and the policy-gradient loss reaches several hundred through most of steps 18-40, with intermittent partial recoveries; the run completes without raising",
+  "the shared-image one-step reproduction completes a full optimizer step over 128 responses (54 correct, gradient norm 0.12818458) with three original responses shipped",
+  "workspace/evidence/same_token_control.json ships a smaller saved same-token comparison (19-token response over a 997-token padded prefix) with its two-layout log-probability comparison and gradient impact",
+  "the separate native-versus-unpadded-HF prefill discrepancy is instrumented at about 0.077 MAE throughout and is a different path mismatch, not the within-actor layout defect"
+ ],
+ "fix": {
+  "must": [
+   "name the missing ALL_MASK_ATTENTION_FUNCTIONS registration and trace the resulting None mask through the custom attention wrapper into SDPA",
+   "explain why aligned position IDs do not prevent attention to padded keys",
+   "connect the layout-dependent log-probabilities to the policy-gradient computation and the recorded padding-effect MAE trajectory",
+   "keep the native-versus-HF prefill discrepancy distinct from the within-actor layout defect (it may earn additional credit on its own)"
+  ]
+ },
+ "scoring_contract": {
+  "evidence_substance_over_wording": true,
+  "evidence_equivalent_forms_accepted": true,
+  "unrecomputable_oracle_specifics_not_required": true
+ }
 }

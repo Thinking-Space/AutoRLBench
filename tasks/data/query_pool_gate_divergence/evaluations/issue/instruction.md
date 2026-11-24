@@ -16,3 +16,14 @@ You may run the launcher and the pool builder locally; they are CPU-only and tak
 use the network, and do not modify the archived logs.
 
 Write one concise UTF-8 diagnosis to `$AUTORLBENCH_RESULTS/agent_answer.md`. Do not propose a fix.
+
+## Diagnosis scope
+
+Score the launch gate's observable contract, not recall of a particular archived
+summary. A diagnosis may establish a defect with source/configuration evidence,
+a case-level replay, or a small local reproduction. It does not need to quote
+the complete pass-A/pass-B totals, every case identifier, or the exact log
+aggregation line when it has already connected the mechanism to an incorrect
+accept or reject decision. The ten implementation defects are covered by six
+scored mechanism groups; extra measurements are supporting evidence rather than
+additional mandatory checklist items.

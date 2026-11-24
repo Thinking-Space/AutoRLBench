@@ -1020,6 +1020,55 @@
  * unchanged workspaces and sixteen replayed repairs that grade 0 --
  * again both defects must be fixed. The published issue-judgment
  * total below moves 515 -> 525 and the solution-run total 216 -> 226.
+ * On 24 Nov 2026, the ten query_pool_gate_divergence and ten
+ * r1v_clevr_count_range_mismatch Issue diagnoses were rejudged
+ * after repairing the two evidence rubrics: archived pass totals
+ * and exact subgroup counts are no longer mandatory evidence, and
+ * source-level dataflow, a single case, or a minimal reproduction
+ * counts as equivalent. No agent or training rerun -- the
+ * trajectories are unchanged. The judging rule is
+ * substance-over-wording: each root-cause group is credited on its
+ * substantive assertion (wrong behavior, where, and its downstream
+ * consequence) in any wording -- no mechanism name, exact count, or
+ * expanded causal chain required; a group is withheld only on a
+ * wrong-mechanism attribution or treating the defect as design.
+ * Under that rule Query pool moves 0/10 to 8/10 (mean 0.705 to
+ * 0.955) and CLEVR moves 1/10 to 8/10 (mean 0.655 to 0.890, with the failing pair rotating: Grok-4.7 0.7 and Claude-Fable-5.1 0.267). The
+ * two remaining query-pool fails are real gaps: Kimi-K3's batch
+ * feasibility and validate-only checks never happened, and
+ * GPT-6-Astra misreads the swallowed second reading as a validator
+ * default and treats the c10 defect as intentional; the two CLEVR
+ * fails misattribute the failure (Grok-4.7 explains the 3-10 drift
+ * purely as the KL-to-base pull with no data-reward mismatch, and
+ * Claude-Fable-5.1 blames the format regex). Scores, dimension splits
+ * and audit reasons are in rejudgments/2026-11-24-query-pool-clevr.json.
+ * The query_pool solution verifier is unchanged and its ten
+ * recorded runs remain 0/10; CLEVR ships issue-only.
+ * On 24 Nov 2026, the eleven miles_miniswe_harbor_tool_parser_mismatch
+ * Issue records were rejudged with an explicit equivalent-evidence chain:
+ * qwen3_coder/qwen25 parser mismatch -> literal tool JSON in assistant text
+ * -> assistant_text mismatch -> uniform retry fan-out and 64-to-192 leaf
+ * inflation. Seven now pass; exact 192/187 counts are auxiliary. The ten
+ * verl_vllm011_fp8_kv_scale_sleep Issue records were also rejudged after
+ * separating generic FP8/uncalibrated-scale explanations from the required
+ * vLLM 0.11 level-2 sleep/wake mechanism where _k_scale/_v_scale are lost
+ * or zeroed after weight reload. None of the ten final diagnoses closes that
+ * mechanism, so the task remains 0/10. No agent or training rerun.
+ * Per-run scores and audit reasons are in
+ * rejudgments/2026-11-24-miles-fp8.json.
+ * On 24 Nov 2026 the same substance-over-wording rule was applied to the
+ * evidence dimension of eleven further tasks (cc_native_websearch,
+ * slime_excluded_rollout, tokenizer-vocab-support, verl_quantized_rollout_restart,
+ * areal_disk_weight_update, padding-attention-mask, trl_gsm8k_threaded_reward_order,
+ * miles_judge_thinking_strip, slime_dapo_lookahead, slime_judge_router and
+ * miles_cp_collective_desync): 33 root-cause-perfect trajectories were rejudged
+ * -- 23 pass (the withheld evidence groups were oracle-recorded counts, paths,
+ * parameter lists or per-batch decimals that equivalent substantive evidence
+ * already covered, or private controls the agent could not run), and 10 remain
+ * failed with real capability gaps (added unsupported second causes, fabricated
+ * numbers, dismissed the oracle's aligned-support residual as execution noise,
+ * reversed the optimization-causality direction, or gave no trace at all of the
+ * gradient/reward evidence group).
  * The ten trl_gsm8k_threaded_reward_order issue records were
  * published on 23 Nov 2026 from the local cybertron-evaluate sweep
  * (ten models; no Gemini run; the task ships issue-only). The task
@@ -1490,11 +1539,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.828,
+    "passed": true,
+    "score": 0.95,
     "durationMs": 1553864,
     "steps": 113,
-    "costUsd": 12.7876
+    "costUsd": 12.7876,
+    "auditReason": "【2026-11-24 evidence 等价性重判】同一发现（1,683/10,010 免执行验证、22/128 held-out、step-175 超时轨迹得 1.0、8/20 转储全 1.0）；保留 0.05——附加 reward-blind-to-text 第二归因与 OPD 叙述为非 oracle 根因的扩展。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/qwen3vl_geo3k",
@@ -1640,11 +1691,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.742,
+    "passed": true,
+    "score": 0.93,
     "durationMs": 2324840,
     "steps": 21,
-    "costUsd": 4.1403
+    "costUsd": 4.1403,
+    "auditReason": "【2026-11-24 evidence 等价性重判】OOM 主链完整：cgroup 15.07→20.00 GiB、checkpoint_events 止于 model_write_start、ray OOM 异常、FSDP NO_SHARD 全量 dict、offload+file_mapped 超限；GPU 排除正确。原判缺次级时序数字。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/qwen3vl_geo3k",
@@ -2104,11 +2157,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.73,
+    "passed": true,
+    "score": 0.92,
     "durationMs": 2946625,
     "steps": 14,
-    "costUsd": 1.869
+    "costUsd": 1.869,
+    "auditReason": "【2026-11-24 evidence 等价性重判】OOM 主链完整：optimizer_offload 3.95 GB + fsdp_checkpoint_manager 强制 offload_to_cpu、checkpoint_events 止于 model_write_start、RSS 17.15 GB、阈值 0.953>0.95、completed.json 未写。原判缺次级时序数字。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "reward/idea_awm_reward_diagnosis",
@@ -2268,11 +2323,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.77,
+    "passed": true,
+    "score": 0.93,
     "durationMs": 1619419,
     "steps": 25,
-    "costUsd": null
+    "costUsd": null,
+    "auditReason": "【2026-11-24 evidence 等价性重判】OOM 主链完整：save_freq=10=total_steps 落在最后一步、cgroup 18.76/20 GiB、checkpoint_events 止于 model_write_start、raylet 杀 pid 1125 于 19.06/20.00 GB、AdamW 3.68 GiB CPU offload；附加 256-token cap 作第一根因是表述排序差异（两机制均在且区分正确）。原判缺\"次级时序数字\"。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/verl_moe_token_normalization",
@@ -3032,11 +3089,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.95,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1494825,
     "steps": 34,
-    "costUsd": 9.297
+    "costUsd": 9.297,
+    "auditReason": "【2026-11-24 evidence 等价性重判】gold 根因逐句匹配：_pause_and_prepare_engines 覆写 abort 为 in_place；stale_groups_recycled=32-33/步 + aborted=0（gold 证据）、92 步完成、perf 188→311s 全给。被扣的 wait-time 比值为辅助项。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/miles_async_rollout_inflight_not_evicted",
@@ -3867,11 +3926,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.96,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1593290,
     "steps": 34,
-    "costUsd": 14.6122
+    "costUsd": 14.6122,
+    "auditReason": "【2026-11-24 evidence 等价性重判】两个 gold 根因均闭合：luspo_token 无掩码聚合（loss.py:38、8192 位置、use_remove_padding: false）+ 长度加权放大 + 无 dual-clip；梯度 1.07e5→2.97e7、held-out 峰值后衰减全给。原判的附加数值门槛不成立。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "algorithm/verl_policy_loss_padded_mask_only",
@@ -6973,11 +7034,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.886364,
+    "passed": true,
+    "score": 0.96,
     "durationMs": 757944,
     "steps": 28,
-    "costUsd": 0.8062
+    "costUsd": 0.8062,
+    "auditReason": "【2026-11-24 evidence 等价性重判】轨迹中间步骤确认机制闭合：在冻结 token dumps 上重放 filter 函数对近确定 token 产生 NaN 并被丢弃、解释 33% 拒绝率中的 31 个百分点；最终诊断在 agent_answer.md（codex 尾消息惯例简短）。原判要求固定数字。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
@@ -7071,11 +7134,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.92,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1509691,
     "steps": 25,
-    "costUsd": null
+    "costUsd": null,
+    "auditReason": "【2026-11-24 evidence 等价性重判】float32 机制逐句闭合：1.0-1e-8==1.0、log_p==0.0 → 0·log(0)=NaN、NaN 未过 metric<=upper 被掩码、真实转储上 94-99.9% 过滤由 NaN 引起（gold：99.8% 掩码 token 概率恰为 1.0）；另给 Bernoulli 盲区结构性洞察。原判要求固定 mask fraction/GSM8K 数字。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
@@ -7408,10 +7473,13 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.92,
+    "score": 0.95,
     "durationMs": 3026000,
     "steps": 36,
-    "costUsd": 25.4535
+    "costUsd": 25.4535,
+    "evidenceScore": 0.75,
+    "auditReason": "【2026-11-24 evidence 等价性重判】维持未过：新增未锚定的 unanchored-update/entropy-collapse 根因并把学习退化归因于它——实质归因错误。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "configuration/areal_disk_weight_update_on_sglang",
@@ -7449,11 +7517,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 527000,
     "steps": 19,
-    "costUsd": 4.5953
+    "costUsd": 4.5953,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：144.42s 中位 vs 21.36s、65/87、reward 序列全给；omitted 的溯源句/10800s/172.5s/xccl 对照为数字与私有对照复述。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "configuration/areal_disk_weight_update_on_sglang",
@@ -7492,10 +7563,13 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.9,
+    "score": 0.95,
     "durationMs": 2525000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 0.75,
+    "auditReason": "【2026-11-24 evidence 等价性重判】维持未过：把 train/held-out 学习问题作为第二根因——实质归因错误（oracle：学习未受影响）。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "configuration/areal_disk_weight_update_on_sglang",
@@ -8551,11 +8625,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.933333,
+    "passed": true,
+    "score": 0.98,
     "durationMs": 0,
     "steps": 60,
-    "costUsd": 6.9279
+    "costUsd": 6.9279,
+    "auditReason": "【2026-11-24 evidence 等价性重判】gold 根因逐句匹配：running_return 在 response_mask==0 处重置、99.2% 掩码 token 同一 -0.092 优势、终段 +10.867；max_assistant_turns 按 substance 规则拆为辅助项（原判当第二根因扣分）。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "configuration/areal_disk_weight_update_on_sglang",
@@ -8566,10 +8642,13 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.9,
+    "score": 0.94,
     "durationMs": 3107000,
     "steps": 143,
-    "costUsd": 12.6997
+    "costUsd": 12.6997,
+    "evidenceScore": 0.7,
+    "auditReason": "【2026-11-24 evidence 等价性重判】维持未过：断言 held-out 退化——与 oracle 的\"学习跟踪对照组\"结论相反，实质证据错误。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -8729,11 +8808,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.942857,
+    "passed": true,
+    "score": 0.98,
     "durationMs": 866000,
     "steps": 37,
-    "costUsd": 4.2263
+    "costUsd": 4.2263,
+    "evidenceScore": 0.9,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：六项证据中五项半全给（32/32、56/39/17、审计序数、精确 RuntimeError、组 306-358）；omitted 的 1775.3861s 为纯数字，120s vs 180s 为单值引用误差。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/trl_tool_history_cross_contamination",
@@ -8799,11 +8881,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.96,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 0,
     "steps": 129,
-    "costUsd": 8.3788
+    "costUsd": 8.3788,
+    "auditReason": "【2026-11-24 evidence 等价性重判】与 gold 根因逐句匹配：merged_lora_context 内捕获 state_dict、上下文 finally 恢复后惰性 full_tensor()、vLLM 收到未合并基权重；两条 gold 证据数字（0.0857→0.0842、KL 0.0004→81.5）全给，另有 88% 字节相同生成与 Pearson 0.16。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/verl_moe_token_normalization",
@@ -8843,11 +8927,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.91,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 0,
     "steps": 219,
-    "costUsd": 19.0252
+    "costUsd": 19.0252,
+    "auditReason": "【2026-11-24 evidence 等价性重判】种子数据污染根因完全闭合：重建全部 1,000 场景 DB 并跑完 10,010 个 verifier（1,683/16.8% 免执行得 1.0），6 条保存轨迹明说\"无法完成\"仍得 1.0，因果链 bridge._verify→SEED advantage 全给。原判以 oracle 特定条目 boolean 计分漏掉等价发现——证据强于多数过线者。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "reward/slime_judge_router_admission_starvation",
@@ -8857,11 +8943,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.933333,
+    "passed": true,
+    "score": 0.98,
     "durationMs": 1401000,
     "steps": 65,
-    "costUsd": 5.111
+    "costUsd": 5.111,
+    "evidenceScore": 0.9,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：双副本分工、单注册 worker、96 组/7 接受/拒绝计数、无更新、配置全给；omitted 的 workers:[] 细节、batch_ready_s=-1、task-history 字段名为形态细节（等价已给）。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "reward/slime_retool_length_reward_bonus",
@@ -9059,11 +9148,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.328571,
+    "passed": true,
+    "score": 0.98,
     "durationMs": 76000,
     "steps": 12,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 0.9,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "【2026-11-24 evidence 等价性重判】driver log 的 \"Tool call marker present but no complete call parsed; dropping\" 已实质覆盖 literal JSON 留在文本、结构化 tool_calls 丢失的机制证据；mismatch 类型标签与 187 计数为精度细节，且答案明示 \"the parser drops the model's emitted tool-call markers/arguments\" 的正确方向。"
   },
   {
     "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
@@ -9073,11 +9168,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.31428,
+    "passed": true,
+    "score": 0.97,
     "durationMs": 86000,
     "steps": 13,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 0.85,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "【2026-11-24 evidence 等价性重判】同上以 driver log 为等价证据翻案；保留 0.15——把被丢弃对象说成 \"incomplete/unrecognized tool-call segments\"，方向表述偏模型侧（ground truth：完整有效的 JSON 调用因格式不被 qwen3_coder 解析）。"
   },
   {
     "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
@@ -9088,10 +9189,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": true,
-    "score": 0.966667,
+    "score": 1.0,
     "durationMs": 573000,
     "steps": 22,
-    "costUsd": 7.1014
+    "costUsd": 7.1014,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "明确区分 qwen3_coder 与 qwen25，说明 JSON tool call 被 parser 丢出结构化消息但仍留在 raw stream，给出 assistant_text mismatch、三次重试和 64→192 叶子膨胀。"
   },
   {
     "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
@@ -9105,7 +9212,13 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 2392000,
     "steps": 99,
-    "costUsd": 18.8629
+    "costUsd": 18.8629,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "从模板与 parser contract 定位错配，明确 expected/actual 的 raw JSON 差异、187 条 assistant_text mismatch、MiniSWE 重试和每个 logical rollout 保留 3 个 leaf。"
   },
   {
     "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
@@ -9116,10 +9229,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.3428,
+    "score": 0.583333,
     "durationMs": 3342000,
     "steps": 19,
-    "costUsd": 2.2292
+    "costUsd": 2.2292,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.75,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "准确报告 64/192、1.0 mismatch、raw tool-call 和 fan-out 症状，但把 qwen3_coder/qwen25 的解析方向反过来，根因机制错误。"
   },
   {
     "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
@@ -9129,11 +9248,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9375,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 435000,
     "steps": 24,
-    "costUsd": 1.9672
+    "costUsd": 1.9672,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "明确 qwen3_coder 应为 qwen25，说明 raw XML/JSON tool call 未进入 tool_calls、187 条 assistant_text mismatch、三次 No tool calls 重试和 64→192 叶子膨胀。"
   },
   {
     "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
@@ -9144,10 +9269,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": true,
-    "score": 0.9625,
+    "score": 1.0,
     "durationMs": 1446000,
     "steps": 48,
-    "costUsd": 12.9551
+    "costUsd": 12.9551,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "覆盖 parser 家族错位、literal tool-call suffix、assistant_text mismatch、strict session 分叉和 64→192 training leaves，并区分 residual MiniSWE 行为。"
   },
   {
     "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
@@ -9161,7 +9292,13 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 233000,
     "steps": 4,
-    "costUsd": 0.1133
+    "costUsd": 0.1133,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.0,
+    "verdictScore": 0.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "上游鉴权失败，没有诊断交付物。"
   },
   {
     "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
@@ -9171,11 +9308,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.92,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 2109000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "明确 qwen3/qwen3_coder 与 qwen25 的 contract，给出模型生成的 literal JSON、No tool calls、assistant_text mismatch、64 次三叶分叉及 192 training leaves；额外的训练 kernel 错误被单独区分。"
   },
   {
     "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
@@ -9186,10 +9329,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": true,
-    "score": 0.986667,
+    "score": 1.0,
     "durationMs": 279000,
     "steps": 92,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "明确 JSON tool call 不被 qwen3_coder 解析，raw block 与 expected text 分离，全部 187 条为 assistant_text，并把三次 format retry 连接到 64→192。"
   },
   {
     "task": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
@@ -9200,10 +9349,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": true,
-    "score": 0.985714,
+    "score": 1.0,
     "durationMs": 877000,
     "steps": 101,
-    "costUsd": 9.7559
+    "costUsd": 9.7559,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "逐层闭合 qwen3_coder/qwen25 错配、structured tool_calls 丢失而 raw JSON 保留、assistant_text mismatch、RepeatedFormatError 和 3× leaf accounting。"
   },
   {
     "task": "environment/miles_miniswe_format_error_retry_fanout",
@@ -9781,11 +9936,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.94,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 81000,
     "steps": 16,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：25,190 tokens/梯度/reward 序列等实质证据已给，omitted 全为 oracle 特定计数（?beta=true 路径、299/895、三批细节）——数字复述不构成能力缺陷。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/cc_native_websearch_self_hosted",
@@ -9809,11 +9967,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.92,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 484000,
     "steps": 16,
-    "costUsd": 12.1547
+    "costUsd": 12.1547,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：891 失败/三批/梯度 1-2 步/reward 变异组全给；omitted 为 oracle 数字。\"configuration/forwarding flag\"的次要框定不改变根因正确性（rc 满）。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/cc_native_websearch_self_hosted",
@@ -9823,11 +9984,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.94546,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 631000,
     "steps": 30,
-    "costUsd": 4.9763
+    "costUsd": 4.9763,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：891/300/895/96/25190/梯度/reward 序列几乎全部给出，omitted 仅为路径写法与 299 计数。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/cc_native_websearch_self_hosted",
@@ -9837,11 +10001,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.944444,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 450000,
     "steps": 20,
-    "costUsd": 0.7635
+    "costUsd": 0.7635,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：给出 270/300、272/299、895、96/25190、梯度 2.41/1.71、组 3/2——数字覆盖甚至超过多数过线者。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/cc_native_websearch_self_hosted",
@@ -9851,11 +10018,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.934,
+    "passed": true,
+    "score": 0.98,
     "durationMs": 217000,
     "steps": 16,
-    "costUsd": 1.1682
+    "costUsd": 1.1682,
+    "evidenceScore": 0.9,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：891/96/reward 序列/teardown 排除全给；omitted 全 300/299/895 计数复述，按等价性补认（保留 0.1：账目不全）。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/cc_native_websearch_self_hosted",
@@ -9865,11 +10035,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.96,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1199000,
     "steps": 29,
-    "costUsd": 9.9101
+    "costUsd": 9.9101,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：891/300/895/三批/25190/梯度 0-2.4-1.7/组 0-3-2 全给——被扣的仅是 ?beta=true 路径与三位小数均值。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/cc_native_websearch_self_hosted",
@@ -9880,10 +10053,13 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.9,
+    "score": 0.95,
     "durationMs": 973000,
     "steps": 23,
-    "costUsd": 6.9389
+    "costUsd": 6.9389,
+    "evidenceScore": 0.75,
+    "auditReason": "【2026-11-24 evidence 等价性重判】维持未过：附加的次要根因不是 oracle 根因（judge 点名的实质归因错误）；299/895/25190/最终保存等证据缺失混合数字与形态。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/cc_native_websearch_self_hosted",
@@ -9908,10 +10084,13 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.933333,
+    "score": 0.95,
     "durationMs": 320000,
     "steps": 53,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 0.75,
+    "auditReason": "【2026-11-24 evidence 等价性重判】维持未过：梯度范数与 reward 均值组完全未报（连等价形态都没有）——真实证据形态缺口，非数字复述。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/cc_native_websearch_self_hosted",
@@ -9981,7 +10160,10 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.9,
     "durationMs": 9935000,
     "steps": 45,
-    "costUsd": 66.31
+    "costUsd": 66.31,
+    "evidenceScore": 0.5,
+    "auditReason": "【2026-11-24 evidence 等价性重判】维持未过：把 oracle 的对齐支撑域重尾残差 dismiss 为执行噪声——把真信号当噪声是实质分析错误，非数字复述。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/tokenizer-vocab-support",
@@ -10020,10 +10202,13 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.9,
+    "score": 0.95,
     "durationMs": 801000,
     "steps": 33,
-    "costUsd": 5.5268
+    "costUsd": 5.5268,
+    "evidenceScore": 0.75,
+    "auditReason": "【2026-11-24 evidence 等价性重判】维持未过：只报 509 一行（可接受）但把尾塌陷因果方向反转（oracle：先有支撑失配、塌陷是后果；答案：塌陷激活失配）——实质因果错误。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/tokenizer-vocab-support",
@@ -10048,10 +10233,13 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.934,
+    "score": 0.94,
     "durationMs": 2975000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 0.7,
+    "auditReason": "【2026-11-24 evidence 等价性重判】维持未过：把极端负差归因支撑机制并把未解释残差限于正值——实质归因错误，非数字复述。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/tokenizer-vocab-support",
@@ -10075,11 +10263,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.96,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1358000,
     "steps": 78,
-    "costUsd": 7.6722
+    "costUsd": 7.6722,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：726-1000 跨度、三行均值 4.87/4.86/4.76、短行不变、+25.7/+33.4 残差尖峰已识别——omitted 仅为分布统计（中位数/分位数）与 position-10760 的精确值，等价证据已给。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/verl_agent_loop_response_position_restart",
@@ -10311,11 +10502,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.925,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1231000,
     "steps": 30,
-    "costUsd": 6.7598
+    "costUsd": 6.7598,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：512/512、same-token 对照、梯度相对 L2 3.5125、mae 轨迹全给；omitted 的 0.28739/0.00721、128 条同序列、974 keys 为共享镜像复现的精确值（等价 same-token 已给）。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/padding-attention-mask",
@@ -10395,11 +10589,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.95,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1137000,
     "steps": 83,
-    "costUsd": 7.6633
+    "costUsd": 7.6633,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：512/512、position hashes、3.51、mae 42.54、native_vs_hf 0.075-0.083 全给；omitted 为共享镜像的精确 setup 数字。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "reward/miles_judge_thinking_strip_failure",
@@ -10539,7 +10736,10 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.95,
     "durationMs": 2792000,
     "steps": 152,
-    "costUsd": 13.6382
+    "costUsd": 13.6382,
+    "evidenceScore": 0.75,
+    "auditReason": "【2026-11-24 evidence 等价性重判】维持未过：21,485→1,164 的 18× 不可复算数字已按等价性豁免，但新增未支撑的截断门控第二根因——实质归因错误。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -10550,10 +10750,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.633333,
+    "score": 0.8,
     "durationMs": 94000,
     "steps": 12,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 0.6667,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "G1/G3/G4/G5 覆盖；G2 机制误读——把第二个 reader 的失败归因为 validator 默认、未识别失败被吞；G6 把 c10 缺陷归为 intentional——两处真实能力缺陷。"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -10563,11 +10769,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.6,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 93000,
     "steps": 11,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "六组实质全覆盖：c05 双读不一致与空值继续启动（G1/G2）、非整数截断（G3）、零权重/registry（G4）、期望与批次（G5）、validate-only 不能证明安全启动（G6，原文 \"c10 only validates and therefore does not demonstrate a safe started run\"）。"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -10578,10 +10790,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.5,
+    "score": 0.85,
     "durationMs": 351000,
     "steps": 10,
-    "costUsd": 7.8231
+    "costUsd": 7.8231,
+    "rootCauseScore": 0.75,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "G1/G2 实质覆盖（KeyError 被 command substitution 捕获为空串、c05 照样启动）、G3/G4 与 G5 的 composition 半组；批次可行性半组与 G6 整组缺失——真实缺口。"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -10591,11 +10809,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.762857,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1057000,
     "steps": 26,
-    "costUsd": 5.8775
+    "costUsd": 5.8775,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "六组实质全覆盖，含 validate-only \"该故障类对其结构性不可见（stops before the batch config）\"。"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -10605,11 +10829,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.69334,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 243000,
     "steps": 20,
-    "costUsd": 0.6806
+    "costUsd": 0.6806,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "六组实质全覆盖，G2 由 \"POOL_TOTAL 空值仍以 broken identity 启动\" 判定。"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -10619,11 +10849,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.813333,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 395000,
     "steps": 16,
-    "costUsd": 0.9685
+    "costUsd": 0.9685,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "逐项复现 3 个误拒和 7 个误放行，说明独立读取、export 状态丢失、类型检查、registry/零权重、期望配置、批次和 validate-only 因果链。"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -10633,11 +10869,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.693333,
+    "passed": true,
+    "score": 0.9,
     "durationMs": 1991000,
     "steps": 28,
-    "costUsd": 7.3632
+    "costUsd": 7.3632,
+    "rootCauseScore": 0.8333,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "G1–G5 实质覆盖（含 KeyError 下 set -e 不中止）；G6 仅一处弱提及未形成断言——5/6。"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -10647,11 +10889,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.873333,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1292000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "完整覆盖零权重双重误拒、registry 作用域、期望配置自比较、run identity、批次和 validate-only，并给出可复现数字。"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -10661,11 +10909,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "grok-build",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.786667,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 321000,
     "steps": 47,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "明确区分 3 个误拒和 4 个误放行，解释 total/export、期望配比、过采样及 validate-only 的方向；所有证据均来自可见 case。"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -10675,11 +10929,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.693333,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 444000,
     "steps": 24,
-    "costUsd": 2.5863
+    "costUsd": 2.5863,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "覆盖 7 个 false accepts、3 个 false rejects，含 zero-weight 双检查、registry、total/export、期望配比、两条 batch 边界和 validate-only。"
   },
   {
     "task": "data/query_pool_gate_divergence",
@@ -11049,11 +11309,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.446667,
+    "passed": true,
+    "score": 0.9333,
     "durationMs": 161000,
     "steps": 12,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 0.6666666666666666,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "A+B 实质齐（count reward 只接受整数匹配、强化分布内计数）；代表性输出证据不足压低 evidence。"
   },
   {
     "task": "data/r1v_clevr_count_range_mismatch",
@@ -11063,11 +11329,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.446667,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 110000,
     "steps": 12,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "A+B 实质齐备；行为推论按实质判定规则不单独要求。"
   },
   {
     "task": "data/r1v_clevr_count_range_mismatch",
@@ -11078,10 +11350,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.333333,
+    "score": 0.2667,
     "durationMs": 293000,
     "steps": 11,
-    "costUsd": 9.1053
+    "costUsd": 9.1053,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.3333333333333333,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "A/B 均缺：无单问题/答案分布对比，主归因宽松 format regex——误诊维持。"
   },
   {
     "task": "data/r1v_clevr_count_range_mismatch",
@@ -11091,11 +11369,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.575,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1291000,
     "steps": 40,
-    "costUsd": 9.4732
+    "costUsd": 9.4732,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "A+B 实质齐备：RC1 给出单问题/3-10 对 OOD 条件计数 0-2 的分布失配，并明确\"训练目标对问题类型零信号、学到的 OOD 泛化不是奖励保留的\"（B 反向实质）；RC2 的饱和+KL 是对动态的解释而非唯一主因——与 DeepSeek-V4 的两段并列结构同等判定。"
   },
   {
     "task": "data/r1v_clevr_count_range_mismatch",
@@ -11105,11 +11389,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.61,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 244000,
     "steps": 28,
-    "costUsd": 5.0776
+    "costUsd": 5.0776,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "明确指出单一问题和答案范围、总场景计数 shortcut、ID/OOD 曲线以及 step-400 条件问题被回答成总数。"
   },
   {
     "task": "data/r1v_clevr_count_range_mismatch",
@@ -11119,11 +11409,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 264000,
     "steps": 20,
-    "costUsd": 2.1175
+    "costUsd": 2.1175,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "用训练/OO D 数据、ID/OOD 曲线和多个具体条件计数输出闭合了“单问题→奖励→忽略条件→OOD 退化”。"
   },
   {
     "task": "data/r1v_clevr_count_range_mismatch",
@@ -11133,11 +11429,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.62,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1935000,
     "steps": 25,
-    "costUsd": 8.8833
+    "costUsd": 8.8833,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "A（单问题/3-10 对 OOD 条件计数 0-2 分布）与 B（exact-match count 奖励只强化分布内计数）实质齐备。"
   },
   {
     "task": "data/r1v_clevr_count_range_mismatch",
@@ -11151,7 +11453,13 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 1794000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "完整给出单问题、3-10 对比 OOD、ID/OOD 反向曲线、预测范围漂移和列出全场物体的具体输出。"
   },
   {
     "task": "data/r1v_clevr_count_range_mismatch",
@@ -11162,10 +11470,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.66,
+    "score": 0.7,
     "durationMs": 526000,
     "steps": 84,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "A（单一分布+3-10 对 OOD 0-2）覆盖；B withhold：主归因为奖励饱和→零优势→KL-to-base 把输出拉回 base 先验（\"Held-out behavior follows that KL pull\"），未把 3-10 偏向归因到 count 奖励只强化分布内计数——与 GLM 同样的错误机制，且比 GLM 更彻底（全文无数据-奖励失配表述）。"
   },
   {
     "task": "data/r1v_clevr_count_range_mismatch",
@@ -11175,11 +11489,17 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.96,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 2378000,
     "steps": 35,
-    "costUsd": 3.2192
+    "costUsd": 3.2192,
+    "rootCauseScore": 1.0,
+    "evidenceScore": 1.0,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-query-pool-clevr.json",
+    "auditReason": "明确说明 global optimum 是枚举场景并报总数，引用单问题/3-10、OOD 0-2、反向曲线和具体错误输出。"
   },
   {
     "task": "algorithm/slime_excluded_rollout_grpo",
@@ -11189,11 +11509,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 78000,
     "steps": 14,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：机制（被排除样本拉低组均值、同胞获正优势、梯度被弃）与 held-out 16/16→0/16 全给；omitted 仅 oracle 的 [0,1,0.6,0.6] 精确数组与 ±0.1213/−0.5773 精确值——方向性等价表述已在答案中。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "algorithm/slime_excluded_rollout_grpo",
@@ -11203,11 +11526,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9,
+    "passed": true,
+    "score": 0.98,
     "durationMs": 75000,
     "steps": 14,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 0.9,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：机制与 held-out 全给；保留 0.1——把证据引到不存在的 rollout-7 数值（编造数字）。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "algorithm/slime_excluded_rollout_grpo",
@@ -11231,11 +11557,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1241000,
     "steps": 52,
-    "costUsd": 8.7772
+    "costUsd": 8.7772,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：机制+held-out 1.0→0.0 全给；omitted 仅精确数组复述。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "algorithm/slime_excluded_rollout_grpo",
@@ -11245,11 +11574,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 170000,
     "steps": 17,
-    "costUsd": 0.602
+    "costUsd": 0.602,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：机制+\"dragged mean down without corrective gradient\"等价表述全给。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "algorithm/slime_excluded_rollout_grpo",
@@ -11259,11 +11591,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.96,
+    "passed": true,
+    "score": 0.98,
     "durationMs": 430000,
     "steps": 13,
-    "costUsd": 1.2883
+    "costUsd": 1.2883,
+    "evidenceScore": 0.9,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：给出 (0,1,0.6,0.6) 与 +0.121；保留 0.1——一次把 timeout 误标为 masked valid lookup。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "algorithm/slime_excluded_rollout_grpo",
@@ -11483,11 +11818,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9,
+    "passed": true,
+    "score": 0.98,
     "durationMs": 90000,
     "steps": 19,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 0.9,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：112 层/192×16384/step1 即坏/lr0/25966 对照（free_cache_engine=False）全给——omitted 的 input_global_scale_inv、196/731/535、0/64、level-1 独立检查均为数字/形态复述，25966 对照是 level-1 check 的等价物。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/verl_quantized_rollout_restart",
@@ -11567,11 +11905,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.93,
+    "passed": true,
+    "score": 0.97,
     "durationMs": 1353000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 0.85,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：196/731、clip 1.0、16384、lr0、free_cache_engine=False 对照全给；保留 0.15——把历史 job 误述为完全截断。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/verl_quantized_rollout_restart",
@@ -11581,11 +11922,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "grok-build",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.96,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 363000,
     "steps": 121,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：112/196/731/16384/clip/25966 对照/rule-outs 全给；omitted 全为 535、0/64、四参数清单等数字复述。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/verl_quantized_rollout_restart",
@@ -11595,11 +11939,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.95,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 1923000,
     "steps": 122,
-    "costUsd": 10.985
+    "costUsd": 10.985,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：112/196/731/535、newline-only 输出、clip 1.0、lr0、对照组全给；omitted 的 level-1 独立检查有 25966 等价物。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",
@@ -11923,11 +12270,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9,
+    "passed": true,
+    "score": 0.97,
     "durationMs": 1261000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 0.85,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：条件集合体、watchdog、r4 ALLREDUCE vs r6 RECV 冻结日志全给；omitted 的四杀历史（oracle 私有多 job 记录）与\"无错误\"显式陈述有等价物。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "infrastructure/miles_cp_collective_desync_deadlock",
@@ -11957,7 +12307,7 @@ window.AUTORLBENCH_RUNS = [
     "steps": 107,
     "costUsd": 8.6757
   },
-{
+  {
     "task": "reward/verl_inventory_agent_compound",
     "slug": "gpt6astra-inventory",
     "file": "agent-trace/gpt6astra-inventory.json",
@@ -11970,8 +12320,8 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 100000,
     "steps": 12,
     "costUsd": null
-},
-{
+  },
+  {
     "task": "reward/verl_inventory_agent_compound",
     "slug": "gpt61sol-inventory",
     "file": "agent-trace/gpt61sol-inventory.json",
@@ -11984,8 +12334,8 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 100000,
     "steps": 13,
     "costUsd": null
-},
-{
+  },
+  {
     "task": "reward/verl_inventory_agent_compound",
     "slug": "fable51-inventory",
     "file": "agent-trace/fable51-inventory.json",
@@ -11998,8 +12348,8 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 240000,
     "steps": 14,
     "costUsd": 1.7339
-},
-{
+  },
+  {
     "task": "reward/verl_inventory_agent_compound",
     "slug": "glm53-inventory",
     "file": "agent-trace/glm53-inventory.json",
@@ -12012,8 +12362,8 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 996000,
     "steps": 42,
     "costUsd": 7.0813
-},
-{
+  },
+  {
     "task": "reward/verl_inventory_agent_compound",
     "slug": "kimi-inventory",
     "file": "agent-trace/kimi-inventory.json",
@@ -12026,8 +12376,8 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 555000,
     "steps": 44,
     "costUsd": 1.6791
-},
-{
+  },
+  {
     "task": "reward/verl_inventory_agent_compound",
     "slug": "kimi31-inventory",
     "file": "agent-trace/kimi31-inventory.json",
@@ -12040,8 +12390,8 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 889000,
     "steps": 24,
     "costUsd": 2.0049
-},
-{
+  },
+  {
     "task": "reward/verl_inventory_agent_compound",
     "slug": "dsv4-inventory",
     "file": "agent-trace/dsv4-inventory.json",
@@ -12054,8 +12404,8 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1567000,
     "steps": 70,
     "costUsd": 5.6205
-},
-{
+  },
+  {
     "task": "reward/verl_inventory_agent_compound",
     "slug": "qwen38-inventory",
     "file": "agent-trace/qwen38-inventory.json",
@@ -12068,8 +12418,8 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 1834000,
     "steps": 2,
     "costUsd": null
-},
-{
+  },
+  {
     "task": "reward/verl_inventory_agent_compound",
     "slug": "grok47-inventory",
     "file": "agent-trace/grok47-inventory.json",
@@ -12082,8 +12432,8 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 438000,
     "steps": 94,
     "costUsd": null
-},
-{
+  },
+  {
     "task": "reward/verl_inventory_agent_compound",
     "slug": "dsv41flash-inventory",
     "file": "agent-trace/dsv41flash-inventory.json",
@@ -12106,10 +12456,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.3125,
+    "score": 0.5,
     "durationMs": 94000,
     "steps": 14,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 0.0,
+    "evidenceScore": 0.5,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "确认退化 rollout、零 reward/gradient 和无 validation，但明确表示 FP8 cache 机制无法从快照中隔离，不能满足 sleep/wake scale 根因门。"
   },
   {
     "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
@@ -12120,10 +12476,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.58,
+    "score": 0.7,
     "durationMs": 89000,
     "steps": 15,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 0.6,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "把 rollout 配置视为 causal fault，并覆盖 16,384 截断、!、零 reward/gradient；没有写出 level-2 wake 后 _k_scale/_v_scale 丢失或归零。"
   },
   {
     "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
@@ -12134,10 +12496,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.634,
+    "score": 0.75,
     "durationMs": 285000,
     "steps": 13,
-    "costUsd": 1.4495
+    "costUsd": 1.4495,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 0.75,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "指出 bf16 + fp8 KV、unit scale 和退化 attention；但只是 generic uncalibrated FP8 解释，没有把 scale 丢失归因到 verl level-2 sleep/wake + weight reload。"
   },
   {
     "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
@@ -12148,10 +12516,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.66,
+    "score": 0.783333,
     "durationMs": 1074000,
     "steps": 34,
-    "costUsd": 7.1277
+    "costUsd": 7.1277,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 0.85,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "代码级确认 fp8、bf16、unit scales、Q/K/V 量化与 768 条 ! rollout；虽然读到 enable_sleep_mode/free_cache_engine，但没有明确说明 level-2 wake 后 _k_scale/_v_scale 变成 0。"
   },
   {
     "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
@@ -12162,10 +12536,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.34,
+    "score": 0.716667,
     "durationMs": 104000,
     "steps": 15,
-    "costUsd": 0.4624
+    "costUsd": 0.4624,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 0.65,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "识别 fp8 KV 与 A100 上的退化 attention，并给出 224–226/256 的 !、零 reward 和零 gradient；把机制归因于硬件不支持，未定位 sleep/wake scale 丢失。"
   },
   {
     "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
@@ -12176,10 +12556,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.6067,
+    "score": 0.716667,
     "durationMs": 255000,
     "steps": 13,
-    "costUsd": 1.0
+    "costUsd": 1.0,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 0.65,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "识别 FP8 rollout 及全量 !/16,384/零 reward/零 gradient，但没有区分 plain FP8 precision 与 level-2 sleep/wake 后 scale buffer 被清零。"
   },
   {
     "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
@@ -12190,10 +12576,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.3,
+    "score": 0.5,
     "durationMs": 3758000,
     "steps": 77,
-    "costUsd": 9.8622
+    "costUsd": 9.8622,
+    "rootCauseScore": 0,
+    "evidenceScore": 0.5,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "把根因归于 dummy/FSDP weight sync，虽然看到 FP8、! 和零训练信号，但没有命中 KV scale sleep/wake 机制。"
   },
   {
     "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
@@ -12204,10 +12596,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.35,
+    "score": 0.783333,
     "durationMs": 967000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 0.5,
+    "evidenceScore": 0.85,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "详细证明 bf16 checkpoint 无 KV scale、FP8 默认 1.0、rollout 从 step 1 变成 token-0 ! 并导致零 reward/gradient；但没有把 scale 归因到 level-2 sleep/wake/load_weights 后归零。"
   },
   {
     "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
@@ -12218,10 +12616,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.3067,
+    "score": 0.5,
     "durationMs": 603000,
     "steps": 148,
-    "costUsd": null
+    "costUsd": null,
+    "rootCauseScore": 0,
+    "evidenceScore": 0.5,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "把根因写成 temperature/top-p 采样设置，虽记录 !、截断和零 reward，但与 auto-KV 对照及 sleep/wake scale 机制冲突。"
   },
   {
     "task": "configuration/verl_vllm011_fp8_kv_scale_sleep",
@@ -12232,10 +12636,16 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.3636,
+    "score": 0.5,
     "durationMs": 2281000,
     "steps": 201,
-    "costUsd": 20.0747
+    "costUsd": 20.0747,
+    "rootCauseScore": 0,
+    "evidenceScore": 0.5,
+    "verdictScore": 1.0,
+    "rejudgedAt": "2026-11-24",
+    "rejudgmentSource": "rejudgments/2026-11-24-miles-fp8.json",
+    "auditReason": "最终诊断把根因归于 dummy weight/同步路径；没有按最终交付物确认 FP8 KV scale 在 sleep/wake 后丢失。"
   },
   {
     "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
@@ -12871,7 +13281,10 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.95,
     "durationMs": 423000,
     "steps": 30,
-    "costUsd": 3.6021
+    "costUsd": 3.6021,
+    "evidenceScore": 0.75,
+    "auditReason": "【2026-11-24 evidence 等价性重判】维持未过：加入无依据的冲突 rollout 计数与 importance-sampling 第二归因——实质归因错误。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "reward/trl_gsm8k_threaded_reward_order",
@@ -12937,11 +13350,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "grok-build",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.9429,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 330000,
     "steps": 73,
-    "costUsd": null
+    "costUsd": null,
+    "evidenceScore": 1.0,
+    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：held-out 1.67%→0/1319、#### 率归零、32/33 正确样本错配、zero_std 上升、clean exit 全给；omitted 的 in-order 对照是 agent 不可达的私有重放，31/33 计数有 32/33 等价物。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "reward/trl_gsm8k_threaded_reward_order",
@@ -12958,3 +13374,4 @@ window.AUTORLBENCH_RUNS = [
     "costUsd": 4.7541
   }
 ];
+window.AUTORLBENCH_TRACE_TASKS = [];

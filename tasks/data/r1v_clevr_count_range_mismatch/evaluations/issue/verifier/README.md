@@ -13,7 +13,9 @@ single-question 3-10 training set against the varied mostly-0-2
 out-of-distribution questions, and the chain from one-question prompts through
 the total-count reward to question-ignoring behaviour. Naming only
 "distribution shift" or only "over-training" earns partial root-cause credit
-(0.3) and cannot pass.
+(0.3) and cannot pass. The evidence denominator has three groups: data
+composition, opposite ID/OOD curves, and a concrete prediction/range-drift
+example. Exact subgroup totals and every checkpoint are optional.
 
 Requires `AUTORLBENCH_JUDGE_MODEL`, `OPENAI_BASE_URL`, and `OPENAI_API_KEY`.
 The output is written to `$AUTORLBENCH_RESULTS/result.json`.

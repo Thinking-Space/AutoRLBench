@@ -75,3 +75,22 @@ unit tests under `tests/`, which pass because their fixtures never exercise any 
 * `c02`, `c03`, `c04`: rejected with `manifest source_counts must be positive` / `invalid
   registry entry`, on pools whose data files are intact and whose digests match.
 * Every accepted case's launcher log ends with `Validated mixed query pool: rows=...`.
+
+## Scoring contract
+
+The task-specific `judge_prompt.md` is the scoring contract. The six root-cause
+groups above remain required: independent manifest reads and the unchecked
+reader failure; the `export`/`set -e` status loss; non-integer handling; valid
+zero-weight and pool-scoped registry handling; intended composition and batch
+guards; and the late validate-only check. A diagnosis may describe the concrete
+source mechanism or an equivalent case-level reproduction. It does not have to
+repeat all ten numbered defects verbatim to receive credit for a group when its
+causal direction is clear.
+
+Evidence is scored in four groups: (1) a malformed or missing-total case, (2) a
+legitimate pool rejected by the gate, (3) a mismatched composition/size or
+oversampling case, and (4) a source-level explanation or minimal reproduction
+of the status/validation split. The archived pass-A/pass-B totals, the exact
+`rows=` printout, and exact duplicate counts are optional corroboration. A
+source explanation and a concrete case are equivalent evidence; neither is
+required in addition to the other.

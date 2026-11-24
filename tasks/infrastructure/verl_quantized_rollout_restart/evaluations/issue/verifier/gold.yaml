@@ -3,11 +3,24 @@ framework: verl
 task: verl_quantized_rollout_restart
 verdict: unhealthy
 root_cause:
-  - the vendored verl rollout bridge sleeps vLLM at level 2 for vLLM 0.8.5+, which discards weight storage and backs up only named buffers; the ModelOpt NVFP4 module keeps input_global_scale, weight_global_scale, alpha and input_global_scale_inv as frozen parameters outside that backup set, and the NVFP4 re-sync in qat_kv/nvfp4_rollout.py repacks the incoming actor weights through weight_global_scale without restoring the four calibration parameters, so a damaged scale is read before the packed weights are written
+- the vendored verl rollout bridge sleeps vLLM at level 2 for vLLM 0.8.5+, which discards weight storage
+  and backs up only named buffers; the ModelOpt NVFP4 module keeps input_global_scale, weight_global_scale,
+  alpha and input_global_scale_inv as frozen parameters outside that backup set, and the NVFP4 re-sync
+  in qat_kv/nvfp4_rollout.py repacks the incoming actor weights through weight_global_scale without restoring
+  the four calibration parameters, so a damaged scale is read before the packed weights are written
 evidence_metrics:
-  - all 3 steps report response_length clip_ratio 1.0 with min, mean and max of 16384 tokens and a zero learning rate, and the printed responses are whitespace, starting in the first batch before any policy update
-  - the shared-image rerun's stderr shows sleep(level=2) markers and NVFP4 re-sync lines reporting 112 layers re-quantized, 196 of 731 source tensors consumed and 535 passed to load_weights despite the blank generations
-  - the earlier healthy run (job 25966, free_cache_engine=False) reaches clip ratios of 1/64, 3/64 and 0/64 because it never releases weight storage between rollout and training
+- all 3 steps report response_length clip_ratio 1.0 with min, mean and max of 16384 tokens and a zero
+  learning rate, and the printed responses are whitespace, starting in the first batch before any policy
+  update
+- the shared-image rerun's stderr shows sleep(level=2) markers and NVFP4 re-sync lines reporting 112 layers
+  re-quantized, 196 of 731 source tensors consumed and 535 passed to load_weights despite the blank generations
+- the earlier healthy run (job 25966, free_cache_engine=False) reaches clip ratios of 1/64, 3/64 and 0/64
+  because it never releases weight storage between rollout and training
 fix:
   must:
-    - preserve the frozen NVFP4 calibration parameters across the sleep/wake cycle (sleep level 1, free_cache_engine=False, or restoring the four scales before repacking), so the re-sync packs actor weights with intact scales
+  - preserve the frozen NVFP4 calibration parameters across the sleep/wake cycle (sleep level 1, free_cache_engine=False,
+    or restoring the four scales before repacking), so the re-sync packs actor weights with intact scales
+scoring_contract:
+  evidence_substance_over_wording: true
+  evidence_equivalent_forms_accepted: true
+  unrecomputable_oracle_specifics_not_required: true

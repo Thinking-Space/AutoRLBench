@@ -3,11 +3,23 @@ framework: slime
 task: slime_excluded_rollout_grpo
 verdict: unhealthy
 root_cause:
-  - routing/reward.py::post_process_rewards forwards every terminal record of each prompt group to task_advantages, so interrupted tool-timeout records (ABORTED, remove_sample, zero reward) enter the group mean and standard deviation before the training loss masks are applied, distorting the advantages of completed trajectories
+- routing/reward.py::post_process_rewards forwards every terminal record of each prompt group to task_advantages,
+  so interrupted tool-timeout records (ABORTED, remove_sample, zero reward) enter the group mean and standard
+  deviation before the training loss masks are applied, distorting the advantages of completed trajectories
 evidence_metrics:
-  - rollout-000 group 1 has terminal rewards [0.0, 1.0, 0.6, 0.6] with the leading zero a masked catalog timeout; the recorded calculation gives the 0.6-reward completions +0.1213 and excluding the timeout gives -0.5773
-  - eval/validation goes 0.75, 0.9375, 1.0, 0.0, 0.0 over the run (12/16 rising to 16/16 then collapsing to 0/16), which both arms share, so the decline alone is not the diagnostic signal
-  - the recorded run has 27 masked tool timeouts among 256 training trajectories; the three shipped rollout snapshots carry 6 of them, and the recorded groups expose the distorted learning signal directly
+- rollout-000 group 1 has terminal rewards [0.0, 1.0, 0.6, 0.6] with the leading zero a masked catalog
+  timeout; the recorded calculation gives the 0.6-reward completions +0.1213 and excluding the timeout
+  gives -0.5773
+- eval/validation goes 0.75, 0.9375, 1.0, 0.0, 0.0 over the run (12/16 rising to 16/16 then collapsing
+  to 0/16), which both arms share, so the decline alone is not the diagnostic signal
+- the recorded run has 27 masked tool timeouts among 256 training trajectories; the three shipped rollout
+  snapshots carry 6 of them, and the recorded groups expose the distorted learning signal directly
 fix:
   must:
-    - compute group-relative advantages over eligible terminal records only, using their exclusion status, before broadcasting the values back to samples, while keeping legitimately scored zero rewards in the population
+  - compute group-relative advantages over eligible terminal records only, using their exclusion status,
+    before broadcasting the values back to samples, while keeping legitimately scored zero rewards in
+    the population
+scoring_contract:
+  evidence_substance_over_wording: true
+  evidence_equivalent_forms_accepted: true
+  unrecomputable_oracle_specifics_not_required: true

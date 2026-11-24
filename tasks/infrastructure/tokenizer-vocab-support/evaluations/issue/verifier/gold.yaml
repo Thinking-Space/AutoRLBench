@@ -3,11 +3,24 @@ framework: verl
 task: tokenizer-vocab-support
 verdict: unhealthy
 root_cause:
-  - the vLLM rollout masks token IDs at or above the tokenizer vocabulary (151,665) to -inf before sampling and log-probability computation, while the FSDP actor normalizes log-probabilities and entropy over all 152,064 LM head rows; the 399 unreachable padded rows accumulate probability mass (up to 0.9955-0.9974 at later positions of long responses), shifting every valid token's actor log-probability by -log(1 - M(s)) and exposing unreachable actions to policy gradients
+- the vLLM rollout masks token IDs at or above the tokenizer vocabulary (151,665) to -inf before sampling
+  and log-probability computation, while the FSDP actor normalizes log-probabilities and entropy over
+  all 152,064 LM head rows; the 399 unreachable padded rows accumulate probability mass (up to 0.9955-0.9974
+  at later positions of long responses), shifting every valid token's actor log-probability by -log(1
+  - M(s)) and exposing unreachable actions to policy gradients
 evidence_metrics:
-  - three 16,384-token responses show mean absolute rollout-versus-actor log-probability differences of 4.8728, 4.8690 and 4.7683, while a 637-token short response shows 0.0112
-  - the seven-position replay with raw logits reconstructs the unreachable-token mass M(s) at 0.9955-0.9974 for positions 2047 through 16383 with negligible mass at positions 0 and 511, and the shift predicted from M(s) matches the recorded difference within 0.0101
-  - the historical continuation spans 275 recorded updates (steps 726 through 1000) with the training metrics' probability-space correlation masking the large relative log-probability errors
+- three 16,384-token responses show mean absolute rollout-versus-actor log-probability differences of
+  4.8728, 4.8690 and 4.7683, while a 637-token short response shows 0.0112
+- the seven-position replay with raw logits reconstructs the unreachable-token mass M(s) at 0.9955-0.9974
+  for positions 2047 through 16383 with negligible mass at positions 0 and 511, and the shift predicted
+  from M(s) matches the recorded difference within 0.0101
+- the historical continuation spans 275 recorded updates (steps 726 through 1000) with the training metrics'
+  probability-space correlation masking the large relative log-probability errors
 fix:
   must:
-    - align the actor's probability and entropy normalization to the same 151,665 valid-token support as the rollout across every active path, while preserving padded checkpoint and optimizer tensor shapes
+  - align the actor's probability and entropy normalization to the same 151,665 valid-token support as
+    the rollout across every active path, while preserving padded checkpoint and optimizer tensor shapes
+scoring_contract:
+  evidence_substance_over_wording: true
+  evidence_equivalent_forms_accepted: true
+  unrecomputable_oracle_specifics_not_required: true

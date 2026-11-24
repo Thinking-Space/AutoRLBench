@@ -1,0 +1,434 @@
+{
+ "date": "2026-11-24",
+ "scope": "20 rejudged Issue diagnoses across query_pool_gate_divergence and r1v_clevr_count_range_mismatch; no agent or GPU training rerun. Evidence rubrics repaired and a substance-over-wording rule adopted: each root-cause group is credited on its substantive assertion (wrong behavior, where, downstream consequence) in any wording; no mechanism name, exact count, or expanded causal chain required; a group is withheld only on wrong-mechanism attribution or treating the defect as intentional design.",
+ "judge_model": "local re-judgment against the repaired rubric (substance-over-wording; audit reasons recorded verbatim in Chinese)",
+ "issue_tasks": {
+  "data/query_pool_gate_divergence": {
+   "total": 10,
+   "judged": 10,
+   "old_passed": 0,
+   "new_passed": 8,
+   "solution": {
+    "total": 10,
+    "old_passed": 0,
+    "passed": 0,
+    "failed": 10,
+    "pending": 0,
+    "note": "unchanged deterministic verifier; remains 0/10"
+   }
+  },
+  "data/r1v_clevr_count_range_mismatch": {
+   "total": 10,
+   "judged": 10,
+   "old_passed": 1,
+   "new_passed": 8,
+   "note": "ships issue-only"
+  }
+ },
+ "issue_runs": [
+  {
+   "slug": "dsv4-clevr-count",
+   "task": "data/r1v_clevr_count_range_mismatch",
+   "model": "DeepSeek-V4-Pro",
+   "level": "issue",
+   "previous": {
+    "score": 0.62,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "A（单问题/3-10 对 OOD 0-2 分布）与 B（exact-match count 奖励只强化分布内计数）实质齐备。"
+    }
+   }
+  },
+  {
+   "slug": "dsv4-query-pool",
+   "task": "data/query_pool_gate_divergence",
+   "model": "DeepSeek-V4-Pro",
+   "level": "issue",
+   "previous": {
+    "score": 0.693333,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 0.8333,
+     "evidence_score": 1.0,
+     "score": 0.9,
+     "reason": "G1-G5 实质覆盖（含 KeyError 下 set -e 不中止）；G6 仅一处弱提及未成断言。"
+    }
+   }
+  },
+  {
+   "slug": "dsv41flash-clevr-count",
+   "task": "data/r1v_clevr_count_range_mismatch",
+   "model": "DeepSeek-V4.1-Flash",
+   "level": "issue",
+   "previous": {
+    "score": 0.96,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "明确说明 global optimum 是枚举场景并报总数，引用单问题/3-10、OOD 0-2、反向曲线和具体错误输出。"
+    }
+   }
+  },
+  {
+   "slug": "dsv41flash-query-pool",
+   "task": "data/query_pool_gate_divergence",
+   "model": "DeepSeek-V4.1-Flash",
+   "level": "issue",
+   "previous": {
+    "score": 0.693333,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "覆盖 7 个 false accepts、3 个 false rejects，含 zero-weight 双检查、registry、total/export、期望配比、两条 batch 边界和 validate-only。"
+    }
+   }
+  },
+  {
+   "slug": "fable51-clevr-count",
+   "task": "data/r1v_clevr_count_range_mismatch",
+   "model": "Claude-Fable-5.1",
+   "level": "issue",
+   "previous": {
+    "score": 0.333333,
+    "passed": false
+   },
+   "result": {
+    "passed": false,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 0.0,
+     "evidence_score": 0.3333333333333333,
+     "score": 0.2667,
+     "reason": "A/B 均缺：无单问题/答案分布对比，主归因宽松 format regex——误诊维持。"
+    }
+   }
+  },
+  {
+   "slug": "fable51-query-pool",
+   "task": "data/query_pool_gate_divergence",
+   "model": "Claude-Fable-5.1",
+   "level": "issue",
+   "previous": {
+    "score": 0.5,
+    "passed": false
+   },
+   "result": {
+    "passed": false,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 0.75,
+     "evidence_score": 1.0,
+     "score": 0.85,
+     "reason": "G1/G2/G3/G4 与 G5 的 composition 半组实质覆盖；批次可行性半组与 G6 整组缺失——真实缺口。"
+    }
+   }
+  },
+  {
+   "slug": "glm53-clevr-count",
+   "task": "data/r1v_clevr_count_range_mismatch",
+   "model": "GLM-5.3",
+   "level": "issue",
+   "previous": {
+    "score": 0.575,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "A+B 实质齐备：RC1 分布失配并明确训练目标对问题类型零信号、OOD 泛化非奖励所保留；RC2 的饱和+KL 为动态解释——与 DeepSeek-V4 并列结构同等判定。"
+    }
+   }
+  },
+  {
+   "slug": "glm53-query-pool",
+   "task": "data/query_pool_gate_divergence",
+   "model": "GLM-5.3",
+   "level": "issue",
+   "previous": {
+    "score": 0.762857,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "六组实质全覆盖，含 validate-only 该故障类对其结构性不可见。"
+    }
+   }
+  },
+  {
+   "slug": "gpt61sol-clevr-count",
+   "task": "data/r1v_clevr_count_range_mismatch",
+   "model": "GPT-6.1-Sol",
+   "level": "issue",
+   "previous": {
+    "score": 0.446667,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "A+B 实质齐备；行为推论按实质判定规则不单独要求。"
+    }
+   }
+  },
+  {
+   "slug": "gpt61sol-query-pool",
+   "task": "data/query_pool_gate_divergence",
+   "model": "GPT-6.1-Sol",
+   "level": "issue",
+   "previous": {
+    "score": 0.6,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "六组实质全覆盖：c05 双读不一致与空值继续启动、非整数截断、零权重/registry、期望与批次、validate-only 不能证明安全启动。"
+    }
+   }
+  },
+  {
+   "slug": "gpt6astra-clevr-count",
+   "task": "data/r1v_clevr_count_range_mismatch",
+   "model": "GPT-6-Astra",
+   "level": "issue",
+   "previous": {
+    "score": 0.446667,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 0.6666666666666666,
+     "score": 0.9333,
+     "reason": "A+B 实质齐（count reward 只接受整数匹配、强化分布内计数）；代表性输出证据不足压低 evidence。"
+    }
+   }
+  },
+  {
+   "slug": "gpt6astra-query-pool",
+   "task": "data/query_pool_gate_divergence",
+   "model": "GPT-6-Astra",
+   "level": "issue",
+   "previous": {
+    "score": 0.633333,
+    "passed": false
+   },
+   "result": {
+    "passed": false,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 0.6667,
+     "evidence_score": 1.0,
+     "score": 0.8,
+     "reason": "G1/G3/G4/G5 覆盖；G2 把第二个 reader 的失败误读为 validator 默认；G6 把 c10 缺陷归为 intentional——两处真实能力缺陷。"
+    }
+   }
+  },
+  {
+   "slug": "grok47-clevr-count",
+   "task": "data/r1v_clevr_count_range_mismatch",
+   "model": "Grok-4.7",
+   "level": "issue",
+   "previous": {
+    "score": 0.66,
+    "passed": false
+   },
+   "result": {
+    "passed": false,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 0.5,
+     "evidence_score": 1.0,
+     "score": 0.7,
+     "reason": "A 覆盖；B withhold：主归因为奖励饱和→零优势→KL-to-base 拉回 base 先验，未把 3-10 偏向归因到 count 奖励只强化分布内计数——比 GLM 更彻底的错误机制归因。"
+    }
+   }
+  },
+  {
+   "slug": "grok47-query-pool",
+   "task": "data/query_pool_gate_divergence",
+   "model": "Grok-4.7",
+   "level": "issue",
+   "previous": {
+    "score": 0.786667,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "明确区分 3 个误拒和 4 个误放行，解释 total/export、期望配比、过采样及 validate-only 的方向；所有证据均来自可见 case。"
+    }
+   }
+  },
+  {
+   "slug": "kimi-clevr-count",
+   "task": "data/r1v_clevr_count_range_mismatch",
+   "model": "Kimi-K3",
+   "level": "issue",
+   "previous": {
+    "score": 0.61,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "明确指出单一问题和答案范围、总场景计数 shortcut、ID/OOD 曲线以及 step-400 条件问题被回答成总数。"
+    }
+   }
+  },
+  {
+   "slug": "kimi-query-pool",
+   "task": "data/query_pool_gate_divergence",
+   "model": "Kimi-K3",
+   "level": "issue",
+   "previous": {
+    "score": 0.69334,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "六组实质全覆盖，G2 由 POOL_TOTAL 空值仍以 broken identity 启动判定。"
+    }
+   }
+  },
+  {
+   "slug": "kimi31-clevr-count",
+   "task": "data/r1v_clevr_count_range_mismatch",
+   "model": "Kimi-K3.1-Pro",
+   "level": "issue",
+   "previous": {
+    "score": 0.9,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "用训练/OO D 数据、ID/OOD 曲线和多个具体条件计数输出闭合了“单问题→奖励→忽略条件→OOD 退化”。"
+    }
+   }
+  },
+  {
+   "slug": "kimi31-query-pool",
+   "task": "data/query_pool_gate_divergence",
+   "model": "Kimi-K3.1-Pro",
+   "level": "issue",
+   "previous": {
+    "score": 0.813333,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "逐项复现 3 个误拒和 7 个误放行，说明独立读取、export 状态丢失、类型检查、registry/零权重、期望配置、批次和 validate-only 因果链。"
+    }
+   }
+  },
+  {
+   "slug": "qwen38-clevr-count",
+   "task": "data/r1v_clevr_count_range_mismatch",
+   "model": "Qwen3.8-Max",
+   "level": "issue",
+   "previous": {
+    "score": 1.0,
+    "passed": true
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "完整给出单问题、3-10 对比 OOD、ID/OOD 反向曲线、预测范围漂移和列出全场物体的具体输出。"
+    }
+   }
+  },
+  {
+   "slug": "qwen38-query-pool",
+   "task": "data/query_pool_gate_divergence",
+   "model": "Qwen3.8-Max",
+   "level": "issue",
+   "previous": {
+    "score": 0.873333,
+    "passed": false
+   },
+   "result": {
+    "passed": true,
+    "metrics": {
+     "verdict_score": 1.0,
+     "root_cause_score": 1.0,
+     "evidence_score": 1.0,
+     "score": 1.0,
+     "reason": "完整覆盖零权重双重误拒、registry 作用域、期望配置自比较、run identity、批次和 validate-only，并给出可复现数字。"
+    }
+   }
+  }
+ ],
+ "solution_runs": [],
+ "solution_method": "Not applicable: no solution records were re-judged. The query_pool solution verifier is unchanged and its ten recorded runs remain 0/10; r1v_clevr_count_range_mismatch ships issue-only.",
+ "pending": [],
+ "note": "Rebuilt from the worktree trace-data entries (previous scores from git HEAD; verdict/root-cause/evidence dimensions and audit reasons as recorded by the re-judgment pass)."
+}

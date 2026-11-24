@@ -3,11 +3,22 @@ framework: TRL
 task: trl_gsm8k_threaded_reward_order
 verdict: unhealthy
 root_cause:
-  - workspace/trl/trainer/grpo_trainer.py::GRPOTrainer._call_reward_func_concurrently (a local addition to the vendored TRL 0.27.2, enabled by reward_num_workers=32 in train_grpo.py) concatenates the per-slice reward results with concurrent.futures.as_completed, which yields them in finish order, so rewards[i] is usually the score of a different completion (often from a different prompt's group)
+- workspace/trl/trainer/grpo_trainer.py::GRPOTrainer._call_reward_func_concurrently (a local addition
+  to the vendored TRL 0.27.2, enabled by reward_num_workers=32 in train_grpo.py) concatenates the per-slice
+  reward results with concurrent.futures.as_completed, which yields them in finish order, so rewards[i]
+  is usually the score of a different completion (often from a different prompt's group)
 evidence_metrics:
-  - eval/gsm8k_accuracy 0.0167 at step 0 and 0.0000 at step 200 (greedy, 1,319 GSM8K test items); an in-order control reaches 0.75
-  - batch reward 0.066 over steps 1-25, decaying to 0.001 over steps 176-200; frac_reward_zero_std 0.61 -> 0.99
-  - rollouts.jsonl - 33 logged completions are correct and 33 carry reward 1, but only one is both; 31 of the 33 reward-1 completions contain no '####' line
+- eval/gsm8k_accuracy 0.0167 at step 0 and 0.0000 at step 200 (greedy, 1,319 GSM8K test items); an in-order
+  control reaches 0.75
+- batch reward 0.066 over steps 1-25, decaying to 0.001 over steps 176-200; frac_reward_zero_std 0.61
+  -> 0.99
+- rollouts.jsonl - 33 logged completions are correct and 33 carry reward 1, but only one is both; 31 of
+  the 33 reward-1 completions contain no '####' line
 fix:
   must:
-    - concatenate the slices' rewards in submission order (e.g. iterate over futures, or executor.map), or call the reward function once on the whole batch
+  - concatenate the slices' rewards in submission order (e.g. iterate over futures, or executor.map),
+    or call the reward function once on the whole batch
+scoring_contract:
+  evidence_substance_over_wording: true
+  evidence_equivalent_forms_accepted: true
+  unrecomputable_oracle_specifics_not_required: true

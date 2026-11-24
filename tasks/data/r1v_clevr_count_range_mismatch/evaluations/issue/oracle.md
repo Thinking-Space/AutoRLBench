@@ -93,3 +93,15 @@ against flat or rising in-distribution accuracy; (3) evidence from
 `eval_outputs/` that late predictions move into the training answer range or
 ignore the question. Exact counts are not required when the direction and
 rough size are right.
+
+## Scoring contract
+
+The task-specific `judge_prompt.md` defines the complete denominator. Full credit
+requires both essential parts: the single 3-10 training question/range versus
+varied mostly-0-2 OOD questions, and the causal chain from question-independent
+exact-match reward to total-count/question-ignoring behaviour. Evidence is three
+groups: the train/OOD data mismatch, the opposite ID/OOD accuracy curves, and a
+concrete prediction or range-drift example. Approximate curves, one representative
+late output, or a source/data inspection are sufficient; the exact 864/136
+subcounts, every checkpoint, and early reward averages are optional. Symptoms such
+as over-training or hyperparameters must not replace the data mechanism.

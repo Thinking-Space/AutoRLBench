@@ -14,6 +14,15 @@ Do not launch a full training run, use the network, or modify the historical
 snapshot. The dataset, held-out set, model, training-step budget, and evaluation
 interval are fixed.
 
+## Diagnosis scope
+
+Use the visible dataset construction, training/evaluation curves, and sample
+outputs to establish the data-to-behaviour chain. Exact counts for every
+subgroup, every checkpoint, or early reward block are optional when the
+direction and approximate magnitude are clear. A concrete late output that
+ignores the question is equivalent evidence to a complete prediction-range
+table.
+
 ## Deliverable
 
 Write one concise UTF-8 diagnosis to:
