@@ -1,0 +1,32 @@
+title = "An invisible character in one source's answers silently zeroes its GRPO rewards"
+license = "Apache-2.0"
+created_date = "2026-11-24"
+domain = "data"
+tags = ["verl", "grpo", "math", "unicode", "mixed-source-data", "partial-reward-loss", "issue-only"]
+
+[submitter]
+name = "Sikuan Yan"
+affiliation = "LMU Munich"
+
+[model]
+name = "Qwen/Qwen3-4B"
+
+[dataset]
+name = "Integer-answer math pool from Skywork-OR1 (math), POLARIS-53K and DAPO-Math-17k (workspace/data/pool_clean.jsonl, 81,882 problems, decontaminated against AIME 2025/2026)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+
+# The recorded run uses two GPUs (two vLLM replicas at TP=1, FSDP world size 2);
+# run_grpo.sh defaults NGPU to 2.
+gpus = 2
+
+[outcome]
+failure_type = "silent_partial_reward_failure"
+failure_reason = "4,679 of the 11,579 DAPO-Math-17k answers in data/pool_clean.jsonl (40%, nothing in the row marks which) end with an invisible U+200B ZERO WIDTH SPACE (\"answer\":\"34\\u200b\", written raw, so it renders as \"34\"); the other DAPO rows and all Skywork-OR1 / POLARIS answers are clean. scripts/make_rl_data.py writes ground_truth = str(r.answer).strip(), and str.strip() does not remove U+200B (category Cf, not whitespace). scripts/math_reward.py scores with inspect_ai match_str(numeric=True), whose numeric path requires target.isnumeric(); \"34\\u200b\".isnumeric() is False and the string fallback never equals \"34\", so every sample of an affected prompt scores 0 (11.1% of the training set). verl writes the rollout dumps with ensure_ascii=False, so the gts fields look like plain integers. critic/score/mean is 0.36-0.48 over 5 steps (mean 0.437) against 0.48-0.57 (mean 0.523) for a control that drops format characters; by source DAPO scores 0.340 against 0.641 in the control, which looks like an ordinary hard source next to POLARIS (0.280 / 0.302), while Skywork-OR1 scores 0.546 / 0.533. Inside DAPO, the 20 affected prompts (160 samples) score exactly 0.000 although 108 samples are correct once the character is removed, and the other 27 DAPO prompts score 0.593."
