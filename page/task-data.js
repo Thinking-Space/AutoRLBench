@@ -143,27 +143,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training IDEA_sft with OPSD on the AgentWorldModel suite. The generated completion verifiers use incomplete acceptance predicates, so trajectories that do not satisfy the requested task still score full reward while held-out test score drifts down."
   },
   {
-    "id": "infrastructure/verl_checkpoint_host_memory_oom",
-    "title": "Checkpoint saving exhausts host memory at step 10",
-    "family": "Infrastructure",
-    "tags": [
-      "verl",
-      "grpo",
-      "fsdp",
-      "checkpoint",
-      "optimizer-offload",
-      "host-memory"
-    ],
-    "model": "Qwen/Qwen2.5-0.5B-Instruct",
-    "dataset": "openai/gsm8k main (7473 train / 1319 test rows)",
-    "framework": "verl",
-    "image": "verl_checkpoint_host_memory_oom",
-    "created": "2026-10-27",
-    "license": "Apache-2.0",
-    "brief": "CPU-offloaded optimizer state leaves no headroom for the step-10 checkpoint save.",
-    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. CPU-offloaded Adam state leaves insufficient host-memory headroom for native checkpoint serialization at step 10, so container memory hits the fixed 20 GiB limit and the run dies."
-  },
-  {
     "id": "infrastructure/verl_lora_merge_base_weight_sync",
     "title": "Merged LoRA never reaches the rollout engine",
     "family": "Infrastructure",
@@ -182,27 +161,6 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "Every weight sync ships the base weights, not the merged LoRA.",
     "issue": "Training Qwen2.5-1.5B-Instruct with GRPO and a merged LoRA adapter on GSM8K. The merged tensors are gathered only after merged_lora_context has restored the base weights, so vLLM loads the base weights at every sync and held-out accuracy stays at the base level while the actor keeps training."
-  },
-  {
-    "id": "reward/verl_math_verify_thread_zero_reward",
-    "title": "Math-Verify scores zero inside reward workers",
-    "family": "Reward",
-    "tags": [
-      "verl",
-      "grpo",
-      "math-verify",
-      "reward-loop",
-      "threading",
-      "issue-only"
-    ],
-    "model": "Qwen/Qwen2.5-1.5B-Instruct",
-    "dataset": "openai/gsm8k main + DigitalLearningGmbH/MATH-lighteval (7473 + 7500 train rows); validation GSM8K test (1319) + MATH-500 (497 of 500)",
-    "framework": "verl",
-    "image": "verl",
-    "created": "2026-10-25",
-    "license": "Apache-2.0",
-    "brief": "The math verifier dies silently in reward worker threads, scoring every MATH answer 0.0.",
-    "issue": "Training Qwen2.5-1.5B-Instruct with GRPO on a GSM8K + MATH mixture. math-verify's signal-based timeout raises ValueError in the reward loop's worker thread, and the bare except turns that into a 0.0 reward for every MATH sample, so MATH-500 logs exactly 0.0 at all 21 validations while GSM8K accuracy rises from 0.081 to 0.766."
   },
   {
     "id": "infrastructure/miles_async_rollout_inflight_not_evicted",
@@ -658,29 +616,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, verl's FSDP engine clears gradients before every micro-batch's backward, so only the last of 8 micro-batches reaches the optimizer. AdamW still takes full-size steps, so the policy drifts like a healthy run, but along a direction estimated from 4 prompt groups. Training reward rises; held-out accuracy ends below its starting value (0.4511 vs 0.4610) against 0.5580 for the same recipe."
   },
   {
-    "id": "configuration/miles_miniswe_harbor_tool_parser_mismatch",
-    "title": "Miles MiniSWE tool-call parser mismatch",
-    "family": "Configuration",
-    "tags": [
-      "miles",
-      "mini-swe-agent",
-      "swe-bench-verified",
-      "grpo",
-      "tito-v2",
-      "tool-call-parser",
-      "session-mismatch",
-      "issue-only"
-    ],
-    "model": "Qwen3-30B-A3B",
-    "dataset": "SWE-bench Verified (16 prompts)",
-    "framework": "Miles / GRPO with TITO-v2 and MiniSWE",
-    "image": "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12",
-    "created": "2026-11-16",
-    "license": "Apache-2.0",
-    "brief": "The launcher serves Qwen3-30B-A3B with the qwen3_coder tool-call parser instead of the required qwen25, so tool-call JSON stays literal assistant text: all 64 rollouts mismatch and 64 logical rollouts become 192 training leaves.",
-    "issue": "Training Qwen3-30B-A3B with GRPO on 16 SWE-bench Verified prompts through Miles, Harbor and mini-swe-agent, SGLang is configured with the qwen3_coder tool-call parser instead of the checkpoint's required qwen25. Tool calls remain literal assistant text, every TITO-v2 rollout records an assistant-text mismatch (64 of 64, 187 entries), and each logical rollout expands to three training leaves: 192 training samples for 64 logical rollouts (inflation 3.0, mean reward 0.0, 72 AgentError and 120 Submitted exits)."
-  },
-  {
     "id": "environment/miles_miniswe_format_error_retry_fanout",
     "title": "MiniSWE format-error retries inflate Miles TITO training leaves",
     "family": "Environment",
@@ -723,26 +658,6 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "Four pipeline defects make good patches unrewardable, let rollouts rewrite the test surface, mis-match node ids, and turn undecidable runs into confident zeros; fixing only the first one rewards the cheating rollouts.",
     "issue": "An agentic RL run on repository-repair tasks rewards rollouts by running the repositories' own tests on patched checkouts, but four pipeline defects combine: the grading command omits -rA while the parser reads only the summary section (an all-passing run parses to nothing, reward 0), the test surface is not restored before grading (a rollout's conftest hook decides its own result), node ids are matched by substring fallback, and undecidable runs enter the advantage as confident zeros. Fixing the first defect alone is worse: measured on the staged corpus, 0 -> 109 rewarded records with 68 wrong resolved labels."
-  },
-  {
-    "id": "infrastructure/cc_native_websearch_self_hosted",
-    "title": "Claude Code native WebSearch on a self-hosted RL backend",
-    "family": "Infrastructure",
-    "tags": [
-      "native-websearch",
-      "server-tool-compatibility",
-      "self-hosted-inference",
-      "agent-rl",
-      "issue-only"
-    ],
-    "model": "Qwen3.5-9B",
-    "dataset": "Search-R1 QA (32 NQ + 32 HotpotQA questions, FlashRAG)",
-    "framework": "slime / GRPO with Claude Code rollouts on SGLang",
-    "image": "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12",
-    "created": "2026-11-17",
-    "license": "Apache-2.0",
-    "brief": "Claude Code routes its native WebSearch requests through the training base URL, but the SGLang Messages converter cannot execute server-side Anthropic built-ins: all 891 recorded native search requests return HTTP 400.",
-    "issue": "Training Qwen3.5-9B with GRPO on Search-R1 NQ/HotpotQA questions inside Claude Code produces normal actor generations and optimizer steps, but every recorded native WebSearch HTTP request fails against the self-hosted inference backend: the client routes its native Anthropic web_search_20250305 request through the configured training base URL, and the SGLang Messages converter skips the built-in and rejects the forced tool choice. All 891 recorded native search requests return HTTP 400 even though ordinary actor inference and three GRPO training steps execute (96 of 300 trainable background outcomes selected, 25,190 effective actor tokens)."
   },
   {
     "id": "infrastructure/tokenizer-vocab-support",
@@ -823,48 +738,6 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The launch gate reads the manifest three times across three processes, exports swallow exit statuses, and a self-comparison stays permanently true -- ten defects in five masking groups keep the gate from ever noticing the divergence.",
     "issue": "The query-pool launch gate is supposed to fail closed when the pools it reads diverge, but it never does: the manifest is read three times across three processes, exported exit statuses are swallowed, a self-comparison stays permanently true, and seven further defects across five masking groups (assertion suppression, subshell scope loss, a trap that resets the status, and the like) keep every failure path silent. The frozen calibration table records four gate-metric outcomes over the 24 rebuilt pools."
-  },
-  {
-    "id": "data/r1v_clevr_count_range_mismatch",
-    "title": "Single-question training set: the policy stops reading the question",
-    "family": "Data",
-    "tags": [
-      "r1-v",
-      "trl",
-      "grpo",
-      "vlm",
-      "clevr",
-      "train-eval-mismatch",
-      "issue-only"
-    ],
-    "model": "Qwen2-VL-2B-Instruct",
-    "dataset": "CLEVR-CoGenT-A counting (68k single-question rows + Super-CLEVR OOD)",
-    "framework": "R1-V / GRPO with TRL 0.14.0",
-    "image": "verl-vllm0.7.4-torch2.5.1-flashattn2.7.4-cu124-py3.10",
-    "created": "2026-11-15",
-    "license": "Apache-2.0",
-    "brief": "Every training row asks the same question with answers 3-10, so the policy learns to return the total object count whatever is asked: OOD accuracy peaks at 0.675 then falls to 0.251 while in-distribution accuracy ends at 0.980.",
-    "issue": "Training Qwen2-VL-2B-Instruct with GRPO on CLEVR-CoGenT-A counting questions, every one of the 68,000 training rows asks \"How many items are there in the image?\" with answers 3-10 in equal shares, so the policy learns to return the total object count whatever is asked. Out-of-distribution accuracy (995 distinct Super-CLEVR questions over 1,000 rows, 864 of whose answers are 0-2) peaks at 0.675 at step 100 and falls to 0.251 at step 400 while in-distribution accuracy ends at 0.980 -- and workspace/data/val, the in-distribution held-out set, has the training set's single question and answer range, so it cannot see the problem. Code, rewards and hyperparameters are the trainer's ordinary recipe."
-  },
-  {
-    "id": "algorithm/slime_excluded_rollout_grpo",
-    "title": "GRPO credit assignment drifts during multi-turn tool rollouts",
-    "family": "Algorithm",
-    "tags": [
-      "grpo",
-      "reward-normalization",
-      "tool-use",
-      "aborted-rollouts",
-      "issue-only"
-    ],
-    "model": "Qwen3.5-0.8B",
-    "dataset": "Offline ticket catalog (128 training / 16 held-out, disjoint IDs)",
-    "framework": "slime v0.3.2 / GRPO with SGLang and Megatron",
-    "image": "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12",
-    "created": "2026-11-18",
-    "license": "Apache-2.0",
-    "brief": "Aborted tool rollouts are excluded from the advantage normalization, so the learning signal for completed trajectories flips sign.",
-    "issue": "A complete Slime GRPO run with multi-turn tool rollouts shows how tool timeouts change the sign of the learning signal for completed trajectories: the masked-observation GRPO advantage normalization excludes the aborted rollouts from its denominator, so completed trajectories receive a flipped advantage (−0.707 → +0.132 across the 32 optimizer updates)."
   },
   {
     "id": "algorithm/verl_old_log_prob_from_reference",
