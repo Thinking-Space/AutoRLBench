@@ -7032,11 +7032,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.7,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 105000,
     "steps": 20,
-    "costUsd": null
+    "costUsd": null,
+    "auditReason": "【2026-11-24 evidence 等价性重判】同款翻案：\"_judge_reward assigns binary judge success/failure to score, while acc and metadata gui_score retain the independent environment evaluation, including fractional credit\" + \"requires every child's training reward to equal gui_score within 1e-6\" + \"treats legitimate differences between two evaluators as corrupt data\"——双信号构造实质完整、带代码引用。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "reward/slime_judge_router_admission_starvation",
@@ -7060,11 +7062,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.73336,
+    "passed": true,
+    "score": 1.0,
     "durationMs": 414000,
     "steps": 52,
-    "costUsd": 8.8974
+    "costUsd": 8.8974,
+    "auditReason": "【2026-11-24 evidence 等价性重判】2b 根因实质在场：\"These are two different reward functions by design\"——_judge_reward 二值 judge vs gui_score 分数环境评估，四处代码行引用（generate_with_gui.py:472-477/:1334/:460-462/:1341-1343），docstring \"monitoring only\" 与 judge_env_agree 佐证。三个根因组（等值检查+双信号构造+路由缺陷）全覆盖；ordering/handoff 因果链细节按 substance 规则不单独要求——与 query_pool G6 同款表述敏感。",
+    "rejudgedAt": "2026-11-24"
   },
   {
     "task": "reward/slime_judge_router_admission_starvation",
