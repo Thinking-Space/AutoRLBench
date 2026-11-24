@@ -42,6 +42,8 @@ treated individual answers and trace which probabilities the actor used.
   field in the last 300 characters. Correct boxed answers can receive
   negative reward, leaving a batch with identical rewards and zero
   normalized advantages.
+- **solution**: keep the rollout log probabilities in the policy-loss
+  denominator and credit final boxed answers that match the training label.
 
 ## Verification
 
@@ -60,6 +62,22 @@ and share the same AIME24 evaluator.
 Both runs start at 31/240 on AIME24. At step 30, the original run scores
 41/240 and the run with both fixes scores 59/240, a difference of 7.50
 percentage points (95% CI [+0.83, +14.17], paired bootstrap over 30
-questions with eight samples each). The task has an Issue tier because
-the comparison has one training run per condition and needs more runs
-to calibrate a Solution threshold.
+questions with eight samples each). Each condition has one training run.
+
+- **solution**: the harness trains through step 30 and runs the same
+  AIME24 evaluation. The verifier requires a complete checkpoint, at least
+  80 positive rewards across steps 21–30, median PPO clipping of at least
+  7% over those steps, and an AIME24 score above the initial 31/240.
+  The original run records 23 positive rewards and 0% median clipping.
+  The reference repair records 158 and 15.90%.
+
+| Training configuration | Positive rewards, steps 21–30 | Median PPO clipping | Step-30 AIME24 | Verifier replay |
+| --- | ---: | ---: | ---: | --- |
+| Original | 23/640 | 0% | 41/240 | Fail |
+| Denominator repaired | 46/640 | 19.70% | 55/240 | Fail |
+| Scorer repaired | 95/640 | 0% | 44/240 | Fail |
+| Both repairs | 158/640 | 15.90% | 59/240 | Pass |
+
+The verifier results above use the archived shared-image runs and their
+native checkpoints. The official harness startup check uses the original
+workspace. The graded run ends at step 30.
