@@ -3105,11 +3105,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.925,
+    "passed": true,
+    "score": 0.98,
     "durationMs": 1888414,
     "steps": 52,
-    "costUsd": 15.8399
+    "costUsd": 15.8399,
+    "auditReason": "【2026-11-25 evidence 等价性重判】root cause 完整（PPO_MINI_BATCH_SIZE=4 分 128 为 32 个串行 off-policy 更新，kl_loss 0.0026→0.2751 即 gold 的 ppo_kl 10x 等价信号）；gold 的 \"vs control\" 条目为 oracle 私有。附加 token-mean 聚合与 reward 对 post-boxed 循环的漠视为额外发现。",
+    "rejudgedAt": "2026-11-25"
   },
   {
     "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
@@ -3189,11 +3191,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.95,
+    "passed": true,
+    "score": 0.98,
     "durationMs": 1707675,
     "steps": 42,
-    "costUsd": null
+    "costUsd": null,
+    "auditReason": "【2026-11-25 evidence 等价性重判】root cause 完整（mini_batch=4 × rollout.n=8 → 32 逐步偏离策略的更新，ray_trainer.py:1327-1328 验证）；held-out 分解（boxed 发射率 94.4%→58.3% 但条件精度 .4104→.6255=真实提升+21.5pt）为等价证据。gold 的 4 条 evidence 全部含 \"vs control\"——对照组数据为 oracle 私有（修复版 recipe 的运行结果，agent 不可复算），按不可复算条款全部豁免。",
+    "rejudgedAt": "2026-11-25"
   },
   {
     "task": "infrastructure/verl_pissa_vllm_adapter_request",
