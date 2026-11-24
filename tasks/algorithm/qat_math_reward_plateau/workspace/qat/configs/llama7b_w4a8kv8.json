@@ -1,0 +1,77 @@
+{
+  "description": "Primary LLM-QAT reproduction target (LLaMA-7B)",
+  "upstream_commit": "5ef1289",
+  "paper": "2024.findings-acl.26",
+  "model": {
+    "name_or_path": "decapoda-research/llama-7b-hf",
+    "authorized_local_mirror": true,
+    "mirror_example": "baffo32/decapoda-research-llama-7B-hf@aa18b48a1330572a6dd5f5d5619ed19838ca285c",
+    "max_position_embeddings": 2048
+  },
+  "data": {
+    "training": {
+      "kind": "data_free_generated",
+      "records_expected": 96000,
+      "shards": 64,
+      "initial_tokens_per_shard": 500,
+      "prefix_total_lengths": [3, 4, 5],
+      "generation_max_length": 2048,
+      "greedy_prefix": true,
+      "sample_remainder": true,
+      "effective_transformers_top_k": 50
+    },
+    "evaluation": [
+      {
+        "name": "WikiText-2",
+        "hf_id": "Salesforce/wikitext",
+        "config": "wikitext-2-raw-v1",
+        "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+        "split": "test",
+        "metric": "perplexity"
+      },
+      {
+        "name": "C4",
+        "hf_id": "allenai/c4",
+        "config": "en",
+        "split": "validation",
+        "metric": "perplexity",
+        "optional": true
+      }
+    ]
+  },
+  "quantization": {
+    "weight_bits": 4,
+    "activation_bits": 8,
+    "kv_cache_bits": 8,
+    "weight_scheme": "symmetric_minmax_per_output_channel",
+    "activation_scheme": "symmetric_minmax_per_token",
+    "kv_scheme": "symmetric_minmax_per_token",
+    "forward_clipping": false,
+    "straight_through_estimator": true
+  },
+  "distillation": {
+    "teacher": "full_precision_pretrained_model",
+    "loss": "kl_div(log_softmax(student), softmax(teacher))",
+    "reduction": "batchmean",
+    "temperature": 1.0,
+    "loss_scale": 1.0,
+    "attention_or_hidden_loss": false
+  },
+  "training": {
+    "optimizer": "adamw_torch",
+    "learning_rate": 2e-05,
+    "weight_decay": 0.0,
+    "scheduler": "cosine",
+    "warmup_ratio": 0.0,
+    "epochs": 1,
+    "per_device_batch_size": 1,
+    "gradient_accumulation_steps": 1,
+    "global_batch_size_on_8_gpus": 8,
+    "precision": "bf16",
+    "gradient_checkpointing": true,
+    "fsdp": "full_shard auto_wrap",
+    "fsdp_layer": "LlamaDecoderLayer",
+    "seed": 42,
+    "sequence_length": 2048
+  }
+}
