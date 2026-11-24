@@ -1,0 +1,43 @@
+--- a/vendor/verl/verl/workers/rollout/vllm_rollout/vllm_rollout_spmd.py
++++ b/vendor/verl/verl/workers/rollout/vllm_rollout/vllm_rollout_spmd.py
+@@ -161,6 +161,26 @@
+     return flat[indices].to(dtype=torch.bfloat16).float().cpu().tolist()
+
+
++def _register_nvfp4_sleep_buffers(model):
++    from qat_kv.nvfp4_rollout import plan_resync
++
++    # codex: vLLM preserves named buffers during level-2 sleep. The actor
++    # re-sync consumes these fixed scales but only rewrites packed weights.
++    fields = ("input_global_scale", "weight_global_scale", "alpha", "input_global_scale_inv")
++    buffers = []
++    for name in plan_resync(model):
++        layer = model.get_submodule(name)
++        for field in fields:
++            value = layer.get_parameter(field)
++            if value.requires_grad:
++                raise ValueError(f"{name}.{field} must be frozen")
++            buffers.append((layer, field, value.detach()))
++    for layer, field, value in buffers:
++        delattr(layer, field)
++        layer.register_buffer(field, value)
++    return len(buffers)
++
++
+ def _load_weights_with_optional_verification(model, weights, *, enabled: bool):
+     # Every weight sync funnels through here -- both VllmRollout.update_weights
+     # entry points call it.  Job 23937 proved the sharding manager's
+@@ -910,6 +930,13 @@
+             print("[qat-mem] release(): free_cache_engine=False, KV pool stays resident", flush=True)
+             return
+
++        if (self.sleep_level == 2 and os.environ.get("QAT_NVFP4_ROLLOUT", "0") == "1"
++                and not getattr(self, "_nvfp4_sleep_buffers_registered", False)):
++            model = self.inference_engine.llm_engine.model_executor.driver_worker.worker.model_runner.model
++            count = _register_nvfp4_sleep_buffers(model)
++            self._nvfp4_sleep_buffers_registered = True
++            logger.warning("NVFP4 sleep(2): registered %d calibration buffers", count)
++
+         # Measured at the driver level, not through torch: vLLM allocates its
+         # KV pool with its own CuMemAllocator, so torch.cuda.memory_allocated()
+         # cannot see it being freed.  Printed rather than logged because
