@@ -1,0 +1,33 @@
+--- a/framework/verl/workers/engine/fsdp/transformer_impl.py
++++ b/framework/verl/workers/engine/fsdp/transformer_impl.py
+@@ -1333,6 +1333,8 @@
+         use_remove_padding = tu.get_non_tensor_data(data=micro_batch, key="use_remove_padding", default=True)
+         pad_mode = tu.get_non_tensor_data(data=micro_batch, key="pad_mode", default=DatasetPadMode.NO_PADDING)
+         use_fused_kernels = tu.get_non_tensor_data(data=micro_batch, key="use_fused_kernels", default=False)
++        if use_fused_kernels:
++            raise ValueError("fused logits path lacks tokenizer support restriction")
+         calculate_entropy = tu.get_non_tensor_data(data=micro_batch, key="calculate_entropy", default=False)
+         calculate_sum_pi_squared = tu.get_non_tensor_data(
+             data=micro_batch, key="calculate_sum_pi_squared", default=False
+@@ -1383,6 +1385,10 @@
+                 # With TP, logits are DTensors sharded on vocab dim; gather for log_softmax.
+                 if isinstance(logits_rmpad, DTensor):
+                     logits_rmpad = logits_rmpad.full_tensor()
++                valid_vocab = len(self.model_config.tokenizer)
++                if not 0 < valid_vocab <= logits_rmpad.shape[-1]:
++                    raise ValueError("invalid tokenizer vocabulary support")
++                logits_rmpad = logits_rmpad[..., :valid_vocab]
+                 logits_rmpad = _scale_logits_by_temperature(
+                     logits_rmpad,
+                     temperature_rmpad.unsqueeze(-1),
+@@ -1480,6 +1486,10 @@
+                 # With TP, logits are DTensors sharded on vocab dim; gather for log_softmax.
+                 if isinstance(logits, DTensor):
+                     logits = logits.full_tensor()
++                valid_vocab = len(self.model_config.tokenizer)
++                if not 0 < valid_vocab <= logits.shape[-1]:
++                    raise ValueError("invalid tokenizer vocabulary support")
++                logits = logits[..., :valid_vocab]
+                 logits = _scale_logits_by_temperature(
+                     logits,
+                     temperature,

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "command": "bash -s <<'AUTORL_CP1000_RUN'\nset -euo pipefail\n# Harbor inlines root run specs before the Issue verifier as well.\nif [[ ${AUTORLBENCH_EVALUATION_LEVEL:-} == issue && ${AUTORLBENCH_TASK_ROOT:-} == /tests ]]; then\n  exit 0\nfi\ncheckpoint=\"${AUTORLBENCH_PREPARED:?}/global_step_725\"\nmanifest=\"${AUTORLBENCH_WORKSPACE:?}/scripts/cp725.sha256\"\ntest -d \"$checkpoint\"\nmanifest=$(realpath -- \"$manifest\")\nprintf '%s  %s\\n' fab5f6b531995601b7bbd678c21b1d95d0e1cd0c437fcb47135805edda68f079 \"$manifest\" | sha256sum --strict --check -\n(cd \"$checkpoint\" && sha256sum --strict --check \"$manifest\")\nmkdir -p \"$LOG_DIR\"\nbash scripts/train.sh --resume \"$checkpoint\" trainer.del_local_ckpt_after_load=false trainer.test_freq=1000 trainer.val_before_train=false trainer.save_freq=30 \"trainer.default_local_dir=$LOG_DIR/checkpoints\" \"trainer.validation_data_dir=$LOG_DIR/validation\" \"trainer.rollout_data_dir=$LOG_DIR/rollouts\" 2>&1 | tee \"$LOG_DIR/train.log\"\ntest \"$(<\"$LOG_DIR/checkpoints/latest_checkpointed_iteration.txt\")\" = 1000\nfor step in 990 1000; do\n  checkpoint=\"$LOG_DIR/checkpoints/global_step_$step\"\n  test -s \"$checkpoint/data.pt\"\n  for rank in 0 1; do\n    for state in model optim extra_state; do\n      test -s \"$checkpoint/actor/${state}_world_size_2_rank_${rank}.pt\"\n    done\n  done\ndone\npython scripts/emit_heldout_score.py --workspace \"$AUTORLBENCH_WORKSPACE\" --step 1000 --validation \"$LOG_DIR/validation/1000.jsonl\" | tee -a \"$LOG_DIR/train.log\"\nAUTORL_CP1000_RUN",
+  "env": {
+    "LOG_DIR": "$AUTORLBENCH_RESULTS/experiment_logs",
+    "WANDB_MODE": "offline",
+    "WANDB_DIR": "$AUTORLBENCH_RESULTS/experiment_logs",
+    "OMP_NUM_THREADS": "4",
+    "VLLM_ALLOW_INSECURE_SERIALIZATION": "1"
+  },
+  "timeout_s": 126000,
+  "log_roots": [
+    "experiment_logs"
+  ]
+}
