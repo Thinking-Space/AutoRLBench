@@ -1,0 +1,73 @@
+T2 evidence summary: severity ladder, probe trajectories, and run provenance
+============================================================================
+
+All runs: Qwen2.5-1.5B-Instruct, GRPO (verl, FSDP2 + async colocated vLLM
+0.11), Countdown-Tasks-3to4 (32,768 train / 1,024 test), 70 optimization
+steps, batch 64 prompts x 8 samples, lr 2e-6, H100. The only intended
+difference across arms is trainer.rollout_sync_interval (k). The probe column
+is training/rollout_probs_diff_mean: mean per-token |log q - log p| between
+the rollout engine's own logprobs (calculate_log_probs=True) and the trainer's
+recomputed old_log_probs -- i.e. the sampler-trainer mismatch. The
+engine-vs-trainer numerical noise floor with a fresh sync is ~0.001-0.005.
+
+Severity ladder (critic/score/mean, training reward)
+---------------------------------------------------
+step          1      15      30      45      60      64      65      70
+k=1  s42   .0430  .1777   .2285   .2344   .3281   .2695   .2969   .2637
+k=1  s43   .0293  .1348   .1641   .2402   .3164   .3242   .2793   .3066
+k=8  s42   .0293  .1523   .3789   .3770   .4824   .3711   .0312   .0371
+k=64 s42   .0312  .0293   .0293   .0234   .0293   .0293   .0000   .0000
+k=64 s43   .0273  .0273   .0449   .0234   .0117   .0293   .0000   .0000
+
+Held-out validation accuracy (val-core .../acc/mean@1)
+-------------------------------------------------------
+k=1  s42: 0.0117 -> 0.1729@15 -> 0.2559@30 -> 0.2725@45 -> 0.2705@70
+k=1  s43: 0.0098 -> 0.1895@15 -> 0.2314@30 -> 0.2334@45 -> 0.2461@70
+k=8  s42: 0.0107 -> 0.1514@15 (then collapses with the training reward)
+k=64 s42: 0.0107 -> 0.0098@15..60 -> 0.0000@70 (never moves, then zero)
+k=64 s43: 0.0098 -> 0.0098 flat -> 0.0000@70
+
+Probe (rollout_probs_diff_mean) trajectories
+--------------------------------------------
+k=1  s42: 0.0045 -> 0.0010-0.0034 range throughout (noise floor)
+k=1  s43: 0.0046 -> 0.0011-0.0038 range throughout (noise floor)
+k=64 s42: 0.0046 -> 0.0482@15 -> 0.0945@30 -> 0.2000@45 -> 0.4533@60 ->
+     0.5312@64 (single sync at step 64) -> resets 0.0077@65 -> 0.0196@70
+k=64 s43: same shape, peak 0.3870@64 -> 0.0673@70
+k=8  s42 (sawtooth, period 8; excerpt steps 14-30):
+     14 .0190 | 15 .0247 | 16 .0293 | 17 .0038 | 18 .0073 | 19 .0113 |
+     20 .0146 | 21 .0178 | 22 .0200 | 23 .0256 | 24 .0243 | 25 .0032 |
+     26 .0041 | 27 .0059 | 28 .0073 | 29 .0090 | 30 .0115
+     (rises across each 8-step interval, collapses right after each sync)
+
+Degenerate-phase signature of the k=64 arm (seed 42)
+----------------------------------------------------
+step 64 (last pre-sync): reward 0.0293, entropy 0.073, response len 138,
+     probe 0.5312, clipfrac 0.030
+step 65 (first post-sync): reward 0.0000, entropy 0.026, response len 511
+     (pinned to the 512 cap), probe 0.0077, clipfrac 0.0000
+step 70: reward 0.0000, entropy 0.025, len 510, clipfrac 0.0000
+Rollout outputs stay coherent through the whole flat phase (step 61 sample:
+"<answer>5 * 8 + 38</answer>") and only degenerate as part of the policy
+collapse itself (step 66 sample: arithmetic-word salad degrading into
+"- - + - + - -" repetition to the cap).
+
+120-step diagnostic long run (k=64, seed 42, pre-recording)
+------------------------------------------------------------
+Flat/no-learning phase to step 63 (reward 0.02-0.05), probe climbing to
+0.27, entropy 0.73 -> 0.11. Sync at step 64 resets the probe (0.06) and the
+reward crashes (0.002-0.018 from step 70 on); by step 117-120 the entropy is
+0.006, probe ~0.78, reward ~0.01. Full per-step metrics:
+long_run_k64_120steps_metrics.jsonl.
+
+Run provenance (memory-tight colocated configuration)
+------------------------------------------------------
+The defective arms (k=64, both seeds) ran with the canonical configuration
+exactly as shipped in workspace/run_grpo_stale_sync.sh. The control and
+ladder arms recorded for this table needed run-time microbatch-packing
+reductions to avoid CUDA OOM in this colocated setup (vLLM pool 0.25-0.30 vs
+0.35, log_prob_max_token_len_per_gpu 12288 vs 24576, and for k=8 also
+ppo_max_token_len_per_gpu 8192 vs 12288). These knobs only change how tokens
+are split into microbatches (the weighted-mean gradient is unchanged); they
+do not change the training objective or the failure mechanism, and the k=1
+results match the recorded canonical-config debug run.

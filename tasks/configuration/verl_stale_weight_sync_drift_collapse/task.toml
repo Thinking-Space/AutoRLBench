@@ -1,0 +1,32 @@
+title = "Rollout weights only sync every 64 steps for throughput, the sampler goes stale, and GRPO collapses"
+license = "Apache-2.0"
+created_date = "2026-11-24"
+domain = "configuration"
+tags = ["verl", "grpo", "vllm", "weight-sync", "rollout-staleness", "off-policy-drift", "issue-only"]
+
+[submitter]
+name = "Xuyang Yuan"
+
+[model]
+name = "Qwen/Qwen2.5-1.5B-Instruct"
+
+[dataset]
+name = "Countdown (Jiayi-Pan/Countdown-Tasks-3to4): 32,768 train / 1,024 disjoint test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_stale_sync.sh"
+
+[environment]
+image = "ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128@sha256:6f7c302c0161a6c32d978faade165c86c153575baf028e729d7eebe44c06f683"
+image_stack = "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12"
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "training_collapse"
+failure_reason = "run_grpo_stale_sync.sh sets trainer.rollout_sync_interval=64 (a staged throughput knob gating verl's per-step checkpoint_manager.update_weights call), so the resident rollout replicas sample from a policy up to 63 steps stale; the trainer-recomputed old_log_probs keep the GRPO ratio/clip metrics blind to the mismatch and the drift term distills the policy toward its own stale sampler: the reward stays flat at its initial 0.02-0.05 band for 64 steps (control: 0.26-0.31), entropy decays 0.69 to 0.07, training/rollout_probs_diff_mean climbs 115x the control's noise floor, and after the step-64 sync pushes the drifted policy into the sampler the reward is exactly 0.0 with responses pinned to the 512-token cap (held-out accuracy 0.0 at step 70 vs 0.25-0.27 for the control)."

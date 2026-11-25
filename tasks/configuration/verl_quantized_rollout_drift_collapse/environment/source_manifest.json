@@ -1,0 +1,83 @@
+{
+ "source": "raw workspace re-run in the shared image (see README)",
+ "upstream": {
+  "note": "verl v0.8.0, commit 7aed6b230776f963fa09509c10d9c3a767d1102c, vendored verbatim from volcengine/verl. environment/prepare.sh applies one file-level fix to the vendored tree (environment/patches/vllm_fp8_utils.py -> verl/verl/utils/vllm/vllm_fp8_utils.py): upstream's online-fp8 weight-sync path cannot run on vLLM 0.11 at all (per-shard blockwise scales do not tile the fused qkv/gate_up parameters; SM90 keeps blockwise scales transposed, which breaks square-scale layers like o_proj). The fix is environment repair, not the defect: it is identical in every recorded arm, and the recorded defective and control runs both ran with this exact file (sha256 d86cfd6589992e41c698f15ccf3692f2c0be18f8f7589f74ab7a9c32602494b3; upstream sha256 530f8f9c90840cab671393968c54841daaeb5a97039cae65bd68414c977bba36).",
+  "patched": [
+   {
+    "from": "environment/patches/vllm_fp8_utils.py",
+    "to": "verl/verl/utils/vllm/vllm_fp8_utils.py",
+    "sha256_upstream": "530f8f9c90840cab671393968c54841daeb5a97039cae65bd68414c977bba36",
+    "sha256_shipped": "d86cfd6589992e41c698f15ccf3692f2c0be18f8f7589f74ab7a9c32602494b3",
+    "applied_by": "environment/prepare.sh (idempotent: skips when already patched, refuses on any other state)",
+    "changes": "quant_weights fuses HF q/k/v and gate/up tensors into vLLM's fused parameter order before blockwise quantization; load_quanted_weights copies the quantized tensors straight into the live parameters (bypassing the stacked-params mapping whose bare substring matching corrupts fused names) with SM90 scale-orientation detection. Applied identically in every arm of the recorded evidence."
+   }
+  ]
+ },
+ "rewritten": [
+  {
+   "from": "outputs/<recorded-run>/train.log",
+   "to": "outputs/grpo/train.log",
+   "changes": "experiment name normalized to grpo; workspace path -> /workspace; hostname neutralized (worker node name removed); ANSI color codes and pids stripped. No metric value touched."
+  },
+  {
+   "from": "outputs/<recorded-run>/train.log",
+   "to": "outputs/grpo/train.log",
+   "changes": "experiment name normalized to grpo; workspace path -> /workspace; hostname neutralized (worker node name removed); ANSI color codes and pids stripped. No metric value touched."
+  }
+ ],
+ "renamed": [
+  {
+   "from": "outputs/<recorded-run>",
+   "to": "outputs/grpo"
+  }
+ ],
+ "dropped": [
+  "outputs/grpo/wandb/ (offline W&B binaries, dropped per slimming rules)",
+  "outputs/grpo/rollouts steps other than 1/59/72/78/84/150/300 (samples kept: first, healthy peak, slide start, collapse floor, post-collapse, and late-stage drift)",
+  "scripts/hf_get.py and scripts/probes/ (cluster-side download and probe tooling; probes re-ship in evaluations/issue/reference/)",
+  "reference probe docstrings rewritten to English at packaging (no content change)"
+ ],
+ "assets": [
+  {
+   "file": "workspace/raw/countdown/data/train-00000-of-00001.parquet",
+   "source": "huggingface datasets Jiayi-Pan/Countdown-Tasks-3to4, train split",
+   "size_bytes": 2845904,
+   "license_note": "the dataset declares no license on the Hub; it is machine-generated arithmetic puzzles (a target integer and a list of numbers, no natural-language personal data), the standard Countdown RL pool; shipped in-workspace so the relaunch needs no network access",
+   "derived": "the RL parquet is rebuilt deterministically from it at launch by run_grpo.sh + scripts/data_prep_countdown.py"
+  },
+  {
+   "file": "models/Qwen2.5-1.5B-Instruct",
+   "source": "fetched by environment/prepare.sh via fetch_hf.py at pinned revision 989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+   "verified": "model.safetensors 3087467144 bytes, matching the copy the recorded run used"
+  }
+ ],
+ "upstream_hits": [
+  {
+   "file": "outputs/grpo/train.log",
+   "words": [
+    "actor"
+   ],
+   "reason": "upstream verl metric namespace (actor/grad_norm, actor/entropy), not a side label"
+  },
+  {
+   "file": "workspace/verl/** (vendored upstream tree)",
+   "words": [
+    "broken",
+    "fixed"
+   ],
+   "reason": "upstream verl code/docs/test names (e.g. 'fixed point', fixture helpers); not side labels"
+  },
+  {
+   "file": "workspace/outputs/grpo/rollouts/84.jsonl",
+   "words": [
+    "wkv"
+   ],
+   "reason": "random substring inside model-generated babble in a collapsed response ('d wkv không cần tải'), not a label"
+  }
+ ],
+ "rerun_evidence": {
+  "note": "startup rerun executed on a devspace in the task's shared image (backend=local, model served from the fetch cache)",
+  "location": "outputs/rerun/verl_quantized_rollout_drift_collapse/20261125-070525-local-devspace/ (reviewer-local copy; raw copy at /root/rerun-logs/verl_quantized_rollout_drift_collapse/20261125-070525 on the recording devspace)",
+  "result": "report.json passed=true, exit 0, timed_out=false, 213s; prepare.log shows cache hit + patch applied; rerun.log shows 3 training steps (score 0.023 -> 0.049); executed with the final packaged files"
+ }
+}

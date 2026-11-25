@@ -1,0 +1,48 @@
+{
+  "staged_defects": {
+    "upstream": "volcengine/verl",
+    "commit": "4b9c14f2",
+    "declaration": "The graded defect is staged for this task, not an upstream verl bug. Upstream at this commit pushes updated actor weights to the rollout replicas after every optimization step (trainer/ppo/ray_trainer.py calls checkpoint_manager.update_weights unconditionally); the workspace carries a lab throughput-experiment patch that adds a trainer.rollout_sync_interval knob (default 1) and skips the sync on non-multiples of the interval, so the resident rollout replicas keep serving with stale weights between syncs. The run script sets trainer.rollout_sync_interval=64.",
+    "sites": [
+      "workspace/verl/trainer/ppo/ray_trainer.py",
+      "workspace/verl/trainer/config/ppo_trainer.yaml"
+    ],
+    "environment_compatibility_changes": [
+      "workers/engine/fsdp/transformer_impl.py (optimizer offload around step)",
+      "workers/rollout/vllm_rollout/vllm_rollout.py (forced shared-memory weight sync)",
+      "utils/tracking.py (benchmark-logger close guard)",
+      "utils/experimental/torch_functional.py (benign result-variable refactor)"
+    ],
+    "dropped": [
+      "verl/experimental/vla/workers"
+    ]
+  },
+  "rewrites_applied_to_frozen_evidence": [
+    {
+      "file": "workspace/results/grpo_stale_sync/train.log",
+      "sha256_before": "e77eca2dca72f7c3163bd2a4ad493dae347ea00d0e0be034b5224328155d73de",
+      "sha256_after": "2006aea7b1a9ef03dd09b2856758ed0bc8285df949f0cb252e523aad48da69b0",
+      "metric_values_changed": false,
+      "replacements": [
+        "workspace path -> /workspace",
+        "user/home -> root",
+        "pod IP -> 127.0.0.1",
+        "hostname -> localhost",
+        "devspace job hostname -> localhost"
+      ]
+    },
+    {
+      "file": "workspace/results/grpo_stale_sync/wandb/offline-run-20261124_085918-khjvz127/logs/debug.log",
+      "sha256_before": "46795e9d301a24f2dfc2a6d60b564a052c651e989769c0b1bb325c127c8ccaa1",
+      "sha256_after": "7274e4c13b9e0a42f1dc0eb4f2748545868bbdfbcccf8c175f07d4a381bd2a8a",
+      "metric_values_changed": false,
+      "replacements": [
+        "workspace path -> /workspace",
+        "user/home -> root",
+        "pod IP -> 127.0.0.1",
+        "hostname -> localhost"
+      ]
+    }
+  ],
+  "thinning": "Retained for the shipped defective run (seed 42, 70 steps): full metrics.jsonl (steps 0..70), train.log, data_prep.log, rollout dumps at steps 1/32/64/70, all six val_generations files (steps 0/15/30/45/60/70), and the offline W&B text metadata/logs (the binary .wandb file was dropped). evaluations/issue/reference/ carries the per-step metrics.jsonl of the other four evidence arms (control k=1 seeds 42/43, defective k=64 seed 43, ladder k=8 seed 42) plus a 120-step k=64 diagnostic long run and evidence_summary.txt tabulating the severity ladder and probe trajectories."
+}
