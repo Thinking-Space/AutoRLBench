@@ -1,0 +1,75 @@
+import copy
+
+from megatron.core.models.gpt.gpt_layer_specs import get_gpt_decoder_block_spec
+from megatron.core.transformer.spec_utils import ModuleSpec
+from megatron.core.transformer.transformer_block import get_num_layers_to_build
+from megatron.core.transformer.transformer_layer import get_transformer_layer_offset
+from transformers import AutoConfig
+
+from miles_plugins.models.linear_attn import GatedDeltaNet
+from miles_plugins.models.qwen3_5 import Attention as _Qwen3_5Attention
+
+
+class Qwen3NextGatedDeltaNet(GatedDeltaNet):
+    """Qwen3-Next GDN: HF fuses ``in_proj_qkvz`` and ``in_proj_ba``, both group-major per key head; the stacked
+    in_proj GEMM regroups their rows into q/k/v, z, b, a sections."""
+
+    def _build_projections(self):
+        hidden, local = self.config.hidden_size, self.local
+        self.in_proj_qkvz = self.sharded_linear(
+            "in_proj_qkvz", hidden, local.num_k_heads * (local.group_qkv_dim + local.group_value_dim)
+        )
+        self.in_proj_ba = self.sharded_linear("in_proj_ba", hidden, 2 * local.num_v_heads)
+
+    def in_proj_sections(self):
+        local, hidden = self.local, self.config.hidden_size
+        qkvz = self.in_proj_qkvz.weight.view(local.num_k_heads, -1, hidden)
+        ba = self.in_proj_ba.weight.view(local.num_k_heads, -1, hidden)
+        qkv, z = qkvz.split([local.group_qkv_dim, local.group_value_dim], dim=1)
+        b, a = ba.split([local.v_per_k, local.v_per_k], dim=1)
+        return tuple(t.reshape(-1, hidden) for t in (qkv, z, b, a))
+
+
+class Attention(_Qwen3_5Attention):
+    core_cls = Qwen3NextGatedDeltaNet
+
+
+def get_qwen3_next_spec(args, config, vp_stage):
+    # always use the moe path
+    if not args.backend.num_experts:
+        config.moe_layer_freq = [0] * config.num_layers
+
+    # Define the decoder block spec
+    kwargs = {
+        "use_transformer_engine": True,
+    }
+    if vp_stage is not None:
+        kwargs["vp_stage"] = vp_stage
+    transformer_layer_spec = get_gpt_decoder_block_spec(config, **kwargs)
+
+    assert config.pipeline_model_parallel_layout is None, "not support this at the moment"
+
+    # Slice the layer specs to only include the layers that are built in this pipeline stage.
+    # Note: MCore layer_number starts at 1
+    num_layers_to_build = get_num_layers_to_build(config, vp_stage=vp_stage)
+    offset = get_transformer_layer_offset(config, vp_stage=vp_stage)
+
+    hf_config = AutoConfig.from_pretrained(args.hf_checkpoint, trust_remote_code=True)
+
+    # Compute layer_types if the config class doesn't expose it
+    if not hasattr(hf_config, "layer_types"):  # config-access-exempt: older HF checkpoints omit explicit layer_types
+        interval = getattr(
+            hf_config, "full_attention_interval", 4
+        )  # config-access-exempt: older HF checkpoints encode full-attention cadence with this optional field
+        n = hf_config.num_hidden_layers
+        hf_config.layer_types = ["full_attention" if (i + 1) % interval == 0 else "linear_attention" for i in range(n)]
+
+    for layer_id in range(num_layers_to_build):
+        if hf_config.layer_types[layer_id + offset] == "linear_attention":
+            layer_specs = copy.deepcopy(transformer_layer_spec.layer_specs[layer_id])
+            layer_specs.submodules.self_attention = ModuleSpec(
+                module=Attention,
+                params={"args": args},
+            )
+            transformer_layer_spec.layer_specs[layer_id] = layer_specs
+    return transformer_layer_spec

@@ -1,0 +1,43 @@
+{
+  "recorded_date": "2026-11-24",
+  "runs_per_side": 1,
+  "note": "single-seed recording per arm; numbers are margins, not variance",
+  "common_config": {
+    "batch": "8 prompts x 4 samples",
+    "response_len": 2048,
+    "num_rollout_budget": "10 (defective arm was given 20 before its kill)",
+    "window": "30 min (defective) / natural completion (controls)"
+  },
+  "variants": {
+    "neither_fix": {
+      "rollout_iterations_completed": 0,
+      "proxy_rejections": 59520,
+      "gateway_inner_retry_lines": 59520,
+      "outer_retry_lines": 968,
+      "outcome": "0 samples, 0 steps; stopped at the 30-minute window"
+    },
+    "failfast_only": {
+      "rollout_iterations_completed": 0,
+      "proxy_rejections": 10849,
+      "gateway_inner_retry_lines": 0,
+      "outer_retry_lines": 10927,
+      "outcome": "0 samples, 0 steps; each sample fails ~60x sooner (no inner replay), still no progress because the routing key is still dropped"
+    },
+    "header_only": {
+      "rollout_iterations_completed": 10,
+      "proxy_rejections": 0,
+      "outcome": "trains normally, clean exit; the fail-fast defect is latent (nothing sends a deterministic 400 once the key survives)"
+    },
+    "both_fixes": {
+      "rollout_iterations_completed": 10,
+      "proxy_rejections": 0,
+      "outcome": "trains normally, clean exit; this is the control evidence in control_run/"
+    }
+  },
+  "thresholds": {
+    "rollout_iterations_completed_min": 5,
+    "proxy_rejections_max": 0,
+    "gateway_inner_retry_lines_max": 0,
+    "comment": "the training-level threshold separates neither/failfast (0 iterations, storm) from header/both (10 iterations); the fail-fast axis is covered by the verifier's sealed _post unit tests, which header-only fails and both-fixes passes"
+  }
+}

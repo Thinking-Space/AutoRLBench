@@ -1,0 +1,38 @@
+title = "Miles white-box gateway drops the routing key and retries deterministic 4xx errors"
+license = "Apache-2.0"
+created_date = "2026-11-24"
+domain = "infrastructure"
+tags = [
+  "http-retry-policy",
+  "gateway-header-loss",
+  "routing-key",
+  "deterministic-4xx",
+  "rollout-stall",
+]
+
+[submitter]
+name = "chenyinghao"
+
+[model]
+name = "Qwen3-0.6B"
+
+[dataset]
+name = "dapo-math-17k (dedup) subset, 8 prompts x 4 samples per rollout iteration"
+
+[training]
+framework = "miles"
+algo = "grpo"
+script = "recipes/run_training.py"
+
+[environment]
+image = "ghcr.io/merak0514/autorlbench-justrl2@sha256:8d2eb1fe292a4e381915734b7854213002ca9bae6b50efab1bd8cc75cad14a8b"
+image_stack = "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12"
+
+# scripts/run_experiment.sh drives the colocated split (2 GPUs: FSDP actor +
+# sglang engine); the recorded defective run burned its full 30-minute window
+# with zero progress, the recorded controls finished 10 iterations in ~9.
+gpus = 2
+
+[outcome]
+failure_type = "deterministic_4xx_retry_and_routing_key_loss"
+failure_reason = "The white-box gateway answers the rollout's per-session generate route through the shared HTTP retry client with headers=None, dropping X-SMG-Routing-Key; the routing-key policy rejects every request with 400 missing_routing_key, and the retry helper replays that deterministic 400 for the full 60-attempt budget before raising, so the gateway route 500s and the outer 60-attempt budget restarts the inner storm: in the recorded defective run, 59,520 rejected requests over a 30-minute window with zero rollout samples and zero training steps, versus 10/10 training iterations in both fully-fixed control arms."

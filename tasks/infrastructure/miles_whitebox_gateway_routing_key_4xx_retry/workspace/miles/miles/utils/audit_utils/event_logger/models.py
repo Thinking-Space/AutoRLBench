@@ -1,0 +1,273 @@
+from datetime import datetime
+from typing import Annotated, Any, Literal
+
+from pydantic import Discriminator, Field
+
+from miles.backends.training_utils.types import TrainStepOutcome
+from miles.utils.audit_utils.checksum_utils import InferenceEngineChecksumSnapshot
+from miles.utils.audit_utils.process_identity import ProcessIdentity
+from miles.utils.pydantic_utils import FrozenStrictBaseModel
+from miles.utils.test_utils.fault_injector.models import FaultHookRecord
+
+
+class EnvReportEditablePackageInfo(FrozenStrictBaseModel):
+    name: str
+    version: str
+    location: str
+
+
+class EnvReportGitRepoInfo(FrozenStrictBaseModel):
+    package_name: str
+    location: str
+    commit: str
+    dirty: bool
+    diff_stat: str
+    uncommitted_hash: str | None
+    untracked_paths: list[str]
+    untracked_paths_truncated: bool
+    untracked_unhashed_paths: list[str]
+
+
+class EnvReportArgsDump(FrozenStrictBaseModel):
+    values: dict[str, Any]
+    skipped_names: list[str]
+
+
+class EnvReportProcessFacts(FrozenStrictBaseModel):
+    hostname: str
+    argv: list[str]
+    args: EnvReportArgsDump
+    env_vars: dict[str, str]
+    launcher_env_report: dict[str, Any] | None
+
+
+class EnvReport(FrozenStrictBaseModel):
+    process: EnvReportProcessFacts
+    key_versions: dict[str, str]
+    editable_packages: list[EnvReportEditablePackageInfo]
+    git_repos: list[EnvReportGitRepoInfo]
+    full_pip_list: list[dict[str, str]]
+    packages_probed: bool
+
+
+class EventBase(FrozenStrictBaseModel):
+    timestamp: datetime
+    source: ProcessIdentity
+
+
+class _ActorTrainEventBase(EventBase):
+    rollout_id: int
+    attempt: int = 0
+
+
+class OptimizerStateInfo(FrozenStrictBaseModel):
+    """Snapshot of one sub-optimizer's state with tensors replaced by hashes."""
+
+    param_names: dict[int, str]
+    state_dict: dict[str, Any]
+
+
+class TrainEngineLocalWeightChecksumState(FrozenStrictBaseModel):
+    param_hashes: dict[str, str]
+    buffer_hashes: dict[str, str]
+    # May be skipped in non-debug mode if too expensive
+    optimizer_hashes: list[OptimizerStateInfo]
+
+
+class TrainEngineLocalWeightChecksumEvent(_ActorTrainEventBase):
+    type: Literal["train_engine_local_weight_checksum"] = "train_engine_local_weight_checksum"
+    state: TrainEngineLocalWeightChecksumState
+
+
+class WitnessSnapshotParamEvent(_ActorTrainEventBase):
+    type: Literal["witness_snapshot_param"] = "witness_snapshot_param"
+    instance_id: str
+    # TODO: may shrink a contiguous range of numbers into a pair, if this is too large/slow
+    nonzero_witness_ids: list[int]
+    stale_id_ranges: list[tuple[int, int]]
+
+
+class WitnessAllocateIdEvent(EventBase):
+    type: Literal["witness_allocate_id"] = "witness_allocate_id"
+    rollout_id: int
+    attempt: int
+    witness_id_to_sample_index: dict[int, int]
+    # Allocator counter after this allocation; a resumed run recovers the allocator from it.
+    counter_after: int
+
+
+class TrainGroupStepEndEvent(EventBase):
+    type: Literal["train_group_step_end"] = "train_group_step_end"
+    rollout_id: int
+    attempt: int
+    role: Literal["actor", "critic"]
+    cell_outcomes: dict[int, Literal["error"] | list[TrainStepOutcome]]
+    cell_incarnations: dict[str, str] = Field(default_factory=dict)
+
+
+class CellReconfigureEvent(EventBase):
+    type: Literal["cell_reconfigure"] = "cell_reconfigure"
+    rollout_id: int
+    quorum_id: int
+    src_cell_index: int | None
+    # healing happened iff non-empty
+    healed_cell_indices: list[int]
+    alive_cell_indices_after: list[int]
+    cell_incarnations_after: dict[str, str] = Field(default_factory=dict)
+
+
+class _InferenceEngineChecksumEventBase(EventBase):
+    # The out-of-loop startup sync stamps start_rollout_id - 1, so -1 is a fresh run's initial sync.
+    rollout_id: int
+    # The policy whose weights were pushed, or None for a run that trains one unnamed policy.
+    trainer_model_id: str | None = None
+    weight_version: int
+    debug_trainer_load_state_timestamp: float
+    debug_weight_update_id: str
+
+
+class InferenceEngineWeightChecksumEvent(_InferenceEngineChecksumEventBase):
+    type: Literal["inference_engine_weight_checksum"] = "inference_engine_weight_checksum"
+    # One {tensor -> hash} dict per rollout engine; a TP>1 engine's ranks merge with a rank{r}/ prefix.
+    engine_snapshots: list[InferenceEngineChecksumSnapshot] = Field(min_length=1)
+
+
+class InferenceEngineChecksumCollectionFailedEvent(_InferenceEngineChecksumEventBase):
+    type: Literal["inference_engine_checksum_collection_failed"] = "inference_engine_checksum_collection_failed"
+    published_cell_id_to_hashes: dict[str, str]
+    reason: str
+
+
+class TrainAdvantageComputationEvent(_ActorTrainEventBase):
+    type: Literal["train_advantage_computation"] = "train_advantage_computation"
+    advantages: list[list[float]]
+    witness_ids: list[list[int]]
+
+
+class EnvReportEvent(EventBase):
+    type: Literal["env_report"] = "env_report"
+    report: EnvReport
+
+
+class EngineEnvReportEvent(EventBase):
+    type: Literal["engine_env_report"] = "engine_env_report"
+    cell_id: str
+    workers_hash: str | None = None
+    server_url: str
+    server_info: dict[str, Any]
+
+
+class MetricEvent(EventBase):
+    type: Literal["metric"] = "metric"
+    rollout_id: int | None = None
+    attempt: int | None = None
+    metrics: dict[str, Any]
+
+
+class IssuedSampleGroup(FrozenStrictBaseModel):
+    group_index: int
+    sample_indices: list[int]
+
+
+class DataSourceIssuedSamplesEvent(EventBase):
+    type: Literal["data_source_issued_samples"] = "data_source_issued_samples"
+    rollout_id: int
+    groups: list[IssuedSampleGroup]
+
+
+class ExplicitlyDroppedSamplesEvent(EventBase):
+    type: Literal["explicitly_dropped_samples"] = "explicitly_dropped_samples"
+    source_sample_indices: list[int]
+    reason: str
+    rollout_id: int | None = None
+
+
+class SampleLineagePayload(FrozenStrictBaseModel):
+    source_sample_index: int
+    output_index: int
+    output_count: int
+
+
+class OutputConsumption(FrozenStrictBaseModel):
+    sample: SampleLineagePayload
+    count: int
+
+
+class TrainerModelCompanionInfoEvent(EventBase):
+    type: Literal["trainer_model_companion_info"] = "trainer_model_companion_info"
+    cell_index: int
+    rollout_id: int
+    attempt: int
+    sample_counts: list[OutputConsumption]
+    skipped_nonfinite_sample_counts: list[OutputConsumption]
+
+
+class FaultHookEvent(EventBase):
+    type: Literal["fault_hook"] = "fault_hook"
+    record: FaultHookRecord
+
+
+class WeightTransferFailedEvent(EventBase):
+    type: Literal["weight_transfer_failed"] = "weight_transfer_failed"
+    debug_weight_update_id: str
+    cell_id: str
+    workers_hash: str
+    started_at: datetime
+    error: str
+
+
+class WeightUpdateResultEvent(EventBase):
+    type: Literal["weight_update_result"] = "weight_update_result"
+    debug_weight_update_id: str
+    debug_trainer_load_state_timestamp: float
+    rollout_id: int | None
+    candidate_version: int | None
+    published_version: int | None
+    snapshot_cell_id_to_hashes: dict[str, str]
+    updated_cell_ids: list[str]
+    failed_cell_ids: list[str]
+
+
+Event = Annotated[
+    TrainEngineLocalWeightChecksumEvent
+    | WitnessSnapshotParamEvent
+    | WitnessAllocateIdEvent
+    | TrainGroupStepEndEvent
+    | CellReconfigureEvent
+    | InferenceEngineWeightChecksumEvent
+    | InferenceEngineChecksumCollectionFailedEvent
+    | TrainAdvantageComputationEvent
+    | EnvReportEvent
+    | EngineEnvReportEvent
+    | MetricEvent
+    | DataSourceIssuedSamplesEvent
+    | ExplicitlyDroppedSamplesEvent
+    | TrainerModelCompanionInfoEvent
+    | FaultHookEvent
+    | WeightUpdateResultEvent
+    | WeightTransferFailedEvent,
+    Discriminator("type"),
+]
+
+
+def _to_snake_case(name: str) -> str:
+    import re
+
+    return re.sub(r"(?<=[a-z0-9])([A-Z])", r"_\1", name).lower()
+
+
+def _check_event_naming() -> None:
+    import typing
+
+    event_types = typing.get_args(typing.get_args(Event)[0])
+    for cls in event_types:
+        type_value = cls.model_fields["type"].default
+        expected_snake = type_value + "_event"
+        actual_snake = _to_snake_case(cls.__name__)
+        assert actual_snake == expected_snake, (
+            f"Event class {cls.__name__} (snake: {actual_snake}) does not match "
+            f"type '{type_value}' (expected snake: {expected_snake})"
+        )
+
+
+_check_event_naming()

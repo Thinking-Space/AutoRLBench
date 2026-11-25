@@ -1,0 +1,444 @@
+import asyncio
+import ipaddress
+import json
+import logging
+import mmap
+import multiprocessing
+import os
+import random
+import socket
+import subprocess
+import time
+import urllib.parse
+
+import aiohttp
+import httpx
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+MILES_HOST_IP_ENV = "MILES_HOST_IP"
+MILES_PREFER_IPV6_ENV = "MILES_PREFER_IPV6"
+
+_CONNECT_ATTEMPT_TIMEOUT_SECONDS = 1.0
+_CONNECT_RETRY_INTERVAL_SECONDS = 0.5
+
+
+def find_available_port(base_port: int):
+    port = base_port + random.randint(100, 1000)
+    while True:
+        if is_port_available(port):
+            return port
+        if port < 60000:
+            port += 42
+        else:
+            port -= 43
+
+
+def is_port_available(port):
+    """Return whether a port is available."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(("", port))
+            s.listen(1)
+            return True
+        except OSError:
+            return False
+        except OverflowError:
+            return False
+
+
+def wait_for_server_ready(
+    host: str,
+    port: int,
+    process: "multiprocessing.Process | subprocess.Popen | None" = None,
+    timeout: float = 30,
+) -> None:
+    """Poll until a TCP port is accepting connections.
+
+    Raises ``RuntimeError`` if the process dies or the timeout is exceeded.
+    """
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if process is not None and not _is_process_running(process):
+            raise RuntimeError(f"Server process died before port {port} became ready")
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                return
+        except OSError:
+            time.sleep(0.5)
+    raise RuntimeError(f"Server at {host}:{port} not ready after {timeout}s")
+
+
+async def wait_tcp_ready_async(host: str, port: int, *, timeout: float = 30) -> None:
+    """Poll until a TCP port accepts connections."""
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while loop.time() < deadline:
+        try:
+            _reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(host.strip("[]"), port), timeout=_CONNECT_ATTEMPT_TIMEOUT_SECONDS
+            )
+            writer.close()
+            await writer.wait_closed()
+            return
+        except (OSError, asyncio.TimeoutError):
+            await asyncio.sleep(_CONNECT_RETRY_INTERVAL_SECONDS)
+    raise RuntimeError(f"Server at {host}:{port} not ready after {timeout}s")
+
+
+def _is_process_running(process: "multiprocessing.Process | subprocess.Popen") -> bool:
+    if isinstance(process, subprocess.Popen):
+        return process.poll() is None
+    return process.is_alive()
+
+
+def resolve_ip(host: str) -> str:
+    bare = host.strip("[]")
+    try:
+        ipaddress.ip_address(bare)
+    except ValueError:
+        pass
+    else:
+        return wrap_ipv6(bare)
+
+    # "Prefer" is indeed strict to match old semantics
+    prefer_ipv6 = os.getenv(MILES_PREFER_IPV6_ENV, "0").lower() in ("1", "true", "yes", "on")
+    family = socket.AF_INET6 if prefer_ipv6 else socket.AF_INET
+    # getaddrinfo allows specifying the family (AF_INET or AF_INET6)
+    # Result format: [(family, type, proto, canonname, sockaddr), ...]
+    infos = socket.getaddrinfo(bare, None, family=family, type=socket.SOCK_STREAM)
+    for info in infos:
+        ip = info[4][0]  # The first element of sockaddr is the IP
+        # Must filter out loopback addresses to avoid "127.0.0.1" issues
+        if not ipaddress.ip_address(ip).is_loopback:
+            return wrap_ipv6(ip)
+
+    raise RuntimeError(f"{host!r} resolves to no non-loopback {family.name} address, so nothing can bind on it")
+
+
+def wrap_ipv6(host):
+    """Wrap IPv6 address in [] if needed."""
+    try:
+        ipaddress.IPv6Address(host.strip("[]"))
+        return f"[{host.strip('[]')}]"
+    except ipaddress.AddressValueError:
+        return host
+
+
+def router_worker_base_urls(urls: list[str]) -> list[str]:
+    """Strip the `@<rank>` suffix dp-aware routing adds; ranks of one engine dedupe to one address."""
+    bases = []
+    for url in urls:
+        base, sep, rank = url.rpartition("@")
+        if sep and rank.isdigit():
+            url = base
+        if url not in bases:
+            bases.append(url)
+    return bases
+
+
+def run_router(args):
+    from miles.utils.logging_utils import configure_logger_raw
+
+    # Spawned as a fresh interpreter, so it inherits no logging config.
+    configure_logger_raw("router")
+    try:
+        from sglang_router.launch_router import launch_router
+
+        router = launch_router(args)
+        if router is None:
+            return 1
+        return 0
+    except Exception as e:
+        logger.info(e)
+        return 1
+
+
+def terminate_process(process: multiprocessing.Process, timeout: float = 1.0) -> None:
+    """Terminate a process gracefully, with forced kill as fallback.
+
+    Args:
+        process: The process to terminate
+        timeout: Seconds to wait for graceful termination before forcing kill
+    """
+    if not process.is_alive():
+        return
+
+    process.terminate()
+    process.join(timeout=timeout)
+    if process.is_alive():
+        process.kill()
+        process.join()
+
+
+class GeneralHttpClientProvider:
+    _CONNECT_TIMEOUT = 10.0
+    _WRITE_TIMEOUT = 60.0
+    _POOL_TIMEOUT = 60.0
+    _TIMEOUT = httpx.Timeout(connect=_CONNECT_TIMEOUT, read=None, write=_WRITE_TIMEOUT, pool=_POOL_TIMEOUT)
+    _LIMITS = httpx.Limits(max_connections=None, max_keepalive_connections=None)
+
+    # TODO: entries are never evicted and the clients are never aclose()d, so a caller that keeps
+    # creating event loops (repeated asyncio.run) leaks one client and its keep-alive sockets per
+    # loop. Today's call sites use a bounded number of loops; add eviction before that stops holding.
+    _clients: dict[asyncio.AbstractEventLoop, httpx.AsyncClient] = {}
+
+    @classmethod
+    def client(cls) -> httpx.AsyncClient:
+        loop = asyncio.get_running_loop()
+        client = cls._clients.get(loop)
+        if client is None:
+            client = httpx.AsyncClient(timeout=cls._TIMEOUT, limits=cls._LIMITS)
+            cls._clients[loop] = client
+        return client
+
+
+# TODO: the client below is not general — it carries a rollout-specific connection limit and an
+# optional ray-distributed POST path. Rename it (or fold it into GeneralHttpClientProvider with the
+# limit as an argument) once the rollout request path is reworked.
+_http_clients: dict[asyncio.AbstractEventLoop, httpx.AsyncClient] = {}
+_client_concurrency: int = 0
+
+# Optional Ray-based distributed POST dispatch
+_distributed_post_enabled: bool = False
+_post_actors: list[object] = []
+_post_actor_idx: int = 0
+
+
+def _next_actor():
+    global _post_actor_idx
+    if not _post_actors:
+        return None
+    actor = _post_actors[_post_actor_idx % len(_post_actors)]
+    _post_actor_idx = (_post_actor_idx + 1) % len(_post_actors)
+    return actor
+
+
+async def _post(client, url, payload, max_retries=60, action="post", headers=None):
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            if action in ("delete", "get"):
+                assert not payload
+                response = await getattr(client, action)(
+                    url, headers=headers
+                )  # config-access-exempt: attribute selected at runtime from action
+            else:
+                response = await getattr(client, action)(
+                    url, json=payload or {}, headers=headers
+                )  # config-access-exempt: attribute selected at runtime from action
+            response.raise_for_status()
+            try:
+                output = response.json()
+            except json.JSONDecodeError:
+                output = response.text
+        except Exception as e:
+            retry_count += 1
+
+            if isinstance(e, httpx.HTTPStatusError):
+                response_text = e.response.text
+            else:
+                response_text = None
+
+            logger.info(
+                f"Error: {e}, retrying... (attempt {retry_count}/{max_retries}, url={url}, response={response_text})"
+            )
+            if retry_count >= max_retries:
+                logger.info(f"Max retries ({max_retries}) reached, failing... (url={url})")
+                raise e
+            await asyncio.sleep(1)
+            continue
+        break
+
+    return output
+
+
+async def wait_http_ok(url: str, *, json_payload=None, timeout: float = 180.0, request_timeout: float = 60.0) -> None:
+    """Poll ``url`` until it answers HTTP 200 (POST when ``json_payload`` is given,
+    else GET); raise ``TimeoutError`` past the deadline."""
+    deadline = time.time() + timeout
+    last_error = "no attempt made"
+    async with httpx.AsyncClient() as client:
+        while True:
+            try:
+                if json_payload is not None:
+                    response = await client.post(url, json=json_payload, timeout=request_timeout)
+                else:
+                    response = await client.get(url, timeout=request_timeout)
+                if response.status_code == 200:
+                    return
+                last_error = f"HTTP {response.status_code}"
+            except httpx.HTTPError as e:
+                last_error = repr(e)
+            if time.time() > deadline:
+                raise TimeoutError(f"{url} not ready after {timeout}s: {last_error}")
+            await asyncio.sleep(5)
+
+
+async def post_buffer_no_retry(url: str, payload: dict, *, timeout: float) -> np.ndarray:
+    """POST once and return a writable buffer; bound the whole operation by timeout.
+
+    Plain HTTP only. Transport failures remain httpx.TransportError for the rollout
+    abort handler; non-2xx responses raise RuntimeError carrying the response body.
+    """
+    return await asyncio.wait_for(_post_buffer(url, payload), timeout=timeout)
+
+
+async def _post_buffer(url: str, payload: dict) -> np.ndarray:
+    if urllib.parse.urlsplit(url).scheme != "http":
+        raise ValueError(f"post_buffer_no_retry supports http:// only, got {url}")
+    try:
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=None),
+            auto_decompress=False,
+            skip_auto_headers={"Accept-Encoding"},
+            cookie_jar=aiohttp.DummyCookieJar(),
+        ) as client:
+            async with client.post(
+                url, json=payload, headers={"Connection": "close"}, allow_redirects=False
+            ) as response:
+                if not (200 <= response.status < 300):
+                    body = (await response.read()).decode(errors="replace")
+                    raise RuntimeError(f"POST {url} failed with {response.status}: {body}")
+                length = response.content_length
+                if length is None:
+                    raise httpx.RemoteProtocolError("reply without Content-Length")
+                # Private mmap avoids numpy huge-page compaction; prefault on a worker keeps page
+                # faults out of the event-loop copy into the reply buffer. mmap rejects length 0.
+                try:
+                    mapping = await asyncio.to_thread(
+                        mmap.mmap,
+                        -1,
+                        max(length, 1),
+                        flags=mmap.MAP_PRIVATE
+                        | mmap.MAP_ANONYMOUS
+                        | getattr(
+                            mmap, "MAP_POPULATE", 0
+                        ),  # config-access-exempt: MAP_POPULATE is an optional platform mmap constant
+                    )
+                except (OSError, OverflowError) as exc:
+                    raise httpx.ReadError(f"cannot allocate reply buffer for Content-Length {length}") from exc
+                reply = np.frombuffer(mapping, dtype=np.uint8)[:length]
+                view = memoryview(reply)
+                filled = 0
+                async for chunk in response.content.iter_any():
+                    view[filled : filled + len(chunk)] = chunk
+                    filled += len(chunk)
+                if filled != length:
+                    raise httpx.ReadError(f"connection closed after {filled} of {length} body bytes")
+                return reply
+    except aiohttp.ClientConnectorError as exc:
+        raise httpx.ConnectError(str(exc)) from exc
+    except aiohttp.ClientError as exc:
+        raise httpx.ReadError(str(exc)) from exc
+
+
+def init_http_client(args):
+    """Initialize HTTP client and optionally enable distributed POST via Ray."""
+    global _client_concurrency, _distributed_post_enabled
+    if args.inference_runtime_mut_state.engine_count == 0 and not args.eval_uses_snapshots:
+        return
+
+    initial_engine_count = (
+        args.inference_runtime_mut_state.engine_count + args.inference_runtime_mut_state.eval_engine_count
+    )
+    _client_concurrency = args.sglang_server_concurrency * initial_engine_count
+    _client_concurrency = max(_client_concurrency, args.sglang_server_concurrency)
+
+    # Optionally initialize distributed POST via Ray without changing interfaces
+    if args.use_distributed_post:
+        _init_ray_distributed_post(args)
+        _distributed_post_enabled = True
+
+
+def _init_ray_distributed_post(args):
+    """Initialize one or more Ray async actors per node for HTTP POST.
+
+    Uses NodeAffinitySchedulingStrategy to place actors on distinct nodes.
+    Controlled by MILES_HTTP_POST_ACTORS_PER_NODE.
+    """
+    global _post_actors
+    if _post_actors:
+        return  # Already initialized
+
+    import ray
+    from ray.util.scheduling_strategies import NodeAffinitySchedulingStrategy
+
+    # Discover alive nodes
+    nodes = [n for n in ray.nodes() if n.get("Alive")]
+    if not nodes:
+        raise RuntimeError("No alive Ray nodes to place HTTP POST actors.")
+
+    # Define the async actor
+    @ray.remote
+    class _HttpPosterActor:
+        def __init__(self, *, concurrency: int):
+            # Lazy creation to this actor's event loop
+            self._client = httpx.AsyncClient(
+                limits=httpx.Limits(max_connections=max(1, concurrency)),
+                timeout=httpx.Timeout(None),
+            )
+
+        async def do_post(self, url, payload, max_retries=60, action="post", headers=None):
+            return await _post(self._client, url, payload, max_retries, action=action, headers=headers)
+
+    # Create actors per node
+    created = []
+    # Distribute client concurrency across actors (at least 1 per actor)
+    per_actor_conc = (_client_concurrency + len(nodes)) // len(nodes)
+
+    for node in nodes:
+        node_id = node["NodeID"]
+        scheduling = NodeAffinitySchedulingStrategy(node_id=node_id, soft=False)
+        for _ in range(args.num_gpus_per_node):
+            actor = _HttpPosterActor.options(
+                name=None,
+                lifetime="detached",
+                scheduling_strategy=scheduling,
+                max_concurrency=per_actor_conc,
+                # Use tiny CPU to schedule
+                num_cpus=0.001,
+            ).remote(concurrency=per_actor_conc)
+            created.append(actor)
+
+    _post_actors = created
+
+
+def _rollout_client() -> httpx.AsyncClient:
+    # a process where init_http_client never ran, such as a subproc agent call, gets a default client
+    if _client_concurrency == 0:
+        return GeneralHttpClientProvider.client()
+
+    loop = asyncio.get_running_loop()
+    if (client := _http_clients.get(loop)) is None:
+        client = httpx.AsyncClient(
+            limits=httpx.Limits(max_connections=_client_concurrency),
+            timeout=httpx.Timeout(None),
+        )
+        _http_clients[loop] = client
+    return client
+
+
+# TODO may generalize the name since it now contains http DELETE/GET etc (with retries and remote-execution)
+async def post(url, payload, max_retries=60, action="post", headers=None):
+    # If distributed mode is enabled and actors exist, dispatch via Ray.
+    if _distributed_post_enabled and _post_actors:
+        try:
+            actor = _next_actor()
+            if actor is not None:
+                return await actor.do_post.remote(url, payload, max_retries, action=action, headers=headers)
+        except Exception as e:
+            logger.info(f"[http_utils] Distributed POST failed, falling back to local: {e} (url={url})")
+            # fall through to local
+
+    return await _post(_rollout_client(), url, payload, max_retries, action=action, headers=headers)
+
+
+# TODO unify w/ `post` to add retries and remote-execution
+async def get(url):
+    response = await _rollout_client().get(url)
+    response.raise_for_status()
+    output = response.json()
+    return output

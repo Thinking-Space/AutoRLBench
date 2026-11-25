@@ -1,0 +1,53 @@
+{
+  "miles": {
+    "repository": "https://github.com/radixark/miles.git",
+    "buggy_commit": "a19015cec24a67461945ef3428d418788e65160e",
+    "fixed_commit": "108602db7e5b3ac1d46669119be5a69f8b1209d5",
+    "selection_rationale": "the parent of the first public commit that stops retrying deterministic 4xx responses; this exact revision still retries 400 errors for the full 60-attempt budget",
+    "reference_change": "108602db7e adds the 4xx fail-fast rule and its public tests; the task's repair.patch carries those two lines verbatim",
+    "packaged_subset": "miles/ package, miles_plugins/, scripts/, tools/, docker/, project metadata; .git, docs/, tests/, examples/ excluded"
+  },
+  "compatibility_guards": {
+    "why": "the vendored pin postdates the shared image's sglang 0.5.20.dev59 by one cycle; each guard is a behavior-neutral fallback for this task's model and topology, identical in every arm, applied in-repo by environment/apply_compat_guards.py",
+    "guards": [
+      "miles/utils/chat_template_utils/deepseek.py: guard the sglang dsv41 encoding import (ServerArgs symbol added after the image's build; DeepSeek-V4.1-template-only path, unused on Qwen3)",
+      "miles/backends/sglang_utils/arguments.py and miles/utils/lora/arguments.py: getattr fallback for args.sglang_attn_dp_size (ServerArgs field of the same vintage; single-engine runs never enable attention DP)",
+      "miles/utils/weight_version.py: treat an absent enable_prefill_weight_versions as disabled (same vintage; the assertion path cannot be enabled on this stack)",
+      "miles/utils/external_utils/ray_job.py: the ray-job entrypoint's no_proxy gains this host's own IPs, resolved in Python (the pod's egress proxy refuses pod-IP destinations and the stack addresses engines and gates by pod IP; shell substitution does not survive the job-entrypoint quoting layers)"
+    ],
+    "other_choices": [
+      "trainer attention backend sdpa instead of flash_attention_3: the image's transformers fetches the fa3 kernel from the HF hub at runtime and the agent/rerun stages are offline (identical in every arm)",
+      "the recipe threads no_proxy=127.0.0.1,localhost,<pod-ip>,<inherited> through execute_train's extra_env_vars for the same egress-proxy reason"
+    ]
+  },
+  "assets": [
+    {
+      "kind": "model",
+      "repo": "Qwen/Qwen3-0.6B",
+      "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "pinned": [
+        ["model.safetensors", 1503300328, "f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b"],
+        ["config.json", 726, "660db3b73d788119c04535e48cf9be5f55bc3100841a718637ae695b442f27dd"]
+      ],
+      "dest": "workspace/models/Qwen3-0.6B",
+      "fetched_by": "environment/prepare.sh (fetch_hf.py, cache-first) with an in-flight sha256 verification"
+    },
+    {
+      "kind": "dataset",
+      "repo": "zhuzilin/dapo-math-17k (dedup variant)",
+      "dest": "workspace/data/dapo_math_17k_dedup.jsonl",
+      "shipped": "17917 prompts; byte size 10489580; sha256 8e16ebfd017010aa6c6dc0da024d524c59d96abadababac0c50c4f972f5a359c"
+    }
+  ],
+  "recordings": {
+    "recorded_date": "2026-11-24",
+    "environment": "the task's shared image (miles-011) on 2x H100, colocated FSDP + sglang engine",
+    "defective_run": "workspace/recorded_run/ (30-minute window, 59,520 proxy rejections, 0 iterations)",
+    "control_run": "evaluations/solution/oracle/control_run/ (10/10 iterations, clean exit)",
+    "calibration": "evaluations/solution/oracle/calibration.json (one run per arm, 2x2 matrix)"
+  },
+  "sanitization": {
+    "what": "pod IPs, hostnames, cluster and filesystem names, the egress proxy address and its exemption list were replaced with neutral placeholders (10.20.0.10, trainer-main-0, /workspace, egress-proxy.internal, .internal.example) in the recorded logs",
+    "scan": "post-sanitization grep for internal IPs, usernames, cluster/pool/proxy/registry names runs clean over the packaged tree"
+  }
+}

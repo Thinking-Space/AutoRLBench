@@ -1,0 +1,26 @@
+category: implementation
+framework: miles
+task: miles_whitebox_gateway_routing_key_4xx_retry
+verdict: unhealthy
+root_cause:
+- name: routing_header_loss
+  where: gateway/whitebox_gateway.py::generate
+  observed: the per-session generate route answers through the shared HTTP retry client with headers=None, so the caller's X-SMG-Routing-Key never survives the hop and the routing policy rejects every request with 400 missing_routing_key
+  expected: a boundary that answers through the client itself must carry the caller's headers across explicitly; the routing key in particular
+- name: deterministic_4xx_retry
+  where: miles/utils/http_utils.py::_post
+  observed: the retry helper retries every exception, including HTTPStatusError from a deterministic 4xx, for the full 60-attempt budget with a one-second sleep between attempts, so the 400 from the dropped routing key is replayed 60 times per request before the failure surfaces
+  expected: a deterministic 4xx fails fast; only transport errors, 5xx, 408 and 429 are transient
+evidence_metrics:
+- rollout/gateway_generate.py sends X-SMG-Routing-Key on every request (compute_routing_headers with the consistent_hashing router policy from recipes/run_training.py), so the key is present at the caller and lost one hop later
+- gateway/whitebox_gateway.py re-issues the request with headers=None; the routing proxy routing_proxy/strict_router.py answers 400 with the identical body {"error": {"code": "missing_routing_key", ...}} on every attempt
+- recorded_run/gateway.log.gz repeats retrying... (attempt N/60, response={"error": {"code": "missing_routing_key"...}) for the full budget on every request, ~60 seconds per request
+- the routing proxy access log records 59,520 rejected requests over the 30-minute window, with zero requests reaching the engine
+- after the inner budget exhausts, the gateway route raises and answers 500; recorded_run/train.log.gz shows the outer budget restarting the storm (Error: Server error '500' ... retrying ... attempt N/60, url=.../sessions/gw-XXXXXX/generate), the same post() helper called from the rollout side
+- no rollout request completes: zero samples collected, zero training iterations in the window, and the run is stopped manually at 30 minutes
+fix:
+  must:
+  - target: routing_header_loss
+    direction: repair
+  - target: deterministic_4xx_retry
+    direction: repair
