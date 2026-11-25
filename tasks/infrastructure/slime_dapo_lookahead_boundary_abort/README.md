@@ -7,7 +7,7 @@ Training Qwen3-VL-4B-Thinking with GRPO on CUA-Gym combined 768 tasks loses a co
 | **Author** | Zhizhou Wang |
 | **Affiliation** | Southwest Jiaotong University |
 | **Type** | Infrastructure |
-| **Domain** | Tool-use RL · GUI RL |
+| **Domain** | CUA |
 | **Tags** | `async-dapo` `lookahead-boundary` `cleanup-lifecycle` `batch-abort` |
 | **Framework** | slime v0.3.0 · GRPO/DAPO |
 | **Run time** | ~2 h 56 min |

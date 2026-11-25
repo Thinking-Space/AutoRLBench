@@ -7,7 +7,7 @@ Training Qwen1.5-MoE-A2.7B-Chat on GSM8K with asynchronous decoupled PPO and KPo
 | **Author** | Kaixiang Zhao |
 | **Affiliation** | Brigham Young University |
 | **Type** | Algorithm |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `float32-precision` `nan-metric` `spurious-token-masking` `importance-weight-filter` `silent-failure` |
 | **Framework** | AReaL v2.0.0 (+33 commits, `9f2967a4`), decoupled PPO with KPop masking, SGLang 0.5.10.post1 rollouts, FSDP actor |
 | **Run time** | ~1.2 hours (87 steps) |

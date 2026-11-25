@@ -53,6 +53,7 @@ FIXTURE_IMAGE = "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12"
 METADATA = f"""title = "Harbor fixture"
 license = "MIT"
 created_date = "2026-09-13"
+type = "environment"
 domain = "rl"
 
 [submitter]

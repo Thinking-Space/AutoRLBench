@@ -7,7 +7,7 @@ Training Qwen3-VL-4B-Thinking with GRPO on 768 CUA-Gym tasks starts two Judge re
 | **Author** | Zhizhou Wang |
 | **Affiliation** | Southwest Jiaotong University |
 | **Type** | Reward |
-| **Domain** | GUI Agent RL |
+| **Domain** | CUA |
 | **Tags** | `hard-candidate` `judge-reward` `router` `dapo` `multi-cause` |
 | **Framework** | slime GRPO, Slime 0.3.0-based runtime |
 | **Run time** | ~67 minutes |

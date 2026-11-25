@@ -7,7 +7,7 @@ Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K in verl, the trainer recompute
 | **Author** | pkulium |
 | **Affiliation** | Iowa State University |
 | **Type** | Algorithm |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `ppo-ratio` `old-log-prob` `reference-policy` `silent-stall` |
 | **Framework** | verl 0.8.0 (GRPO, DAPO reward manager with overlong penalty), FSDP + colocated vLLM, `run_dapo_gsm8k.sh` |
 | **Run time** | ~26 minutes |

@@ -21,7 +21,7 @@ itself, a false-negative channel; nothing is flipped by hand).
 | **Author** | Yinghao Chen |
 | **Affiliation** | THUNLP, Tsinghua University |
 | **Type** | Data |
-| **Domain** | Code RL |
+| **Domain** | Code |
 | **Tags** | `label-noise` `wrong-expected-output` `false-negative` |
 | **Framework** | verl (GRPO) + vLLM 0.17 / torch 2.10, Qwen3-4B-Instruct-2507 on TACO |
 | **Run time** | ~2.4 h (49 steps; log timestamps 01:28:01 → 03:48:45, 167.84 s/it — the pod's ~10.4 h PREEMPTABLE session wall clock was mostly queueing/contention outside training); the clean control at the shipped 40 steps took ~2.1 h on dedicated GPUs |

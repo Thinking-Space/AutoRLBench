@@ -7,7 +7,7 @@ Training Qwen3-4B with GRPO on DAPO-Math-17k. Two independent defects were injec
 | **Author** | Yinghao Chen |
 | **Affiliation** | THUNLP, Tsinghua University |
 | **Type** | Reward |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `reward-hacking` `length-bonus` `tool-call-parsing` |
 | **Framework** | slime (GRPO), Megatron + SGLang |
 | **Run time** | ~3.7 hours |

@@ -17,7 +17,7 @@ review report with a readiness verdict and actionable recommendations.
 
 ## Inputs
 
-- Required: the task path, normally `tasks/<domain>/<task_id>/`.
+- Required: the task path, normally `tasks/<type>/<task_id>/`.
 - Required: an existing rerun output directory for that task, or explicit permission to
   run the startup check because it may consume GPUs for hours.
 - If the task path is omitted, ask the user for it. Do not guess among tasks.
@@ -75,14 +75,16 @@ review report with a readiness verdict and actionable recommendations.
 
 ### 1. Package and metadata
 
-- The directory is `tasks/<domain>/<task_id>/`; `domain` is one of
+- The directory is `tasks/<type>/<task_id>/`; `type` is one of
   `configuration`, `reward`, `data`, `environment`, `algorithm`, or
   `infrastructure`, and the task ID is stable, descriptive, and snake_case.
 - Required files exist: `README.md`, `task.toml`, `run_spec.json`, `workspace/`,
   `evaluations/issue/{instruction.md,oracle.md,verifier/test.sh}`, and
   `environment/prepare.sh`.
 - `task.toml` and `README.md` agree on title, model, dataset, framework,
-  algorithm, GPU count, run time, and failure description.
+  algorithm, GPU count, run time, and failure description. `type` matches the
+  category directory and the README `Type` row; `domain` matches the README
+  `Domain` row.
 - `environment.image` is a digest-pinned image from `ENVIRONMENTS.md` and
   `environment.image_stack` is that row's stack label. Reject every custom image; there is
   no exception.

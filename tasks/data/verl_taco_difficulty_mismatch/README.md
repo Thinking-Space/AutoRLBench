@@ -10,7 +10,7 @@ vanish on most steps, and held-out accuracy never improves.
 | **Author** | Yaohui Li |
 | **Affiliation** | THUNLP, Tsinghua University |
 | **Type** | Data |
-| **Domain** | Code RL |
+| **Domain** | Code |
 | **Tags** | `data-difficulty` `all-zero-groups` `vanishing-advantages` |
 | **Framework** | verl (GRPO) |
 | **Run time** | ~15.3 hours |

@@ -4,14 +4,12 @@ This issue-only task diagnoses a Miles GRPO run with Qwen3-30B-A3B on 16
 SWE-bench Verified prompts in which MiniSWE format-error retries make 64
 intended logical rollouts yield 164 TITO-v2 training leaves.
 
-## Identity
-
-| Field | Value |
+| | |
 | --- | --- |
 | **Author** | Yinghao Chen |
 | **Affiliation** | THUNLP, Tsinghua University |
 | **Type** | Environment |
-| **Domain** | Agentic code RL |
+| **Domain** | SWE |
 | **Tags** | `format-error` `rollout-fanout` `tito-tree` `issue-only` |
 | **Framework** | Miles GRPO (Miles 64772f50, Harbor 0c2e1953, MiniSWE 2.4.6) |
 | **Run time** | ~24 minutes |

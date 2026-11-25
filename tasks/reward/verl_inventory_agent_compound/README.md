@@ -4,10 +4,10 @@ Training Qwen3-1.7B with GRPO on synthetic inventory orders produces higher mean
 
 | | |
 | --- | --- |
-| **Author** | Pengyi Li ([lipengyi0829](https://github.com/lipengyi0829)) |
+| **Author** | Pengyi Li |
 | **Affiliation** | FusionBrain Lab |
 | **Type** | Reward |
-| **Domain** | Tool-use RL |
+| **Domain** | Tool Use |
 | **Tags** | `retry-side-effects` `reward-misspecification` `data-leakage` `optimizer-resume` |
 | **Framework** | veRL v0.6.1 with GRPO and async vLLM |
 | **Run time** | ~33 minutes from submission to confirmed completion |

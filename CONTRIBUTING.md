@@ -96,14 +96,14 @@ Then point an agent at the raw material with the
 Package <path-to-your_task> as an AutoRLBench task using the package-task skill at skills/package-task in this repository.
 ```
 
-It produces `tasks/<domain>/<task_id>/` in the [task layout](README.md#task-layout),
+It produces `tasks/<type>/<task_id>/` in the [task layout](README.md#task-layout),
 with the environment you ran the buggy run in recorded — digest-pinned — in the
 task's `task.toml` (see [ENVIRONMENTS.md](ENVIRONMENTS.md)). The packaging skill does not
 stop at schema validation: ask an agent to review the finished task with the
 [validate-task](skills/validate-task/SKILL.md) skill before opening the PR:
 
 ```text
-Validate tasks/<domain>/<task_id> using the validate-task skill at skills/validate-task in this repository.
+Validate tasks/<type>/<task_id> using the validate-task skill at skills/validate-task in this repository.
 ```
 
 ## Open a pull request
@@ -120,7 +120,7 @@ shared image, launches prepare and rerun containers from it, runs `prepare.sh`, 
 starts the experiment declared by `run_spec.json`:
 
 ```bash
-python3 -m autorlbench rerun tasks/<domain>/<task_id>
+python3 -m autorlbench rerun tasks/<type>/<task_id>
 ```
 
 The experiment does not have to run to completion: a few training steps are enough. Watch

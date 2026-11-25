@@ -7,7 +7,7 @@ Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, the launcher sets the FSDP ac
 | **Author** | Shulin Tian |
 | **Affiliation** | NTU |
 | **Type** | Infrastructure |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `mixed-precision` `bf16-master-weights` `slow-learning` |
 | **Framework** | verl 0.8.0 (GRPO), FSDP + vLLM colocated, `run_grpo_gsm8k.sh` |
 | **Run time** | ~34 minutes |

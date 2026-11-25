@@ -9,7 +9,7 @@ rewrite the test surface, mis-match node ids, and turn undecidable runs into con
 | **Author** | Jialin Ren |
 | **Affiliation** | Tsinghua University |
 | **Type** | Environment |
-| **Domain** | Agentic / SWE RL |
+| **Domain** | SWE |
 | **Tags** | `reward-pipeline` `test-execution` `log-parsing` `reward-hacking` `data-quality` |
 | **Framework** | none (the graded artefact is the reward service; the rollouts it grades are staged) |
 | **Run time** | ~4.5 min for the staged rerun of 194 records and ~2.5 min for the held-out pass of 158 (8 workers, CPU only; prepare adds ~100 s) |

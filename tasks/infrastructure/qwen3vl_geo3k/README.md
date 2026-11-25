@@ -7,7 +7,7 @@ Training Qwen3-VL-8B-Instruct with GRPO on Geometry3K. verl's training path buil
 | **Author** | Yaohui Li |
 | **Affiliation** | THUNLP, Tsinghua University |
 | **Type** | Infrastructure |
-| **Domain** | Multimodal Math RL |
+| **Domain** | Math |
 | **Tags** | `flat-rope-positions` `train-inference-parity` `processor-init` `silent-failure` |
 | **Framework** | verl v0.9.0 (GRPO), FSDP2 + vLLM 0.24 / torch 2.11 / CUDA 13 |
 | **Run time** | ~1 hour per run (~39 minutes of training steps alone) |

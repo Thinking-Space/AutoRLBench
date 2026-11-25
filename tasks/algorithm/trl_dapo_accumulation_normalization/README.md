@@ -7,7 +7,7 @@ Qwen2.5-0.5B-Instruct is trained with GRPO on GSM8K. The generation token denomi
 | **Author** | Haoyang Su |
 | **Affiliation** | Fudan University; Shanghai Innovation Institute |
 | **Type** | Algorithm |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `dapo` `loss-normalization` `gradient-accumulation` `silent-failure` |
 | **Framework** | TRL (GRPO) |
 | **Run time** | ~7 minutes |

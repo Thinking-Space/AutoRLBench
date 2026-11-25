@@ -3,7 +3,7 @@
      Raw material seeking maintainer feedback: [Proposal] <description>, describe it freely (see CONTRIBUTING.md).
      Anything else: ignore this template. -->
 
-`tasks/<domain>/<task_id>/`
+`tasks/<type>/<task_id>/`
 
 <!-- One sentence: training <model> with <algo> on <dataset>. <What goes wrong>. -->
 
@@ -12,7 +12,7 @@
 | **Author** | <!-- your name --> |
 | **Affiliation** | <!-- university / company / independent --> |
 | **Type** | <!-- Algorithm · Configuration · Reward · Data · Environment · Infrastructure --> |
-| **Domain** | <!-- research area, e.g. Math RL · Code RL --> |
+| **Domain** | <!-- world the policy operates in, e.g. Math · Code · SWE · CUA · STEM · Search · SQL · Tool Use --> |
 | **Tags** | <!-- `tag` `tag` --> |
 | **Framework** | <!-- framework (algo), version pins --> |
 | **Run time** | <!-- duration of the buggy run experiment --> |

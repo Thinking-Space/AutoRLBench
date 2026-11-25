@@ -4,10 +4,10 @@ Training MiniCPM5-2.6B with GRPO under context parallelism 4; the per-sample log
 
 | | |
 | --- | --- |
-| **Author** | anbingxu |
+| **Author** | Bingxu An |
 | **Affiliation** | University of Chinese Academy of Sciences |
 | **Type** | Infrastructure |
-| **Domain** | STEM RL · distributed training |
+| **Domain** | STEM |
 | **Tags** | `context-parallel` `collective` `deadlock` `logdiff` |
 | **Framework** | miles (Megatron backend); GRPO; CP=4 |
 | **Run time** | crashed after 86 rollout rounds in the recorded job |

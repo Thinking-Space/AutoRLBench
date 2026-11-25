@@ -15,7 +15,7 @@ collected in submission order reaches 0.75.
 | **Author** | Yaolun Zhang |
 | **Affiliation** | Oregon State University |
 | **Type** | Reward |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `reward-misalignment` `concurrency` `completion-order` `vendored-framework` `silent-failure` |
 | **Framework** | TRL 0.27.2, vendored in `workspace/trl` with a local patch (GRPO, `dr_grpo` loss, colocated vLLM 0.11.0); transformers 4.57.6, peft 0.19.1 |
 | **Run time** | ~16 minutes on an H100 NVL (two 1,319-item evaluations plus 200 training steps) |

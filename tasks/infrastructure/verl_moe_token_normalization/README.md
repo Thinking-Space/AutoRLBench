@@ -9,7 +9,7 @@ auxiliary losses, so the z-loss gradients are never divided back.
 | **Author** | Yuan Gao |
 | **Affiliation** | THUNLP, Tsinghua University |
 | **Type** | Infrastructure |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `moe-z-loss` `token-normalization` `gradient-explosion` |
 | **Framework** | verl (GRPO), Megatron engine |
 | **Run time** | ~6.2 hours |

@@ -6,8 +6,8 @@ Fully-asynchronous multi-turn GRPO of a MoE policy on sandboxed repository-debug
 | --- | --- |
 | **Author** | Jialin Ren |
 | **Affiliation** | Tsinghua University |
-| **Type** | Infrastructure |
-| **Domain** | Tool-use RL |
+| **Type** | Environment |
+| **Domain** | SWE |
 | **Tags** | `sandbox-admission` `connection-pool` `async-rollout` `throughput` |
 | **Framework** | Miles 0.2.1.dev1609+g48f39cb4 (fully-async GRPO), Megatron-Core 0.18.0, SGLang 0.5.15.post1 |
 | **Run time** | ~23 minutes of archived starved window (run-a); public rerun 987 s for 3 rollouts / 3 optimizer updates |

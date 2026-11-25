@@ -7,7 +7,7 @@ Training Qwen2.5-1.5B-Instruct with GRPO on GSM8K completes 40 steps, but a prep
 | **Author** | Yaohui Li |
 | **Affiliation** | THUNLP, Tsinghua University |
 | **Type** | Data |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `input-contamination` `data-preprocessing` |
 | **Framework** | verl 0.9.0 at 483b8a009ba3a97563edee3a19887e4862b8094a; GRPO |
 | **Run time** | Historical training 45.54 minutes, excluding queue |

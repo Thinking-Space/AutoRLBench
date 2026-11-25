@@ -29,8 +29,8 @@ if [ $# -gt 0 ]; then
   tasks=("$@")
 else
   tasks=()
-  for domain in tasks/*/; do
-    for task in "$domain"*/; do
+  for category in tasks/*/; do
+    for task in "$category"*/; do
       if [ -f "${task}task.toml" ] && [ -d "${task}evaluations/solution" ]; then
         tasks+=("${task%/}")
       fi

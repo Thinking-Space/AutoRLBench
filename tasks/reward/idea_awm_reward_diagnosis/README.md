@@ -7,7 +7,7 @@ Training `locaszzz/IDEA_sft` with OPSD on `locaszzz/IDEA_training_data` optimize
 | **Author** | Jinyang Wu |
 | **Affiliation** | Tsinghua University |
 | **Type** | Reward |
-| **Domain** | Agentic RL |
+| **Domain** | Tool Use |
 | **Tags** | `rule-based-verifier` `false-positive-reward` `code-reward-mode` |
 | **Framework** | IDEA / veRL / Agent World Model (OPSD) |
 | **Run time** | ~4 days |

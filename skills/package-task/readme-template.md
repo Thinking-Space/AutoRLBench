@@ -8,8 +8,8 @@ Style:
 - **Clear at a glance.** The sentence under the title says "what is being trained and what goes wrong" — it carries the
   model, algorithm, and dataset (there is no table row for them), matching the sentence on the website task card.
 - **The identity table has exactly eight rows**: Author, Affiliation, Type, Domain, Tags, Framework, Run time, Resources.
-  `Type` is the task's domain directory, capitalized (`Algorithm`, `Configuration`, `Reward`, `Data`, `Environment`,
-  `Infrastructure`). `Domain` is the research area (`Math RL`, `Code RL`, `Search RL`, `Tool-use RL`, …). `Tags` are
+  `Type` is the task's `task.toml` `type` (the category directory), capitalized (`Algorithm`, `Configuration`, `Reward`, `Data`,
+  `Environment`, `Infrastructure`). `Domain` is the world the policy operates in (`task.toml` `domain`; e.g. Math · Code · SWE · CUA · STEM · Search · SQL · Tool Use — the set grows as new worlds are added). `Tags` are
   kebab-case failure-mode descriptors, not framework names. `Run time` is the duration of the **buggy run** experiment
   (approximate forms like `~45 minutes` or `≤ 3 hours` are fine). `Resources` is a GPU count, model, and
   VRAM per card, e.g. `8 × A800 (80 GB)`.

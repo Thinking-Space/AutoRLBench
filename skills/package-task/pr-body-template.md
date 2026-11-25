@@ -7,7 +7,7 @@ it into the task directory — present it to the user in the conversation to pas
 The PR title is `[New Task] <task.toml title>`.
 
 ```markdown
-`tasks/<domain>/<task_id>/`
+`tasks/<type>/<task_id>/`
 
 <The README's one-sentence summary, verbatim.>
 

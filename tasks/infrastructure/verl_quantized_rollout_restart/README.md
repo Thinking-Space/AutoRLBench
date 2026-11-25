@@ -7,7 +7,7 @@ During VeRL online policy distillation of Nemotron-Research-Reasoning-Qwen-1.5B 
 | **Author** | Yong Yan |
 | **Affiliation** | Tsinghua University |
 | **Type** | Infrastructure |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | rollout-collapse, quantized-inference, long-generation |
 | **Framework** | VeRL, vLLM 0.24.0 |
 | **Run time** | About 31 minutes for the faulty task run, including checkpoint preparation |

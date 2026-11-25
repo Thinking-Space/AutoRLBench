@@ -7,7 +7,7 @@ Training Qwen2.5-3B with GRPO on Search-R1 nq_hotpotqa_train (NQ + HotpotQA merg
 | **Author** | Yinghao Chen |
 | **Affiliation** | THUNLP, Tsinghua University |
 | **Type** | Reward |
-| **Domain** | Search RL |
+| **Domain** | Search |
 | **Tags** | `observation-loss-leak` `title-only-retrieval` `response-collapse` `silent-failure` |
 | **Framework** | slime (GRPO), Megatron train + SGLang rollout |
 | **Run time** | ~1.5 hours |

@@ -7,7 +7,7 @@ Qwen3-4B is trained with GRPO on real Python repairs; the vLLM server continues 
 | **Author** | Purva Chiniya |
 | **Affiliation** | Independent Researcher |
 | **Type** | Infrastructure |
-| **Domain** | Code RL |
+| **Domain** | Code |
 | **Tags** | `continuation-mismatch` `history-subsampling` `cross-rollout-contamination` |
 | **Framework** | TRL (GRPO) |
 | **Run time** | ~8 minutes per run |

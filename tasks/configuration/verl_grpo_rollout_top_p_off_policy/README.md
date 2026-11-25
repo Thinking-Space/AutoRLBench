@@ -5,14 +5,13 @@ Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K. The launcher samples training
 | | |
 | --- | --- |
 | **Author** | Dengzhe Hou |
-| **Domain** | configuration |
-| **Tags** | `verl` `grpo` `gsm8k` `sampling` `top-p` `off-policy` `entropy` |
-| **Model** | Qwen2.5-0.5B-Instruct |
-| **Dataset** | GSM8K (openai/gsm8k main): 7,473 train / 1,319 test |
-| **Framework** | verl 0.9.0.dev @ `6f2aa24`, FSDP + vLLM colocated, `run_gsm8k_grpo.sh` |
-| **Environment** | `verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12` · 1 × GPU (recorded on 1 × RTX PRO 6000 96 GB) |
-| **Evaluations** | issue · solution |
-| **Recorded runs** | 1 defective + 1 control run, 100 steps, eval every 10 incl. step 0, seed 42. About 1 h each |
+| **Affiliation** | Tohoku University |
+| **Type** | Configuration |
+| **Domain** | Math |
+| **Tags** | `top-p-sampling` `off-policy-rollouts` `entropy-blowup` `derailed-rollouts` |
+| **Framework** | verl 0.9.0.dev (GRPO) @ `6f2aa24`, FSDP + vLLM colocated, `run_gsm8k_grpo.sh` |
+| **Run time** | ~1 hour per run (100 steps, 1 defective + 1 control) |
+| **Resources** | 1 × RTX PRO 6000 (96 GB) |
 
 ## Difficulty
 

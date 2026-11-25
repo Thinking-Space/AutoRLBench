@@ -6,7 +6,7 @@
 <p align="center">
   <a href="https://thinking-space.github.io/AutoRLBench/"><img alt="Website" src="https://img.shields.io/badge/Website-thinking--space.github.io-4285F4?logo=googlechrome&logoColor=white"></a>
   <a href="https://thinking-space.github.io/AutoRLBench/#leaderboard"><img alt="Leaderboard" src="https://img.shields.io/badge/Leaderboard-0.1-FFB000?logo=trophy&logoColor=white"></a>
-  <a href="https://thinking-space.github.io/AutoRLBench/#tasks"><img alt="Tasks" src="https://img.shields.io/badge/Tasks-6%20domains-00C853?logo=stack&logoColor=white"></a>
+  <a href="https://thinking-space.github.io/AutoRLBench/#tasks"><img alt="Tasks" src="https://img.shields.io/badge/Tasks-6%20types-00C853?logo=stack&logoColor=white"></a>
   <a href="https://thinking-space.github.io/AutoRLBench/contribute.html"><img alt="Contribute" src="https://img.shields.io/badge/Contribute-a%20run-7B1FA2?logo=git-pull-request&logoColor=white"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-D22128?logo=apache&logoColor=white"></a>
   <a href="README_zh.md"><img alt="Chinese (Simplified)" src="https://img.shields.io/badge/Chinese-Simplified-E74C3C"></a>
@@ -43,7 +43,7 @@ AutoRLBench Leaderboard, issue + solution evaluation. Overall is the combined pa
 
 ## Tasks
 
-Six domains, one representative task each. The domains come from where in the RL pipeline the failure lives:
+Six types, one representative task each. The types come from where in the RL pipeline the failure lives:
 
 <table>
 <tr>
@@ -123,7 +123,7 @@ At the solution level the agent repairs the workspace and submits `report.md` �
 
 | Path | Contents |
 | --- | --- |
-| [`tasks/`](tasks/) | Benchmark tasks, grouped by domain |
+| [`tasks/`](tasks/) | Benchmark tasks, grouped by type |
 | [`autorlbench/`](autorlbench/) | Evaluation harness: task loader, validator, runtimes, agent adapters, CLI |
 | [`ENVIRONMENTS.md`](ENVIRONMENTS.md) | The eight fixed shared environment images every task runs in |
 | [`skills/package-task/`](skills/package-task/) | Agent skill that turns a raw task into a task |
@@ -134,7 +134,7 @@ At the solution level the agent repairs the workspace and submits `report.md` �
 ## Task layout
 
 ```text
-tasks/<domain>/<task_id>/
+tasks/<type>/<task_id>/
 ├── README.md               # summary, difficulty, reference solution, verification
 ├── task.toml               # metadata and environment image
 ├── run_spec.json            # harness rerun command, environment, timeout, and log roots

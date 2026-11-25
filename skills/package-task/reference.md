@@ -8,8 +8,9 @@ repository first, keep the raw material outside `tasks/`, and run the agent from
 ### Task location
 
 - Source workspace path
-- Target directory: `tasks/<domain>/<task_id>/`
+- Target directory: `tasks/<type>/<task_id>/`
 - `task_id`, title
+- Submitter name and GitHub username (`github = ""` when unknown)
 - Model name, dataset name, framework, algorithm
 
 `failure_reason` is one sentence written from the filtered diff, including the metric symptoms the user gave.
@@ -404,11 +405,13 @@ When prepare needs a format conversion (e.g. HF → Megatron torch_dist), probe 
 title = "<title on the website task card>"
 license = "MIT"
 created_date = "<YYYY-MM-DD>"
-domain = "<configuration|reward|data|environment|algorithm|infrastructure>"
+type = "<configuration|reward|data|environment|algorithm|infrastructure>"   # the category directory the task lives in
+domain = "<world the policy operates in, e.g. Math · Code · SWE · CUA · STEM · Search · SQL · Tool Use — open-ended, new worlds are welcome; the README table's Domain row repeats it>")
 tags = ["<framework>", "<algo>", "<tag>"]
 
 [submitter]
 name = "<name>"
+github = "<GitHub username; empty string when unknown>"
 
 [model]
 name = "<model name>"

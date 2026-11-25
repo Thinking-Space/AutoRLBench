@@ -7,7 +7,7 @@ DeepSeek-R1-Distill-Qwen-1.5B is trained with GRPO on DAPO-Math-17k, where chang
 | **Author** | Yong Yan |
 | **Affiliation** | Tsinghua University |
 | **Type** | Infrastructure |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `attention-mask` `layout-sensitivity` `policy-gradient` |
 | **Framework** | PyTorch 2.11.0, Transformers 5.5.3, vLLM 0.24.0 (GRPO) |
 | **Run time** | ~15 minutes (shared-image reproduction) |

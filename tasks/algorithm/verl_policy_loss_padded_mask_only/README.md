@@ -7,7 +7,7 @@ Recorded veRL GRPO case, with a SHA-pinned reproducible data preparation stage a
 | **Author** | Pengyi Li |
 | **Affiliation** | FusionBrain Lab |
 | **Type** | Algorithm |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `policy-loss` `objective-aggregation` `padded-tokens` `mask-repair` |
 | **Framework** | verl 0.6.1 (GRPO), torch 2.8.0 / vLLM 0.11.0 / FA 2.8.3 / Transformers 4.57.1, with recorded compatibility patches |
 | **Run time** | ~64.5 hours |

@@ -2,7 +2,7 @@
 name: package-task
 description: >-
   Packages a buggy RL training workspace (a raw task, a git commit pair, or a
-  historical snapshot) into an AutoRLBench task under tasks/<domain>/<task_id>/:
+  historical snapshot) into an AutoRLBench task under tasks/<type>/<task_id>/:
   task.toml, README.md, workspace/, environment/prepare.sh, and evaluations —
   an issue tier always, a solution tier only when the fix outcome is gradeable
   (decided during packaging, never assumed). Use when the user asks to package,
@@ -12,12 +12,12 @@ description: >-
 
 # package-task
 
-Packages one faulty RL training run into `tasks/<domain>/<task_id>/`. `<domain>` is one of
+Packages one faulty RL training run into `tasks/<type>/<task_id>/`. `<type>` is one of
 `configuration`, `reward`, `data`, `environment`, `algorithm`, `infrastructure`.
 
 | File | Contents |
 | --- | --- |
-| [SKILL.md](SKILL.md) | Workflow and rules (this file) |
+| [SKILL.md](SKILL.md) | Tool Use and rules (this file) |
 | [reference.md](reference.md) | Template for every output file |
 | [examples.md](examples.md) | A filled-in user input |
 | [readme-template.md](readme-template.md) | Template and style guide for the task `README.md` |
@@ -30,7 +30,7 @@ For finished tasks, see `tasks/reward/slime_retool_length_reward_bonus/` (issue 
 ## Outputs
 
 ```text
-tasks/<domain>/<task_id>/
+tasks/<type>/<task_id>/
 ├── README.md                     # for reviewers, not visible to the agent
 ├── task.toml                     # task card: metadata + environment
 ├── run_spec.json                 # the harness's startup/rerun command
@@ -63,7 +63,8 @@ label. There is no custom-image exception.
 If any item is missing, stop and ask. Field list in [reference.md](reference.md#required-inputs), example in [examples.md](examples.md).
 
 - Source (one of three forms, see next section)
-- `domain`, `task_id`, title; model, dataset, framework, algorithm
+- `type`, `task_id`, title; model, dataset, framework, algorithm
+- Submitter name and GitHub username for `[submitter]` (`github = ""` when unknown)
 - Launch script (relative to `workspace/`), positional args, env vars; in-container paths for model, train set, and validation set
 - Logs of the failed run (keep W&B too if present)
 - Environment: the shared image from [ENVIRONMENTS.md](../../ENVIRONMENTS.md) the buggy run
@@ -112,7 +113,7 @@ outcome a rerun can grade. Write a solution tier only when **all** of these hold
 When you decide against it, do not ask the user for scoring keys, do not write `evaluations/solution/`, and state the
 reason in one line of the task README (e.g. "issue-only: the post-fix margin is single-seed and under one point").
 
-## Workflow
+## Tool Use
 
 **Run from the root of an AutoRLBench checkout.** The workflow writes into `tasks/`, copies its scaffolding
 from `tasks/reward/slime_retool_length_reward_bonus/`, and validates with the harness shipped in the repo. If
@@ -214,14 +215,16 @@ is not byte-for-byte reproducible, do not pin it with a checksum.
 - `task.toml` fields are in [reference.md](reference.md#tasktoml). The file `training.script` points to must exist in
   `workspace/`.
 - Write `README.md` per [readme-template.md](readme-template.md): a one-sentence summary, an eight-row identity table
-  (Author / Affiliation / Type / Domain / Tags / Framework / Run time / Resources — `Run time` is the buggy run's
-  duration), then the Difficulty / Reference solution / Verification sections, whose content is free-form except that
-  the latter two need `- **issue**` bullets and, with a solution tier, `- **solution**` bullets. The agent sees
-  `instruction.md`; the README is for reviewers only and must not be mounted into the agent stage.
+  (Author / Affiliation / Type / Domain / Tags / Framework / Run time / Resources), then the Difficulty / Reference
+  solution / Verification sections, whose content is free-form except that the latter two need `- **issue**` bullets
+  and, with a solution tier, `- **solution**` bullets. `Type` is the task's `task.toml` `type` capitalized, and
+  `Domain` repeats `task.toml` `domain` — the world the policy operates in (e.g. Math · Code · SWE · CUA · STEM · Search · SQL · Tool Use), never the category.
+  `Run time` is the buggy run's duration. The agent sees `instruction.md`; the README is for reviewers only and must
+  not be mounted into the agent stage.
 
 ## Pre-completion checklist
 
-- [ ] The task was generated inside an AutoRLBench checkout, at `tasks/<domain>/<task_id>/` under the repo root
+- [ ] The task was generated inside an AutoRLBench checkout, at `tasks/<type>/<task_id>/` under the repo root
 - [ ] Skeleton complete; no `agent_trace.json`, `environment/Dockerfile`, `validation/`
 - [ ] The tier decision is recorded: issue-only tasks say why in the README, one line
 - [ ] The four issue files (and solution `test.sh`, when present) all match their source under `cmp`
@@ -230,6 +233,7 @@ is not byte-for-byte reproducible, do not pin it with a checksum.
 - [ ] With a solution tier: `instruction.md` forbids launching training and requires `report.md`; its command, env and budget match `run_spec.json`
 - [ ] Workspace has the launch script and failure logs; sanitize scan shows only upstream hits
 - [ ] `task.toml` declares an integer `gpus` count (no device ids); `env` values are strings, no `AUTORLBENCH_*`
+- [ ] `task.toml` `type` matches the task's category directory; `domain` is the research area (the README `Domain` row), never a category name
 - [ ] The environment is one of the eight shared images in `ENVIRONMENTS.md`, digest-pinned in `task.toml`, and the recorded buggy run was executed in it
 - [ ] Every fetched asset has a pinned 40-char revision or verified wheel sha256 + byte size, and a `--dest` the launch script reads
 - [ ] The `validate-task` skill reports `READY`, or `READY WITH FOLLOW-UP` with maintainer approval

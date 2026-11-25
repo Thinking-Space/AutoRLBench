@@ -1,14 +1,16 @@
 /*
  * Public task index. Each id is the task path under tasks/ in the repository.
- * Header metadata is copied from each task.toml by
- * scripts/generate_task_data.py; `brief` and `issue` are hand-written and
- * preserved across regenerations.
+ * Hand-maintained display layer over the task.toml metadata: `family` is the
+ * category (task.toml `type`, capitalized), `domain` is the scenario
+ * (task.toml `domain`, the README table's Domain row); `brief` and `issue`
+ * are hand-written. Other fields mirror task.toml with display simplifications.
  */
 window.AUTORLBENCH_TASKS = [
   {
     "id": "reward/slime_retool_length_reward_bonus",
     "title": "Length bonus reward hack",
     "family": "Reward",
+    "domain": "Math",
     "tags": [
       "slime",
       "grpo",
@@ -30,6 +32,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "data/verl_taco_difficulty_mismatch",
     "title": "Training data is too hard",
     "family": "Data",
+    "domain": "Code",
     "tags": [
       "verl",
       "grpo",
@@ -50,6 +53,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/verl_moe_token_normalization",
     "title": "MoE auxiliary gradients miss token normalization",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -69,6 +73,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "algorithm/verl_grpo_advantage_broadcast",
     "title": "GRPO advantage broadcast along the sequence axis",
     "family": "Algorithm",
+    "domain": "Code",
     "tags": [
       "verl",
       "grpo",
@@ -88,6 +93,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/qwen3vl_geo3k",
     "title": "Flat image positions from a raw AutoProcessor",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -107,6 +113,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "reward/slime_search_r1_nomask",
     "title": "Search-R1 observations trained without a loss mask",
     "family": "Reward",
+    "domain": "Search",
     "tags": [
       "slime",
       "grpo",
@@ -127,6 +134,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "reward/idea_awm_reward_diagnosis",
     "title": "Inaccurate rule-based task rewards in IDEA AWM OPSD",
     "family": "Reward",
+    "domain": "Tool Use",
     "tags": [
       "idea",
       "verl",
@@ -146,6 +154,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/verl_lora_merge_base_weight_sync",
     "title": "Merged LoRA never reaches the rollout engine",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -166,6 +175,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/miles_async_rollout_inflight_not_evicted",
     "title": "Fully-async GRPO in-flight rollouts kept alive across weight sync",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "miles",
       "grpo",
@@ -187,6 +197,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "algorithm/trl_dapo_accumulation_normalization",
     "title": "GRPO generation and accumulation windows",
     "family": "Algorithm",
+    "domain": "Math",
     "tags": [
       "trl",
       "grpo",
@@ -205,6 +216,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "configuration/verl_grpo_ppo_mini_batch_too_small",
     "title": "GRPO mini-batch far below the rollout batch: 32 updates per step",
     "family": "Configuration",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -226,6 +238,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/verl_pissa_vllm_adapter_request",
     "title": "PiSSA adapter omitted from vLLM rollout requests",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -246,6 +259,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "algorithm/verl_policy_loss_padded_unmasked",
     "title": "Padded custom GRPO objective: unmasked loss",
     "family": "Algorithm",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -266,6 +280,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "algorithm/verl_policy_loss_padded_mask_only",
     "title": "Padded custom GRPO objective: mask-only repair",
     "family": "Algorithm",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -286,6 +301,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "algorithm/verl_reinforcepp_observation_credit",
     "title": "Tool observations erase earlier SQL action returns",
     "family": "Algorithm",
+    "domain": "SQL",
     "tags": [
       "verl",
       "tool-use",
@@ -304,6 +320,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/trl_tool_history_cross_contamination",
     "title": "Python repair continuations use another rollout's history",
     "family": "Infrastructure",
+    "domain": "Code",
     "tags": [
       "trl",
       "tool-use",
@@ -322,6 +339,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "configuration/verl_grpo_rollout_top_p_off_policy",
     "title": "Nucleus-sampled rollouts trained as if on-policy",
     "family": "Configuration",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -344,6 +362,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "configuration/verl_grpo_adamw_eps_too_large",
     "title": "AdamW epsilon larger than the gradients it normalizes",
     "family": "Configuration",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -366,6 +385,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "data/qwen25_gsm8k_grpo",
     "title": "Qwen2.5 GSM8K GRPO run",
     "family": "Data",
+    "domain": "Math",
     "tags": [
       "input-contamination",
       "data-preprocessing",
@@ -384,6 +404,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "data/verl_taco_wrong_expected_output",
     "title": "Native wrong expected outputs in the training labels silence correct solutions",
     "family": "Data",
+    "domain": "Code",
     "tags": [
       "verl",
       "grpo",
@@ -405,6 +426,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "configuration/areal_icepop_mask_window_too_narrow",
     "title": "IcePop mask window narrower than the train-inference ratio spread",
     "family": "Configuration",
+    "domain": "Math",
     "tags": [
       "areal",
       "token-masking",
@@ -426,6 +448,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
     "title": "KPop binary-KL filter masks every saturated token in float32",
     "family": "Algorithm",
+    "domain": "Math",
     "tags": [
       "areal",
       "decoupled-ppo",
@@ -449,6 +472,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/slime_dapo_lookahead_boundary_abort",
     "title": "DAPO lookahead aborts a complete batch on a surplus cleanup failure",
     "family": "Infrastructure",
+    "domain": "CUA",
     "tags": [
       "slime",
       "grpo",
@@ -472,6 +496,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "reward/slime_judge_router_admission_starvation",
     "title": "Judge service capacity and reward admission disagree in the first GRPO rollout",
     "family": "Reward",
+    "domain": "CUA",
     "tags": [
       "slime",
       "grpo",
@@ -494,7 +519,8 @@ window.AUTORLBENCH_TASKS = [
   {
     "id": "configuration/areal_disk_weight_update_on_sglang",
     "title": "Granite GSM8K GRPO run",
-    "family": "Algorithm",
+    "family": "Configuration",
+    "domain": "Math",
     "tags": [
       "trl",
       "grpo",
@@ -515,6 +541,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "algorithm/trl_granite_gsm8k_grpo",
     "title": "Granite GSM8K GRPO run",
     "family": "Algorithm",
+    "domain": "Math",
     "tags": [
       "trl",
       "grpo",
@@ -535,6 +562,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/verl_fsdp_bf16_master_weights",
     "title": "bf16 master weights round away AdamW updates",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -557,6 +585,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "environment/sandbox_admission_starvation",
     "title": "Sandbox admission gate starves asynchronous rollouts",
     "family": "Environment",
+    "domain": "SWE",
     "tags": [
       "sandbox-admission",
       "connection-pool",
@@ -576,6 +605,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/verl_agent_loop_response_position_restart",
     "title": "Response position ids restart at zero: the actor scores rollouts in a view vLLM never sampled",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -597,6 +627,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/verl_fsdp_microbatch_grad_reset",
     "title": "Gradient reset inside the micro-batch loop keeps 1/8 of every mini-batch",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -619,6 +650,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "environment/miles_miniswe_format_error_retry_fanout",
     "title": "MiniSWE format-error retries inflate Miles TITO training leaves",
     "family": "Environment",
+    "domain": "SWE",
     "tags": [
       "miles",
       "harbor",
@@ -643,6 +675,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "environment/swe_grader_silent_mislabel",
     "title": "Repository-repair reward pipeline silently mislabels rollouts",
     "family": "Environment",
+    "domain": "SWE",
     "tags": [
       "reward-pipeline",
       "test-execution",
@@ -663,6 +696,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/tokenizer-vocab-support",
     "title": "GRPO actor and rollout probabilities diverge",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "probability-mismatch",
       "output-support",
@@ -682,6 +716,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/padding-attention-mask",
     "title": "Quantized GRPO scores depend on batch layout",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "attention-mask",
       "layout-sensitivity",
@@ -701,6 +736,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "reward/miles_judge_thinking_strip_failure",
     "title": "Judge reads the whole reasoning block",
     "family": "Reward",
+    "domain": "STEM",
     "tags": [
       "miles",
       "grpo",
@@ -723,6 +759,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "data/query_pool_gate_divergence",
     "title": "Launch gate never notices the query-pool divergence",
     "family": "Data",
+    "domain": "SWE",
     "tags": [
       "query-pool",
       "data-pipeline",
@@ -743,6 +780,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "algorithm/verl_old_log_prob_from_reference",
     "title": "Old log-probs computed by the reference model pin GRPO to the base model",
     "family": "Algorithm",
+    "domain": "Math",
     "tags": [
       "ppo-ratio",
       "old-log-prob",
@@ -763,6 +801,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/verl_quantized_rollout_restart",
     "title": "Math rollouts exhaust the output budget",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "rollout-collapse",
       "quantized-inference",
@@ -782,6 +821,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/miles_cp_collective_desync_deadlock",
     "title": "Context-parallel ranks wait on different collectives",
     "family": "Infrastructure",
+    "domain": "STEM",
     "tags": [
       "miles",
       "grpo",
@@ -804,6 +844,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "reward/verl_inventory_agent_compound",
     "title": "Inventory GRPO reaches clean validation saturation despite incorrect training transactions",
     "family": "Reward",
+    "domain": "Tool Use",
     "tags": [
       "verl",
       "grpo",
@@ -826,6 +867,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "configuration/verl_vllm011_fp8_kv_scale_sleep",
     "title": "fp8 KV-cache scales are lost across verl's vLLM sleep, so every rollout is \"!!!\" to the cap",
     "family": "Configuration",
+    "domain": "Math",
     "tags": [
       "verl",
       "grpo",
@@ -847,6 +889,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "infrastructure/verl_fsdp_bucketed_weight_sync",
     "title": "FSDP2 parameter grouping drops weights and bucketed sync skips the first chunk",
     "family": "Infrastructure",
+    "domain": "Math",
     "tags": [
       "fsdp2",
       "dtensor",
@@ -868,6 +911,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "algorithm/verl_grpo_grouped_whiten_order",
     "title": "GRPO advantage gather misaligns prompts while KL straight-through squares sequence ratios",
     "family": "Algorithm",
+    "domain": "Math",
     "tags": [
       "grpo",
       "advantage-estimation",
@@ -889,6 +933,7 @@ window.AUTORLBENCH_TASKS = [
     "id": "reward/trl_gsm8k_threaded_reward_order",
     "title": "Threaded reward calls return scores in finish order",
     "family": "Reward",
+    "domain": "Math",
     "tags": [
       "trl",
       "grpo",

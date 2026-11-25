@@ -7,7 +7,7 @@ Training Qwen2.5-1.5B-Instruct with GRPO under FSDP2 on Countdown-Tasks-3to4, `b
 | **Author** | Bo Chen |
 | **Affiliation** | University of Hong Kong |
 | **Type** | Infrastructure |
-| **Domain** | Computer Science |
+| **Domain** | Math |
 | **Tags** | `fsdp2` `dtensor` `optimizer-groups` `weight-sync` `zmq-ipc` `rollout-staleness` |
 | **Framework** | verl (GRPO, commit `4b9c14f2`), FSDP2 + async colocated vLLM 0.11.0, `run_grpo_countdown.sh` (45 steps, `test_freq=15`) |
 | **Run time** | ~27 minutes |

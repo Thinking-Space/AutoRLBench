@@ -7,7 +7,7 @@ Training DeepSeek-R1-Distill-Qwen-7B with GRPO on Skywork-OR1-RL-Data (7B diffic
 | **Author** | Yong Yan |
 | **Affiliation** | Tsinghua University |
 | **Type** | Infrastructure |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `probability-mismatch` `output-support` `policy-gradient` |
 | **Framework** | veRL 0.9.1 (GRPO), vLLM 0.24.0, PyTorch 2.11.0 |
 | **Run time** | ~7 minutes (step 1) and ~11 minutes (step 2) in shared-image qualification; 275 steps in historical continuation |

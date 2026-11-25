@@ -8,7 +8,7 @@ runs whose identity, pool size, or batch configuration differs from the pool it 
 | **Author** | Jialin Ren |
 | **Affiliation** | Tsinghua University |
 | **Type** | Data |
-| **Domain** | Agentic / SWE RL |
+| **Domain** | SWE |
 | **Tags** | `query-pool` `data-pipeline` `launch-gate` `silent-failure` `shell-exit-status` |
 | **Framework** | none (the graded artefact is the launch gate; the trainer is stubbed) |
 | **Run time** | 1.5 s for the staged pass of 16 launch cases, ~2 s for the held-out pass of 22 (prepare rebuilds all 24 pools in ~1 s) |

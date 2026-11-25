@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://thinking-space.github.io/AutoRLBench/"><img alt="Website" src="https://img.shields.io/badge/Website-thinking--space.github.io-4285F4?logo=googlechrome&logoColor=white"></a>
   <a href="https://thinking-space.github.io/AutoRLBench/#leaderboard"><img alt="Leaderboard" src="https://img.shields.io/badge/Leaderboard-0.1-FFB000?logo=trophy&logoColor=white"></a>
-  <a href="https://thinking-space.github.io/AutoRLBench/#tasks"><img alt="Tasks" src="https://img.shields.io/badge/Tasks-6%20domains-00C853?logo=stack&logoColor=white"></a>
+  <a href="https://thinking-space.github.io/AutoRLBench/#tasks"><img alt="Tasks" src="https://img.shields.io/badge/Tasks-6%20types-00C853?logo=stack&logoColor=white"></a>
   <a href="https://thinking-space.github.io/AutoRLBench/contribute.html"><img alt="Contribute" src="https://img.shields.io/badge/Contribute-a%20run-7B1FA2?logo=git-pull-request&logoColor=white"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-D22128?logo=apache&logoColor=white"></a>
   <a href="README.md"><img alt="English" src="https://img.shields.io/badge/English-README-3498DB"></a>
@@ -44,7 +44,7 @@ AutoRLBench Leaderboard，issue + solution 双档成绩。总分为全部已评�
 
 ## 任务
 
-六个 domain，每个放一个代表性任务。domain 按失败发生在 RL 流程的哪一环来划分：
+六个 type，每个放一个代表性任务。type 按失败发生在 RL 流程的哪一环来划分：
 
 <table>
 <tr>
@@ -124,7 +124,7 @@ solution 层里 agent 只负责修 workspace 并提交 `report.md`，**不自己
 
 | 路径 | 内容 |
 | --- | --- |
-| [`tasks/`](tasks/) | 按 domain 分组的 benchmark 任务 |
+| [`tasks/`](tasks/) | 按 type 分组的 benchmark 任务 |
 | [`autorlbench/`](autorlbench/) | 评测框架：任务加载、校验、运行时、agent 适配器、CLI |
 | [`ENVIRONMENTS.md`](ENVIRONMENTS.md) | 全部任务运行的 8 个固定共享环境镜像 |
 | [`skills/package-task/`](skills/package-task/) | 把 raw task 打包成任务的 agent skill |
@@ -135,7 +135,7 @@ solution 层里 agent 只负责修 workspace 并提交 `report.md`，**不自己
 ## 任务结构
 
 ```text
-tasks/<domain>/<task_id>/
+tasks/<type>/<task_id>/
 ├── README.md               # 摘要、难度、参考解、判分方式
 ├── task.toml               # 元数据与环境镜像
 ├── run_spec.json            # harness 重跑命令、环境、超时与日志根目录

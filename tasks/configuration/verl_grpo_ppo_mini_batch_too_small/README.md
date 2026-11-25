@@ -7,7 +7,7 @@ Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K where the launch script sets `
 | **Author** | Ziqi Zhou |
 | **Affiliation** | Duke University |
 | **Type** | Configuration |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `ppo-mini-batch` `off-policy-drift` `peak-then-decline` |
 | **Framework** | verl 0.9.0 (GRPO), FSDP + vLLM 0.24 colocated |
 | **Run time** | ~2.7 hours per run |

@@ -13,7 +13,9 @@ source_workspace: /home/gaoyuan/verl
 output_dir: tasks/infrastructure/verl_moe_token_normalization
 task_id: verl_moe_token_normalization
 title: "MoE auxiliary gradients miss token normalization"
-domain: infrastructure
+type: infrastructure
+submitter_name: Yuan Gao
+submitter_github: Zaogezi
 model_name: Qwen/Qwen1.5-MoE-A2.7B-Chat
 dataset_name: openai/gsm8k
 framework: verl

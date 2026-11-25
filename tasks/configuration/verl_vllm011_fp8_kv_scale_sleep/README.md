@@ -7,7 +7,7 @@ Training Qwen/Qwen3-4B with verl GRPO on an integer-answer math pool (Skywork-OR
 | **Author** | Sikuan Yan |
 | **Affiliation** | LMU Munich |
 | **Type** | Configuration |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `fp8-kv-cache` `rollout-engine-state-loss` `sleep-mode` `degenerate-rollouts` |
 | **Framework** | verl v0.8.0 (`7aed6b2`, shipped in the workspace), GRPO, vLLM 0.11.0; inspect_ai 0.3.150 installed by `prepare.sh` |
 | **Run time** | ~60 minutes (3 steps) |

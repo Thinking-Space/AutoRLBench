@@ -30,6 +30,7 @@ SLIME_IMAGE = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12
 METADATA_HEAD = """title = "Image task"
 license = "MIT"
 created_date = "2026-09-13"
+type = "environment"
 domain = "rl"
 
 [submitter]

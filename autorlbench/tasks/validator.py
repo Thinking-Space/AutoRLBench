@@ -12,6 +12,19 @@ from ..core.types import (
     ValidationReport,
 )
 
+# The six task categories, one per directory under tasks/. `type` holds the category
+# (the README table's `Type` row); `domain` is the scenario (the `Domain` row),
+# so the two must not be confused. `domain` is deliberately free-form — the benchmark
+# keeps adding new scenarios, so no fixed vocabulary is enforced or recommended here.
+TASK_TYPES = (
+    "algorithm",
+    "configuration",
+    "reward",
+    "data",
+    "environment",
+    "infrastructure",
+)
+
 
 def validate_task_paths(paths: TaskPaths, strict: bool = True) -> ValidationReport:
     """Check the task's directories and entry files."""
@@ -78,6 +91,7 @@ def validate_metadata(
         "submitter",
         "license",
         "created_date",
+        "type",
         "domain",
         "model",
         "dataset",
@@ -88,6 +102,35 @@ def validate_metadata(
     for key in required_fields:
         if key not in metadata or metadata[key] in (None, ""):
             report.add("error", f"metadata.{key}", "missing required field")
+
+    task_type = metadata.get("type")
+    if task_type not in (None, "") and task_type not in TASK_TYPES:
+        report.add(
+            "error",
+            "metadata.type",
+            f"expected one of {TASK_TYPES}, got {task_type!r}",
+        )
+    domain = metadata.get("domain")
+    if domain in TASK_TYPES:
+        # `domain` used to hold the category. A value from that set means the file was
+        # never migrated: the category belongs in `type`, and `domain` is the scenario
+        # (e.g. Math) shown in the README table's Domain row.
+        report.add(
+            "error",
+            "metadata.domain",
+            f"unexpected category {domain!r}: metadata.domain is the scenario "
+            "(e.g. Math); the category belongs in metadata.type",
+        )
+    elif paths is not None and task_type in TASK_TYPES and paths.root.parent.name != task_type:
+        # The category is also the directory the task lives in; a mismatch means the
+        # task was moved or the type was mistyped. A warning, because the loader is
+        # also used on synthetic layouts (tests) whose parents are not category dirs.
+        report.add(
+            "warning",
+            "metadata.type",
+            f"{task_type!r} does not match the task's category directory "
+            f"{paths.root.parent.name!r}",
+        )
 
     for key in ("submitter", "model", "dataset", "training", "environment", "outcome"):
         _expect_mapping(report, metadata.get(key), f"metadata.{key}")

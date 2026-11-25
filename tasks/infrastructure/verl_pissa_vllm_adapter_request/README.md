@@ -9,7 +9,7 @@ path fails to attach the adapter even though it is loaded in the engine.
 | **Author** | Ruijia Zhang |
 | **Affiliation** | Johns Hopkins University |
 | **Type** | Infrastructure |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `type-mismatch` `adapter-omission` `actor-rollout-divergence` |
 | **Framework** | verl (GRPO), FSDP actor + asynchronous vLLM rollout |
 | **Run time** | ~2.5 minutes |

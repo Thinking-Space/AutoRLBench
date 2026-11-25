@@ -12,7 +12,7 @@ clock completes 92 training steps instead of 148.
 | **Author** | Qingfeng He |
 | **Affiliation** | Tsinghua University |
 | **Type** | Infrastructure |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `pause-mode-override` `inflight-rollouts` `throughput-regression` |
 | **Framework** | miles (fully-async GRPO), Megatron train + SGLang rollout + Ray |
 | **Run time** | 8 hours (fixed wall clock) |

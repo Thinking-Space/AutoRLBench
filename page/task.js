@@ -312,6 +312,7 @@
         document.title = `${title} - AutoRLBench`;
 
         const settings = [
+            ['Domain', task.domain || '—'],
             ['Model', task.model || '—'],
             ['Dataset', task.dataset || '—'],
             ['Framework', task.framework || '—'],

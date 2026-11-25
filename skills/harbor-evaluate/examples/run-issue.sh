@@ -24,13 +24,13 @@ judge="${3:-${AUTORLBENCH_JUDGE_MODEL:-}}"
 shift 2
 [ $# -gt 0 ] && [ "${1:-}" != "$judge" ] || shift $(( $# > 0 ? 1 : 0 ))
 
-# Discover tasks: children of each domain directory that carry a task.toml.
+# Discover tasks: children of each type directory that carry a task.toml.
 if [ $# -gt 0 ]; then
   tasks=("$@")
 else
   tasks=()
-  for domain in tasks/*/; do
-    for task in "$domain"*/; do
+  for category in tasks/*/; do
+    for task in "$category"*/; do
       [ -f "${task}task.toml" ] && tasks+=("${task%/}")
     done
   done

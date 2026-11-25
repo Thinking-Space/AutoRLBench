@@ -19,6 +19,7 @@ from autorlbench.tasks.validator import validate_metadata
 METADATA = """title = "Training task"
 license = "MIT"
 created_date = "2026-09-23"
+type = "algorithm"
 domain = "rl"
 
 [submitter]

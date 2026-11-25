@@ -7,7 +7,7 @@ Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K, `grouped_whiten` indexes stan
 | **Author** | Bo Chen |
 | **Affiliation** | University of Hong Kong |
 | **Type** | Algorithm |
-| **Domain** | Computer Science |
+| **Domain** | Math |
 | **Tags** | `grpo` `advantage-estimation` `permutation-bug` `kl-penalty` `straight-through-estimator` `gradient-scaling` |
 | **Framework** | verl (GRPO, commit `4b9c14f2`), FSDP + vLLM 0.11.0 colocated, `run_grpo_gsm8k.sh` (50 steps, `test_freq=25`) |
 | **Run time** | ~24 minutes |

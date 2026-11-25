@@ -7,7 +7,7 @@ Qwen3-4B learns read-only warehouse SQL with REINFORCE++, but masked tool observ
 | **Author** | Purva Chiniya |
 | **Affiliation** | Independent Researcher |
 | **Type** | Algorithm |
-| **Domain** | Tool-use RL |
+| **Domain** | SQL |
 | **Tags** | `reinforcepp` `tool-observations` `return-reset` `credit-assignment` |
 | **Framework** | verl (REINFORCE++) |
 | **Run time** | 6.5 minutes per run |

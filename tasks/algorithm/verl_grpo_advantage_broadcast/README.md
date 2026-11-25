@@ -7,7 +7,7 @@ Training Qwen2.5-1.5B-Instruct with GRPO on TACO. The per-sample advantage vecto
 | **Author** | Yaohui Li |
 | **Affiliation** | THUNLP, Tsinghua University |
 | **Type** | Algorithm |
-| **Domain** | Code RL |
+| **Domain** | Code |
 | **Tags** | `advantage-broadcast` `credit-assignment` `silent-failure` |
 | **Framework** | verl (GRPO) |
 | **Run time** | 8 hours |

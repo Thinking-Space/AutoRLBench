@@ -68,12 +68,12 @@ models use `--agent claude-code`; GPT-family uses `--agent codex`; Qwen uses
 container and takes credentials from the harbor process env / `.env`. Always request the
 highest reasoning tier: `--agent-kwarg reasoning_effort=max`.
 
-**Task scope**: 50 tasks in 6 domains under `tasks/`, 21 of which carry
+**Task scope**: 44 tasks in 6 types under `tasks/`, 21 of which carry
 `evaluations/solution/` (full list in reference.md, appendix A). `task_root` accepts a
-single task directory, a domain directory (`tasks/reward`), or several paths at once;
-`tasks/` itself does not work (its direct children are domains, not tasks). **When the
+single task directory, a type directory (`tasks/reward`), or several paths at once;
+`tasks/` itself does not work (its direct children are types, not tasks). **When the
 user asks for an evaluation without naming a task, the default is the whole benchmark**:
-pass all six domain directories in one command
+pass all six type directories in one command
 (`tasks/configuration tasks/reward tasks/data tasks/environment tasks/algorithm
 tasks/infrastructure`), which expands to every task.
 
@@ -148,10 +148,10 @@ The judge is just a script inside the verifier container, and all materials are 
 set -a; . ./.env; set +a
 T=outputs/harbor-evaluate/<task_id>/<agent>-<model>/<ts>/harbor-job/<trial>
 AUTORLBENCH_JUDGE_MODEL=<judge-model> OPENAI_BASE_URL=$OPENAI_BASE_URL OPENAI_API_KEY=$OPENAI_API_KEY \
-  python3 tasks/<domain>/<task>/evaluations/issue/verifier/judge.py \
+  python3 tasks/<type>/<task>/evaluations/issue/verifier/judge.py \
   --answer $T/artifacts/logs/artifacts/agent_answer.md \
-  --oracle  tasks/<domain>/<task>/evaluations/issue/oracle.md \
-  --prompt  tasks/<domain>/<task>/evaluations/issue/verifier/judge_prompt.md \
+  --oracle  tasks/<type>/<task>/evaluations/issue/oracle.md \
+  --prompt  tasks/<type>/<task>/evaluations/issue/verifier/judge_prompt.md \
   --result  $T/verifier/autorlbench-result-retry.json
 ```
 

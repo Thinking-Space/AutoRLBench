@@ -4,10 +4,10 @@ Training MiniCPM5-2.6B with GRPO on a CHIMERA pass@1-6 set (SFT base trained on 
 
 | | |
 | --- | --- |
-| **Author** | anbingxu |
+| **Author** | Bingxu An |
 | **Affiliation** | University of Chinese Academy of Sciences |
 | **Type** | Reward |
-| **Domain** | STEM RL |
+| **Domain** | STEM |
 | **Tags** | `llm-judge` `thinking-mode` `regex` `silent-regression` |
 | **Framework** | miles (slime fork); GRPO; judge `deepseek-v4-flash` |
 | **Run time** | 717 rollout steps (operator-stopped; wall-clock duration not recorded) |

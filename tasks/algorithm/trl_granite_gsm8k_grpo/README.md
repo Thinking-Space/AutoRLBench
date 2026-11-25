@@ -7,7 +7,7 @@ Granite-3.3-2B-Instruct is trained with GRPO on the full GSM8K training set. Eve
 | **Author** | Haoyang Su |
 | **Affiliation** | Fudan University; Shanghai Innovation Institute |
 | **Type** | Algorithm |
-| **Domain** | Math RL |
+| **Domain** | Math |
 | **Tags** | `gradient-accumulation` `rollout-buffer` `effective-batch-size` `silent-failure` |
 | **Framework** | TRL (GRPO), commit `d2edcfebe52b1d0f4c0e15dc6a27277105b92b1f` with the upstream Granite logit-scaling fix |
 | **Run time** | ~41 minutes |
