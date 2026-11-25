@@ -1,0 +1,242 @@
+--- a/verl/workers/engine/fsdp/transformer_impl.py
++++ b/verl/workers/engine/fsdp/transformer_impl.py
+@@ -1008,6 +1008,9 @@
+         model_inputs.update(multi_modal_inputs)
+         model_inputs.update(extra_args)
+ 
++        if os.getenv("BENCH_AUDIT_DIR"):
++            from verl.utils.training_audit import prepare
++            prepare(micro_batch, model_inputs, output_args, self.ulysses_sequence_parallel_size)
+         return model_inputs, output_args
+ 
+     def prepare_model_outputs(self, output, output_args, micro_batch: TensorDict, logits_processor_func):
+--- a/verl/utils/experimental/torch_functional.py
++++ b/verl/utils/experimental/torch_functional.py
+@@ -219,6 +219,10 @@
+         input_ids: torch.LongTensor,
+         temperature: float = 1.0,
+     ) -> tuple[torch.FloatTensor, torch.FloatTensor]:
++        import os
++        if os.getenv("BENCH_AUDIT_DIR"):
++            from verl.utils.training_audit import head
++            head(hidden_states, input_ids)
+         input_ids = input_ids.to(torch.int64)
+         return FusedLinearForPPOFunction.apply(
+             hidden_states,
+--- a/verl/utils/experimental/torch_functional.py
++++ b/verl/utils/experimental/torch_functional.py
+@@ -224,7 +224,7 @@
+             from verl.utils.training_audit import head
+             head(hidden_states, input_ids)
+         input_ids = input_ids.to(torch.int64)
+-        return FusedLinearForPPOFunction.apply(
++        result = FusedLinearForPPOFunction.apply(
+             hidden_states,
+             vocab_weights,
+             input_ids,
+--- a/verl/utils/experimental/torch_functional.py
++++ b/verl/utils/experimental/torch_functional.py
+@@ -231,3 +231,7 @@
+             temperature,
+             self.chunk_size,
+         )
++        if os.getenv("BENCH_AUDIT_DIR"):
++            from verl.utils.training_audit import watch
++            watch(result[0])
++        return result
+--- /dev/null
++++ b/verl/utils/training_audit.py
+@@ -0,0 +1,85 @@
++"""Detached boundary observation; PPO alignment uses the production response extraction."""
++import json
++import os
++from pathlib import Path
++import threading
++_state=threading.local()
++
++def prepare(data,model_inputs,output_args,sp):
++    if not os.getenv('BENCH_AUDIT_DIR'): return
++    import torch
++    from verl.workers.utils.padding import no_padding_2_padding
++    ids=data['input_ids']
++    assert ids.is_nested
++    total=ids.values().numel()
++    expected=output_args['input_ids_rmpad_rolled'].flatten()
++    # Response-field layouts differ from full-token input_ids. Use exactly the
++    # production no_padding_2_padding mapping, not an SFT-style rolled loss mask.
++    indices=no_padding_2_padding(torch.arange(total,device=expected.device),data)
++    response=data['response_mask']
++    if response.is_nested: response=torch.nested.to_padded_tensor(response,0)
++    assert indices.shape==response.shape,(indices.shape,response.shape)
++    active=torch.zeros(total,device=expected.device,dtype=torch.bool)
++    active[indices[response.bool()].long()]=True
++    advantage=data.get('advantages')
++    nonzero=None
++    if advantage is not None:
++        if advantage.is_nested: advantage=torch.nested.to_padded_tensor(advantage,0)
++        assert advantage.shape==response.shape
++        nonzero=torch.zeros_like(active)
++        nonzero[indices[response.bool() & advantage.ne(0)].long()]=True
++    _state.expected=expected.detach()
++    _state.active=active
++    _state.nonzero=nonzero
++    _state.sp=sp
++    _state.record=None
++
++def head(hidden_states,input_ids):
++    directory=os.getenv('BENCH_AUDIT_DIR')
++    expected=getattr(_state,'expected',None)
++    if not directory or expected is None:return
++    import torch
++    from verl.utils.ulysses import get_ulysses_sequence_parallel_rank
++    # Capped per process, with additional records whenever loss gradients are observed.
++    count=getattr(_state,'count',0)
++    if count>=2048:return
++    _state.count=count+1
++    rank=get_ulysses_sequence_parallel_rank()
++    n=hidden_states.numel()//hidden_states.shape[-1]
++    provided=input_ids.flatten()
++    # The production fused loop consumes only the first T labels. Before-fix
++    # VLM adapters can pass full global IDs while hidden states are SP-local.
++    used=provided[:n]
++    assert used.numel()==n and expected.numel()==n,(provided.shape,expected.shape,n)
++    mismatch=used!=expected
++    def local(t):
++        if t is None:return None
++        t=torch.nn.functional.pad(t,(0,n*_state.sp-t.numel()))
++        return t[rank*n:(rank+1)*n]
++    active=local(_state.active);nonzero=local(_state.nonzero)
++    positions=mismatch.nonzero().flatten()
++    row={'pid':os.getpid(),'rank':rank,'ordinal':count,'hidden_tokens':n,'provided_labels':provided.numel(),
++         'mismatched_labels':int(mismatch.sum()),'mismatches_in_response_loss':int((mismatch&active).sum()),
++         'mismatches_nonzero_advantage':None if nonzero is None else int((mismatch&active&nonzero).sum()),
++         'local_mismatch_positions':positions.cpu().tolist(),
++         'expected_labels':expected[positions].cpu().tolist(),'actual_labels':used[positions].cpu().tolist(),
++         'grad_enabled':torch.is_grad_enabled(),'alignment':'production no_padding_2_padding'}
++    _state.record=(row,mismatch.detach(),active.detach())
++    emit(row,'labels')
++
++def watch(log_probs):
++    record=getattr(_state,'record',None)
++    if record is None or not log_probs.requires_grad:return
++    row,mismatch,active=record
++    def hook(gradient):
++        flat=gradient.flatten().detach()
++        assert flat.numel()==mismatch.numel()
++        emit({**row,'mismatch_nonzero_logprob_gradient':int((mismatch&active&flat.ne(0)).sum()),
++              'mismatch_abs_logprob_gradient_sum':float(flat[mismatch&active].abs().sum())},'loss_gradient')
++        # A detached observation hook returns no replacement gradient.
++    log_probs.register_hook(hook)
++
++def emit(row,kind):
++    directory=Path(os.environ['BENCH_AUDIT_DIR']);directory.mkdir(parents=True,exist_ok=True)
++    with (directory/f'tensor-alignment-{os.getpid()}.jsonl').open('a') as out:
++        out.write(json.dumps({'kind':kind,**row})+'\n')
+--- a/verl/utils/tracking.py
++++ b/verl/utils/tracking.py
+@@ -184,6 +184,9 @@
+                 logger_instance.log(data=data, step=step)
+ 
+     def __del__(self):
++        if getattr(self, "_bench_closed", False):
++            return
++        self._bench_closed = True
+         if "wandb" in self.logger:
+             self.logger["wandb"].finish(exit_code=0)
+         if "swanlab" in self.logger:
+--- a/verl/trainer/ppo/ray_trainer.py
++++ b/verl/trainer/ppo/ray_trainer.py
+@@ -1685,6 +1685,8 @@
+                         self.actor_rollout_wg.async_calls_finalize_fn_exec(blocking=True)
+                     pprint(f"Final validation metrics: {last_val_metrics}")
+                     progress_bar.close()
++                    logger.__del__()
++                    print(f"BENCH_NORMAL_EXIT_STEP={self.global_steps}", flush=True)
+                     return
+ 
+                 # this is experimental and may be changed/removed in the future
+--- a/verl/trainer/ppo/ray_trainer.py
++++ b/verl/trainer/ppo/ray_trainer.py
+@@ -1373,6 +1373,16 @@
+                 )
+ 
+                 is_last_step = self.global_steps >= self.total_training_steps
++                import os as _bench_os
++                import time as _bench_time
++                _bench_stop = int(_bench_os.getenv("BENCH_STAGE_STOP", "0"))
++                if _bench_stop and self.global_steps >= _bench_stop:
++                    is_last_step = True
++                    print(f"BENCH_STAGE_FINAL_STEP={self.global_steps}", flush=True)
++                _bench_deadline = float(_bench_os.getenv("BENCH_GPU_DEADLINE", "0"))
++                if _bench_deadline and _bench_time.time() + max(600, 2 * self.max_steps_duration) >= _bench_deadline:
++                    is_last_step = True
++                    print(f"BENCH_BUDGET_EARLY_FINAL_STEP={self.global_steps}", flush=True)
+                 with marked_timer("step", timing_raw):
+                     # generate a batch
+                     with marked_timer("gen", timing_raw, color="red"):
+--- a/verl/workers/rollout/vllm_rollout/vllm_rollout.py
++++ b/verl/workers/rollout/vllm_rollout/vllm_rollout.py
+@@ -97,7 +97,9 @@
+         self.device_uuid = get_device_uuid(get_device_id())
+         self.zmq_handle = f"ipc:///tmp/rl-colocate-zmq-{self.device_uuid}.sock"
+ 
+-        self.use_shm = not is_support_ipc()
++        # Benchmark container CUDA IPC handle export fails even for 1 KiB.
++        # Use the existing lossless shared-memory transfer in both arms.
++        self.use_shm = True
+         if self.use_shm:
+             logger.warning(
+                 "IPC is not supported on your devices. Falling back to shared memory for weight transfer, "
+--- a/verl/workers/engine/fsdp/transformer_impl.py
++++ b/verl/workers/engine/fsdp/transformer_impl.py
+@@ -589,6 +589,9 @@
+         raise NotImplementedError
+ 
+     def forward_backward_batch(self, data: TensorDict, loss_function: Callable, forward_only=False) -> list[TensorDict]:
++        # Keep optimizer states off GPU during forward/backward when requested.
++        if not forward_only and self.is_optimizer_offload_enabled:
++            self.to("cpu", model=False, optimizer=True, grad=False)
+         # note that the global_batch_size should include data on all the dp
+         tu.assign_non_tensor(data, sp_size=self.ulysses_sequence_parallel_size)
+ 
+@@ -655,7 +658,13 @@
+             print(f"WARN: grad_norm is not finite: {grad_norm}")
+             self.optimizer.zero_grad()
+         else:
+-            self.optimizer.step()
++            if self.is_optimizer_offload_enabled:
++                self.to(get_device_name(), model=False, optimizer=True, grad=False)
++            try:
++                self.optimizer.step()
++            finally:
++                if self.is_optimizer_offload_enabled:
++                    self.to("cpu", model=False, optimizer=True, grad=False)
+ 
+         if self._qat_enabled:
+             from verl.utils.qat.core import invalidate_all_scales
+--- a/verl/workers/engine/fsdp/transformer_impl.py
++++ b/verl/workers/engine/fsdp/transformer_impl.py
+@@ -591,7 +591,7 @@
+     def forward_backward_batch(self, data: TensorDict, loss_function: Callable, forward_only=False) -> list[TensorDict]:
+         # Keep optimizer states off GPU during forward/backward when requested.
+         if not forward_only and self.is_optimizer_offload_enabled:
+-            self.to("cpu", model=False, optimizer=True, grad=False)
++            offload_fsdp_optimizer(self.optimizer)
+         # note that the global_batch_size should include data on all the dp
+         tu.assign_non_tensor(data, sp_size=self.ulysses_sequence_parallel_size)
+ 
+@@ -659,12 +659,12 @@
+             self.optimizer.zero_grad()
+         else:
+             if self.is_optimizer_offload_enabled:
+-                self.to(get_device_name(), model=False, optimizer=True, grad=False)
++                load_fsdp_optimizer(self.optimizer, get_device_id())
+             try:
+                 self.optimizer.step()
+             finally:
+                 if self.is_optimizer_offload_enabled:
+-                    self.to("cpu", model=False, optimizer=True, grad=False)
++                    offload_fsdp_optimizer(self.optimizer)
+ 
+         if self._qat_enabled:
+             from verl.utils.qat.core import invalidate_all_scales
