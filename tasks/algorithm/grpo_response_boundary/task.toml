@@ -1,0 +1,29 @@
+title = "GRPO rollout and training length disagreement"
+license = "Apache-2.0"
+created_date = "2026-11-25"
+domain = "algorithm"
+tags = ["grpo", "rollout-accounting", "issue-only"]
+
+[submitter]
+name = "Yong Yan"
+affiliation = "Tsinghua University"
+
+[model]
+name = "nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16"
+
+[dataset]
+name = "AIME 2024 (disjoint training and validation questions)"
+
+[training]
+framework = "veRL"
+algo = "grpo"
+script = "train.sh"
+
+[environment]
+image = "verlai/verl:vllm024.dev2@sha256:b867883b0dd011363e69ab2ab344922a28c5bd0409e2a324e3ee70fb27ca7543"
+image_stack = "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12"
+gpus = 1
+
+[outcome]
+failure_type = "rollout_accounting_disagreement"
+failure_reason = "The reported response lengths disagree with the generation records."
