@@ -60,6 +60,7 @@ const INSTITUTIONS = Array.from(new Set(TEAM.flatMap(person =>
    below assigns them a cell like any other entry. */
 const INSTITUTION_INSERTS = [
     { after: 'Tsinghua University', name: 'THUNLP' },
+    { after: 'THUNLP', name: 'ModelBest' },
     { after: 'Brigham Young University', name: 'Nanyang Technological University' },
     { after: 'Southwest Jiaotong University', name: 'Shanghai Jiao Tong University' }
 ];
@@ -91,5 +92,6 @@ const INSTITUTION_LOGOS = {
     'Northeastern University': 17,
     'University of Chinese Academy of Sciences': 18,
     'LMU Munich': 19,
-    'Iowa State University': 20
+    'Iowa State University': 20,
+    'ModelBest': 21
 };
