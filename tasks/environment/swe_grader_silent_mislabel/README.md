@@ -12,7 +12,7 @@ rewrite the test surface, mis-match node ids, and turn undecidable runs into con
 | **Domain** | SWE |
 | **Tags** | `reward-pipeline` `test-execution` `log-parsing` `reward-hacking` `data-quality` |
 | **Framework** | none (the graded artefact is the reward service; the rollouts it grades are staged) |
-| **Run time** | CPU only; prepare ~100 s (reproducing the staged grading pass of 194 records locally takes ~4.5 min on 8 workers) |
+| **Run time** | ~4.5 min for the staged rerun of 194 records and ~2.5 min for the held-out pass of 158 (8 workers, CPU only; prepare adds ~100 s) |
 | **Resources** | CPU only, no GPU, no network after prepare |
 
 ## Difficulty
@@ -48,15 +48,16 @@ are different defects, and the corpus contains the rollouts that punish stopping
 | command + test-surface restoration | 54 / 54 | 0.892 / 0.873 | 13 / 13 | 0.00 / 0.00 |
 | reference (every stage) | 41 / 41 | 1.000 / 1.000 | 0 / 0 | 1.00 / 1.00 |
 
-Each cell is *staged corpus (194 records) / held-out corpus (158 records)*, measured at
-submission time on corpora that share no instance. The third row is the trap's far side: a
+Each cell is *staged corpus (194 records) / held-out corpus (158 records)*; the held-out corpus
+shares no instance with the staged one. The pass mark is agreement >= 0.97 with no wrong
+`resolved` and `unscorable` recall >= 0.8 on **both**. The third row is the trap's far side: a
 pipeline that asks pytest for the right log and restores the test suite still rewards 13
 records it cannot decide, because the matcher answers a required id the suite never reports
 with another test's result. Node-id matching and the `unscorable` outcome are one step, not
 two: with the substring fallback in place a missing id is never *observed* to be missing, so
 the third label can never be produced.
 
-Shortcutting the test run is no help either. The corpus pairs each rollout archetype
+Shortcutting the test run is no help either. The held-out corpus pairs each rollout archetype
 with its mirror image: a patch that fixes the bug *and* carries a report hook (`resolved`)
 against a patch that carries only the hook (`unresolved`), and a patch that touches only source
 files and still fails (`unresolved`) against one that fixes it (`resolved`). A grader that
@@ -90,6 +91,12 @@ records were of that kind). Both are visible in the workspace; neither is labell
   local reproduction. The archived corpus counts are examples, not required recall.
   A diagnosis that stops at the missing `-rA` has found the defect that explains the
   flat reward, not the one that makes the reward wrong.
+- **solution**: repair all four stages (`evaluations/solution/oracle/repair.patch`); equivalents
+  are accepted -- machine-readable pytest output instead of log parsing, re-copying the test
+  surface from the pristine snapshot instead of `git checkout`, running the tests from a
+  directory the rollout cannot write to. The verifier grades the labels the repaired pipeline
+  produces, on the staged corpus *and* on a held-out corpus of instances and rollouts the
+  workspace never contained, both by running the real test suites.
 
 ## Verification
 
@@ -100,4 +107,15 @@ records were of that kind). Both are visible in the workspace; neither is labell
   but exact counts of patches or undecidable records are not. Naming only the
   missing summary section cannot pass.
   `environment/check_evidence.py` re-derives every number quoted here from the shipped
-  artefacts and scans the task for private markers.
+  artefacts, checks that the staged and held-out corpora share no instance, and scans the
+  task for private markers.
+- **solution**: the agent repairs the workspace and submits `report.md`; the harness reruns
+  `scripts/regrade_run.py` per `run_spec.json` and grades that run, then the verifier runs the
+  repaired pipeline itself on the held-out corpus. A pipeline passes when it labels no
+  undecided or failing record `resolved`, agrees with the reference labels on ≥ 97 % of records,
+  and recovers each of the three labels at the floors in
+  `evaluations/solution/verifier/resources/grader_spec.json` -- on both corpora. Before any of
+  that, the pinned entry point, every corpus file, the repository snapshots (content digest plus
+  a clean `git status`) and the installed environments must be intact: editing the corpus or the
+  snapshots to make a record pass fails outright. Calibration of each variant on both corpora is
+  in `evaluations/solution/oracle/calibration.json`.

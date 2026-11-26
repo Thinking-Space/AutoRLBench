@@ -1,0 +1,20 @@
+diff --git a/pyasn1/type/constraint.py b/pyasn1/type/constraint.py
+index 02368d0..1b3e516 100644
+--- a/pyasn1/type/constraint.py
++++ b/pyasn1/type/constraint.py
+@@ -82,11 +82,10 @@ class AbstractConstraint(object):
+         return self._valueMap
+ 
+     def isSuperTypeOf(self, otherConstraint):
+-        # TODO: fix possible comparison of set vs scalars here
+-        return (otherConstraint is self or
+-                not self._values or
+-                otherConstraint == self or
+-                self in otherConstraint.getValueMap())
++        return (otherConstraint is not self and
++                self._values and
++                otherConstraint != self and
++                self not in otherConstraint.getValueMap())
+ 
+     def isSubTypeOf(self, otherConstraint):
+         return (otherConstraint is self or

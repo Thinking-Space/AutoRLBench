@@ -149,11 +149,14 @@ graded). Details in the task's
 | want to verify the task environment itself is healthy | — | `python3 -m autorlbench rerun <task>` (maintainer-side self-check, unrelated to model evaluation; use it when triaging environment problems) |
 | the agent is completely idle | keys/gateway | check `.env`; `logs/agent/<agent>.txt` usually shows 401/timeout traces |
 
-## 7. Appendix A: task inventory (44 tasks; ✓ = has evaluations/solution)
+## 7. Appendix A: task inventory (49 tasks; ✓ = has evaluations/solution)
 
 | Type | Task | sol |
 | --- | --- | :-: |
 | algorithm | areal_kpop_binary_kl_fp32_nan_mask |   |
+| algorithm | grpo_response_boundary |   |
+| algorithm | justrl2_ppo_stale_whitening_moment_cache |   |
+| algorithm | qat_math_reward_plateau | ✓ |
 | algorithm | trl_dapo_accumulation_normalization | ✓ |
 | algorithm | trl_granite_gsm8k_grpo |   |
 | algorithm | verl_grpo_advantage_broadcast | ✓ |
@@ -165,13 +168,17 @@ graded). Details in the task's
 | configuration | areal_disk_weight_update_on_sglang |   |
 | configuration | areal_icepop_mask_window_too_narrow | ✓ |
 | configuration | verl_grpo_adamw_eps_too_large | ✓ |
+| configuration | verl_grpo_group_std_kl_in_reward |   |
 | configuration | verl_grpo_ppo_mini_batch_too_small | ✓ |
 | configuration | verl_grpo_rollout_top_p_off_policy | ✓ |
+| configuration | verl_quantized_rollout_drift_collapse |   |
+| configuration | verl_stale_weight_sync_drift_collapse |   |
 | configuration | verl_vllm011_fp8_kv_scale_sleep |   |
 | data | query_pool_gate_divergence | ✓ |
 | data | qwen25_gsm8k_grpo |   |
 | data | verl_taco_difficulty_mismatch |   |
 | data | verl_taco_wrong_expected_output | ✓ |
+| data | verl_zero_width_ground_truth |   |
 | environment | miles_miniswe_format_error_retry_fanout |   |
 | environment | sandbox_admission_starvation | ✓ |
 | environment | swe_grader_silent_mislabel | ✓ |
@@ -186,7 +193,6 @@ graded). Details in the task's
 | infrastructure | verl_fsdp_bf16_master_weights | ✓ |
 | infrastructure | verl_fsdp_bucketed_weight_sync | ✓ |
 | infrastructure | verl_fsdp_microbatch_grad_reset |   |
-| infrastructure | verl_lora_merge_base_weight_sync | ✓ |
 | infrastructure | verl_moe_token_normalization | ✓ |
 | infrastructure | verl_pissa_vllm_adapter_request | ✓ |
 | infrastructure | verl_quantized_rollout_restart |   |
@@ -195,7 +201,6 @@ graded). Details in the task's
 | reward | slime_judge_router_admission_starvation |   |
 | reward | slime_retool_length_reward_bonus | ✓ |
 | reward | slime_search_r1_nomask | ✓ |
-| reward | trl_gsm8k_threaded_reward_order |   |
 | reward | verl_inventory_agent_compound |   |
 
 Trust `ls tasks/<type>/` over this table (update it when tasks are added/removed).

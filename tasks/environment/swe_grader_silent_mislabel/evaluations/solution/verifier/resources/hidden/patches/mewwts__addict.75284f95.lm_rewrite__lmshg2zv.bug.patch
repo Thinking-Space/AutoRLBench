@@ -1,0 +1,38 @@
+diff --git a/addict/addict.py b/addict/addict.py
+index 55e02d1..4f7132d 100644
+--- a/addict/addict.py
++++ b/addict/addict.py
+@@ -101,20 +101,21 @@ class Dict(dict):
+         return other
+ 
+     def update(self, *args, **kwargs):
+-        other = {}
+-        if args:
+-            if len(args) > 1:
+-                raise TypeError()
+-            other.update(args[0])
+-        other.update(kwargs)
+-        for k, v in other.items():
+-            if ((k not in self) or
+-                (not isinstance(self[k], dict)) or
+-                (not isinstance(v, dict))):
+-                self[k] = v
++        """TODO: Implement this function"""
++        for arg in args:
++            if not arg:
++                continue
++            elif isinstance(arg, dict):
++                for key, val in arg.items():
++                    self[key] = self._hook(val)
++            elif isinstance(arg, tuple) and (not isinstance(arg[0], tuple)):
++                self[arg[0]] = self._hook(arg[1])
+             else:
+-                self[k].update(v)
++                for key, val in iter(arg):
++                    self[key] = self._hook(val)
+ 
++        for key, val in kwargs.items():
++            self[key] = self._hook(val)
+     def __getnewargs__(self):
+         return tuple(self.items())
+ 

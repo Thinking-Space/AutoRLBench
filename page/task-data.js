@@ -151,27 +151,6 @@ window.AUTORLBENCH_TASKS = [
     "issue": "Training IDEA_sft with OPSD on the AgentWorldModel suite. The generated completion verifiers use incomplete acceptance predicates, so trajectories that do not satisfy the requested task still score full reward while held-out test score drifts down."
   },
   {
-    "id": "infrastructure/verl_lora_merge_base_weight_sync",
-    "title": "Merged LoRA never reaches the rollout engine",
-    "family": "Infrastructure",
-    "domain": "Math",
-    "tags": [
-      "verl",
-      "grpo",
-      "lora",
-      "fsdp2",
-      "weight-sync"
-    ],
-    "model": "Qwen/Qwen2.5-1.5B-Instruct",
-    "dataset": "openai/gsm8k main (7473 train rows, 1319 test rows)",
-    "framework": "verl",
-    "image": "verl",
-    "created": "2026-10-25",
-    "license": "Apache-2.0",
-    "brief": "Every weight sync ships the base weights, not the merged LoRA.",
-    "issue": "Training Qwen2.5-1.5B-Instruct with GRPO and a merged LoRA adapter on GSM8K. The merged tensors are gathered only after merged_lora_context has restored the base weights, so vLLM loads the base weights at every sync and held-out accuracy stays at the base level while the actor keeps training."
-  },
-  {
     "id": "infrastructure/miles_async_rollout_inflight_not_evicted",
     "title": "Fully-async GRPO in-flight rollouts kept alive across weight sync",
     "family": "Infrastructure",

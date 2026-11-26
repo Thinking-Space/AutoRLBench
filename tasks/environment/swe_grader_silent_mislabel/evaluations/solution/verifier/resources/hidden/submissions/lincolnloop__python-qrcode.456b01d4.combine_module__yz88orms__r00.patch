@@ -1,0 +1,43 @@
+diff --git a/qrcode/image/pure.py b/qrcode/image/pure.py
+index 4bad156..5a8b2c5 100644
+--- a/qrcode/image/pure.py
++++ b/qrcode/image/pure.py
+@@ -14,10 +14,10 @@ class PyPNGImage(BaseImage):
+     needs_drawrect = False
+ 
+     def new_image(self, **kwargs):
+-        if PngWriter:
++        if not PngWriter:
+             raise ImportError("PyPNG library not installed.")
+ 
+-        return PngWriter(self.pixel_size, self.pixel_size, greyscale=False, bitdepth=8)
++        return PngWriter(self.pixel_size, self.pixel_size, greyscale=True, bitdepth=1)
+ 
+     def drawrect(self, row, col):
+         """
+diff --git a/qrcode/image/styles/moduledrawers/svg.py b/qrcode/image/styles/moduledrawers/svg.py
+index 53673a0..cf5b9e7 100644
+--- a/qrcode/image/styles/moduledrawers/svg.py
++++ b/qrcode/image/styles/moduledrawers/svg.py
+@@ -121,7 +121,7 @@ class SvgPathSquareDrawer(SvgPathQRModuleDrawer):
+ 
+ class SvgPathCircleDrawer(SvgPathQRModuleDrawer):
+     def initialize(self, *args, **kwargs) -> None:
+-        super().initialize(args, **kwargs)
++        super().initialize(*args, **kwargs)
+ 
+     def subpath(self, box) -> str:
+         coords = self.coords(box)
+diff --git a/qrcode/tests/test_repro_fix.py b/qrcode/tests/test_repro_fix.py
+new file mode 100644
+index 0000000..4769bbf
+--- /dev/null
++++ b/qrcode/tests/test_repro_fix.py
+@@ -0,0 +1,7 @@
++"""Reproduction added while working on the bug."""
++import pytest  # noqa: F401
++
++
++def test_render_pypng():
++    # Minimal reproduction kept next to the fix. It still trips on the edge case below.
++    raise AssertionError("reproduction case still unhandled")
