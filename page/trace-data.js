@@ -1122,7 +1122,15 @@
  * not run (upstream channel blocked all round). The trajectories
  * were rebuilt per agent type and audited clean of network access.
  * The published issue-judgment total below moves 493 -> 503.
- * The 217 solution records are reconciled against AutoRLBench validation-first
+ * Twenty solution records registered on 26 Nov 2026 from their
+ * 22 Nov ledger rows and replay artifacts: the ten
+ * verl_fsdp_bucketed_weight_sync and ten verl_grpo_grouped_
+ * whiten_order runs (all graded 0; no pass on either level) had
+ * been published to the trace catalog without entries. With the
+ * qat_math_reward_plateau graders registration also added, the
+ * runs table now reconciles every published solution record and
+ * the reconciliation anchor below moves 217 -> 237.
+ * The 237 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
  * (11) and swe_grader_silent_mislabel (10) were rejudged with gpt-5.6-terra
