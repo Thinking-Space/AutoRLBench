@@ -1,0 +1,35 @@
+{
+  "category": "algorithm",
+  "framework": "verl",
+  "task": "qat_math_reward_plateau",
+  "verdict": "unhealthy",
+  "root_cause": [
+    {
+      "name": "on_policy_branch_replaces_rollout_scores",
+      "where": "workspace/qat/vendor/verl/verl/workers/actor/dp_actor.py (on_policy branch at the single-minibatch, single-epoch path: old_log_prob = log_prob_for_loss.detach() when use_rollout_log_probs=false, config line 125)",
+      "observed": "with one PPO minibatch and one epoch the actor takes the on_policy branch and replaces the rollout log probabilities (written into batch old_log_probs by the rollout bypass in rollout_corr_helper.py:867) with a detached copy of its current scores, so the PPO ratio is identically one and clipping never activates: actor PPO KL and clip fraction are zero across all 30 steps, including the 27 with nonzero gradients",
+      "expected": "the policy-loss denominator keeps the rollout log probabilities (use_rollout_log_probs=true), so the sampling correction and clipping operate as intended"
+    },
+    {
+      "name": "minerva_extractor_rejects_correct_boxed_answers",
+      "where": "workspace/qat/vendor/verl/verl/utils/reward_score/math_dapo.py (Minerva extractor searching for an Answer: field within the last 300 characters), reached through the staged math_reward.py adapter",
+      "observed": "the scorer's active extraction route looks for a Minerva-style Answer: field, so a correctly boxed final answer can receive score -1 with pred [INVALID]; in the shipped 384-answer evidence, 48 answers whose final boxed value equals the training label were marked non-positive, and at steps 4, 5 and 8 all 64 answers receive negative reward, leaving identical rewards, zero normalized advantages and zero gradient",
+      "expected": "the training scorer credits a final boxed answer that matches the training label (e.g. a last_boxed_only_string fallback), as the reference repair adds"
+    }
+  ],
+  "evidence_metrics": [
+    "AIME24 held-out: 31/240 at E0, 41/240 at CP8, 41/240 at CP30 -- improvement followed by a plateau",
+    "actor PPO KL and clip fraction are zero across all 30 steps while 27 steps have nonzero gradients (grad_norm about 0.548 at step 2, learning rate 3e-7); steps 4, 5 and 8 have all-negative rewards and zero gradient",
+    "saved rollouts joined to the packaged training labels show correct boxed answers scored -1 with pred [INVALID] (48 such false negatives across the 384 shipped answers)",
+    "the independent rollout-to-actor log-probability discrepancy is nonzero (about 0.363 at step 1) while the bypass's self-comparison perplexity compares the score tensor with itself and reads zero",
+    "the four-arm comparison: original 23 positive rewards over steps 21-30 with 0% median clipping and 41/240; either repair alone fails the verifier (46 positive/19.70% clipping/55/240 for the denominator repair; 95/0%/44/240 for the scorer repair); both repairs together log 158 positive rewards, 15.90% median clipping and 59/240"
+  ],
+  "fix": {
+    "must": [
+      "name both causal paths: the on_policy single-minibatch branch replacing the rollout log probabilities with a detached copy of the actor's current scores, and the Minerva Answer: extractor rejecting valid boxed answers",
+      "explain how the actor still updates despite the unit ratio (the numerator retains its gradient), and why an all-negative batch can explain a zero gradient but not unit ratios in other batches",
+      "cite the 31/240 to 41/240 to 41/240 trajectory with the checkpoint evidence",
+      "do not require author-only controls, a specific boxed example, or the optional block-alignment probe; do not attribute the plateau to a crashing reward function, learning rate, or quantization noise alone"
+    ]
+  }
+}

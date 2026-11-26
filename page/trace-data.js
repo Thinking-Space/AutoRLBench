@@ -1086,7 +1086,28 @@
  * were rebuilt per agent type (the codex ones at per-item
  * granularity) and audited clean of network access. The published
  * issue-judgment total below moves 525 -> 535.
- * The 206 solution records are reconciled against AutoRLBench validation-first
+ * The eleven verl_zero_width_ground_truth issue records and the
+ * twenty-two qat_math_reward_plateau records (eleven issue, eleven
+ * solution) were published on 26 Nov 2026 from the local
+ * cybertron-evaluate sweep of 25-26 Nov, with the solution runs
+ * graded from beijing 4xH800 BATCH replay jobs. verl_zero_width:
+ * five pass (the evidence rubric was recalibrated on 26 Nov to
+ * accept equivalent-form evidence and four runs were re-judged in
+ * place); DeepSeek-V4.1-Flash is the only run completing the
+ * two-level decomposition with full evidence, and Claude-Fable-5.1
+ * refused the task (a recorded no-answer zero). qat_plateau: two
+ * issue passes (Claude-Fable-5.1, Gemini-4-Argon) with root-cause
+ * 0.5 as the mode (six single-factor diagnoses), and one solution
+ * pass -- Kimi-K3.1-Pro, the only true double repair (positive
+ * rewards 204, median PPO clip fraction 16.2 percent, AIME24
+ * 63/240). The five single-factor repairs sit at clip fraction 0.0
+ * against the 7 percent gate; two healthy-verdict no-repair zeros;
+ * one repair that broke training; one reward-degrading repair; one
+ * model refusal. The trajectories were rebuilt per agent type and
+ * audited clean of network access. The published issue-judgment
+ * total below moves 471 -> 493, the solution-run total 226 -> 237,
+ * and the solution-record reconciliation anchor 206 -> 217.
+ * The 217 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
  * (11) and swe_grader_silent_mislabel (10) were rejudged with gpt-5.6-terra
@@ -2553,9 +2574,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "9f9849707329eab95a80c92088c5077f251c3846d9590862bc8886cd524b39e5",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "confirmed_pass",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "最终补丁把每条回答自己的 scalar 广播到自身 token；CPU 检查覆盖不同长度、标准化开关及批次重排，原历史重放指标仍有效。",
-    "reviewStatus": "confirmed_pass"
+    "auditReason": "最终补丁把每条回答自己的 scalar 广播到自身 token；CPU 检查覆盖不同长度、标准化开关及批次重排，原历史重放指标仍有效。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2575,9 +2596,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "a889b81eb868f28b9c0e464555ffc04e47b126af53058972e50704b328e7c987",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原运行未产生可验收结果，保持失败。原记录：agent did not submit report.md",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原运行未产生可验收结果，保持失败。原记录：agent did not submit report.md"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2597,9 +2618,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "5ab887b5f7c8da76377750318455264ec85014bef3d1b106104da2e5c700736e",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "confirmed_pass",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "最终补丁把每条回答自己的 scalar 广播到自身 token；CPU 检查覆盖不同长度、标准化开关及批次重排，原历史重放指标仍有效。",
-    "reviewStatus": "confirmed_pass"
+    "auditReason": "最终补丁把每条回答自己的 scalar 广播到自身 token；CPU 检查覆盖不同长度、标准化开关及批次重排，原历史重放指标仍有效。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2619,9 +2640,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "d5d48ed359cb34a2773773c38eac04d63ac9806ad5d9324bcc339e44c87b0f3d",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.054348）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.054348）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2641,9 +2662,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "ef5a71429eae1a9fc38fcd1cb6f7f8bfa99fc7186e5304dfd7993c00d1e8a038",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.097826）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.097826）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2663,9 +2684,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "eafa611a3c53dfc4c3a5e665bc731363bdc947b27274872e6dbade26fdb2c868",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.081522）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.081522）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2684,9 +2705,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "b4296ce589b206dd8933e879e4a9c920204226100ac356760f100b026cc61722",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "confirmed_pass",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "最终补丁把每条回答自己的 scalar 广播到自身 token；CPU 检查覆盖不同长度、标准化开关及批次重排，原历史重放指标仍有效。",
-    "reviewStatus": "confirmed_pass"
+    "auditReason": "最终补丁把每条回答自己的 scalar 广播到自身 token；CPU 检查覆盖不同长度、标准化开关及批次重排，原历史重放指标仍有效。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2706,9 +2727,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "540fdc644d3bd3c7ef3e5279267d527f2d20f8d8004cd3a931043d1412f0bf18",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.000000）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.000000）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2728,9 +2749,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "b38b4aa04154c85ff764bc314768d2c36091558eb35325f52a00eb29c634e2e0",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.021739）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.021739）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2749,9 +2770,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "f5b8304c76f7878921272842f29b3b8f77c7da02a17a2b6c433e677d1b340d46",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.065217）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.065217）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "infrastructure/miles_async_rollout_inflight_not_evicted",
@@ -5466,9 +5487,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "842a3f90c98f416f9986d8b87d01bf305b373c511faa074fe7978dad917d8922",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.149667）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.149667）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5488,9 +5509,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "b270d00dac74bb2005a40d87912e2337ddbdad16dab49a897ce4173c38068fbf",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "rejected",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "撤销通过：最终观察 token mask 仍为 1；同时启用 structure_format_score 后，格式正确的错答案也得 0.2。原 0.324667 是混合奖励，不能证明 EM 达到 0.28。",
-    "reviewStatus": "rejected"
+    "auditReason": "撤销通过：最终观察 token mask 仍为 1；同时启用 structure_format_score 后，格式正确的错答案也得 0.2。原 0.324667 是混合奖励，不能证明 EM 达到 0.28。"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5510,9 +5531,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "1dea5c7b55f2163591b102038f5f5d401c3e3e4a34998c447af96221c50f551d",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.150667）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.150667）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5532,9 +5553,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "0c251b8ce480257953142912b6d499ee9ce871959022fc65863e95b1082c3d8f",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原运行未产生可验收结果，保持失败。原记录：missing finite eval/nq_test at step 99",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原运行未产生可验收结果，保持失败。原记录：missing finite eval/nq_test at step 99"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5554,9 +5575,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "4b7ae28ee61665e6b2ebde54879b60408909966b39931d1579ec14326a2a80ef",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "confirmed_pass",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。",
-    "reviewStatus": "confirmed_pass"
+    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5576,9 +5597,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "c14833ccf8bc0b8e9d55610c1a58af4715c1986c594e085809a750aa85e49e32",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.150667）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.150667）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5598,9 +5619,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "605d60b278a4f2831e053c797b6ac180ddab7f18f2fcf82f553c1c7a2cf48a44",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "confirmed_pass",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。",
-    "reviewStatus": "confirmed_pass"
+    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5620,9 +5641,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "a91062f44c48db113b139bef66bdde0c1a850275d4f1a1bd1653814082adef66",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "rejected",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "撤销通过：正文和 mask 虽已修好，但结构/检索奖励把错答案评分改成 0.1、0.2 或 0.3。原 0.321867 不是二值 EM，不能用原阈值认定通过。",
-    "reviewStatus": "rejected"
+    "auditReason": "撤销通过：正文和 mask 虽已修好，但结构/检索奖励把错答案评分改成 0.1、0.2 或 0.3。原 0.321867 不是二值 EM，不能用原阈值认定通过。"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5641,9 +5662,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "de9c5512f65c0323d3363e92970dda2083eb3750b0c4808006fe22324194029a",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "confirmed_pass",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。",
-    "reviewStatus": "confirmed_pass"
+    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5662,9 +5683,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "c9b2d13bac5e5128e95f3135b03a7396f38b6918005d6490ed9c4cebb0f68326",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "confirmed_pass",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。",
-    "reviewStatus": "confirmed_pass"
+    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。"
   },
   {
     "task": "reward/idea_awm_reward_diagnosis",
@@ -6350,9 +6371,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "747ff23086d0d657385e9b17b986f70d3615704e44fc82abceb48a5795cc8b42",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.631920）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.631920）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6392,9 +6413,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "1aad689c802f470768df133d90f2a37557c5ca0c00405eb8b99b2ef3e78ccf2e",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.624530）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.624530）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6434,9 +6455,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "46186487af31f72d04c1dfe1f850966d68185954861b4601c670fa0e81e9ae97",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "pending_artifacts",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "改为 disk 同步但保留 [0.67,1.5]；原 0.65353 只能证明分数达标。缺少该次重放的逐步过滤率与 resolved config，暂记未判定。补回旧日志即可重判；取不回时重放原提交。",
-    "reviewStatus": "pending_artifacts"
+    "auditReason": "改为 disk 同步但保留 [0.67,1.5]；原 0.65353 只能证明分数达标。缺少该次重放的逐步过滤率与 resolved config，暂记未判定。补回旧日志即可重判；取不回时重放原提交。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6476,9 +6497,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "5d8d5b7fc861aaa5242475439d6514b7d6dd5fd1348ee217c682ddc762e8ce7f",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原运行未产生可验收结果，保持失败。原记录：main.log does not show a complete run: expected one `Train step N/87 done.` line for every N in 1..87, got 56 lines ending at 56/87",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原运行未产生可验收结果，保持失败。原记录：main.log does not show a complete run: expected one `Train step N/87 done.` line for every N in 1..87, got 56 lines ending at 56/87"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6518,9 +6539,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "28d683cd921842afcb2c32ab1b33ee8caba2b1d392912d17db6c3b745a1f062a",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "confirmed_pass",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "最终补丁恢复 [0.5,5]，原重放结束值 0.65807；固定文件完整性已通过，原窄硬过滤设置已消除。",
-    "reviewStatus": "confirmed_pass"
+    "auditReason": "最终补丁恢复 [0.5,5]，原重放结束值 0.65807；固定文件完整性已通过，原窄硬过滤设置已消除。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6560,9 +6581,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "a9313b490b83ff17dc4f5034522e2d3cf682cd4edfea9a21d095bfce059e226a",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.575060）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.575060）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6602,9 +6623,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "9dd87845d67400ebd766f3820611eae907d4551b75cb2480122b6be2358a66e4",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原运行未产生可验收结果，保持失败。原记录：main.log has no `Train step` lines: the shipped runner's StatsLogger prints one per training step, so this run did not execute it",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原运行未产生可验收结果，保持失败。原记录：main.log has no `Train step` lines: the shipped runner's StatsLogger prints one per training step, so this run did not execute it"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6644,9 +6665,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "6b60e3985fb5d513c395a590c3b6f68c1bfa35733c8b883fb5d7828396d2057b",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原运行未产生可验收结果，保持失败。原记录：agent did not submit report.md",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原运行未产生可验收结果，保持失败。原记录：agent did not submit report.md"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6685,9 +6706,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "3611476c0104abc108737bf2bee908304238a58f83c7742014e1c9b3f5fba704",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.620170）；新增功能验收为附加条件，本次保持失败。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.620170）；新增功能验收为附加条件，本次保持失败。"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6726,9 +6747,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "b23d37b2dff2564095bcea2f3668409443e94c9a505bb5acf1d8960e89954fb9",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "confirmed_pass",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "最终补丁启用 clamp/TIS，每个 token 保留正权重，原重放结束值 0.68518；这是消除硬删除机制的等价修复。",
-    "reviewStatus": "confirmed_pass"
+    "auditReason": "最终补丁启用 clamp/TIS，每个 token 保留正权重，原重放结束值 0.68518；这是消除硬删除机制的等价修复。"
   },
   {
     "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
@@ -9246,9 +9267,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "9617a73cf517db05d4b34c1c71a5a0292d56e68adc49458c4558ad601df97110",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原发布结果为失败；当前仅有重放失败记录，缺少可重新计算的完整指标，本次未把缺失数据解释成通过。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原发布结果为失败；当前仅有重放失败记录，缺少可重新计算的完整指标，本次未把缺失数据解释成通过。"
   },
   {
     "task": "configuration/verl_grpo_rollout_top_p_off_policy",
@@ -9304,9 +9325,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "79e25b6c8b78b19c1b09a49ba5fd4f990d72ac9af39a3687972dfe4a3be24929",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原失败为重放基础设施问题，不能作为 agent 修复能力失败的证据；没有新的完整训练结果，本次维持原失败记录并标注需重放。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原失败为重放基础设施问题，不能作为 agent 修复能力失败的证据；没有新的完整训练结果，本次维持原失败记录并标注需重放。"
   },
   {
     "task": "infrastructure/qwen3vl_geo3k",
@@ -9362,9 +9383,9 @@ window.AUTORLBENCH_RUNS = [
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "5335c758562f207ff6d55ce95182b97c300e265415ac38f96a552706dec13b2b",
     "rejudgedAt": "2026-11-23",
+    "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原失败为重放基础设施问题，不能作为 agent 修复能力失败的证据；没有新的完整训练结果，本次维持原失败记录并标注需重放。",
-    "reviewStatus": "retained_failure"
+    "auditReason": "原失败为重放基础设施问题，不能作为 agent 修复能力失败的证据；没有新的完整训练结果，本次维持原失败记录并标注需重放。"
   },
   {
     "task": "algorithm/trl_dapo_accumulation_normalization",
@@ -12313,6 +12334,512 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 649000,
     "steps": 51,
     "costUsd": 4.7541
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "gpt6astra-zero-width",
+    "file": "agent-trace/gpt6astra-zero-width.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 92000,
+    "steps": 17,
+    "costUsd": null
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "gpt61sol-zero-width",
+    "file": "agent-trace/gpt61sol-zero-width.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.866667,
+    "durationMs": 93000,
+    "steps": 15,
+    "costUsd": null
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "fable51-zero-width",
+    "file": "agent-trace/fable51-zero-width.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 9000,
+    "steps": 3,
+    "costUsd": 0.1808
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "glm53-zero-width",
+    "file": "agent-trace/glm53-zero-width.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1436000,
+    "steps": 62,
+    "costUsd": 11.8759
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "kimi-zero-width",
+    "file": "agent-trace/kimi-zero-width.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9334,
+    "durationMs": 420000,
+    "steps": 37,
+    "costUsd": 1.1787
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "kimi31-zero-width",
+    "file": "agent-trace/kimi31-zero-width.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1159000,
+    "steps": 46,
+    "costUsd": 15.7187
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "dsv4-zero-width",
+    "file": "agent-trace/dsv4-zero-width.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 3176000,
+    "steps": 50,
+    "costUsd": 7.031
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "qwen38-zero-width",
+    "file": "agent-trace/qwen38-zero-width.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 1152000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "grok47-zero-width",
+    "file": "agent-trace/grok47-zero-width.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 482000,
+    "steps": 91,
+    "costUsd": null
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "dsv41flash-zero-width",
+    "file": "agent-trace/dsv41flash-zero-width.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1454000,
+    "steps": 61,
+    "costUsd": 6.012
+  },
+  {
+    "task": "data/verl_zero_width_ground_truth",
+    "slug": "gemini4-zero-width",
+    "file": "agent-trace/gemini4-zero-width.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 826000,
+    "steps": 37,
+    "costUsd": 15.3919
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "gpt6astra-qat-plateau",
+    "file": "agent-trace/gpt6astra-qat-plateau.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.633333,
+    "durationMs": 115000,
+    "steps": 22,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "gpt61sol-qat-plateau",
+    "file": "agent-trace/gpt61sol-qat-plateau.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.933333,
+    "durationMs": 98000,
+    "steps": 18,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "fable51-qat-plateau",
+    "file": "agent-trace/fable51-qat-plateau.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 914000,
+    "steps": 63,
+    "costUsd": 5.695
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "glm53-qat-plateau",
+    "file": "agent-trace/glm53-qat-plateau.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.566667,
+    "durationMs": 915000,
+    "steps": 50,
+    "costUsd": 9.3317
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "kimi-qat-plateau",
+    "file": "agent-trace/kimi-qat-plateau.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 326000,
+    "steps": 22,
+    "costUsd": 0.8586
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "kimi31-qat-plateau",
+    "file": "agent-trace/kimi31-qat-plateau.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.566667,
+    "durationMs": 704000,
+    "steps": 25,
+    "costUsd": 7.1862
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "dsv4-qat-plateau",
+    "file": "agent-trace/dsv4-qat-plateau.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 3003000,
+    "steps": 51,
+    "costUsd": 6.2282
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "qwen38-qat-plateau",
+    "file": "agent-trace/qwen38-qat-plateau.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.633333,
+    "durationMs": 1150000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "grok47-qat-plateau",
+    "file": "agent-trace/grok47-qat-plateau.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.633333,
+    "durationMs": 755000,
+    "steps": 81,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "dsv41flash-qat-plateau",
+    "file": "agent-trace/dsv41flash-qat-plateau.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.633333,
+    "durationMs": 2424000,
+    "steps": 172,
+    "costUsd": 16.3104
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "gemini4-qat-plateau",
+    "file": "agent-trace/gemini4-qat-plateau.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1388000,
+    "steps": 33,
+    "costUsd": 13.5958
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "gpt6astra-qat-plateau-sol",
+    "file": "agent-trace/gpt6astra-qat-plateau-sol.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 277000,
+    "steps": 12,
+    "costUsd": null,
+    "sourceRunId": "20261125-195656",
+    "sessionId": "01a21292-3937-7e10-833d-613babad2e98",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "a4fae7a77d42d394f49c1d9da6014a8aaf4f4ea4313d4eca4f4fb7d94bdf1fda"
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "gpt61sol-qat-plateau-sol",
+    "file": "agent-trace/gpt61sol-qat-plateau-sol.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1745000,
+    "steps": 13,
+    "costUsd": null,
+    "sourceRunId": "20261125-200510",
+    "sessionId": "01a21299-dfc0-7d42-a5a7-b1deb75adbbe",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "668f0fda1eb75164b1bee1a6d9ff41d7664de78dc3baae6c369d30f56a95eb68"
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "fable51-qat-plateau-sol",
+    "file": "agent-trace/fable51-qat-plateau-sol.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 17000,
+    "steps": 3,
+    "costUsd": 0.3358,
+    "sourceRunId": "20261125-164402",
+    "sessionId": "8fb9c7b5-7996-4868-977c-30f468b77948",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "2c351a9589add79fe959466c1d8b73cb05b34ee5fc69d02d4d5aadd17dc1a808"
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "glm53-qat-plateau-sol",
+    "file": "agent-trace/glm53-qat-plateau-sol.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1132000,
+    "steps": 77,
+    "costUsd": 13.3266,
+    "sourceRunId": "20261125-162204",
+    "sessionId": "e6e00265-6e89-42b8-9018-db98b9cfbf31",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "ffafe3ef1bd45db72dcd974fa694be68bc828ff45a9c4cbdd14f47ad8bd8d8f6"
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "kimi-qat-plateau-sol",
+    "file": "agent-trace/kimi-qat-plateau-sol.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 8424000,
+    "steps": 58,
+    "costUsd": 3.1777,
+    "sourceRunId": "20261125-164739",
+    "sessionId": "3ab78c26-1651-4cab-8538-adbc66812c5b",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "b6c6adfe13e53fb398bf01266724bc4c0b61de875335d0f717985c160c35ac20"
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "kimi31-qat-plateau-sol",
+    "file": "agent-trace/kimi31-qat-plateau-sol.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 5002000,
+    "steps": 90,
+    "costUsd": 38.1998,
+    "sourceRunId": "20261125-191022",
+    "sessionId": "177d3c51-1839-4b47-9b43-f53e7285eb27",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "58643731f4e84a833c24e6de3ab07f4f3648c7efc9a9ec0cd6b2fedf1b02b662"
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "dsv4-qat-plateau-sol",
+    "file": "agent-trace/dsv4-qat-plateau-sol.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 5067000,
+    "steps": 171,
+    "costUsd": 13.5819,
+    "sourceRunId": "20261125-203528",
+    "sessionId": "ff696343-5217-4159-b520-4d5ee05624e4",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "ca83e3680f901bd2239d32018d9f64afbfa3e557e840cb363fa3b4a470e1453a"
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "qwen38-qat-plateau-sol",
+    "file": "agent-trace/qwen38-qat-plateau-sol.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1352000,
+    "steps": 2,
+    "costUsd": null,
+    "sourceRunId": "20261125-193245",
+    "sessionId": "recovered-from-stream",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "c3ca3004ef78cea5c21f36df971204791fbaf84e99420a97ebf3f170b7326606"
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "grok47-qat-plateau-sol",
+    "file": "agent-trace/grok47-qat-plateau-sol.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 645000,
+    "steps": 122,
+    "costUsd": null,
+    "sourceRunId": "20261125-203604",
+    "sessionId": "unknown",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "c3af835a5fc76d1a25f8608d0836224f15705d524401e3af7ee25a15f41b7469"
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "dsv41flash-qat-plateau-sol",
+    "file": "agent-trace/dsv41flash-qat-plateau-sol.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1233000,
+    "steps": 105,
+    "costUsd": 8.4591,
+    "sourceRunId": "20261125-220147",
+    "sessionId": "e80e42ec-380e-4877-8ec1-d879900f590c",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "b1c1892ce22daa100f122bf9a36feff97f6e8c6987543049beadd30eee667afa"
+  },
+  {
+    "task": "algorithm/qat_math_reward_plateau",
+    "slug": "gemini4-qat-plateau-sol",
+    "file": "agent-trace/gemini4-qat-plateau-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 9957000,
+    "steps": 146,
+    "costUsd": 28.4611,
+    "sourceRunId": "20261125-164402",
+    "sessionId": "63aa4f87-1d81-444f-b398-efe63f83aef8",
+    "scoringProtocol": "autorlbench-validation-first-20261031",
+    "traceSha256": "fcd13c27205ed654daebbc9beccbecc73bdeb38747656bb5ea41e56befbe8020"
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

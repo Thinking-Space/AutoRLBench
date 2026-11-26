@@ -1,0 +1,45 @@
+--- a/math_reward.py
++++ b/math_reward.py
+@@ -2,7 +2,11 @@
+ 
+ import json
+ 
+-from verl.utils.reward_score.math_dapo import compute_score as math_score
++from verl.utils.reward_score.math_dapo import (
++    compute_score as math_score,
++    last_boxed_only_string,
++    remove_boxed,
++)
+ 
+ 
+ def compute_score(data_source, solution_str, ground_truth, extra_info=None):
+@@ -15,4 +19,9 @@
+         result = math_score(solution_str, answer)
+         if result["acc"]:
+             return result
++    boxed = last_boxed_only_string(solution_str[-300:])
++    if boxed is not None:
++        prediction = remove_boxed(boxed)
++        if prediction in answers:
++            return {"score": 1.0, "acc": True, "pred": prediction}
+     return result
+--- a/run_math_rl.py
++++ b/run_math_rl.py
+@@ -50,7 +50,7 @@
+         overrides.append(f"{key}={changes[name]}" if name in changes else original)
+     rollout_dir = source["trainer.rollout_data_dir"].partition("=")[2]
+     return [
+-        *command[:4], *overrides, "+actor_rollout_ref.actor.use_rollout_log_probs=false",
++        *command[:4], *overrides, "+actor_rollout_ref.actor.use_rollout_log_probs=true",
+         f"custom_reward_function.path={json.dumps(str(reward_path))}",
+         "custom_reward_function.name=compute_score",
+         "trainer.rollout_dump.enable=true",
+@@ -75,7 +75,7 @@
+         "policy loss configuration": (
+             algorithm["rollout_correction"]["bypass_old_logprob_for_rollout"]
+             and not algorithm["rollout_correction"].get("use_pure_rollout_correction", False)
+-            and actor["use_rollout_log_probs"] is False
++            and actor["use_rollout_log_probs"] is True
+             and actor["policy_loss"]["loss_mode"] == "vanilla"
+         ),
+         "optimization batch and epochs": (

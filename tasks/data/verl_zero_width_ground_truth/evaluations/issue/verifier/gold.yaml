@@ -1,0 +1,13 @@
+category: data
+framework: verl
+task: verl_zero_width_ground_truth
+verdict: unhealthy
+root_cause:
+  - 4,679 of the 11,579 DAPO-Math-17k rows in data/pool_clean.jsonl (40% of that source, 11.1% of the training set) end with an invisible U+200B ZERO WIDTH SPACE; scripts/make_rl_data.py writes ground_truth through str.strip() which does not remove category-Cf characters, and scripts/math_reward.py's inspect_ai match_str(numeric=True) requires target.isnumeric(), which the trailing U+200B fails, so the string fallback never matches and every sample of the 20 affected DAPO prompts scores 0 even when the response is correct
+evidence_metrics:
+  - the U+200B-carrying gts group (160 samples across the five rollout dumps) scores exactly 0.000 while the clean DAPO prompts score 0.593; by source DAPO reads 0.340 and looks like an ordinary harder source next to POLARIS at 0.280
+  - 108 of the 160 zero-scored responses are correct once the character is removed from the target under the same scorer
+  - the five-step critic/score/mean runs 0.453 / 0.480 / 0.457 / 0.441 / 0.355 (mean 0.437) against 0.437 to 0.574 (mean 0.523) for the control that drops category-Cf characters
+fix:
+  must:
+    - drop format characters (or keep only numeric characters) when building the target in make_rl_data.py or when scoring it in math_reward.py; both repair locations are equally valid

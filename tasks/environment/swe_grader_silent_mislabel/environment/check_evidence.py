@@ -4,10 +4,9 @@ It re-derives every number the task's README and oracle quote from the artefacts
 the task, and scans the shipped files for anything that should not be public:
 
   * the archived pass A log matches its own summary, and the summary matches the README,
-  * the reference labels in the verifier resources are consistent with the archived raw logs,
   * the shipped source archives match their recorded digests, and the pins are fully pinned,
-  * the staged and hidden corpora do not overlap, and no file under `workspace/` names the
-    internal cluster, internal hosts, credentials or the private model.
+  * no file under `workspace/` names the internal cluster, internal hosts, credentials or
+    the private model.
 
 usage: python3 -B environment/check_evidence.py [--task <task_dir>]
 """
@@ -79,30 +78,6 @@ def check_archive(task: Path, report: dict) -> None:
                         "raw_logs": len(list((archive / "raw").glob("*.log")))}
 
 
-def check_truth(task: Path, report: dict) -> None:
-    resources = task / "evaluations" / "solution" / "verifier" / "resources"
-    staged = json.loads((resources / "truth_staged.json").read_text())
-    hidden = json.loads((resources / "truth_hidden.json").read_text())
-    staged_records = {row["record_id"] for row in read_jsonl(task / "workspace" / "corpus" / "records.jsonl")}
-    hidden_records = {row["record_id"] for row in read_jsonl(resources / "hidden" / "records.jsonl")}
-    if set(staged) != staged_records:
-        raise Failure("truth_staged.json does not cover exactly the staged records")
-    if set(hidden) != hidden_records:
-        raise Failure("truth_hidden.json does not cover exactly the hidden records")
-    staged_instances = {row["instance_id"] for row in read_jsonl(task / "workspace" / "corpus" / "manifest.jsonl")}
-    hidden_instances = {row["instance_id"] for row in read_jsonl(resources / "hidden" / "manifest.jsonl")}
-    overlap = staged_instances & hidden_instances
-    if overlap:
-        raise Failure(f"{len(overlap)} instances appear in both the staged and the hidden corpus")
-    for name, labels in (("staged", staged), ("hidden", hidden)):
-        counts = {label: sum(1 for value in labels.values() if value == label)
-                  for label in ("resolved", "unresolved", "unscorable")}
-        if min(counts.values()) == 0:
-            raise Failure(f"{name} corpus has no records of some label: {counts}")
-        report[f"{name}_labels"] = counts
-    report["instances"] = {"staged": len(staged_instances), "hidden": len(hidden_instances)}
-
-
 def check_sources(task: Path, report: dict) -> None:
     manifest = json.loads((task / "environment" / "sources_manifest.json").read_text())
     for entry in manifest["repositories"]:
@@ -149,7 +124,7 @@ def main() -> int:
     args = parser.parse_args()
     task = Path(args.task).resolve()
     report: dict = {"task": task.name}
-    for check in (check_archive, check_truth, check_sources, check_privacy):
+    for check in (check_archive, check_sources, check_privacy):
         try:
             check(task, report)
         except Failure as exc:

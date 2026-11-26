@@ -951,5 +951,46 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "The vendored TRL's reward_num_workers path concatenates thread-pool slices with as_completed, so scores come back in finish order and the trainer attaches them to the wrong completions.",
     "issue": "Qwen2.5-1.5B-Instruct is trained with TRL GRPO on GSM8K, and the answer checker for each completion runs in its own child process. The workspace's vendored TRL has a local reward_num_workers option that calls the reward function on slices of the batch from a thread pool. It concatenates the slices with concurrent.futures.as_completed, so the scores come back in the order the threads finish and the trainer attaches them to the wrong completions -- reward decays 0.066 to 0.001 while held-out accuracy falls 0.017 to 0.000 against a 0.75 control."
+  },
+  {
+    "id": "data/verl_zero_width_ground_truth",
+    "title": "An invisible character in one source's answers silently zeroes its GRPO rewards",
+    "family": "Data",
+    "domain": "Math",
+    "tags": [
+      "verl",
+      "grpo",
+      "math",
+      "unicode",
+      "mixed-source-data",
+      "partial-reward-loss",
+      "issue-only"
+    ],
+    "model": "Qwen/Qwen3-4B",
+    "dataset": "Integer-answer math pool from Skywork-OR1 (math), POLARIS-53K and DAPO-Math-17k (81,882 problems)",
+    "framework": "verl v0.8.0 / GRPO",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-24",
+    "license": "Apache-2.0",
+    "brief": "40 percent of the DAPO answers in the mixed-source pool end with an invisible U+200B that str.strip keeps and the numeric matcher rejects, so those prompts score zero even when the response ends with the right number -- the run looks like ordinary training with one somewhat harder source.",
+    "issue": "Training Qwen3-4B with verl GRPO on an 81,882-problem pool from Skywork-OR1, POLARIS-53K and DAPO-Math-17k: 4,679 of the 11,579 DAPO rows (40 percent, nothing marks which) store the answer with a trailing U+200B ZERO WIDTH SPACE written raw, so it renders as \"34\". make_rl_data.py applies str.strip(), which removes whitespace only and keeps the format character; math_reward.py scores with inspect_ai match_str(numeric=True), whose numeric path requires target.isnumeric() and the string fallback never equals, so every sample of an affected prompt scores 0 (11.1 percent of the training set). verl writes rollout dumps with ensure_ascii=False, so the gts fields look like plain integers. Mean reward 0.437 against 0.523 for a control dropping format characters; by source DAPO 0.340 looks like an ordinary harder source next to POLARIS 0.280, and only splitting by prompt separates 27 prompts at 0.593 from 20 prompts at exactly 0 whose responses are mostly correct (108 of 160 once the character is removed)."
+  },
+  {
+    "id": "algorithm/qat_math_reward_plateau",
+    "title": "Quantized rollouts in a math RL run",
+    "family": "Algorithm",
+    "domain": "Math",
+    "tags": [
+      "policy-gradient",
+      "quantized-rollout"
+    ],
+    "model": "Nemotron-Research-Reasoning-Qwen-1.5B",
+    "dataset": "Skywork-OR1 math, QAT 9073 processed training split",
+    "framework": "VeRL / REINFORCE++ with clipped policy loss",
+    "image": "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12",
+    "created": "2026-11-24",
+    "license": "CC-BY-NC-4.0",
+    "brief": "Held-out AIME24 rises 31/240 to 41/240 by step 8 and then stalls while training continues: the single-minibatch on-policy path substitutes its detached current score for the rollout score (ratio always one, clipping never fires), and the Minerva extractor rejects valid boxed answers, so 1,672 of 1,920 answers score invalid.",
+    "issue": "Training Nemotron-Research-Reasoning-Qwen-1.5B on Skywork-OR1 math with REINFORCE++ and K2/V3-quantized vLLM rollouts. AIME24 improves from 31/240 to 41/240 by step 8, then stays at 41/240 through step 30. During training the scorer marks 1,672 of 1,920 answers invalid, and three batches produce no policy gradient. Two defects compound: the recorded configuration (use_rollout_log_probs=false with one PPO minibatch and one epoch) enters upstream verl's native on_policy branch, where the batch score is replaced by the detached current score -- the ratio is always one and PPO clipping stays at zero across all 30 steps while 27 steps keep nonzero gradients; and the staged math_reward.py adapter routes through math_dapo's default Minerva extractor, which looks for an Answer: field and returns [INVALID] for correctly boxed answers (48 of 384 sampled responses are boxed-correct yet scored -1). The double repair reaches 59/240 in the author's ablation; either fix alone does not."
   }
 ];

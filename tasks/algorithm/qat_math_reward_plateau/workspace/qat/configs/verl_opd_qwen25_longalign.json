@@ -1,0 +1,84 @@
+{
+  "name": "qwen25-7b-instruct_longalign10k_opd",
+  "model_id": "Qwen/Qwen2.5-7B-Instruct-1M",
+  "model_path": "/historical/shared/qat/models/base/qwen2.5-7b-instruct-1m",
+  "dataset_id": "zai-org/LongAlign-10k",
+  "dataset_revision": "12f17c4baff1001f0d44c4f8feab09ee2ee8c6dc",
+  "dataset_split": "train",
+  "data": {
+    "prompt_field": "messages",
+    "reference_field": "messages[-1]",
+    "length_field": "length",
+    "online_prompt_only": true,
+    "keep_reference_for_eval": true,
+    "max_prompt_tokens": 12288,
+    "max_response_tokens": 4096,
+    "max_context_tokens": 16384,
+    "truncate_policy": "head_tail_prompt"
+  },
+  "quantization": {
+    "weights": "bf16",
+    "activations": "bf16",
+    "kv_bits": 4,
+    "kv_bits_sweep": [4, 2],
+    "axis": "token",
+    "group_size": null,
+    "symmetric": true,
+    "dynamic": true,
+    "preserve_projection_bias": true,
+    "exact_bias_free_recompute": false,
+    "hf_bias_preservation_mode": "post_forward_approximate",
+    "exact_bias_free_env": "QAT_KV_EXACT_BIAS_FREE",
+    "bias_policy": "legacy profile: quantize projection residual and add learned k/v bias at projection output dtype; HF post-forward seam is approximate",
+    "storage": "fake_dequant",
+    "quantize_before_rope": true,
+    "cache_replay_required": true,
+    "packed_kernel": false
+  },
+  "training": {
+    "max_context_tokens": 16384,
+    "train_batch_size": 256,
+    "world_size": 8,
+    "micro_batch_size_per_gpu": 1,
+    "gradient_accumulation_steps": 32,
+    "num_train_epochs": 1,
+    "max_optimizer_updates": 150,
+    "learning_rate": 1e-06,
+    "weight_decay": 0.0,
+    "warmup_steps": 5,
+    "rollout_temperature": 1.0,
+    "teacher_temperature": 1.0,
+    "rollout_samples_per_prompt": 1,
+    "loss_reduction": "token_mean",
+    "gradient_checkpointing": false,
+    "replay_chunk_tokens": 256,
+    "seed": 42
+  },
+  "budget_gate": {
+    "benchmark_updates": 20,
+    "target_wall_hours": 36,
+    "hard_deadline_hours": 48,
+    "aime_checkpoints": [50, 100, 150],
+    "aime_smoke_questions": 30,
+    "aime_samples_per_question": 4
+  },
+  "verl": {
+    "rollout_engine": "hf_eager",
+    "teacher_placement": "same_worker",
+    "data_proto_fields": [
+      "prompt_ids",
+      "prompt_mask",
+      "responses",
+      "response_mask",
+      "example_id"
+    ],
+    "do_not_transfer": ["past_key_values", "autograd_graph"]
+  },
+  "notes": [
+    "LongAlign-10k has 9888 conversations with one user and one reference assistant message; online OPD uses only the user prefix.",
+    "The 1M-capable model is intentionally capped at 16K total context (12288 prompt + 4096 response).",
+    "The 256 value is trajectories per optimizer update (8 x 1 x 32), not one 256-sequence forward.",
+    "The adapter fallback is no-cache; cache_replay_required requires a model-specific replay_fn.",
+    "This config follows the current QAT fake/dequant KV semantics and is not a packed deployment format."
+  ]
+}
