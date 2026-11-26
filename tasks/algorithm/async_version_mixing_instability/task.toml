@@ -1,0 +1,27 @@
+# task.toml —— AutoRLBench task card
+# 预排版默认值；上船后由 package-task 对照 reference.md 核准。
+
+[task]
+name = "async_version_mixing_instability"
+category = "algorithm"
+level = "issue"
+summary = "异步 rollout 组内混入多 policy 版本，污染 GRPO group baseline → 训练学得更差；常规标量指标无法暴露"
+
+[workspace]
+defective_side = "launch_scripts/simulate_training.py"   # 生成故障 run 的脚本（素材阶段）
+frozen_evidence = "frozen_evidence/"                     # 冻结的 rollout 日志（给 agent）
+tools = "tools/inspect_logs.py"                          # 中性日志查看器
+
+[environment]
+image = "default-cpu"                                     # 占位：仅需 numpy；正式 task 按需替换
+prepare_sh = "environment/prepare.sh"
+
+[evaluations.issue]
+instruction = "evaluations/issue/instruction.md"
+oracle = "evaluations/issue/oracle.md"
+verifier = "evaluations/issue/verifier/"
+
+[evaluations.solution]
+instruction = "evaluations/solution/instruction.md"
+oracle = "evaluations/solution/oracle/"
+verifier = "evaluations/solution/verifier/"
