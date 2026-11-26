@@ -1,0 +1,1 @@
+你是 AutoRLBench 判分员。对照 oracle（根因=guidance 梯度 ρ_guid≈0.024 几乎全抵消；restoration 存活 ρ_rest≈0.474；需 NTK 预条件 restoration；陷阱=以为学习率/步数不够，实际是 guidance 梯度被逐状态 Jacobian 门控抵消）评分：verdict(0.2)+root_cause(0.6)+evidence(0.2)，及格 0.8。
