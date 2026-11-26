@@ -1185,6 +1185,16 @@
  * prior results, dimension scores, reasons, and provenance are in
  * issue-rejudgments-taco-difficulty.json. Solution/agent traces are unchanged.
  * AUTORLBENCH_TRACE_TASKS covers tasks not yet in task-data.js.
+ * The Grok-4.7 and Qwen3.8-Max cost fields were filled in on 26 Nov 2026 for
+ * the runs whose traces report token usage (38 and 39 runs respectively; the
+ * grok-build and qwen-code harnesses report tokens but not dollar cost, and
+ * reported nothing in the earlier harbor rounds -- those runs keep costUsd
+ * null). Values are estimated from the reported token totals at official list
+ * prices: Qwen3.8-Max $2 input / $0.25 cache-hit / $6 output per M tokens
+ * (exactly reproducing the one harness-recorded Qwen cost, $0.9666 on
+ * qwen38-taco); Grok-4.7 $2 input / $6 output per M tokens, cache usage not
+ * reported so all input is priced at the non-cached rate. Estimated rows
+ * carry costSource "estimated-from-token-usage".
  */
 window.AUTORLBENCH_RUNS = [
   {
@@ -1256,7 +1266,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.66,
     "durationMs": 837067,
     "steps": 22,
-    "costUsd": null
+    "costUsd": 0.5719,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "reward/slime_retool_length_reward_bonus",
@@ -1466,7 +1477,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.26,
     "durationMs": 2211000,
     "steps": 39,
-    "costUsd": null
+    "costUsd": 1.724,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/verl_moe_token_normalization",
@@ -2215,7 +2227,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.21,
     "durationMs": 3636491,
     "steps": 46,
-    "costUsd": null
+    "costUsd": 1.9663,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/qwen3vl_geo3k",
@@ -2229,7 +2242,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.2,
     "durationMs": 2750632,
     "steps": 45,
-    "costUsd": null
+    "costUsd": 1.6773,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -2243,7 +2257,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.3,
     "durationMs": 1486225,
     "steps": 28,
-    "costUsd": null,
+    "costUsd": 0.7822,
+    "costSource": "estimated-from-token-usage",
     "rootCauseScore": 0.0,
     "evidenceScore": 0.5,
     "verdictScore": 1.0,
@@ -2263,7 +2278,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.2,
     "durationMs": 2021417,
     "steps": 25,
-    "costUsd": null,
+    "costUsd": 0.8858,
+    "costSource": "estimated-from-token-usage",
     "rootCauseScore": 0.0,
     "evidenceScore": 0.0,
     "verdictScore": 1.0,
@@ -2447,7 +2463,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 1911062,
     "steps": 48,
-    "costUsd": null,
+    "costUsd": 1.8383,
+    "costSource": "estimated-from-token-usage",
     "sourceRunId": "autorlbench-20261030-034607-1440f9c3",
     "sessionId": "549f6d4d-f056-433f-9efb-84c0dc66aa3b",
     "scoringProtocol": "autorlbench-validation-first-20261031",
@@ -2619,7 +2636,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.996,
     "durationMs": 1016079,
     "steps": 25,
-    "costUsd": null
+    "costUsd": 0.6251,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/verl_grpo_advantage_broadcast",
@@ -2837,7 +2855,9 @@ window.AUTORLBENCH_RUNS = [
     "rejudgedAt": "2026-11-23",
     "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.065217）；新增功能验收为附加条件，本次保持失败。"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.065217）；新增功能验收为附加条件，本次保持失败。",
+    "costUsd": 2.7505,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/miles_async_rollout_inflight_not_evicted",
@@ -2979,7 +2999,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.35,
     "durationMs": 2268947,
     "steps": 38,
-    "costUsd": null
+    "costUsd": 1.2551,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/trl_dapo_accumulation_normalization",
@@ -3139,7 +3160,8 @@ window.AUTORLBENCH_RUNS = [
     "rejudgmentSource": "page/issue-rejudgments-dapo.json",
     "durationMs": 1713595,
     "steps": 33,
-    "costUsd": null
+    "costUsd": 1.2441,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
@@ -3281,7 +3303,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.98,
     "durationMs": 1707675,
     "steps": 42,
-    "costUsd": null,
+    "costUsd": 1.1124,
+    "costSource": "estimated-from-token-usage",
     "auditReason": "【2026-11-25 evidence 等价性重判】root cause 完整（mini_batch=4 × rollout.n=8 → 32 逐步偏离策略的更新，ray_trainer.py:1327-1328 验证）；held-out 分解（boxed 发射率 94.4%→58.3% 但条件精度 .4104→.6255=真实提升+21.5pt）为等价证据。gold 的 4 条 evidence 全部含 \"vs control\"——对照组数据为 oracle 私有（修复版 recipe 的运行结果，agent 不可复算），按不可复算条款全部豁免。",
     "rejudgedAt": "2026-11-25"
   },
@@ -3443,7 +3466,8 @@ window.AUTORLBENCH_RUNS = [
     "rejudgmentSource": "page/issue-rejudgments-pissa.json",
     "durationMs": 1480848,
     "steps": 23,
-    "costUsd": null
+    "costUsd": 0.6649,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/qwen3vl_geo3k",
@@ -3622,7 +3646,9 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261103-010139-69e93645",
     "sessionId": "4015bae9-fd54-4656-9a36-98a2f17f3569",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "9bd3f62b2c465ceb57897a1616732525235e7693ffe55d8380cad3e3521ac25b"
+    "traceSha256": "9bd3f62b2c465ceb57897a1616732525235e7693ffe55d8380cad3e3521ac25b",
+    "costUsd": 3.6368,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/verl_policy_loss_padded_mask_only",
@@ -3890,7 +3916,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.55,
     "durationMs": 1573749,
     "steps": 35,
-    "costUsd": null
+    "costUsd": 1.2668,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/verl_policy_loss_padded_unmasked",
@@ -3904,7 +3931,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.54,
     "durationMs": 1186582,
     "steps": 26,
-    "costUsd": null
+    "costUsd": 0.6954,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/verl_pissa_vllm_adapter_request",
@@ -4082,7 +4110,9 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261105-053909-04f15f8b",
     "sessionId": "5e178eac-cdf2-4b69-9125-660ced66f319",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "c8ee54827a4cd9e360c2bd2a0dd765024b84997e71513becd5cce8947f86ff37"
+    "traceSha256": "c8ee54827a4cd9e360c2bd2a0dd765024b84997e71513becd5cce8947f86ff37",
+    "costUsd": 1.867,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/verl_reinforcepp_observation_credit",
@@ -4222,7 +4252,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.333333,
     "durationMs": 1813369,
     "steps": 31,
-    "costUsd": null
+    "costUsd": 1.0825,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/trl_tool_history_cross_contamination",
@@ -4348,7 +4379,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.266667,
     "durationMs": 2000487,
     "steps": 27,
-    "costUsd": null
+    "costUsd": 1.0147,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/trl_tool_history_cross_contamination",
@@ -4488,7 +4520,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.2,
     "durationMs": 1272791,
     "steps": 20,
-    "costUsd": null
+    "costUsd": 0.4484,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_grpo_rollout_top_p_off_policy",
@@ -4614,7 +4647,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.3,
     "durationMs": 1742893,
     "steps": 29,
-    "costUsd": null
+    "costUsd": 0.8197,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_grpo_rollout_top_p_off_policy",
@@ -4775,7 +4809,9 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261107-034605-1e60a05d",
     "sessionId": "e75a096a-84a1-4ccb-ba30-9cd5a8fc832a",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "58331acc74b8c601bf1040119d582dbbfc977428ab691fc64fc46b604dda9ebb"
+    "traceSha256": "58331acc74b8c601bf1040119d582dbbfc977428ab691fc64fc46b604dda9ebb",
+    "costUsd": 0.9542,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_grpo_rollout_top_p_off_policy",
@@ -4953,7 +4989,9 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261107-080843-2d4e1384",
     "sessionId": "e9e5b683-74f7-4ec3-a55f-8c204f6e8490",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "247985ca5fd38118d5268f149959ec684b8c29c3a22ceff7bba15a7631353ccf"
+    "traceSha256": "247985ca5fd38118d5268f149959ec684b8c29c3a22ceff7bba15a7631353ccf",
+    "costUsd": 1.1424,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_grpo_adamw_eps_too_large",
@@ -5159,7 +5197,9 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261107-221040-3b0ffcc3",
     "sessionId": "2bb4869f-99c7-4be3-867e-882980c57972",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "de9c85a56fea012d7ba77748ffa528b862ad83dfc3d4a820bfceeb88af32abd2"
+    "traceSha256": "de9c85a56fea012d7ba77748ffa528b862ad83dfc3d4a820bfceeb88af32abd2",
+    "costUsd": 1.236,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/verl_lora_merge_base_weight_sync",
@@ -5337,7 +5377,9 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261107-124348-2bec24cc",
     "sessionId": "21c341e0-ec63-49d6-b921-8a80215ceb72",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "febef6eb135e0538750c8bde751daf81e1cc921fba58b3a0a85293bffc87fd8c"
+    "traceSha256": "febef6eb135e0538750c8bde751daf81e1cc921fba58b3a0a85293bffc87fd8c",
+    "costUsd": 1.9951,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_grpo_ppo_mini_batch_too_small",
@@ -5515,7 +5557,9 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261109-030330-0d3e289d",
     "sessionId": "f0661eaf-7473-445f-aeab-d17eeceb91ac",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "3bbbe73cbfb785680aa2f8f7dd08a0d483c6526080cb4fb625a827302bd7ea57"
+    "traceSha256": "3bbbe73cbfb785680aa2f8f7dd08a0d483c6526080cb4fb625a827302bd7ea57",
+    "costUsd": 1.3509,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "reward/slime_retool_length_reward_bonus",
@@ -5729,7 +5773,9 @@ window.AUTORLBENCH_RUNS = [
     "rejudgedAt": "2026-11-23",
     "reviewStatus": "confirmed_pass",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。"
+    "auditReason": "最终代码通过两轮检索的正文传递、最终 loss mask 和奖励含义检查；原 step-99 指标仍是二值准确率，保留通过。",
+    "costUsd": 2.6897,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "reward/slime_search_r1_nomask",
@@ -5928,7 +5974,9 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261109-120907-5b04b656",
     "sessionId": "09dbaf18-5933-452d-9808-180d96aba83d",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "0f4d85ef626dba0e244c59e4640c6f3f6800e81d84619b8c25ee5b16c1402a8d"
+    "traceSha256": "0f4d85ef626dba0e244c59e4640c6f3f6800e81d84619b8c25ee5b16c1402a8d",
+    "costUsd": 1.909,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/trl_dapo_accumulation_normalization",
@@ -6089,7 +6137,9 @@ window.AUTORLBENCH_RUNS = [
     "sourceRunId": "20261109-222521-79b8d83b",
     "sessionId": "effde531-9133-4b67-aa95-79d5ab9bfeab",
     "scoringProtocol": "autorlbench-validation-first-20261031",
-    "traceSha256": "d9fb8314311427740c672b97b6f8d21d8107cd7bcb02ac9b052a6ff29d198591"
+    "traceSha256": "d9fb8314311427740c672b97b6f8d21d8107cd7bcb02ac9b052a6ff29d198591",
+    "costUsd": 5.7142,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/trl_dapo_accumulation_normalization",
@@ -6232,7 +6282,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.7,
     "durationMs": 2581530,
     "steps": 25,
-    "costUsd": null
+    "costUsd": 0.6756,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "data/qwen25_gsm8k_grpo",
@@ -6380,7 +6431,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.26666,
     "durationMs": 2052722,
     "steps": 27,
-    "costUsd": null,
+    "costUsd": 0.9179,
+    "costSource": "estimated-from-token-usage",
     "rejudgmentSource": "issue-rejudgments.json"
   },
   {
@@ -6746,7 +6798,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.7,
     "durationMs": 1361982,
     "steps": 34,
-    "costUsd": null,
+    "costUsd": 1.2601,
+    "costSource": "estimated-from-token-usage",
     "rootCauseScore": 0.5,
     "evidenceScore": 1.0,
     "verdictScore": 1.0,
@@ -6773,7 +6826,9 @@ window.AUTORLBENCH_RUNS = [
     "rejudgedAt": "2026-11-23",
     "reviewStatus": "retained_failure",
     "rejudgmentSource": "rejudgments/2026-11-23-three-tasks.json",
-    "auditReason": "原重放评分未达原验收条件（记录值 0.620170）；新增功能验收为附加条件，本次保持失败。"
+    "auditReason": "原重放评分未达原验收条件（记录值 0.620170）；新增功能验收为附加条件，本次保持失败。",
+    "costUsd": 3.5329,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/areal_icepop_mask_window_too_narrow",
@@ -6942,7 +6997,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 1509691,
     "steps": 25,
-    "costUsd": null,
+    "costUsd": 0.9319,
+    "costSource": "estimated-from-token-usage",
     "auditReason": "【2026-11-24 evidence 等价性重判】float32 机制逐句闭合：1.0-1e-8==1.0、log_p==0.0 → 0·log(0)=NaN、NaN 未过 metric<=upper 被掩码、真实转储上 94-99.9% 过滤由 NaN 引起（gold：99.8% 掩码 token 概率恰为 1.0）；另给 Bernoulli 盲区结构性洞察。原判要求固定 mask fraction/GSM8K 数字。",
     "rejudgedAt": "2026-11-24"
   },
@@ -7100,7 +7156,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.314286,
     "durationMs": 159000,
     "steps": 53,
-    "costUsd": null
+    "costUsd": 0.2801,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "reward/slime_judge_router_admission_starvation",
@@ -7244,7 +7301,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.466667,
     "durationMs": 178000,
     "steps": 59,
-    "costUsd": null
+    "costUsd": 0.4997,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/areal_disk_weight_update_on_sglang",
@@ -7393,7 +7451,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.275,
     "durationMs": 1361000,
     "steps": 144,
-    "costUsd": null
+    "costUsd": 1.4606,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/trl_granite_gsm8k_grpo",
@@ -7533,7 +7592,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.03334,
     "durationMs": 608000,
     "steps": 75,
-    "costUsd": null
+    "costUsd": 0.3067,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -7835,7 +7895,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.15,
     "durationMs": 782000,
     "steps": 60,
-    "costUsd": null
+    "costUsd": 0.5458,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/verl_fsdp_bf16_master_weights",
@@ -7849,7 +7910,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 1428000,
     "steps": 170,
-    "costUsd": null,
+    "costUsd": 0.5467,
+    "costSource": "estimated-from-token-usage",
     "sourceRunId": "20261116-193603",
     "sessionId": "unknown",
     "scoringProtocol": "autorlbench-validation-first-20261031",
@@ -8013,7 +8075,8 @@ window.AUTORLBENCH_RUNS = [
     "rejudgmentSource": "page/issue-rejudgments-sandbox-admission.json",
     "durationMs": 1013000,
     "steps": 97,
-    "costUsd": null
+    "costUsd": 0.7237,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "environment/sandbox_admission_starvation",
@@ -8189,7 +8252,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 1609000,
     "steps": 130,
-    "costUsd": null,
+    "costUsd": 0.5456,
+    "costSource": "estimated-from-token-usage",
     "sourceRunId": "20261117-045013",
     "sessionId": "unknown",
     "scoringProtocol": "autorlbench-validation-first-20261031",
@@ -8333,7 +8397,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.35,
     "durationMs": 1083000,
     "steps": 105,
-    "costUsd": null
+    "costUsd": 0.7467,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/areal_kpop_binary_kl_fp32_nan_mask",
@@ -8878,7 +8943,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.35,
     "durationMs": 860000,
     "steps": 81,
-    "costUsd": null
+    "costUsd": 0.5681,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/verl_fsdp_microbatch_grad_reset",
@@ -9060,7 +9126,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.55,
     "durationMs": 777000,
     "steps": 136,
-    "costUsd": null
+    "costUsd": 0.4337,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "environment/miles_miniswe_format_error_retry_fanout",
@@ -9208,7 +9275,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 903000,
     "steps": 125,
-    "costUsd": null,
+    "costUsd": 0.5784,
+    "costSource": "estimated-from-token-usage",
     "rejudgmentSource": "issue-rejudgments.json"
   },
   {
@@ -9641,7 +9709,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 1034000,
     "steps": 146,
-    "costUsd": null
+    "costUsd": 0.6813,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/tokenizer-vocab-support",
@@ -9816,7 +9885,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 807000,
     "steps": 245,
-    "costUsd": null,
+    "costUsd": 0.7001,
+    "costSource": "estimated-from-token-usage",
     "sourceRunId": "20261119-173612",
     "sessionId": "unknown",
     "scoringProtocol": "autorlbench-validation-first-20261031",
@@ -9967,7 +10037,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.325,
     "durationMs": 1672000,
     "steps": 95,
-    "costUsd": null
+    "costUsd": 0.3325,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/padding-attention-mask",
@@ -10110,7 +10181,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.3,
     "durationMs": 595000,
     "steps": 138,
-    "costUsd": null
+    "costUsd": 0.6658,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "reward/miles_judge_thinking_strip_failure",
@@ -10301,7 +10373,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 321000,
     "steps": 47,
-    "costUsd": null,
+    "costUsd": 0.3951,
+    "costSource": "estimated-from-token-usage",
     "rootCauseScore": 1.0,
     "evidenceScore": 1.0,
     "verdictScore": 1.0,
@@ -10485,7 +10558,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 1328000,
     "steps": 75,
-    "costUsd": null,
+    "costUsd": 0.5453,
+    "costSource": "estimated-from-token-usage",
     "sourceRunId": "20261120-042933",
     "sessionId": "unknown",
     "scoringProtocol": "autorlbench-validation-first-20261031",
@@ -10665,7 +10739,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 14446000,
     "steps": 206,
-    "costUsd": null,
+    "costUsd": 0.7877,
+    "costSource": "estimated-from-token-usage",
     "sourceRunId": "20261119-193011",
     "sessionId": "unknown",
     "scoringProtocol": "autorlbench-validation-first-20261031",
@@ -10813,7 +10888,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.32,
     "durationMs": 1667000,
     "steps": 134,
-    "costUsd": null
+    "costUsd": 0.7709,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/verl_old_log_prob_from_reference",
@@ -10959,7 +11035,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 363000,
     "steps": 121,
-    "costUsd": null,
+    "costUsd": 0.9195,
+    "costSource": "estimated-from-token-usage",
     "evidenceScore": 1.0,
     "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：112/196/731/16384/clip/25966 对照/rule-outs 全给；omitted 全为 535、0/64、四参数清单等数字复述。",
     "rejudgedAt": "2026-11-24"
@@ -11065,7 +11142,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 5963000,
     "steps": 191,
-    "costUsd": null,
+    "costUsd": 0.996,
+    "costSource": "estimated-from-token-usage",
     "sourceRunId": "20261119-222950",
     "sessionId": "unknown",
     "scoringProtocol": "autorlbench-validation-first-20261031",
@@ -11324,7 +11402,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.3,
     "durationMs": 544000,
     "steps": 126,
-    "costUsd": null
+    "costUsd": 0.9624,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/miles_cp_collective_desync_deadlock",
@@ -11464,7 +11543,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.5733,
     "durationMs": 438000,
     "steps": 94,
-    "costUsd": null
+    "costUsd": 0.9585,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "reward/verl_inventory_agent_compound",
@@ -11652,7 +11732,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.5,
     "durationMs": 603000,
     "steps": 148,
-    "costUsd": null,
+    "costUsd": 0.4042,
+    "costSource": "estimated-from-token-usage",
     "rootCauseScore": 0,
     "evidenceScore": 0.5,
     "verdictScore": 1.0,
@@ -11804,7 +11885,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.1429,
     "durationMs": 234000,
     "steps": 57,
-    "costUsd": null
+    "costUsd": 0.3486,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
@@ -11952,7 +12034,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 1527000,
     "steps": 277,
-    "costUsd": null,
+    "costUsd": 0.7963,
+    "costSource": "estimated-from-token-usage",
     "sourceRunId": "20261122-131435"
   },
   {
@@ -12094,7 +12177,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.3333,
     "durationMs": 905000,
     "steps": 141,
-    "costUsd": null
+    "costUsd": 0.8344,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/verl_grpo_grouped_whiten_order",
@@ -12242,7 +12326,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 431000,
     "steps": 98,
-    "costUsd": null,
+    "costUsd": 0.5243,
+    "costSource": "estimated-from-token-usage",
     "sourceRunId": "20261122-120319"
   },
   {
@@ -12387,7 +12472,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 330000,
     "steps": 73,
-    "costUsd": null,
+    "costUsd": 0.6809,
+    "costSource": "estimated-from-token-usage",
     "evidenceScore": 1.0,
     "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：held-out 1.67%→0/1319、#### 率归零、32/33 正确样本错配、zero_std 上升、clean exit 全给；omitted 的 in-order 对照是 agent 不可达的私有重放，31/33 计数有 32/33 等价物。",
     "rejudgedAt": "2026-11-24"
@@ -12530,7 +12616,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 482000,
     "steps": 91,
-    "costUsd": null
+    "costUsd": 0.3855,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "data/verl_zero_width_ground_truth",
@@ -12684,7 +12771,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.633333,
     "durationMs": 755000,
     "steps": 81,
-    "costUsd": null
+    "costUsd": 0.4391,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/qat_math_reward_plateau",
@@ -12870,7 +12958,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 645000,
     "steps": 122,
-    "costUsd": null,
+    "costUsd": 0.3452,
+    "costSource": "estimated-from-token-usage",
     "sourceRunId": "20261125-203604",
     "sessionId": "unknown",
     "scoringProtocol": "autorlbench-validation-first-20261031",
@@ -13036,7 +13125,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 1781000,
     "steps": 196,
-    "costUsd": null
+    "costUsd": 1.1995,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
@@ -13162,7 +13252,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.0,
     "durationMs": 1275000,
     "steps": 24,
-    "costUsd": null
+    "costUsd": 0.7218,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/grpo_response_boundary",
@@ -13176,7 +13267,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 1.0,
     "durationMs": 1854000,
     "steps": 204,
-    "costUsd": null
+    "costUsd": 0.8777,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "algorithm/grpo_response_boundary",
@@ -13302,7 +13394,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.05,
     "durationMs": 855000,
     "steps": 22,
-    "costUsd": null
+    "costUsd": 0.49,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_grpo_group_std_kl_in_reward",
@@ -13316,7 +13409,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.15,
     "durationMs": 923000,
     "steps": 80,
-    "costUsd": null
+    "costUsd": 0.4114,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_grpo_group_std_kl_in_reward",
@@ -13442,7 +13536,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.3,
     "durationMs": 985000,
     "steps": 31,
-    "costUsd": null
+    "costUsd": 0.8503,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_quantized_rollout_drift_collapse",
@@ -13456,7 +13551,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.3,
     "durationMs": 478000,
     "steps": 62,
-    "costUsd": null
+    "costUsd": 0.4003,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_quantized_rollout_drift_collapse",
@@ -13596,7 +13692,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.8,
     "durationMs": 683000,
     "steps": 18,
-    "costUsd": null
+    "costUsd": 0.4144,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_stale_weight_sync_drift_collapse",
@@ -13610,7 +13707,8 @@ window.AUTORLBENCH_RUNS = [
     "score": 0.7667,
     "durationMs": 165000,
     "steps": 52,
-    "costUsd": null
+    "costUsd": 0.8713,
+    "costSource": "estimated-from-token-usage"
   },
   {
     "task": "configuration/verl_stale_weight_sync_drift_collapse",
