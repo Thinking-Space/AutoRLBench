@@ -1,0 +1,1019 @@
+# Adapt from https://github.com/OpenRLHF/OpenRLHF/blob/10c733694ed9fbb78a0a2ff6a05efc7401584d46/openrlhf/models/utils.py
+# and https://github.com/OpenRLHF/OpenRLHF/blob/10c733694ed9fbb78a0a2ff6a05efc7401584d46/openrlhf/trainer/ppo_utils/experience_maker.py
+
+from argparse import Namespace
+from pathlib import Path
+
+import torch
+import torch.distributed as dist
+import torch.nn.functional as F
+
+from miles.backends.training_utils.parallel import get_parallel_state
+
+
+_TOP_LOGPROB_BWD_DUMP_COUNTER = 0
+
+
+def _maybe_dump_top_logprob_backward(name: str, tensor: torch.Tensor) -> None:
+    dump_dir = None
+    try:
+        import os
+
+        dump_dir = os.environ.get("MILES_LOGPROB_BACKWARD_DEBUG_DIR")
+    except Exception:
+        dump_dir = None
+    if not dump_dir or not tensor.requires_grad:
+        return
+
+    def hook(grad: torch.Tensor) -> torch.Tensor:
+        global _TOP_LOGPROB_BWD_DUMP_COUNTER
+        rank = dist.get_rank() if dist.is_available() and dist.is_initialized() else 0
+        stats = {
+            "rank": rank,
+            "name": name,
+            "shape": tuple(grad.shape),
+            "dtype": str(grad.dtype),
+            "numel": grad.numel(),
+            "finite": torch.isfinite(grad).sum().item(),
+            "nan": torch.isnan(grad).sum().item(),
+            "inf": torch.isinf(grad).sum().item(),
+        }
+        finite = grad[torch.isfinite(grad)]
+        if finite.numel() > 0:
+            finite_f = finite.float()
+            stats.update(
+                {
+                    "max_abs_finite": finite_f.abs().max().item(),
+                    "min_finite": finite_f.min().item(),
+                    "max_finite": finite_f.max().item(),
+                }
+            )
+        else:
+            stats.update({"max_abs_finite": None, "min_finite": None, "max_finite": None})
+        counter = _TOP_LOGPROB_BWD_DUMP_COUNTER
+        _TOP_LOGPROB_BWD_DUMP_COUNTER += 1
+        path = Path(dump_dir) / f"rank_{rank}_{counter:05d}_{name}.pt"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save({"stats": stats, "grad": grad.detach().cpu()}, path)
+        print(f"[MILES_LOGPROB_BACKWARD_DEBUG] {stats} wrote {path}", flush=True)
+        return grad
+
+    tensor.register_hook(hook)
+
+
+@torch.compile(dynamic=True)
+def compute_approx_kl(
+    log_probs: torch.Tensor,
+    log_probs_base: torch.Tensor,
+    kl_loss_type: str,
+    importance_ratio: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """
+    Compute the approximate KL divergence between two distributions.
+    Schulman blog: http://joschu.net/blog/kl-approx.html
+
+    Args:
+        log_probs: Log probabilities of the new distribution.
+        log_probs_base: Log probabilities of the base distribution.
+        kl_loss_type: Type of KL estimator (k1, k2, k3, low_var_kl).
+        importance_ratio: Optional IS ratio (π_θ/π_old) for unbiased KL estimation.
+    """
+    log_ratio = log_probs.float() - log_probs_base.float()
+
+    if kl_loss_type == "k1":
+        kl = log_ratio
+    elif kl_loss_type == "k2":
+        kl = log_ratio**2 / 2.0
+    elif kl_loss_type in ["k3", "low_var_kl"]:
+        # The non negative kl approximation in
+        # http://joschu.net/blog/kl-approx.html
+        # Besides non negative, it is also unbiased and have lower variance.
+        log_ratio = -log_ratio
+        kl = log_ratio.exp() - 1 - log_ratio
+    else:
+        raise ValueError(f"Unknown kl_loss_type: {kl_loss_type}")
+
+    # Apply IS ratio for unbiased KL estimation (DeepSeek-V3.2)
+    if importance_ratio is not None:
+        kl = importance_ratio * kl
+
+    # Clamp only for low_var_kl for numerical stability
+    if kl_loss_type == "low_var_kl":
+        kl = torch.clamp(kl, min=-10, max=10)
+
+    return kl
+
+
+def compute_opsm_mask(
+    args: Namespace,
+    full_log_probs: list[torch.Tensor],
+    full_old_log_probs: list[torch.Tensor],
+    advantages: list[torch.Tensor],
+    loss_masks: list[torch.Tensor],
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Compute Off-Policy Sequence Masking (OPSM) mask.
+
+    Args:
+        args: Configuration containing `opsm_delta` threshold.
+        full_log_probs: Current policy log-probs per sample.
+        full_old_log_probs: Old policy log-probs per sample.
+        advantages: Advantage values per sample.
+        loss_masks: Loss masks per sample.
+
+    Returns:
+        Tuple of `(opsm_mask, opsm_clipfrac)` where `opsm_mask` is a
+        concatenated tensor of per-token masks and
+        `opsm_clipfrac` is the count of masked sequences.
+    """
+    opsm_mask_list = []
+    device = advantages[0].device
+    opsm_clipfrac = torch.tensor(0.0, device=device)
+
+    for full_log_prob, full_old_log_prob, advantage, loss_mask in zip(
+        full_log_probs, full_old_log_probs, advantages, loss_masks, strict=False
+    ):
+        # Calculate sequence-level KL
+        seq_kl = ((full_old_log_prob - full_log_prob) * loss_mask).sum() / torch.clamp_min(loss_mask.sum(), 1)
+
+        # Create mask: 0 if (advantage < 0 and seq_kl > delta), else 1
+        mask = ((advantage < 0) & (seq_kl > args.opsm_delta)).float()
+        opsm_clipfrac += mask.sum() / torch.clamp_min(loss_mask.sum(), 1)
+
+        opsm_mask_list.append(1 - mask)
+
+    opsm_mask = torch.cat(opsm_mask_list, dim=0)
+    return opsm_mask, opsm_clipfrac
+
+
+def compute_gspo_kl(
+    full_log_probs: list[torch.Tensor],
+    full_old_log_probs: list[torch.Tensor],
+    local_log_probs: list[torch.Tensor],
+    loss_masks: list[torch.Tensor],
+) -> torch.Tensor:
+    """Compute GSPO-style per-sequence KL divergence.
+
+    Args:
+        full_log_probs: Current policy log-probs per sample (full or CP-local).
+        full_old_log_probs: Old policy log-probs per sample (full or CP-local).
+        local_log_probs: Local (CP-local) log-probs for expansion shape reference.
+        loss_masks: Loss masks per sample.
+
+    Returns:
+        Concatenated tensor of per-token KL values where each token in a
+        sequence has the same KL value (the sequence-level KL).
+    """
+    # Compute sequence-level KL and expand to per-token
+    ppo_kl = [
+        ((old_logprob - log_prob) * loss_mask).sum() / torch.clamp_min(loss_mask.sum(), 1)
+        for log_prob, old_logprob, loss_mask in zip(full_log_probs, full_old_log_probs, loss_masks, strict=False)
+    ]
+    ppo_kl = [kl.expand_as(log_prob) for kl, log_prob in zip(ppo_kl, local_log_probs, strict=False)]
+    ppo_kl = torch.cat(ppo_kl, dim=0)
+
+    return ppo_kl
+
+
+@torch.compile(dynamic=True)
+def compute_policy_loss(
+    ppo_kl: torch.Tensor,
+    advantages: torch.Tensor,
+    eps_clip: float,
+    eps_clip_high: float,
+    eps_clip_c: float | None = None,
+):
+    ratio = (-ppo_kl).exp()
+    pg_losses1 = -ratio * advantages
+    pg_losses2 = -ratio.clamp(1 - eps_clip, 1 + eps_clip_high) * advantages
+    clip_pg_losses1 = torch.maximum(pg_losses1, pg_losses2)
+    clipfrac = torch.gt(pg_losses2, pg_losses1).float()
+
+    if eps_clip_c is not None:
+        assert (
+            eps_clip_c > 1.0
+        ), f"The lower bound of the clip_ratio_c for dual-clip PPO should be greater than 1.0, but get the value: {eps_clip_c}."
+        pg_losses3 = -eps_clip_c * advantages
+        clip_pg_losses2 = torch.min(pg_losses3, clip_pg_losses1)
+        pg_losses = torch.where(advantages < 0, clip_pg_losses2, clip_pg_losses1)
+    else:
+        pg_losses = clip_pg_losses1
+
+    return pg_losses, clipfrac
+
+
+def compute_log_probs(
+    logits: torch.Tensor,
+    tokens: torch.Tensor,
+    process_group: dist.ProcessGroup | None,
+    *,
+    true_on_policy_mode: bool = False,
+    vocab_size: int | None = None,
+):
+    if true_on_policy_mode:
+        full_logits = _gather_true_on_policy_full_logits(logits, process_group, vocab_size=vocab_size)
+        log_probs = torch.log_softmax(full_logits, dim=-1)
+        return log_probs.gather(dim=-1, index=tokens.unsqueeze(-1)).squeeze(-1)
+
+    # TODO: when megatron is not installed, fall back to naive implementation
+    from megatron.core.fusions.fused_cross_entropy import fused_vocab_parallel_cross_entropy
+
+    # convert to [seq_len, batch_size, vocab_size] as expected by fused_vocab_parallel_cross_entropy
+    logits = logits.unsqueeze(1)
+    tokens = tokens.unsqueeze(1)
+    return -fused_vocab_parallel_cross_entropy(logits, tokens, process_group)
+
+
+def _prepare_true_on_policy_full_logits(
+    logits_or_shards: torch.Tensor | list[torch.Tensor] | tuple[torch.Tensor, ...],
+    *,
+    vocab_size: int | None = None,
+) -> torch.Tensor:
+    if isinstance(logits_or_shards, (list, tuple)):
+        full_logits = torch.cat([shard.contiguous() for shard in logits_or_shards], dim=-1)
+    else:
+        full_logits = logits_or_shards.contiguous()
+
+    if vocab_size is not None and full_logits.size(-1) > vocab_size:
+        full_logits = full_logits[..., :vocab_size]
+
+    return full_logits
+
+
+def _gather_true_on_policy_full_logits(
+    logits: torch.Tensor,
+    process_group: dist.ProcessGroup | None,
+    *,
+    vocab_size: int | None = None,
+) -> torch.Tensor:
+    if process_group is None:
+        return _prepare_true_on_policy_full_logits(logits, vocab_size=vocab_size)
+
+    tp_size = dist.get_world_size(process_group)
+    if tp_size <= 1:
+        return _prepare_true_on_policy_full_logits(logits, vocab_size=vocab_size)
+
+    full_logits = _ReplicatedLossAllGatherLastDim.apply(logits.contiguous(), process_group)
+    return _prepare_true_on_policy_full_logits(full_logits, vocab_size=vocab_size)
+
+
+def _split_replicated_loss_gather_grad(
+    grad_output: torch.Tensor,
+    *,
+    rank: int,
+    world_size: int,
+    local_last_dim: int,
+) -> torch.Tensor:
+    if world_size <= 1:
+        return grad_output.contiguous()
+
+    expected_last_dim = local_last_dim * world_size
+    if grad_output.size(-1) != expected_last_dim:
+        raise RuntimeError(
+            "True-on-policy replicated-loss gather backward expected the full padded "
+            f"vocab dimension to be {expected_last_dim}, got {grad_output.size(-1)}."
+        )
+
+    return torch.narrow(grad_output, dim=-1, start=rank * local_last_dim, length=local_last_dim).contiguous()
+
+
+class _ReplicatedLossAllGatherLastDim(torch.autograd.Function):
+    """All-gather vocab shards for a loss replicated on every TP rank.
+
+    Megatron's standard all-gather autograd uses reduce-scatter in backward,
+    which is correct when each rank contributes a distinct output gradient. In
+    the true-on-policy logprob path every TP rank computes the same scalar loss
+    from the gathered full vocabulary, so reduce-scatter would sum identical
+    gradients and scale the local logits gradient by TP size.
+    """
+
+    @staticmethod
+    def forward(ctx, input_: torch.Tensor, group: dist.ProcessGroup) -> torch.Tensor:
+        world_size = group.size()
+        ctx.group = group
+        ctx.local_last_dim = input_.shape[-1]
+        ctx.world_size = world_size
+
+        if world_size == 1:
+            return input_.contiguous()
+
+        from megatron.core.tensor_parallel.mappings import dist_all_gather_func
+
+        gather_shape = list(input_.shape)
+        gather_shape[0] *= world_size
+        gathered = torch.empty(gather_shape, dtype=input_.dtype, device=input_.device)
+        dist_all_gather_func(gathered, input_.contiguous(), group=group)
+        return torch.cat(gathered.chunk(world_size, dim=0), dim=-1).contiguous()
+
+    @staticmethod
+    def backward(ctx, grad_output: torch.Tensor):
+        return (
+            _split_replicated_loss_gather_grad(
+                grad_output,
+                rank=ctx.group.rank(),
+                world_size=ctx.world_size,
+                local_last_dim=ctx.local_last_dim,
+            ),
+            None,
+        )
+
+
+# from https://github.com/volcengine/verl/blob/0bdf7f469854815177e73dcfe9e420836c952e6e/verl/utils/megatron/tensor_parallel.py#L99
+class _VocabParallelEntropy(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, vocab_parallel_logits: torch.Tensor, process_group: dist.ProcessGroup) -> torch.Tensor:
+
+        @torch.compile(dynamic=True)
+        def mul_reduce(a, b):
+            return (a * b).sum(dim=-1, keepdim=True)
+
+        logits_max = vocab_parallel_logits.max(dim=-1, keepdim=True).values
+        dist.all_reduce(logits_max, op=dist.ReduceOp.MAX, group=process_group)
+        normalized_vocab_parallel_logits = vocab_parallel_logits - logits_max
+        normalized_exp_logits = normalized_vocab_parallel_logits.exp_()
+        normalized_sum_exp_logits = normalized_exp_logits.sum(dim=-1, keepdim=True)
+        dist.all_reduce(normalized_sum_exp_logits, group=process_group)
+        softmax_logits = normalized_exp_logits.div_(normalized_sum_exp_logits)
+        sum_softmax_times_logits = mul_reduce(softmax_logits, vocab_parallel_logits)
+        dist.all_reduce(sum_softmax_times_logits, group=process_group)
+        entropy = logits_max + normalized_sum_exp_logits.log() - sum_softmax_times_logits
+        ctx.save_for_backward(vocab_parallel_logits, softmax_logits, sum_softmax_times_logits)
+        return entropy.squeeze(dim=-1)
+
+    @staticmethod
+    def backward(ctx, grad_output: torch.Tensor) -> torch.Tensor:
+        vocab_parallel_logits, softmax_logits, sum_softmax_times_logits = ctx.saved_tensors
+        # Out-of-place ops: do NOT modify saved vocab_parallel_logits so the
+        # caller can safely reuse the same clone for both entropy and log_prob
+        # in calculate_log_probs_and_entropy.
+        workspace = vocab_parallel_logits - sum_softmax_times_logits
+        grad = softmax_logits * workspace * grad_output.unsqueeze(dim=-1) * (-1)
+        return grad, None
+
+
+def compute_entropy_from_logits(logits: torch.Tensor, process_group) -> torch.Tensor:
+    return _VocabParallelEntropy.apply(logits, process_group)
+
+
+def get_grpo_returns(
+    rewards: torch.Tensor,
+    kl: list[torch.Tensor],
+):
+    returns = []
+    for i in range(len(rewards)):
+        returns.append(torch.ones_like(kl[i]) * rewards[i])
+    return returns
+
+
+def get_reinforce_plus_plus_returns(
+    rewards: torch.Tensor,
+    kl: list[torch.Tensor],
+    loss_masks: list[torch.Tensor],
+    response_lengths: list[int],
+    total_lengths: list[int],
+    kl_coef: float,
+    gamma: float,
+) -> list[torch.Tensor]:
+    """
+    Calculates discounted returns for REINFORCE++ (https://arxiv.org/pdf/2501.03262)
+
+    Args:
+        rewards (Tensor): A tensor of scalar rewards for each sequence.
+        kl (List[Tensor]): List of per-token KL divergence tensors for sequence chunks.
+        loss_masks (List[Tensor]): List of response-only loss masks for each full sequence.
+        response_lengths (List[int]): The full length of each response sequence.
+        total_lengths (List[int]): The full length of each sequence (prompt + response).
+        kl_coef (float): Coefficient for the KL penalty.
+        gamma (float): The discount factor.
+
+    Returns:
+        List[torch.Tensor]: A list of return (G_t) tensors for the
+                            local sequence chunks owned by the current GPU rank.
+    """
+
+    cp_size = get_parallel_state().cp.size
+
+    final_returns_chunks = []
+    for i in range(len(rewards)):
+        local_kl_chunk = kl[i]
+        total_len, response_len = total_lengths[i], response_lengths[i]
+
+        if cp_size > 1:
+            # Step 1,2:Gather all chunks and token_offsets from all ranks and reconstruct the full response tensor by splitting and placing each part
+            from miles.backends.training_utils.cp_utils import all_gather_with_cp
+
+            full_kl_response = all_gather_with_cp(local_kl_chunk, total_len, response_len)
+        else:
+            full_kl_response = local_kl_chunk
+
+        # Step 3: Compute returns on full response kl tensor.
+        token_level_rewards = -kl_coef * full_kl_response
+        full_mask = loss_masks[i]
+        assert full_mask.sum().item() > 0, f"Sequence at index {i} is fully masked."
+        last_idx = full_mask.nonzero(as_tuple=True)[0][-1]
+        token_level_rewards[last_idx] += rewards[i]
+
+        returns_for_seq = torch.zeros_like(token_level_rewards)
+        running_return = 0.0
+        for t in reversed(range(token_level_rewards.size(0))):
+            # G_t = r_t + gamma * G_{t+1}
+            running_return = token_level_rewards[t] + gamma * running_return
+            returns_for_seq[t] = running_return
+
+        # Step 4: Pick up the results corresponding to our local chunk's parts.
+        if cp_size > 1:
+            from miles.backends.training_utils.cp_utils import slice_log_prob_with_cp
+
+            local_returns_chunk = slice_log_prob_with_cp(returns_for_seq, total_len, response_len)
+        else:
+            local_returns_chunk = returns_for_seq
+
+        final_returns_chunks.append(local_returns_chunk)
+
+    return final_returns_chunks
+
+
+def get_reinforce_plus_plus_baseline_advantages(
+    rewards: torch.Tensor,
+    kl: list[torch.Tensor],
+    loss_masks: list[torch.Tensor],
+    kl_coef: float,
+) -> list[torch.Tensor]:
+    """
+    Calculates the unwhitened advantages for the REINFORCE++-baseline algorithm.
+    Broadcasting the scalar (reward - group_baseline) to each token.
+
+    Args:
+        rewards (Tensor): A tensor of scalar rewards, where the group-wise
+                                baseline has already been subtracted.
+        kl (list[Tensor]): A list of per-token KL divergence tensors. Used to
+                                 get the shape for broadcasting.
+        loss_masks (list[Tensor]): A list of per-token loss masks.
+        kl_coef (float): Coefficient for the KL penalty.
+
+    Returns:
+        list[Tensor]: A list of tensors containing the unwhitened advantages.
+    """
+    # Broadcast to get unwhitened advantages
+    unwhitened_advantages = [
+        torch.ones_like(kl_tensor) * reward_val - kl_coef * kl_tensor
+        for kl_tensor, reward_val in zip(kl, rewards, strict=False)
+    ]
+
+    return unwhitened_advantages
+
+
+def get_advantages_and_returns(
+    total_len: int,
+    response_len: int,
+    values: torch.Tensor,
+    rewards: torch.Tensor,
+    gamma: float,
+    lambd: float,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Function that computes advantages and returns from rewards and values.
+    Calculated as in the original PPO paper: https://arxiv.org/abs/1707.06347
+    Note that rewards may include a KL divergence loss term.
+
+    Advantages looks like this:
+    Adv1 =  R1 + γ * λ * R2     + γ^2 * λ^2 * R3       + ...
+            - V1 + γ * (1 - λ) V2 + γ^2 * λ * (1 - λ) V3 + ...
+
+    Returns looks like this:
+    Ret1 =  R1 + γ * λ * R2     + γ^2 * λ^2 * R3       + ...
+                + γ * (1 - λ) V2 + γ^2 * λ * (1 - λ) V3 + ...
+
+    Input:
+    - values: Tensor of shape (response_size,)
+    - rewards: Tensor of shape (response_size,)
+
+    Output:
+    - advantages: Tensor of shape (response_size,)
+    - returns: Tensor of shape (response_size,)
+    """
+
+    cp_size = get_parallel_state().cp.size
+    if cp_size > 1:
+        from miles.backends.training_utils.cp_utils import all_gather_with_cp
+
+        full_rewards = all_gather_with_cp(rewards, total_len, response_len)
+        full_values = all_gather_with_cp(values, total_len, response_len)
+    else:
+        full_rewards = rewards
+        full_values = values
+
+    lastgaelam = 0
+    advantages_reversed = []
+
+    for t in reversed(range(response_len)):
+        nextvalues = full_values[t + 1] if t < response_len - 1 else 0.0
+        delta = full_rewards[t] + gamma * nextvalues - full_values[t]
+        lastgaelam = delta + gamma * lambd * lastgaelam
+        advantages_reversed.append(lastgaelam)
+    full_advantages = torch.tensor(advantages_reversed[::-1], dtype=full_values.dtype, device=full_values.device)
+    full_returns = full_advantages + full_values
+
+    if cp_size > 1:
+        from miles.backends.training_utils.cp_utils import slice_log_prob_with_cp
+
+        advantages = slice_log_prob_with_cp(full_advantages, total_len, response_len)
+        returns = slice_log_prob_with_cp(full_returns, total_len, response_len)
+    else:
+        advantages = full_advantages
+        returns = full_returns
+
+    return advantages.detach(), returns
+
+
+def compute_overlong_penalty(args, response_length: int) -> float:
+    """DAPO Soft Overlong Punishment length penalty for a single sample.
+
+    Returns 0 when the response is within the safe zone, and a value in
+    [-overlong_penalty_factor, 0) that decreases linearly once the response
+    length enters the buffer band ``[max_len - buffer_len, max_len]``.
+    Returns 0 when soft overlong punishment is disabled (buffer_len <= 0).
+    See https://arxiv.org/abs/2503.14476 .
+    """
+    buffer_len = getattr(args, "overlong_buffer_len", 0) or 0
+    if buffer_len <= 0:
+        return 0.0
+    max_len = args.rollout_max_response_len
+    factor = float(getattr(args, "overlong_penalty_factor", 1.0))
+    expected_len = max_len - buffer_len
+    if response_length <= expected_len:
+        return 0.0
+    penalty = (expected_len - response_length) / buffer_len * factor
+    return max(penalty, -factor)
+
+
+def length_adaptive_lambda(k: float, response_lengths, device, dtype=torch.float32) -> torch.Tensor:
+    """JustRL2 length-adaptive GAE λ: per-sample ``λ_i = k ** (1 / L_i)``.
+
+    ``k`` is the fraction of terminal credit that reaches the first token: with γ=1 the
+    GAE weight of the terminal reward at distance d is ``λ_i**d``, so the first token
+    always sees ``λ_i**L_i == k`` regardless of response length. Longer responses get λ
+    closer to 1, so credit propagation does not weaken with length. (The earlier
+    form ``1 − 1/(α·L)`` is the first-order expansion of this with ``k = exp(−1/α)``.)
+
+    Computed in float32 regardless of ``dtype``: at 128k lengths ``k**(1/L)`` is
+    ``1 − 8e-6``-ish, which bf16 rounds to exactly 1.0. ``L_i == 0`` (empty response)
+    gives λ=0; that row is fully masked downstream, so the value is irrelevant.
+    """
+    assert 0.0 < k <= 1.0, f"--gae-lambda-k must be in (0, 1], got {k}"
+    lengths = torch.tensor(response_lengths, device=device, dtype=torch.float32)
+    lam = torch.where(lengths > 0, float(k) ** (1.0 / lengths.clamp(min=1.0)), torch.zeros_like(lengths))
+    out = lam.to(dtype)
+    # Fail loudly instead of degrading silently. lambda = k**(1/L) approaches 1 from below
+    # (1 - 8e-6 at L=127k); bf16's spacing near 1.0 is 2**-8, so ANY response longer than
+    # ~355 tokens rounds to exactly 1.0 there — which is plain GAE with no length adaptation,
+    # i.e. this whole feature becomes a no-op while training runs on and the curves still
+    # look fine. Today `dtype` is float32 because the actor forces its logits to fp32 before
+    # computing log-probs (loss.py) and the critic's value head does the same
+    # (model_provider.py), so the values tensor this lambda is cast to is fp32. That is an
+    # accident of two unrelated call sites, not a guarantee — this assert is the guarantee.
+    # Only k < 1 is checked: k == 1.0 is a legal setting that *means* plain GAE, so λ == 1
+    # there is the intended value, not a collapse.
+    if k < 1.0 and out.numel() and (out[lam > 0] >= 1.0).any():
+        raise AssertionError(
+            f"length-adaptive lambda collapsed to 1.0 under dtype={dtype}: the length-adaptive "
+            f"GAE is a no-op (k={k}, max response_len={max(response_lengths)}). "
+            f"{dtype} cannot represent k**(1/L) for L larger than ~355. Keep values/log_probs "
+            f"in float32, or pass an explicit float32 dtype to length_adaptive_lambda()."
+        )
+    return out
+
+
+def get_advantages_and_returns_batch(
+    total_lengths,
+    response_lengths,
+    values_list,
+    rewards_list,
+    gamma,
+    lambd,
+    chunked: bool = True,
+    length_adaptive_lambda_k: "float | None" = None,
+):
+    """
+    Batched GAE with CP support.
+    Input:
+        total_lengths:     list[int], each sample's total_len
+        response_lengths:  list[int], each sample's response_len
+        values_list:       list[Tensor], each shape = [resp_len_i]
+        rewards_list:      list[Tensor], same shape
+        length_adaptive_lambda_k: if set (JustRL2 length-adaptive decoupled GAE), advantages use
+            a per-sample λ_i = k^(1/L_i) (the first token always receives k times the terminal
+            credit, independent of length), while returns use the unbiased λ=1 target (the
+            reward suffix sum when γ=1); the two are decoupled.
+    Output:
+        advantages_list:   list[Tensor], each shape = [resp_len_i]
+        returns_list:      list[Tensor], same shape
+    """
+
+    with torch.no_grad():
+        B = len(response_lengths)
+        assert B == len(values_list)
+        assert B == len(rewards_list)
+
+        cp_size = get_parallel_state().cp.size
+        device = values_list[0].device
+        dtype = values_list[0].dtype
+
+        # pad to max_len for batched GAE
+        max_len = max(response_lengths)
+
+        full_values = torch.zeros(B, max_len, device=device, dtype=dtype)
+        full_rewards = torch.zeros(B, max_len, device=device, dtype=dtype)
+
+        if cp_size > 1:
+            from miles.backends.training_utils.cp_utils import local_response_to_full
+
+            # Collective-communication invariant: every rank in the CP group must execute exactly
+            # the same communication sequence. Here we first scatter each sample's local shard
+            # back into full-length coordinates (purely local), then do just two fixed allreduces
+            # for the whole batch (one for values, one for rewards) instead of 2B per-sample ones
+            # — eliminating any data-dependent variation in the number of collectives.
+            for i, (total_len, resp_len, v, r) in enumerate(
+                zip(total_lengths, response_lengths, values_list, rewards_list, strict=False)
+            ):
+                full_values[i, :resp_len] = local_response_to_full(v, total_len, resp_len)
+                full_rewards[i, :resp_len] = local_response_to_full(r.to(dtype), total_len, resp_len)
+
+            cp_group = get_parallel_state().cp.group
+            dist.all_reduce(full_values, group=cp_group)
+            dist.all_reduce(full_rewards, group=cp_group)
+        else:
+            for i in range(B):
+                L = response_lengths[i]
+                full_values[i, :L] = values_list[i][:L]
+                full_rewards[i, :L] = rewards_list[i][:L]
+
+        if length_adaptive_lambda_k:
+            assert gamma == 1.0, "length-adaptive decoupled GAE requires gamma == 1.0 (returns = suffix reward sum)"
+            # λ_i is computed in fp32 and then cast to the dtype of `values`. That dtype must
+            # stay fp32: at 128k lengths λ = 1 − O(1e-5), and bf16 rounds every such λ to
+            # exactly 1.0, which silently turns the length-adaptive credit assignment back
+            # into plain GAE. On the actor — the only side whose advantages are used — the
+            # chain that guarantees it is loss.py forcing the logits to fp32 before the
+            # log-probs, and sync_actor_critic_data allocating `values` as
+            # empty_like(log_prob). (The critic regresses `returns`, which carry no λ.)
+            lambd_rowwise = length_adaptive_lambda(length_adaptive_lambda_k, response_lengths, device).to(dtype)
+            full_advantages, _ = chunked_gae(
+                rewards=full_rewards,
+                values=full_values,
+                gamma=gamma,
+                lambd=lambd_rowwise,
+            )
+            full_returns = torch.flip(torch.cumsum(torch.flip(full_rewards, dims=[1]), dim=1), dims=[1])
+        elif not chunked:
+            full_advantages, full_returns = vanilla_gae(
+                rewards=full_rewards,
+                values=full_values,
+                gamma=gamma,
+                lambd=lambd,
+            )
+        else:
+            full_advantages, full_returns = chunked_gae(
+                rewards=full_rewards,
+                values=full_values,
+                gamma=gamma,
+                lambd=lambd,
+            )
+
+        advantages_list = []
+        returns_list = []
+
+        if cp_size > 1:
+            from miles.backends.training_utils.cp_utils import slice_log_prob_with_cp
+
+            for total_len, resp_len, adv_row, ret_row in zip(
+                total_lengths,
+                response_lengths,
+                full_advantages,
+                full_returns,
+                strict=False,
+            ):
+                adv_full = adv_row  # shape = [resp_len_i padded to max_len]
+                ret_full = ret_row
+
+                adv_sliced = slice_log_prob_with_cp(adv_full[:resp_len], total_len, resp_len)
+                ret_sliced = slice_log_prob_with_cp(ret_full[:resp_len], total_len, resp_len)
+
+                advantages_list.append(adv_sliced)
+                returns_list.append(ret_sliced)
+
+        else:
+            for i in range(B):
+                L = response_lengths[i]
+                advantages_list.append(full_advantages[i, :L])
+                returns_list.append(full_returns[i, :L])
+
+    return advantages_list, returns_list
+
+
+def vanilla_gae(
+    rewards: torch.Tensor,
+    values: torch.Tensor,
+    gamma: float,
+    lambd: float,
+):
+    B, T = rewards.shape
+    device = rewards.device
+    dtype = rewards.dtype
+
+    lastgaelam = torch.zeros(B, device=device, dtype=dtype)
+    adv_rev = []
+
+    for t in reversed(range(T)):
+        next_value = values[:, t + 1] if t < T - 1 else 0.0
+        delta = rewards[:, t] + gamma * next_value - values[:, t]
+        lastgaelam = delta + gamma * lambd * lastgaelam
+        adv_rev.append(lastgaelam)
+
+    full_advantages = torch.stack(adv_rev[::-1], dim=1)  # [B, max_len]
+    full_returns = full_advantages + values  # [B, max_len]
+    return full_advantages, full_returns
+
+
+def chunked_gae(
+    rewards: torch.Tensor,
+    values: torch.Tensor,
+    gamma: float,
+    lambd: "float | torch.Tensor",
+    chunk_size: int = 128,
+):
+    """
+    Compute Generalized Advantage Estimation (GAE) using a FlashLinearAttention-
+    inspired algorithm: parallel prefix scan within chunks and recurrent state
+    propagation across chunks.
+
+    This reduces the sequential dependency length from O(T) to O(T / chunk_size),
+    while keeping chunk computations fully parallelizable (O(C^2) per chunk).
+
+    Args:
+        rewards (Tensor): [B, T] reward sequence.
+        values (Tensor):  [B, T] value predictions. The next-value of the final
+                          step is assumed to be zero (standard PPO convention).
+        gamma (float): discount factor.
+        lambd (float | Tensor): GAE lambda; a scalar, or a [B] tensor for
+                          per-sample lambda (length-adaptive GAE).
+        chunk_size (int): sequence chunk length for parallel scan.
+
+    Returns:
+        advantages (Tensor): [B, T] computed advantages.
+        returns (Tensor):    [B, T] advantages + values.
+    """
+
+    # -------------------------------------------------------------------------
+    # Validate inputs
+    # -------------------------------------------------------------------------
+    assert rewards.ndim == 2 and values.ndim == 2
+    B, T = rewards.shape
+    assert values.shape == (B, T)
+
+    device = rewards.device
+    dtype = rewards.dtype
+
+    rowwise_lambda = isinstance(lambd, torch.Tensor)
+    if rowwise_lambda:
+        assert lambd.shape == (B,), f"per-sample lambd must be [B], got {lambd.shape}"
+        lambd = lambd.to(device=device, dtype=dtype)
+
+    # -------------------------------------------------------------------------
+    # Build δ_t = r_t + γ * V_{t+1} - V_t   with V_{T} = 0
+    # -------------------------------------------------------------------------
+    next_values = torch.cat(
+        [values[:, 1:], torch.zeros(B, 1, device=device, dtype=dtype)],
+        dim=1,
+    )
+    deltas = rewards + gamma * next_values - values
+
+    # Reformulate backward GAE as a forward scan on the reversed sequence:
+    #   S[i] = Δ[i] + w * S[i - 1],   w = γλ
+    w = gamma * lambd
+    deltas_rev = torch.flip(deltas, dims=[1])  # [B, T]
+
+    # -------------------------------------------------------------------------
+    # Pad to a multiple of chunk_size
+    # -------------------------------------------------------------------------
+    if T % chunk_size != 0:
+        pad = chunk_size - (T % chunk_size)
+        deltas_rev = F.pad(deltas_rev, (0, pad))
+    else:
+        pad = 0
+
+    B, T_pad = deltas_rev.shape
+    n_chunks = T_pad // chunk_size
+
+    deltas_chunks = deltas_rev.view(B, n_chunks, chunk_size)
+
+    # -------------------------------------------------------------------------
+    # Construct the intra-chunk parallel scan kernel M
+    #
+    # For a chunk Δ[0..C-1], we want:
+    #   S_local[t] = sum_{k=0..t} w^(t-k) * Δ[k]
+    #
+    # This is implemented as:
+    #   S_local = Δ @ M
+    #
+    # where:
+    #   M[i, j] = w^(j - i)    if j >= i
+    #             0            otherwise
+    # -------------------------------------------------------------------------
+    idx = torch.arange(chunk_size, device=device)
+    row = idx[:, None]
+    col = idx[None, :]
+    diff = col - row
+    mask = diff >= 0
+
+    if rowwise_lambda:
+        # 0**0 == 1 in torch, so w == 0 rows degenerate to the identity kernel.
+        diff_f = diff.clamp(min=0).to(dtype)
+        M = torch.where(mask, w[:, None, None] ** diff_f, torch.zeros((), device=device, dtype=dtype))  # [B, C, C]
+        pow_vec = w[:, None] ** torch.arange(1, chunk_size + 1, device=device, dtype=dtype)  # [B, C]
+    else:
+        M = torch.zeros(chunk_size, chunk_size, device=device, dtype=dtype)
+
+        if w == 0.0:
+            M[mask & (diff == 0)] = 1.0
+        else:
+            M[mask] = w ** diff[mask].to(dtype)
+
+        # pow_vec[t] = w^(t+1), used to inject the recurrent state s_prev
+        if w == 0.0:
+            pow_vec = torch.zeros(chunk_size, device=device, dtype=dtype)
+        else:
+            pow_vec = w ** torch.arange(1, chunk_size + 1, device=device, dtype=dtype)
+
+    # -------------------------------------------------------------------------
+    # Parallel compute local chunk results (assuming initial state = 0)
+    # -------------------------------------------------------------------------
+    if rowwise_lambda:
+        S_local_chunks = torch.einsum("bnc,bcd->bnd", deltas_chunks, M)
+    else:
+        deltas_flat = deltas_chunks.reshape(B * n_chunks, chunk_size)
+        S_local_flat = deltas_flat @ M
+        S_local_chunks = S_local_flat.view(B, n_chunks, chunk_size)
+
+    # Effective length of each chunk (the last chunk may be padded)
+    lengths = [chunk_size] * n_chunks
+    if pad > 0:
+        lengths[-1] = chunk_size - pad
+
+    # -------------------------------------------------------------------------
+    # Recurrent propagation between chunks
+    #
+    # Each chunk contributes:
+    #   S_global[t] = S_local[t] + w^(t+1) * s_prev
+    #
+    # And updates:
+    #   s_prev = S_global[last_t]
+    # -------------------------------------------------------------------------
+    S_rev = deltas_rev.new_zeros(B, T_pad)
+    s_prev = torch.zeros(B, device=device, dtype=dtype)
+
+    for c in range(n_chunks):
+        Lc = lengths[c]
+        start = c * chunk_size
+        end = start + Lc
+
+        S_local = S_local_chunks[:, c, :Lc]
+        if rowwise_lambda:
+            S_global = S_local + s_prev.unsqueeze(1) * pow_vec[:, :Lc]
+        else:
+            S_global = S_local + s_prev.unsqueeze(1) * pow_vec[:Lc]
+
+        S_rev[:, start:end] = S_global
+        s_prev = S_global[:, -1]  # state for next chunk
+
+    # Remove padding and flip back to original time order
+    if pad > 0:
+        S_rev = S_rev[:, :T]
+
+    advantages = torch.flip(S_rev, dims=[1])
+    returns = advantages + values
+
+    return advantages, returns
+
+
+def calculate_log_probs_and_entropy(
+    logits,
+    tokens,
+    tp_group,
+    with_entropy: bool = False,
+    chunk_size: int = -1,
+    true_on_policy: bool = False,
+    vocab_size: int | None = None,
+):
+    if true_on_policy:
+        return _calculate_log_probs_and_entropy_true_on_policy(
+            logits,
+            tokens,
+            tp_group,
+            with_entropy=with_entropy,
+            chunk_size=chunk_size,
+            vocab_size=vocab_size,
+        )
+
+    logits = logits.contiguous()
+    # fused_vocab_parallel_cross_entropy (used by compute_log_probs) modifies
+    # the logits tensor in-place.  Entropy forward only reads the input, and
+    # we compute it under torch.no_grad() so no autograd graph is built —
+    # this avoids retaining the large [T, V/TP] saved_tensors from
+    # _VocabParallelEntropy and saves significant VRAM.
+    entropy = None
+    if logits.size(0) != 0:
+        if chunk_size > 0:
+            num_chunks = (logits.size(0) - 1) // chunk_size + 1
+            tokens_chunks = tokens.chunk(num_chunks, dim=0)
+            logits_chunks = logits.chunk(num_chunks, dim=0)
+            log_probs = []
+            entropys = []
+            for tokens_chunk, logits_chunk in zip(tokens_chunks, logits_chunks, strict=True):
+                if with_entropy:
+                    with torch.no_grad():
+                        entropys.append(compute_entropy_from_logits(logits_chunk, tp_group))
+                log_probs.append(compute_log_probs(logits_chunk.clone(), tokens_chunk, tp_group))
+            log_prob = torch.cat(log_probs, dim=0)
+            if with_entropy:
+                entropy = torch.cat(entropys, dim=0)
+        else:
+            if with_entropy:
+                with torch.no_grad():
+                    entropy = compute_entropy_from_logits(logits, tp_group)
+                log_prob = compute_log_probs(logits.clone(), tokens, tp_group)
+            else:
+                log_prob = compute_log_probs(logits, tokens, tp_group)
+    else:
+        log_prob = logits.new_zeros((0,))
+        if with_entropy:
+            entropy = logits.new_zeros((0,))
+
+    return log_prob, entropy
+
+
+def _calculate_log_probs_and_entropy_true_on_policy(
+    logits: torch.Tensor,
+    tokens: torch.Tensor,
+    tp_group: dist.ProcessGroup | None,
+    with_entropy: bool = False,
+    chunk_size: int = -1,
+    vocab_size: int | None = None,
+) -> tuple[torch.Tensor, torch.Tensor | None]:
+    """True-on-policy log-prob and entropy computation matching SGLang's scoring contract.
+
+    Args:
+        logits: Aligned local logits of shape ``[R, V_local]`` (already
+            response-sliced and temperature-scaled by ``get_responses``).
+        tokens: Target tokens of shape ``[R]``.
+        tp_group: Tensor-parallel process group for vocab gather.
+        with_entropy: If True, also compute entropy.
+        chunk_size: When > 0, process logits in chunks of this size along dim-0
+            to avoid allocating a full ``[R, V]`` intermediate tensor (which can
+            OOM for long responses with large vocabularies).
+        vocab_size: Real tokenizer vocab size. If provided, padded logits are
+            truncated after the full-vocab gather and before ``log_softmax``.
+
+    Returns:
+        Tuple of ``(log_probs, entropy)`` where *log_probs* has shape ``[R]``
+        and *entropy* has shape ``[R]`` or is ``None``.
+    """
+    if logits.size(0) == 0:
+        log_prob = logits.new_zeros((0,))
+        entropy = logits.new_zeros((0,)) if with_entropy else None
+        return log_prob, entropy
+
+    if chunk_size > 0 and logits.size(0) > chunk_size:
+        num_chunks = (logits.size(0) - 1) // chunk_size + 1
+        logits_chunks = logits.chunk(num_chunks, dim=0)
+        tokens_chunks = tokens.chunk(num_chunks, dim=0)
+        log_prob_parts = []
+        entropy_parts = []
+        for lg, tk in zip(logits_chunks, tokens_chunks, strict=True):
+            lp, ent = _calculate_log_probs_and_entropy_true_on_policy(
+                lg,
+                tk,
+                tp_group,
+                with_entropy=with_entropy,
+                chunk_size=-1,
+                vocab_size=vocab_size,
+            )
+            log_prob_parts.append(lp)
+            if ent is not None:
+                entropy_parts.append(ent)
+        log_prob = torch.cat(log_prob_parts, dim=0)
+        entropy = torch.cat(entropy_parts, dim=0) if with_entropy else None
+        return log_prob, entropy
+
+    full_logits = _gather_true_on_policy_full_logits(logits, tp_group, vocab_size=vocab_size)
+    _maybe_dump_top_logprob_backward("full_logits", full_logits)
+    log_probs_full = torch.log_softmax(full_logits, dim=-1)
+    _maybe_dump_top_logprob_backward("log_probs_full", log_probs_full)
+    log_prob = torch.gather(log_probs_full, dim=-1, index=tokens.unsqueeze(-1)).squeeze(-1)
+    _maybe_dump_top_logprob_backward("log_prob", log_prob)
+
+    entropy = None
+    if with_entropy:
+        probs = log_probs_full.exp()
+        entropy = -(probs * log_probs_full).sum(dim=-1)
+
+    return log_prob, entropy

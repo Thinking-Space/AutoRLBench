@@ -1107,6 +1107,21 @@
  * audited clean of network access. The published issue-judgment
  * total below moves 471 -> 493, the solution-run total 226 -> 237,
  * and the solution-record reconciliation anchor 206 -> 217.
+ * The ten justrl2_ppo_stale_whitening_moment_cache issue records
+ * were published on 26 Nov 2026 from the local cybertron-evaluate
+ * sweep of 25-26 Nov. The task ships issue-only: the repair space
+ * admits several genuinely different-but-valid fix strategies, so
+ * the solution level is held out. The
+ * issue rubric was revised on 26 Nov to key-point evidence
+ * (approximate values accepted, per-step value ladders dropped as
+ * scored items) and the ten runs re-judged in place: four pass
+ * (GLM-5.3, GPT-6-Astra, Grok-4.7, Qwen3.8-Max and GPT-6.1-Sol at
+ * 1.0 -- one of five with the mechanism before the revision);
+ * Kimi-K3.1-Pro 0.933 and Gemini-4-Argon 0.934 stay evidence-
+ * gated, four hold zero root-cause credit. Claude-Fable-5.1 was
+ * not run (upstream channel blocked all round). The trajectories
+ * were rebuilt per agent type and audited clean of network access.
+ * The published issue-judgment total below moves 493 -> 503.
  * The 217 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -12840,6 +12855,146 @@ window.AUTORLBENCH_RUNS = [
     "sessionId": "63aa4f87-1d81-444f-b398-efe63f83aef8",
     "scoringProtocol": "autorlbench-validation-first-20261031",
     "traceSha256": "fcd13c27205ed654daebbc9beccbecc73bdeb38747656bb5ea41e56befbe8020"
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "glm53-whitening",
+    "file": "agent-trace/glm53-whitening.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 2701000,
+    "steps": 73,
+    "costUsd": 17.0901
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "kimi-whitening",
+    "file": "agent-trace/kimi-whitening.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.4,
+    "durationMs": 364000,
+    "steps": 39,
+    "costUsd": 1.3604
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "kimi31-whitening",
+    "file": "agent-trace/kimi31-whitening.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.933333,
+    "durationMs": 2104000,
+    "steps": 107,
+    "costUsd": 31.0198
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "dsv41flash-whitening",
+    "file": "agent-trace/dsv41flash-whitening.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.333333,
+    "durationMs": 1577000,
+    "steps": 89,
+    "costUsd": 10.8289
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "qwen38-whitening",
+    "file": "agent-trace/qwen38-whitening.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.4,
+    "durationMs": 2126000,
+    "steps": 2,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "gpt6astra-whitening",
+    "file": "agent-trace/gpt6astra-whitening.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 154000,
+    "steps": 21,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "gpt61sol-whitening",
+    "file": "agent-trace/gpt61sol-whitening.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 127000,
+    "steps": 20,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "dsv4-whitening",
+    "file": "agent-trace/dsv4-whitening.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.333333,
+    "durationMs": 7018000,
+    "steps": 62,
+    "costUsd": 10.9959
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "grok47-whitening",
+    "file": "agent-trace/grok47-whitening.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1781000,
+    "steps": 196,
+    "costUsd": null
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "gemini4-whitening",
+    "file": "agent-trace/gemini4-whitening.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.934,
+    "durationMs": 4195000,
+    "steps": 59,
+    "costUsd": 27.2315
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

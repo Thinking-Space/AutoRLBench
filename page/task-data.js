@@ -992,5 +992,27 @@ window.AUTORLBENCH_TASKS = [
     "license": "CC-BY-NC-4.0",
     "brief": "Held-out AIME24 rises 31/240 to 41/240 by step 8 and then stalls while training continues: the single-minibatch on-policy path substitutes its detached current score for the rollout score (ratio always one, clipping never fires), and the Minerva extractor rejects valid boxed answers, so 1,672 of 1,920 answers score invalid.",
     "issue": "Training Nemotron-Research-Reasoning-Qwen-1.5B on Skywork-OR1 math with REINFORCE++ and K2/V3-quantized vLLM rollouts. AIME24 improves from 31/240 to 41/240 by step 8, then stays at 41/240 through step 30. During training the scorer marks 1,672 of 1,920 answers invalid, and three batches produce no policy gradient. Two defects compound: the recorded configuration (use_rollout_log_probs=false with one PPO minibatch and one epoch) enters upstream verl's native on_policy branch, where the batch score is replaced by the detached current score -- the ratio is always one and PPO clipping stays at zero across all 30 steps while 27 steps keep nonzero gradients; and the staged math_reward.py adapter routes through math_dapo's default Minerva extractor, which looks for an Answer: field and returns [INVALID] for correctly boxed answers (48 of 384 sampled responses are boxed-correct yet scored -1). The double repair reaches 59/240 in the author's ablation; either fix alone does not."
+  },
+  {
+    "id": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "title": "Stale whitening moment cache corrupts PPO advantages on empty context-parallel shards",
+    "family": "Algorithm",
+    "domain": "Math",
+    "tags": [
+      "context-parallel",
+      "advantage-whitening",
+      "stale-state-cache",
+      "silent-divergence",
+      "ppo",
+      "issue-only"
+    ],
+    "model": "openbmb/JustRL-II-base-model",
+    "dataset": "Countdown (Jiayi-Pan/Countdown-Tasks-3to4): 8,192 train / 1,024 disjoint test",
+    "framework": "miles (PPO) / JustRL-II, SGLang 0.5.20.dev59, Megatron-Core 0.19.0",
+    "image": "miles-0.1.1-sglang0.5.20.dev59-torch2.13.0-flashattn4.0.0b19-cu129-py3.12",
+    "created": "2026-11-23",
+    "license": "Apache-2.0",
+    "brief": "A cached mutable origin tensor aliases the tensor returned for empty context-parallel shards and is mutated in place by dist.all_reduce, compounding stale whitening moments across steps: no crash, no NaN, eval@9 leads the control, and step-29 held-out accuracy collapses to 0.21/0.03 against the 0.42/0.34 control runs.",
+    "issue": "Training openbmb/JustRL-II-base-model with synchronous PPO on Countdown (1-node 8-GPU, CP=2 x DP=2, 30 steps). miles/utils/moments.py::MomentReducer caches a mutable two-element zero buffer per (device, float32) and passes it as the functools.reduce initializer; on short responses (response length under a third of the prompt) CP rank 1's local ZigZag shard is empty, so reduce returns the cached origin tensor object itself, and the in-place dist.all_reduce inside distributed_masked_whiten permanently overwrites the cache with that group's reduced [sum, sum_sq]. Every subsequent empty shard starts from and compounds that stale moment buffer while contributing zero to the count tensor: pg_loss blows up to -3070, grad_norm to 9669, truncation rises 0.21 to 0.73, held-out accuracy regresses from a 0.29 step-9 peak to 0.21 at step 29 -- with ess_ratio 1.0, ppo_kl 0.0 and the run completing cleanly."
   }
 ];

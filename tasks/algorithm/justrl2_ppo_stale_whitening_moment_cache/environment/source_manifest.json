@@ -1,0 +1,34 @@
+{
+  "staged_defects": {
+    "upstream": "openbmb/JustRL-II",
+    "commit": "75814318f243af7e39af337c1173fc3927c9635b",
+    "declaration": "This benchmark workspace stages an injected post-training defect on top of pinned JustRL-II @ 75814318 for diagnostic evaluation (not an unpatched upstream bug); specific fault sites and repairs are intentionally omitted from agent-visible manifests.",
+    "environment_compatibility_changes": [
+      "miles/utils/arguments.py (SGLang 0.5.20 CLI alias shim and disable_prefill_cuda_graph default)",
+      "miles/utils/process_group_compat.py and miles/backends/megatron_utils/actor.py (ReloadableProcessGroup unwrap forwarder and Megatron collective bindings for PyTorch 2.13)",
+      "miles/backends/sglang_utils/sglang_engine.py, miles/backends/megatron_utils/update_weight/update_weight_from_distributed/mixin.py, and update_weight_from_tensor.py (begin_weight_update / end_weight_update protocol for SGLang 0.5.20.dev59)",
+      "miles/utils/tracking_utils/__init__.py and miles/ray/rollout.py (MILES_METRICS_FILE and MILES_EVAL_DUMP_DIR JSONL hooks)",
+      "run_justrl2_ppo.sh, data_prep/countdown.py, and reward/countdown_reward.py (single-node 8-GPU CP2xDP2 Countdown PPO harness)",
+      "workspace/.gitignore (anchor /models/, /datasets/, /runs/ so miles_plugins/models/ and fsdp_utils/models/ remain tracked)"
+    ],
+    "dropped": [
+      "workspace/Dockerfile"
+    ]
+  },
+  "rewrites_applied_to_frozen_evidence": [
+    {
+      "file": "workspace/results/ppo_countdown/train.log",
+      "sha256_before": "4d3d529763a49c149c1aa3df7f6600d72e999b31f1456f8b022ec6464bf5d129",
+      "sha256_after": "30e220583b905e6ba58e07644a81a0b4bd00aaff7a268041035239fce842f9b1",
+      "metric_values_changed": false,
+      "replacements": [
+        "runner workspace path -> /workspace",
+        "runner output path -> /workspace/results/ppo_countdown",
+        "staged model paths -> /workspace/models/JustRL-II-base-model*",
+        "staged dataset path -> /workspace/data/countdown",
+        "internal pod IP -> 127.0.0.1"
+      ]
+    }
+  ],
+  "thinning": "Omitted TensorBoard binary event files; retained full metrics.jsonl (steps 0..29), sanitized train.log, and val_generations/{0,9,19,29}.jsonl (1,024 held-out rows each)."
+}
