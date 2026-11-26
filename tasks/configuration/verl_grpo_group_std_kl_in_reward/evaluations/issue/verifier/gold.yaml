@@ -1,0 +1,13 @@
+category: configuration
+framework: verl
+task: verl_grpo_group_std_kl_in_reward
+verdict: unhealthy
+root_cause:
+  - run_grpo_gsm8k.sh applies the KL penalty in the reward (algorithm.use_kl_in_reward=True, coefficient 0.001) while GRPO keeps verl's default norm_adv_by_std_in_grpo=True; apply_kl_penalty subtracts 0.001*(log pi - log pi_ref) from the token rewards and compute_grpo_outcome_advantage divides each prompt group's centred rewards by the group std, so in groups whose eight answers are all right or all wrong the penalty is the only variation and becomes a unit-scale advantage toward the initial model
+evidence_metrics:
+  - held-out accuracy goes 0.4299 to 0.4913 (best 0.4913 at step 30) while the same recipe with norm_adv_by_std_in_grpo=False reaches 0.5534
+  - critic/score/mean averages 0.480 over steps 51-60 against 0.661 in the control
+  - actor/reward_kl_penalty is 0.0105 at step 60 against 0.1002; entropy is still 0.344 against 0.093; the penalty changes the logged reward by at most 0.0030
+fix:
+  must:
+    - stop the per-group std from rescaling the KL term, e.g. algorithm.norm_adv_by_std_in_grpo=False as in fix.diff, or move the KL term from the reward to the loss

@@ -1,0 +1,13 @@
+category: algorithm
+framework: verl
+task: grpo_response_boundary
+verdict: unhealthy
+root_cause:
+  - vllm_rollout_spmd.py generate_sequences builds the padded response mask with get_response_mask scanning for the checkpoint's end-of-sequence ID (2), while the Nemotron chat tokenizer ends generated responses with token ID 11 and the task uses the same ID for response padding; the scan cannot recognize the true boundary, so all 16,384 positions of a padded row can be marked valid and the trainer counts every answer as exactly 16,384 tokens long
+evidence_metrics:
+  - both GRPO steps report response_length minimum, mean and maximum all equal to 16,384 with response_length/clip_ratio 1.0, while the exported rollout texts visibly differ in length and the archived engine records returned 2,911 and 13,430 tokens with normal stop finishes
+  - the scorer still produces correct binary rewards (critic/score/mean 0.4375 and 0.375, i.e. 14/32 and 12/32 correct answers), but its nonzero rewards land at the last position selected by the incorrect mask and GRPO broadcasts the centered advantage across the padding
+  - held-out accuracy stays at 4/16 before training and after each update
+fix:
+  must:
+    - mask positions at or beyond the response length returned by the engine before padding, retaining a returned stop token and handling a stop token omitted by the engine; merely scanning for the pad ID or adding the chat EOS to the old scan misses cases

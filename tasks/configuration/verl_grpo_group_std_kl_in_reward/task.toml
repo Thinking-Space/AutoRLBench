@@ -1,0 +1,37 @@
+title = "GRPO's per-group std turns a 0.001 KL penalty in the reward into a unit-scale pull toward the initial model"
+license = "Apache-2.0"
+created_date = "2026-11-24"
+domain = "configuration"
+tags = ["verl", "grpo", "gsm8k", "kl-in-reward", "group-normalization", "advantage-scale", "silent-stall", "issue-only"]
+
+[submitter]
+name = "pkulium"
+affiliation = "Iowa State University"
+
+[model]
+name = "Qwen2.5-0.5B-Instruct"
+
+[dataset]
+name = "GSM8K (openai/gsm8k main): 7,473 train / 1,319 test"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo_gsm8k.sh"
+
+[environment]
+image = "verlai/verl:vllm017.latest@sha256:4c43bbf17e90284b1102008399240b25406e8d34fea178d86272231b333b7cb6"
+image_stack = "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12"
+# trainer.n_gpus_per_node=1: FSDP actor and the colocated vLLM rollout share one GPU.
+gpus = 1
+
+[environment.env]
+WANDB_MODE = "offline"
+TOKENIZERS_PARALLELISM = "false"
+
+[outcome]
+failure_type = "configuration_interaction"
+failure_reason = "run_grpo_gsm8k.sh sets algorithm.use_kl_in_reward=True (kl_penalty=kl, fixed coefficient 0.001) and leaves algorithm.norm_adv_by_std_in_grpo at its default True: ray_trainer.py::apply_kl_penalty subtracts 0.001*(log pi - log pi_ref) from every response token's reward (at most 0.0030 per sample on average), and core_algos.py::compute_grpo_outcome_advantage divides each prompt group's centred rewards by the group std, so in the 13-27 of 64 groups per step (kept dumps) whose eight answers are all right or all wrong the penalty is the only variation and is scaled to a unit-variance advantage that favours the samples closest to the initial model; the policy is held there (actor/reward_kl_penalty 0.0105 at step 60 vs 0.1002, entropy 0.344 vs 0.093), critic/score/mean stays at 0.480 over steps 51-60 (control 0.661) and held-out accuracy goes 0.4299 -> 0.4913, against 0.4299 -> 0.5534 for the same recipe with norm_adv_by_std_in_grpo=False (seed 43: 0.4943 vs 0.5398)."
+
+[security]
+requires_isolated_stages = true

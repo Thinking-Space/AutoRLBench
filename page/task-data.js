@@ -1014,5 +1014,52 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "A cached mutable origin tensor aliases the tensor returned for empty context-parallel shards and is mutated in place by dist.all_reduce, compounding stale whitening moments across steps: no crash, no NaN, eval@9 leads the control, and step-29 held-out accuracy collapses to 0.21/0.03 against the 0.42/0.34 control runs.",
     "issue": "Training openbmb/JustRL-II-base-model with synchronous PPO on Countdown (1-node 8-GPU, CP=2 x DP=2, 30 steps). miles/utils/moments.py::MomentReducer caches a mutable two-element zero buffer per (device, float32) and passes it as the functools.reduce initializer; on short responses (response length under a third of the prompt) CP rank 1's local ZigZag shard is empty, so reduce returns the cached origin tensor object itself, and the in-place dist.all_reduce inside distributed_masked_whiten permanently overwrites the cache with that group's reduced [sum, sum_sq]. Every subsequent empty shard starts from and compounds that stale moment buffer while contributing zero to the count tensor: pg_loss blows up to -3070, grad_norm to 9669, truncation rises 0.21 to 0.73, held-out accuracy regresses from a 0.29 step-9 peak to 0.21 at step 29 -- with ess_ratio 1.0, ppo_kl 0.0 and the run completing cleanly."
+  },
+  {
+    "id": "algorithm/grpo_response_boundary",
+    "title": "A checkpoint EOS mismatch marks all 16,384 padded response tokens as valid",
+    "family": "Algorithm",
+    "domain": "Math",
+    "tags": [
+      "verl",
+      "grpo",
+      "rollout-accounting",
+      "response-mask",
+      "eos-mismatch",
+      "reward-placement",
+      "issue-only"
+    ],
+    "model": "nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16",
+    "dataset": "AIME 2024 (disjoint training and validation questions)",
+    "framework": "veRL / GRPO",
+    "image": "verl-vllm0.24.0-torch2.11.0-flashattn2.8.3-cu130-py3.12",
+    "created": "2026-11-25",
+    "license": "Apache-2.0",
+    "brief": "The checkpoint publishes EOS 2 while the chat tokenizer ends answers with token 11 -- and the rollout pads with 11. The response mask scans for EOS 2, never finds it, and marks every one of the 16,384 padded positions valid, so rewards land on padding and GRPO broadcasts the advantage across it.",
+    "issue": "During GRPO training on AIME 2024 the trainer counted every answer from Nemotron-4B as exactly 16,384 tokens long, even though both batches contain correct answers whose exported text re-encodes to 7,369 and 9,765 mean tokens and the archived engine records stop normally at 2,911 and 13,430 tokens. fsdp_workers loads generation_config.json (eos 2, pad 0) and overwrites the rollout batch meta with it, while the tokenizer ends chat responses with ID 11 and the rollout pads returned ids with 11; get_response_mask then scans for EOS 2, finds none, and the whole padded row stays valid -- response_length min/mean/max all 16,384 with clip_ratio 1.0. The scorer decodes with special tokens skipped and still reads correct binary rewards (0.4375 and 0.375), but places each nonzero reward at the last position the incorrect mask selects, and GRPO broadcasts the centered advantage across the padding. Held-out accuracy stays at 4/16 before training and after each update."
+  },
+  {
+    "id": "configuration/verl_grpo_group_std_kl_in_reward",
+    "title": "GRPO's per-group std turns a 0.001 KL penalty in the reward into a unit-scale pull toward the initial model",
+    "family": "Configuration",
+    "domain": "Math",
+    "tags": [
+      "verl",
+      "grpo",
+      "gsm8k",
+      "kl-in-reward",
+      "group-normalization",
+      "advantage-scale",
+      "silent-stall",
+      "issue-only"
+    ],
+    "model": "Qwen2.5-0.5B-Instruct",
+    "dataset": "GSM8K train 7,473 / test 1,319",
+    "framework": "verl 0.8.0 / GRPO (naive reward manager)",
+    "image": "verl-vllm0.17.0-torch2.10.0-flashattn2.8.3-cu129-py3.12",
+    "created": "2026-11-24",
+    "license": "Apache-2.0",
+    "brief": "A 0.001 KL penalty in the reward is the only variation in the all-right and all-wrong prompt groups, so GRPO's per-group std normalization divides it into a unit-scale advantage that pulls the policy back toward the initial model -- the run trains stably but never leaves its starting point.",
+    "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K in verl, the launch script sets algorithm.use_kl_in_reward=True (kl_penalty=kl, fixed coefficient 0.001) and leaves algorithm.norm_adv_by_std_in_grpo at its default True. ray_trainer.py subtracts 0.001 times the reference log-ratio from every response token reward -- at most 0.0030 per sample -- and core_algos.py divides each prompt group's centred rewards by the group std, so in the 13-27 of 64 groups per step whose eight answers are all right or all wrong the penalty is the only variation and becomes a unit-variance advantage favouring the samples closest to the initial model. No code is changed from upstream verl. The training score stalls at 0.46-0.48 (control 0.66), held-out accuracy goes 0.4299 -> 0.4913 (control 0.5534), entropy stays high at 0.344, and reward_kl_penalty reads 0.0105 against a 0.1002 control -- a silent stall that looks like ordinary training."
   }
 ];
