@@ -22,6 +22,19 @@ oracle.
   causal role. A cause that is only named, hedged as one possibility among
   several, mentioned and then dismissed, or described with the wrong mechanism
   or direction is false.
+
+## Root cause: substance over wording
+
+The oracle's root cause 2 describes the scheduler checking the shared error list at
+two code locations (acceptance loop lines 161-162 and finally cleanup lines 218-219).
+A diagnosis that states the SUBSTANCE of this mechanism counts as true regardless
+of how many of the two code locations it explicitly cites: identifying that "the
+scheduler's fail-closed gate / boundary check on the shared error list kills the
+already-complete batch" IS the root cause, whether described as a single gate or
+as checks at specific lines. Citing only one of the two locations does NOT reduce
+credit — the two checks implement one causal mechanism (the gate that aborts the
+batch on any recorded boundary error), and naming either one (or the gate as a
+whole) with its correct causal role is sufficient.
 - `evidence_score`: the fraction of the oracle's concrete evidence items the
   diagnosis mentions with the correct direction; values may be approximate.
   Evidence the oracle does not state does not count, and symptoms presented as

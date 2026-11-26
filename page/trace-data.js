@@ -7080,11 +7080,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.771429,
+    "passed": true,
+    "score": 0.97,
     "durationMs": 1244000,
     "steps": 2,
-    "costUsd": null
+    "costUsd": null,
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】root cause substance 规则翻案（oracle 已修订）：RC2 按 \"fail-closed gate kills batch\" 整体机制覆盖——\"dapo_scheduler.py:218-219 converts the recorded error into a RuntimeError that discards the 32 already-accepted groups\" 与 Flash 的 \"fail-closed gate\" 表述等价，按修订后规则两处检查（161-162 + 218-219）是一体机制，引一处即够。RC1 ✓ RC3 ✓。证据 5/5 全给（32/32 cleanup_ok、56 组/39 prefix、batch_ready_s 1630、2889/361 RuntimeError、audit 306-358），omitted 1775.3861s 为纯数字。",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "infrastructure/slime_dapo_lookahead_boundary_abort",
@@ -8622,8 +8624,8 @@ window.AUTORLBENCH_RUNS = [
     "steps": 37,
     "costUsd": 4.2263,
     "evidenceScore": 0.9,
-    "auditReason": "【2026-11-24 evidence 等价性重判】evidence 等价性补认：六项证据中五项半全给（32/32、56/39/17、审计序数、精确 RuntimeError、组 306-358）；omitted 的 1775.3861s 为纯数字，120s vs 180s 为单值引用误差。",
-    "rejudgedAt": "2026-11-24"
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】（原判维持；oracle RC2 修订确认）root cause substance 规则确认 Flash 的 \"fail-closed gate (dapo_scheduler.py:218-219)\" 为完整 RC2 覆盖。RC1 ✓ RC3 ✓。证据六项中五项半全给，1775.3861s 为纯数字按等价性豁免。",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "infrastructure/trl_tool_history_cross_contamination",
@@ -9510,11 +9512,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.62,
+    "passed": true,
+    "score": 0.93,
     "durationMs": 355000,
     "steps": 18,
-    "costUsd": null
+    "costUsd": null,
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】root cause substance 规则翻案（oracle 已同步修订）：judge_prompt 新增 \"Root cause: substance over wording\" 段——归一化域失配的实质断言（\"processed-vLLM normalization diverges from the actor full-vocabulary normalization\"）计为完整根因，掩码实现细节（IDs to -inf）不构成能力区分。",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "infrastructure/tokenizer-vocab-support",
@@ -9524,11 +9528,13 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": false,
-    "score": 0.6,
+    "passed": true,
+    "score": 0.92,
     "durationMs": 239000,
     "steps": 14,
-    "costUsd": null
+    "costUsd": null,
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】root cause substance 规则翻案（oracle 已同步修订）：同上——\"those extra entries add substantial probability mass to the denominator\" 为等价机制表述。",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "infrastructure/tokenizer-vocab-support",

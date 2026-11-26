@@ -1,19 +1,21 @@
-{
-  "category": "implementation",
-  "framework": "miles",
-  "task": "sandbox_admission_starvation",
-  "verdict": "unhealthy",
-  "root_cause": [
-    "one process-wide 20-connection httpx pool (SANDBOX_MAX_CONNECTIONS) is shared by sandbox setup and by the tool calls of all 256 in-flight trajectories; it logs nothing and is the binding constraint",
-    "MAX_CONCURRENT_SANDBOX_SETUP defaults to 32 and one semaphore slot is held across sandbox create, upload, tool install and retries; it is the only limit that logs a wait, and lifting it alone does not speed the run up"
-  ],
-  "evidence_metrics": [
-    "historical semaphore wait p50 190 s / p90 432 s with idle engines (per-engine running requests 1.6) and no training step",
-    "public rerun: 629 of 662 setups waited at least 5 s, wait p50 35.4 s against a remote create p50 of 18.8 s"
-  ],
-  "fix": {
-    "must": [
-      "size the sandbox HTTP connection pool for the number of in-flight trajectories; sizing or narrowing the admission gate alone is not sufficient"
-    ]
-  }
-}
+category: implementation
+framework: miles
+task: sandbox_admission_starvation
+verdict: unhealthy
+root_cause:
+- one process-wide 20-connection httpx pool (SANDBOX_MAX_CONNECTIONS) is shared by sandbox setup and by the tool calls of
+  all 256 in-flight trajectories; it logs nothing and is the binding constraint
+- MAX_CONCURRENT_SANDBOX_SETUP defaults to 32 and one semaphore slot is held across sandbox create, upload, tool install and
+  retries; it is the only limit that logs a wait, and lifting it alone does not speed the run up
+evidence_metrics:
+- historical semaphore wait p50 190 s / p90 432 s with idle engines (per-engine running requests 1.6) and no training step
+- 'public rerun: 629 of 662 setups waited at least 5 s, wait p50 35.4 s against a remote create p50 of 18.8 s'
+fix:
+  must:
+  - size the sandbox HTTP connection pool for the number of in-flight trajectories; sizing or narrowing the admission gate
+    alone is not sufficient
+scoring_contract:
+  root_cause_substance_over_wording: true
+  root_cause_combines_both_accepted: the judge prompt already accepts equivalent names and combined admission/transport bottleneck
+    descriptions; the two root causes are the httpx pool (RC1) and the semaphore (RC2), and a diagnosis combining both into
+    one bottleneck gets both

@@ -22,6 +22,21 @@ oracle.
   causal role. A cause that is only named, hedged as one possibility among
   several, mentioned and then dismissed, or described with the wrong mechanism
   or direction is false.
+
+## Root cause: substance over wording
+
+The oracle's root cause describes the mechanism as "masks token IDs at or above
+the tokenizer vocabulary to -inf". A diagnosis that states the same substance in
+any equivalent wording counts as true: identifying that the rollout normalizes
+over a smaller vocabulary (or "the model vocabulary", or "the tokenizer's
+vocabulary") while the actor normalizes over the full LM head output IS the
+root cause — the specific masking implementation (setting logits to -inf) is a
+mechanism detail, not a capability distinction. Similarly, describing the
+consequence as "extra entries add probability mass to the denominator" is
+equivalent to "the 399 unreachable rows accumulate probability mass". Do NOT
+withhold root-cause credit for using different vocabulary-domain language when
+the causal claim (two sides compute probabilities over different support sets,
+systematically shifting log-probabilities and gradients) is accurately stated.
 - `evidence_score`: the fraction of the oracle's concrete evidence items the
   diagnosis mentions with the correct direction; values may be approximate.
   Evidence the oracle does not state does not count, and symptoms presented as
