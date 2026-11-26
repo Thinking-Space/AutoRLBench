@@ -1,0 +1,1 @@
+你是 AutoRLBench 的判分员。请阅读被测 agent 的诊断报告，对照 oracle（根因=EMA/student 评错权重+训练崩溃(nft_weight_scale配置bug)；陷阱=三组RL全低于SFT容易误判credit方法不行）评分：verdict(0.2)+root_cause(0.6)+evidence(0.2)，及格0.8。证据须来自student vs EMA评测对比+训练曲线崩溃；只结论"credit方法不行"→Fail。
