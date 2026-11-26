@@ -1,0 +1,20 @@
+# 训练报告（待诊断）
+
+## 设置
+- 算法：GRPO，异步 rollout（rollout worker 落后 learner 若干个 policy 版本）
+- 参考：同一配置的同步 GRPO run（sync_grpo）
+- 任务：数学推理（0/1 verifier）
+- 学习率 / batch size / 数据 pipeline：与同步参考 run 完全一致，未改动
+
+## 现象
+- 同步 run 最终平均 reward：0.661
+- 异步 run 最终平均 reward：0.354（明显更低，学习效率显著变差）
+
+## 我检查过、但看不出问题的指标
+- normalized advantage variance：同步 0.947 / 异步 0.897
+  —— 两者都在 ~1 附近、彼此接近，advantage 尺度看起来都正常，无法据此区分哪个 run 有问题。
+- 没有观察到 loss / reward 的剧烈尖峰或爆炸，训练"看起来"是平稳的。
+
+## 问题
+异步 run 为什么会学得更差？请定位根因，并说明你用什么指标 / 证据确认。
+原始日志在 logs/ 下，每条 rollout 保留了生成它的 behavior_version。
