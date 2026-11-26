@@ -1,0 +1,44 @@
+Countdown GRPO, Qwen2.5-1.5B-Instruct, verl @ 7aed6b2 (vendored), vLLM 0.11.0, 2 x H100,
+train_batch_size 64, n 8, lr 2e-6, seed 1 unless noted. The ONLY difference between
+arms is the rollout-engine precision knobs in run_grpo.sh (rollout.quantization,
+engine_kwargs.vllm.kv_cache_dtype).
+
+critic/score/mean, sampled steps:
+step bf16, 50  bf16, 50  bf16, 300 fp8 W, 50 fp8 W, 50 fp8 W, 30 fp8 KV on fp8 W+KV,
+   1    0.0293    0.0254    0.0215    0.0156    0.0410    0.0254    0.0000    0.0000
+  25    0.5176    0.4766    0.4609    0.4160    0.4844    0.4512    0.0000    0.0000
+  50    0.6309    0.5488    0.6172    0.5840    0.5137    0.6250    0.0000    0.0000
+  59       nan       nan    0.5273       nan       nan    0.5352       nan       nan
+  70       nan       nan    0.4375       nan       nan    0.2676       nan       nan
+  72       nan       nan    0.5586       nan       nan    0.2129       nan       nan
+  74       nan       nan    0.4805       nan       nan    0.1758       nan       nan
+  75       nan       nan    0.4512       nan       nan    0.0586       nan       nan
+  78       nan       nan    0.5820       nan       nan    0.0000       nan       nan
+  84       nan       nan    0.6426       nan       nan    0.0020       nan       nan
+ 100       nan       nan    0.5215       nan       nan    0.0000       nan       nan
+ 125       nan       nan    0.5410       nan       nan    0.0449       nan       nan
+ 150       nan       nan    0.5723       nan       nan    0.0000       nan       nan
+ 175       nan       nan    0.6543       nan       nan    0.0000       nan       nan
+ 200       nan       nan    0.5898       nan       nan    0.0000       nan       nan
+ 225       nan       nan    0.5703       nan       nan    0.0000       nan       nan
+ 250       nan       nan    0.7051       nan       nan    0.0000       nan       nan
+ 275       nan       nan    0.6387       nan       nan    0.0000       nan       nan
+ 300       nan       nan    0.6777       nan       nan    0.0000       nan       nan
+
+bf16, 50 steps, seed 1             final=0.6309  steps=50
+bf16, 50 steps, seed 2             final=0.5488  steps=50
+bf16, 300 steps, seed 1            final=0.6777  steps=300
+fp8 W, 50 steps, seed 1            final=0.5840  steps=50
+fp8 W, 50 steps, seed 2            final=0.5137  steps=50
+fp8 W, 300 steps (recorded)        final=0.0000  steps=300
+fp8 KV only, 50 steps, seed 1      final=0.0000  steps=50
+fp8 W+KV, 50 steps, seed 1         final=0.0000  steps=50
+
+fp8 W 300-step collapse: healthy to ~step 70 (0.535 at 59), 0.27@70 -> 0.18@74 ->
+0.059@75 -> 0.0@78, then 0.0 (±0.004) through step 300. Rollouts stay fluent through
+the collapse (step 84 quotes the prompt's numbers) and only degrade into tag-repetition
+babble by steps 150/300; 0 empty and 0 '!'-only responses throughout.
+bf16 300-step control: healthy at every step; final 0.678, never below 0.33 after warmup,
+and 0.51+ from step 100 on - the collapse is not "RL eventually degrades".
+fp8 KV arms are a different family: reward 0 from step 1 with prompt-blind answers
+(2/2/0 tagged answers use the prompt's numbers at steps 1/25/50).

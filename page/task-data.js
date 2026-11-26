@@ -1061,5 +1061,52 @@ window.AUTORLBENCH_TASKS = [
     "license": "Apache-2.0",
     "brief": "A 0.001 KL penalty in the reward is the only variation in the all-right and all-wrong prompt groups, so GRPO's per-group std normalization divides it into a unit-scale advantage that pulls the policy back toward the initial model -- the run trains stably but never leaves its starting point.",
     "issue": "Training Qwen2.5-0.5B-Instruct with GRPO on GSM8K in verl, the launch script sets algorithm.use_kl_in_reward=True (kl_penalty=kl, fixed coefficient 0.001) and leaves algorithm.norm_adv_by_std_in_grpo at its default True. ray_trainer.py subtracts 0.001 times the reference log-ratio from every response token reward -- at most 0.0030 per sample -- and core_algos.py divides each prompt group's centred rewards by the group std, so in the 13-27 of 64 groups per step whose eight answers are all right or all wrong the penalty is the only variation and becomes a unit-variance advantage favouring the samples closest to the initial model. No code is changed from upstream verl. The training score stalls at 0.46-0.48 (control 0.66), held-out accuracy goes 0.4299 -> 0.4913 (control 0.5534), entropy stays high at 0.344, and reward_kl_penalty reads 0.0105 against a 0.1002 control -- a silent stall that looks like ordinary training."
+  },
+  {
+    "id": "configuration/verl_quantized_rollout_drift_collapse",
+    "title": "An fp8-quantized rollout engine re-quantizes the trainer on every sync, and the drift collapses the run late",
+    "family": "Configuration",
+    "domain": "Math",
+    "tags": [
+      "verl",
+      "grpo",
+      "vllm",
+      "quantized-rollout",
+      "fp8",
+      "delayed-training-collapse",
+      "off-policy-drift",
+      "issue-only"
+    ],
+    "model": "Qwen/Qwen2.5-1.5B-Instruct@989aa798",
+    "dataset": "Jiayi-Pan/Countdown-Tasks-3to4 (490,364-problem pool)",
+    "framework": "verl 0.8.0 / GRPO + vLLM fp8 online weights",
+    "image": "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12",
+    "created": "2026-11-25",
+    "license": "Apache-2.0",
+    "brief": "The rollout engine runs online fp8-quantized weights while the trainer stays bf16, so every weight sync re-quantizes the fresh tensors and the sampling policy keeps tracking a quantized shadow of the trained policy -- a small per-sync mismatch that compounds into a delayed collapse with fluent rollouts the whole way down.",
+    "issue": "A 300-step GRPO run on Countdown is healthy for ~70 steps (reward up to 0.635 at step 45), then slides monotonically to exactly 0.0 by step 78 and stays there through step 300, while the rollouts stay fluent through the collapse (0 empty, 0 !-only, a majority still close an <answer> tag and quote the prompt's own numbers at step 84) and only degrade into tag-repetition babble much later. Two 50-step seeds of the same config look completely healthy -- the collapse is invisible at that budget -- and the bf16 control with the identical seed, data and budget stays healthy at every step (final 0.678)."
+  },
+  {
+    "id": "configuration/verl_stale_weight_sync_drift_collapse",
+    "title": "Rollout weights only sync every 64 steps, the sampler goes stale, and GRPO collapses",
+    "family": "Configuration",
+    "domain": "Math",
+    "tags": [
+      "verl",
+      "grpo",
+      "vllm",
+      "weight-sync",
+      "rollout-staleness",
+      "off-policy-drift",
+      "issue-only"
+    ],
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "dataset": "Jiayi-Pan/Countdown-Tasks-3to4: 32,768 train / 1,024 disjoint test",
+    "framework": "verl 0.8.0 / GRPO (async rollout server)",
+    "image": "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12",
+    "created": "2026-11-24",
+    "license": "Apache-2.0",
+    "brief": "A throughput experiment sets rollout_sync_interval=64, so the resident rollout replicas serve a policy up to 63 steps stale while the trainer recomputes old_log_probs from the current weights -- the ratio/clip metrics stay blind to the mismatch and the uncorrected drift distills the policy toward its own stale sampler.",
+    "issue": "Training reward stays flat in its initial 0.02-0.05 band for all 64 steps of the interval (the every-step control reaches 0.26-0.31), the sampler-trainer probe climbs monotonically to 115x the control's noise floor, entropy decays 0.69 to 0.07, and after the step-64 sync pushes the drifted policy into the sampler the reward is exactly 0.0 with every response pinned to the 512-token cap; held-out accuracy is 0.0 at step 70 against 0.25-0.27 for the control. The clip fraction is lower in the collapsed run than in the control -- nothing in the standard PPO/GRPO metrics flags the failure."
   }
 ];

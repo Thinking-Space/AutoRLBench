@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "command": "bash -s <<'AUTORL_RUN'\nset -euo pipefail\n# Harbor inlines root run specs before the Issue verifier as well.\nif [[ ${AUTORLBENCH_EVALUATION_LEVEL:-} == issue && ${AUTORLBENCH_TASK_ROOT:-} == /tests ]]; then\n  exit 0\nfi\nmkdir -p \"$AUTORLBENCH_RESULTS/experiment_logs\" && bash run_grpo.sh\nAUTORL_RUN",
+  "env": {
+    "MODEL": "$AUTORLBENCH_WORKSPACE/models/Qwen2.5-1.5B-Instruct",
+    "NGPU": "2",
+    "STEPS": "3",
+    "EXP": "grpo",
+    "LOG_DIR": "$AUTORLBENCH_RESULTS/experiment_logs",
+    "VERL_FILE_LOGGER_PATH": "$AUTORLBENCH_RESULTS/experiment_logs/metrics.jsonl",
+    "WANDB_MODE": "offline",
+    "WANDB_API_KEY": "offline",
+    "WANDB_SILENT": "true",
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "HF_DATASETS_OFFLINE": "1"
+  },
+  "timeout_s": 7200,
+  "log_roots": [
+    "experiment_logs"
+  ]
+}

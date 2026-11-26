@@ -1151,6 +1151,27 @@
  * (Qwen3.8-Max from its real chat session store) and audited clean of
  * network access. The published issue-judgment total below moves
  * 503 -> 523.
+ * The twenty-two verl_quantized_rollout_drift_collapse and
+ * verl_stale_weight_sync_drift_collapse issue records were published
+ * on 26 Nov 2026 from the local cybertron-evaluate sweep.
+ * verl_quantized_rollout_drift_collapse: zero pass -- the fp8
+ * rollout engine re-quantizes the bf16 trainer's weights on every
+ * sync, the drift compounds into a delayed collapse (healthy to
+ * ~step 70, exactly 0.0 from step 78, rollouts fluent throughout);
+ * DeepSeek-V4.1-Flash alone names the root cause (0.9).
+ * verl_stale_weight_sync_drift_collapse: four pass (GLM-5.3 1.0;
+ * GPT-6-Astra, Kimi-K3.1-Pro and GPT-6.1-Sol 0.9667) --
+ * rollout_sync_interval=64 keeps the resident sampler stale while
+ * the trainer-recomputed old_log_probs hide the mismatch from the
+ * ratio/clip metrics. The round was published under the 26 Nov
+ * judge calibration: root-cause semantic-equivalence acceptance,
+ * review-side control arms excluded from the evidence list,
+ * secondary evidence items optional, and multi-round median
+ * arbitration against LLM-judge variance. Claude-Fable-5.1 refused
+ * both tasks (ToS competing-models classifier); Gemini-4-Argon
+ * produced no-answer zeros (its first T1 attempt hit a 429 and was
+ * rerun; the rerun is the published row). The published
+ * issue-judgment total below moves 523 -> 545.
  * The 237 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -13304,6 +13325,314 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 2487000,
     "steps": 94,
     "costUsd": 7.7465
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "gpt6astra-quantized-rollout-drift",
+    "file": "agent-trace/gpt6astra-quantized-rollout-drift.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 108000,
+    "steps": 18,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "gpt61sol-quantized-rollout-drift",
+    "file": "agent-trace/gpt61sol-quantized-rollout-drift.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 93000,
+    "steps": 18,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "fable51-quantized-rollout-drift",
+    "file": "agent-trace/fable51-quantized-rollout-drift.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 9000,
+    "steps": 3,
+    "costUsd": 0.1769
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "glm53-quantized-rollout-drift",
+    "file": "agent-trace/glm53-quantized-rollout-drift.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 2485000,
+    "steps": 63,
+    "costUsd": 16.5416
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "kimi-quantized-rollout-drift",
+    "file": "agent-trace/kimi-quantized-rollout-drift.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 328000,
+    "steps": 22,
+    "costUsd": 0.7888
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "kimi31-quantized-rollout-drift",
+    "file": "agent-trace/kimi31-quantized-rollout-drift.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 1646000,
+    "steps": 45,
+    "costUsd": 4.8053
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "dsv4-quantized-rollout-drift",
+    "file": "agent-trace/dsv4-quantized-rollout-drift.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 1636000,
+    "steps": 59,
+    "costUsd": 4.2633
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "qwen38-quantized-rollout-drift",
+    "file": "agent-trace/qwen38-quantized-rollout-drift.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 985000,
+    "steps": 31,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "grok47-quantized-rollout-drift",
+    "file": "agent-trace/grok47-quantized-rollout-drift.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.3,
+    "durationMs": 478000,
+    "steps": 62,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "dsv41flash-quantized-rollout-drift",
+    "file": "agent-trace/dsv41flash-quantized-rollout-drift.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 2750000,
+    "steps": 186,
+    "costUsd": 18.5406
+  },
+  {
+    "task": "configuration/verl_quantized_rollout_drift_collapse",
+    "slug": "gemini4-quantized-rollout-drift",
+    "file": "agent-trace/gemini4-quantized-rollout-drift.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 180000,
+    "steps": 3,
+    "costUsd": 0.0463
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "gpt6astra-stale-sync-drift",
+    "file": "agent-trace/gpt6astra-stale-sync-drift.json",
+    "model": "GPT-6-Astra",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.9667,
+    "durationMs": 80000,
+    "steps": 15,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "gpt61sol-stale-sync-drift",
+    "file": "agent-trace/gpt61sol-stale-sync-drift.json",
+    "model": "GPT-6.1-Sol",
+    "agent": "codex",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.9667,
+    "durationMs": 69000,
+    "steps": 12,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "fable51-stale-sync-drift",
+    "file": "agent-trace/fable51-stale-sync-drift.json",
+    "model": "Claude-Fable-5.1",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 8000,
+    "steps": 3,
+    "costUsd": 0.1808
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "glm53-stale-sync-drift",
+    "file": "agent-trace/glm53-stale-sync-drift.json",
+    "model": "GLM-5.3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 567000,
+    "steps": 33,
+    "costUsd": 4.7007
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "kimi-stale-sync-drift",
+    "file": "agent-trace/kimi-stale-sync-drift.json",
+    "model": "Kimi-K3",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.6,
+    "durationMs": 256000,
+    "steps": 31,
+    "costUsd": 4.1702
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "kimi31-stale-sync-drift",
+    "file": "agent-trace/kimi31-stale-sync-drift.json",
+    "model": "Kimi-K3.1-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 0.9667,
+    "durationMs": 591000,
+    "steps": 13,
+    "costUsd": 2.1349
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "dsv4-stale-sync-drift",
+    "file": "agent-trace/dsv4-stale-sync-drift.json",
+    "model": "DeepSeek-V4-Pro",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.7667,
+    "durationMs": 695000,
+    "steps": 34,
+    "costUsd": 1.7147
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "qwen38-stale-sync-drift",
+    "file": "agent-trace/qwen38-stale-sync-drift.json",
+    "model": "Qwen3.8-Max",
+    "agent": "qwen-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.8,
+    "durationMs": 683000,
+    "steps": 18,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "grok47-stale-sync-drift",
+    "file": "agent-trace/grok47-stale-sync-drift.json",
+    "model": "Grok-4.7",
+    "agent": "grok-build",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.7667,
+    "durationMs": 165000,
+    "steps": 52,
+    "costUsd": null
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "dsv41flash-stale-sync-drift",
+    "file": "agent-trace/dsv41flash-stale-sync-drift.json",
+    "model": "DeepSeek-V4.1-Flash",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.75,
+    "durationMs": 876000,
+    "steps": 44,
+    "costUsd": 3.5931
+  },
+  {
+    "task": "configuration/verl_stale_weight_sync_drift_collapse",
+    "slug": "gemini4-stale-sync-drift",
+    "file": "agent-trace/gemini4-stale-sync-drift.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 24000,
+    "steps": 2,
+    "costUsd": 0.0165
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];

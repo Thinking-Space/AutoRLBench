@@ -1,0 +1,16 @@
+category: configuration
+framework: verl
+task: verl_stale_weight_sync_drift_collapse
+verdict: unhealthy
+root_cause:
+  - run_grpo.sh sets trainer.rollout_sync_interval=64, so the resident rollout replicas only receive the actor's weights on multiples of 64 optimization steps; between syncs every rollout is sampled from a policy up to 63 steps stale while the trainer recomputes old_log_probs from the current weights, leaving the GRPO ratio/clip metrics blind to the sampler-trainer mismatch, and the resulting drift term distills the policy toward its own stale sampler — the reward never leaves its initial band, entropy decays, and the first mid-run sync at step 64 pushes the drifted policy into the sampler after which the reward is exactly 0.0
+evidence_metrics:
+  - training reward stays flat at 0.0234-0.0449 for 64 steps and is exactly 0.0000 from step 65 (response length pinned at the 512-token cap, entropy 0.025, clipfrac 0.0000), while the identical every-step control reaches 0.2637-0.3066 training reward and 0.25-0.27 held-out accuracy
+  - training/rollout_probs_diff_mean climbs monotonically from the ~0.005 engine-vs-trainer floor to 0.5312 at step 64 (~115x the control's floor) and resets to 0.0077 right after the step-64 sync; the control stays at the floor throughout
+  - update_weights done appears exactly twice in train.log (initial sync + step 64) instead of every step as in the control; the syncs that do run complete cleanly, so the weights flow correctly — just late
+  - the severity ladder is monotone: k=1 healthy, k=8 reaches 0.4824 training reward by step 60 then collapses to 0.0371@70 with a period-8 sawtooth in the probe, k=64 never learns
+  - actor/pg_clipfrac is at or below 0.03 everywhere and is lower in the collapsed run (0.000) than in the control (0.003) — the ratio metrics cannot express the failure
+  - rollout outputs stay coherent through the flat phase (step 61: "<answer>5 * 8 + 38</answer>") and only degenerate as part of the policy collapse (step 66+: arithmetic-word salad into "- - + -" repetition to the cap), unlike engine-corruption failures that are broken from step 1
+fix:
+  must:
+    - set rollout_sync_interval=1 (per-step sync) or otherwise shrink the interval, or apply an off-policy correction that references the sampler (importance weighting with calculate_log_probs, or score centering)

@@ -1,0 +1,13 @@
+category: hyperparameter
+framework: verl
+task: verl_quantized_rollout_drift_collapse
+verdict: unhealthy
+root_cause:
+  - run_grpo.sh enables rollout.quantization=fp8 for the vLLM engine while the trainer stays bf16; every weight sync re-quantizes the trainer's bf16 tensors into the engine, so the sampler tracks a quantized shadow of the policy and the accumulated off-policy drift collapses the run past ~step 70
+evidence_metrics:
+  - critic/score/mean healthy to ~step 70 (0.535 at step 59) then 0.0 from step 78 through step 300, while the identical bf16 control stays healthy for all 300 steps
+  - two 50-step seeds of the same config look healthy (0.584/0.514 vs control 0.631/0.549) - the collapse needs a longer horizon
+  - rollouts fluent on both sides of the collapse: 0 empty, 0 '!'-only, 27-67% <answer> tags, responses keep quoting the prompt's numbers at step 84
+fix:
+  must:
+    - remove the rollout/trainer precision mismatch (disable the weight quantization, use a milder tier, or match precision)

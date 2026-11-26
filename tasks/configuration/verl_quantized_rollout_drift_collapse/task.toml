@@ -1,0 +1,35 @@
+title = "The fp8-quantized rollout engine re-quantizes the trainer's bf16 weights on every sync, and the drift compounds: a GRPO run that is healthy for ~70 steps collapses to zero reward and stays there, with fluent rollouts the whole way down"
+license = "Apache-2.0"
+created_date = "2026-11-25"
+type = "configuration"
+domain = "Math"
+tags = ["verl", "grpo", "vllm", "quantized-rollout", "fp8", "delayed-training-collapse", "off-policy-drift", "issue-only"]
+
+[submitter]
+name = "Xuyang Yuan"
+
+[model]
+name = "Qwen/Qwen2.5-1.5B-Instruct@989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
+
+[dataset]
+name = "Jiayi-Pan/Countdown-Tasks-3to4 countdown pool (workspace/raw/countdown/data/train-00000-of-00001.parquet, 490,364 problems; RL parquet built at launch by run_grpo.sh)"
+
+[training]
+framework = "verl"
+algo = "grpo"
+script = "run_grpo.sh"
+script_args = []
+
+[environment]
+image = "ghcr.io/yhyayi/autorlbench:vllm0.11-torch2.8-cu128@sha256:6f7c302c0161a6c32d978faade165c86c153575baf028e729d7eebe44c06f683"
+image_stack = "vllm0.11.0-torch2.8.0-flashattn2.8.3-cu128-py3.12"
+
+# The recorded run uses two GPUs (two vLLM replicas at TP=1, FSDP world size 2);
+# run_grpo.sh defaults NGPU to 2. verl v0.8.0 (7aed6b2) ships in workspace/verl
+# with one patched file (see environment/source_manifest.json); the image already
+# carries verl's Python dependencies.
+gpus = 2
+
+[outcome]
+failure_type = "training_collapse"
+failure_reason = "run_grpo.sh turns on vLLM online fp8 weight quantization for the rollout engine (actor_rollout_ref.rollout.quantization=fp8) as a throughput decision, keeping the trainer in bf16. Every weight sync re-quantizes the trainer's bf16 tensors into the engine (verl/utils/vllm/vllm_fp8_utils.py, load_quanted_weights), so the sampling policy keeps tracking a quantized shadow of the trained policy and the off-policy drift compounds: the run is healthy for ~70 steps (reward up to 0.535 at step 59), then slides monotonically to critic/score/mean = 0.0 by step 78 and stays at 0 through step 300, while the rollouts stay fluent through the collapse (steps 1/59/72/78/84 dumps: 0 empty, 0 '!'-only, 27-74% still close an <answer> tag, and at step 84 the responses still quote the prompt's numbers; entropy ~0.6, no NaN), only degrading into tag-repetition babble much later (steps 150/300: 509/506 of 512 still close an <answer> tag around mixed-script fragments, still 0 empty and 0 '!'-only), with no engine error at any point. Two 50-step seeds of the same config look completely healthy (0.584/0.514 vs the bf16 control's 0.631/0.549) - the collapse only appears past a 50-step budget, which is the trap. The bf16 control with the identical seed, data, and 300-step budget stays healthy at every step (final 0.678), and the fp8-KV arms of the same ladder collapse immediately instead (a different, corruption-style family)."
