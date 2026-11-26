@@ -1205,12 +1205,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 0.97,
+    "passed": false,
+    "score": 0.45,
     "durationMs": 1527000,
     "steps": 21,
     "costUsd": 7.3342,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】同上，未见明确难度归因。Group 1 ✗ → rc=0.45",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "infrastructure/verl_moe_token_normalization",
@@ -1502,12 +1504,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "codex",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.55,
     "durationMs": 586000,
     "steps": 24,
     "costUsd": 2.8544,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】主归因 \"sparse binary reward on problems the model rarely solves\"——归因到 reward 设计而非数据难度。\"rarely solves\" 是观察不是归因。Group 1 ✗ Group 2 ✓ → rc=0.5",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1518,11 +1522,13 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": true,
-    "score": 1.0,
+    "score": 0.97,
     "durationMs": 839000,
     "steps": 30,
     "costUsd": 0.7528,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】难度归因在：\"The evidence points to training tasks that this model rarely solves\" + \"an all-tests-or-zero reward that leaves most groups without a learning signal\"——两组根因均覆盖。\"rarely solves\" 是对训练数据超出模型能力的明确表述。",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1532,12 +1538,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.55,
     "durationMs": 2655000,
     "steps": 54,
     "costUsd": 5.7029,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】主归因 \"strictly binary all-tests-pass reward applied to a training set with median 63 tests which a 1.5B policy fully solves <1%\"——主语是 binary reward 设计，数据特征只是条件从句。未明确说\"数据太难\"。Group 1 ✗ Group 2 ✓ → rc=0.5",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1547,12 +1555,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.5,
     "durationMs": 786000,
     "steps": 41,
     "costUsd": 7.9214,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】主归因 \"Reward sparsity under binary all-or-nothing scoring\" + \"Hyperparameters that shrink the residual signal\"——完全归因到 reward 设计和超参，未提数据难度。Group 1 ✗ Group 2 ✓ → rc=0.5",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1562,12 +1572,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.5,
     "durationMs": 943000,
     "steps": 31,
     "costUsd": 6.948,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】主归因 \"Binary all-or-nothing reward on ~200-test problems\"——归因到 reward 设计。Group 1 ✗ Group 2 ✓ → rc=0.5",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1577,12 +1589,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "claude-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.5,
     "durationMs": 2716000,
     "steps": 42,
     "costUsd": 14.0503,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】主归因 \"reward-signal starvation from taco.py::compute_score returns binary\"——归因到 reward 代码。Group 1 ✗ Group 2 ✓ → rc=0.5",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1593,11 +1607,13 @@ window.AUTORLBENCH_RUNS = [
     "effort": "max",
     "level": "issue",
     "passed": false,
-    "score": 0.85,
+    "score": 0.5,
     "durationMs": 2077000,
     "steps": 53,
     "costUsd": 23.7769,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】主归因 \"Binary all-or-nothing reward assignment\"——归因到 reward 设计。Group 1 ✗ Group 2 ✓ → rc=0.5",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1607,12 +1623,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "qwen-code",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.5,
     "durationMs": 1997000,
     "steps": 31,
     "costUsd": 0.9666,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】主归因 \"reward sparsity collapsing the GRPO advantage\"——虽然给出 train 0.026 vs validation 0.2246 的对比数据，但因果归因到 reward 稀疏性而非数据难度。Group 1 ✗ Group 2 ✓ → rc=0.5",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "data/verl_taco_difficulty_mismatch",
@@ -1622,12 +1640,14 @@ window.AUTORLBENCH_RUNS = [
     "agent": "grok-build",
     "effort": "max",
     "level": "issue",
-    "passed": true,
-    "score": 1.0,
+    "passed": false,
+    "score": 0.45,
     "durationMs": 523000,
     "steps": 40,
     "costUsd": 2.9649,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】未找到难度归因或 GRPO 饿死链的完整表述。Group 1 ✗ Group 2 部分 → rc=0.45",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "reward/idea_awm_reward_diagnosis",
@@ -8614,7 +8634,9 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 0,
     "steps": 139,
     "costUsd": 10.8555,
-    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json"
+    "rejudgmentSource": "issue-rejudgments-taco-difficulty.json",
+    "auditReason": "【2026-11-26 root cause substance 重判 · oracle 修订】唯一完整通过：明确写 \"the training parquet is a disjoint, much harder TACO distribution than the held-out TACO-easy set\" + 精确通过率对比（train 0.78% vs validation 22.5%）——数据难度归因与 GRPO 饿死链均完整。",
+    "rejudgedAt": "2026-11-26"
   },
   {
     "task": "data/verl_taco_wrong_expected_output",

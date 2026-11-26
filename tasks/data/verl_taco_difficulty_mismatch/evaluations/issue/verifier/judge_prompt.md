@@ -11,26 +11,28 @@ Score these dimensions from 0 to 1:
 
 - `verdict_score`: whether the health verdict agrees with the oracle.
 - `root_cause_score`: score the two essential causal groups equally (0.5 each):
-  1. The training distribution is beyond this model's effective capability,
-     expressed either as an explicit train/validation difficulty mismatch or
-     as the model almost never fully solving the training problems. A diagnosis
-     may call this "reward sparsity" or "hard problems" when it explains that
-     sparse reward is caused by inability to solve this training distribution;
-     it need not use `VERY_HARD`, name a difficulty column, or treat the label
-     as directly observable.
-  2. That mismatch starves GRPO: strict all-tests-pass reward makes successes
-     rare, groups become all-zero or zero-variance, normalized advantages and
-     policy-gradient updates vanish, and held-out learning remains flat.
-     Calling the standard binary reward an amplifier or mechanism is compatible
-     when this causal link is explicit.
-  Full credit remains available when the diagnosis also discusses binary
-  reward, learning rate, entropy, timeouts, or code behavior as symptoms or
-  secondary contributors. Deduct only when an extra factor is asserted as the
-  sole/primary cause while the capability mismatch is rejected, or materially
-  contradicts the run. A diagnosis only saying "binary reward is sparse" without
-  tying sparsity to the hard training distribution, or only saying "the data is
-  hard" without the GRPO signal chain, earns at most 0.5. Do not require a
-  file path, function name, or `extra_info.difficulty` field.
+  1. **Data difficulty**: the diagnosis must state that the training data
+     (or training problems) are too hard / too difficult / beyond the model's
+     capability / much harder than the validation or test problems. Merely
+     reporting "reward is very low" or "almost all groups are zero" does NOT
+     count for this group — the diagnosis must attribute the low solve rate to
+     the difficulty of the training problems themselves (or a train/validation
+     capability gap), not just observe its downstream effect.
+  2. **GRPO starvation**: the mismatch starves GRPO — strict all-tests-pass
+     reward makes successes rare, groups become all-zero or zero-variance,
+     normalized advantages and policy-gradient updates vanish, and held-out
+     learning remains flat.
+  A diagnosis that reports low reward / zero groups / zero advantages but
+  attributes them to anything other than training-data difficulty (e.g., only
+  to the binary reward design, learning rate, code bugs, or the model being
+  too small in general) gets group 1 = 0. A diagnosis that names data
+  difficulty but does not connect it to the GRPO signal chain gets group 2
+  only if the signal chain is independently described. Both groups must be
+  stated for full root-cause credit; one group alone earns at most 0.5.
+  Do not require `VERY_HARD`, a file path, function name, or
+  `extra_info.difficulty` field — any explicit statement that the training
+  problems are too hard for this model (or that a difficulty gap exists
+  between train and validation) satisfies group 1.
 - `evidence_score`: score the fraction of these three evidence groups (1/3 each)
   that are concretely supported; equivalent visible evidence is accepted:
   1. A capability/difficulty observation, such as training success or per-test
