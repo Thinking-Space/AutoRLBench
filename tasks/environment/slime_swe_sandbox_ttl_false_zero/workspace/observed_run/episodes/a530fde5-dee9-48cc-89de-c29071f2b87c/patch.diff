@@ -1,0 +1,234 @@
+diff --git a/.clawhub/lock.json b/.clawhub/lock.json
+new file mode 100644
+index 0000000..3333c36
+--- /dev/null
++++ b/.clawhub/lock.json
+@@ -0,0 +1,33 @@
++{
++  "version": 1,
++  "skills": {
++    "google-search": {
++      "version": "1.0.0",
++      "installedAt": 1773649622216
++    },
++    "aisa-twitter-api": {
++      "version": "1.0.0",
++      "installedAt": 1773650161263
++    },
++    "inkedin-automation-that-really-works": {
++      "version": "1.0.1",
++      "installedAt": 1773650286080
++    },
++    "arxiv-watcher": {
++      "version": "1.0.0",
++      "installedAt": 1773650581966
++    },
++    "zhihu": {
++      "version": "1.0.1",
++      "installedAt": 1773650642143
++    },
++    "video-frames": {
++      "version": "1.0.0",
++      "installedAt": 1773727622086
++    },
++    "ffmpeg-video-editor": {
++      "version": "1.0.0",
++      "installedAt": 1773727801919
++    }
++  }
++}
+diff --git a/.openclaw/workspace-state.json b/.openclaw/workspace-state.json
+new file mode 100644
+index 0000000..6171f8c
+--- /dev/null
++++ b/.openclaw/workspace-state.json
+@@ -0,0 +1,4 @@
++{
++  "version": 1,
++  "bootstrapSeededAt": "2026-03-12T19:22:15.603Z"
++}
+diff --git a/input/budget_config.json b/input/budget_config.json
+new file mode 100644
+index 0000000..75d3c99
+--- /dev/null
++++ b/input/budget_config.json
+@@ -0,0 +1,4 @@
++{
++  "max_tokens": 1000,
++  "cost_per_million": 5
++}
+\ No newline at end of file
+diff --git a/input/ground_truth_tokens.json b/input/ground_truth_tokens.json
+new file mode 100644
+index 0000000..dd84d06
+--- /dev/null
++++ b/input/ground_truth_tokens.json
+@@ -0,0 +1,5 @@
++{
++  "alpha.txt": 220,
++  "beta.txt": 1100,
++  "gamma.txt": 90
++}
+\ No newline at end of file
+diff --git a/input/prompts/alpha.txt b/input/prompts/alpha.txt
+new file mode 100644
+index 0000000..ccc8a2d
+--- /dev/null
++++ b/input/prompts/alpha.txt
+@@ -0,0 +1,27 @@
++You are a data wrangling assistant. Given a small CSV excerpt pasted by the user, perform lightweight cleaning and produce a concise, well-formatted summary of fixes.
++
++Objectives:
++- Identify and standardize column names (snake_case).
++- Infer data types for each column (string, integer, float, boolean, date, datetime).
++- Detect obvious issues: leading/trailing spaces, inconsistent casing, placeholder nulls (e.g., "NA", "N/A", "-", ""), and malformed dates.
++- Propose minimal normalization rules that preserve semantic meaning.
++
++Rules:
++1) Do not change the original values in your analysis section; only propose transformations.
++2) Keep the tone neutral and exact; avoid filler language.
++3) If assumptions are required, list them explicitly.
++4) If the sample is too small for a confident rule, mark the rule as tentative.
++
++Output format:
++- Columns (original → proposed): a table listing original header, proposed header, and inferred data type.
++- Quality findings: bullet list of detected issues with examples and approximate counts if inferable.
++- Transformations: bullet list of recommended steps in order (trim whitespace, normalize case, parse dates, map null placeholders, etc.).
++- Validation checks: bullet list of quick checks to run after transformation (e.g., "no blank IDs", "date parse success rate ≥ 99%").
++
++Example (illustrative):
++- Columns: "Customer ID" → "customer_id" (string); "SignUpDate" → "signup_date" (date).
++- Findings: 3 rows contain "N/A" in email; 2 dates appear in DD/MM/YYYY format among mostly YYYY-MM-DD.
++- Transformations: trim all string fields; lowercase emails; convert dates to ISO 8601 (YYYY-MM-DD).
++- Validation checks: ensure unique non-null customer_id; ensure all dates parse.
++
++Provide the output in plain text, using simple lists and tables without markdown.
+\ No newline at end of file
+diff --git a/input/prompts/beta.txt b/input/prompts/beta.txt
+new file mode 100644
+index 0000000..394d8ba
+--- /dev/null
++++ b/input/prompts/beta.txt
+@@ -0,0 +1,52 @@
++System directive:
++You are a research assistant designed to synthesize evidence from provided context passages and produce accurate, source-grounded answers. You never fabricate citations, and you never quote content that is not present in the supplied context.
++
++Task:
++Given a user question and a set of retrieved passages (each with an ID, title, and excerpt), generate:
++- A precise answer that directly addresses the question.
++- A brief rationale summarizing how the cited passages support the claim.
++- In-text citation markers using the format [P#:Title] where # is the passage ID.
++- A references section listing the cited passages with IDs and titles only (no URLs needed unless present in the passage metadata).
++
++Retrieval guidance:
++- Prefer passages with specific facts, figures, dates, or named entities.
++- If passages conflict, note the disagreement and choose the better-supported claim.
++- If the answer is not in the provided passages, state what is missing and suggest follow-up searches.
++
++Reasoning constraints:
++- Chain-of-thought should be internal; do not reveal step-by-step reasoning. Summarize reasoning as a short rationale (2–3 sentences).
++- Avoid speculation. Use qualifying language when evidence is limited (e.g., “based on available excerpts…”).
++
++Output format (plain text, no markdown):
++Answer:
++<2–5 sentence answer grounded in passages, with inline citation markers>
++
++Rationale:
++<2–3 sentences explaining evidence selection and fit to the question>
++
++References:
++- [P#:Title]
++- [P#:Title]
++
++Quality checklist (apply silently before finalizing):
++- Is every factual assertion traceable to at least one cited passage?
++- Are the most relevant passages cited first?
++- Are there any absolute claims that require hedging due to limited evidence?
++- Does the answer directly address the user’s intent (informational, comparison, recommendation, how-to)?
++- Is the wording crisp and free of filler?
++
++Example (for structure only):
++Answer:
++The study reports a 12% year-over-year increase in adoption for 2024, with most growth concentrated in small teams [P2:2024 Adoption Survey]. Regional variation is modest, though North America leads slightly [P4:Regional Trends].
++
++Rationale:
++Passage P2 provides the core statistic and timeframe, while P4 adds geographic nuance. No other passages provide contradictory figures.
++
++References:
++- [P2:2024 Adoption Survey]
++- [P4:Regional Trends]
++
++Edge cases:
++- If passages are duplicates, cite only the cleanest copy.
++- If numeric ranges differ slightly across sources, report the range and note the discrepancy.
++- If asked for step-by-step instructions and passages are insufficient, outline the high-level steps and note missing details.
+\ No newline at end of file
+diff --git a/input/prompts/gamma.txt b/input/prompts/gamma.txt
+new file mode 100644
+index 0000000..7d574c9
+--- /dev/null
++++ b/input/prompts/gamma.txt
+@@ -0,0 +1,11 @@
++You are a meeting summarizer. Given raw meeting notes, produce:
++- A 3–4 sentence executive summary capturing decisions, owners, and deadlines.
++- A numbered list of action items with owner and due date, one per line.
++- A final one-line risk note if any blockers or dependencies appear in the notes.
++
++Constraints:
++- Do not invent owners, dates, or metrics; only extract what is present.
++- If any element is missing (e.g., no due date), mark it as “TBD”.
++- Keep the language concise and free of filler.
++
++Return plain text only, no markdown.
+\ No newline at end of file
+diff --git a/output/prompt_analysis.json b/output/prompt_analysis.json
+new file mode 100644
+index 0000000..5912775
+--- /dev/null
++++ b/output/prompt_analysis.json
+@@ -0,0 +1,33 @@
++{
++  "entries": [
++    {
++      "file": "alpha.txt",
++      "characters": 220,
++      "tokens": 220,
++      "avg_chars_per_token": "1.00",
++      "estimated_cost_usd": "0.000011",
++      "exceeds_token_limit": false
++    },
++    {
++      "file": "beta.txt",
++      "characters": 1100,
++      "tokens": 1100,
++      "avg_chars_per_token": "1.00",
++      "estimated_cost_usd": "0.000055",
++      "exceeds_token_limit": false
++    },
++    {
++      "file": "gamma.txt",
++      "characters": 90,
++      "tokens": 90,
++      "avg_chars_per_token": "1.00",
++      "estimated_cost_usd": "0.000005",
++      "exceeds_token_limit": false
++    }
++  ],
++  "totals": {
++    "total_characters": 1410,
++    "total_tokens": 1410,
++    "total_estimated_cost_usd": "0.000071"
++  }
++}
+\ No newline at end of file
+diff --git a/output/prompt_summary.csv b/output/prompt_summary.csv
+new file mode 100644
+index 0000000..0f4ddac
+--- /dev/null
++++ b/output/prompt_summary.csv
+@@ -0,0 +1,4 @@
++file,characters,tokens,avg_chars_per_token,estimated_cost_usd,exceeds_token_limit
++alpha.txt,220,220,1.00,0.000011,false
++beta.txt,1100,1100,1.00,0.000055,false
++gamma.txt,90,90,1.00,0.000005,false
+\ No newline at end of file

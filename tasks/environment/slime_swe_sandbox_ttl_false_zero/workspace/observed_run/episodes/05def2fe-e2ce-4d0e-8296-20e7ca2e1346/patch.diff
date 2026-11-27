@@ -1,0 +1,237 @@
+diff --git a/.clawhub/lock.json b/.clawhub/lock.json
+new file mode 100644
+index 0000000..3333c36
+--- /dev/null
++++ b/.clawhub/lock.json
+@@ -0,0 +1,33 @@
++{
++  "version": 1,
++  "skills": {
++    "google-search": {
++      "version": "1.0.0",
++      "installedAt": 1773649622216
++    },
++    "aisa-twitter-api": {
++      "version": "1.0.0",
++      "installedAt": 1773650161263
++    },
++    "inkedin-automation-that-really-works": {
++      "version": "1.0.1",
++      "installedAt": 1773650286080
++    },
++    "arxiv-watcher": {
++      "version": "1.0.0",
++      "installedAt": 1773650581966
++    },
++    "zhihu": {
++      "version": "1.0.1",
++      "installedAt": 1773650642143
++    },
++    "video-frames": {
++      "version": "1.0.0",
++      "installedAt": 1773727622086
++    },
++    "ffmpeg-video-editor": {
++      "version": "1.0.0",
++      "installedAt": 1773727801919
++    }
++  }
++}
+diff --git a/.openclaw/workspace-state.json b/.openclaw/workspace-state.json
+new file mode 100644
+index 0000000..6171f8c
+--- /dev/null
++++ b/.openclaw/workspace-state.json
+@@ -0,0 +1,4 @@
++{
++  "version": 1,
++  "bootstrapSeededAt": "2026-03-12T19:22:15.603Z"
++}
+diff --git a/bin/process_auctions.py b/bin/process_auctions.py
+new file mode 100644
+index 0000000..3fc1567
+--- /dev/null
++++ b/bin/process_auctions.py
+@@ -0,0 +1,164 @@
++import csv
++import json
++from datetime import datetime
++
++def process_auctions(input_file, output_dir):
++    """
++    Process auction data according to specified criteria and requirements.
++    """
++    # Read the input CSV
++    with open(input_file, 'r', encoding='utf-8') as f:
++        reader = csv.DictReader(f)
++        rows = list(reader)
++
++    # Filter rows based on requirements
++    filtered_rows = []
++    for row in rows:
++        # Check all filter criteria
++        if (int(row['watchlist_flag']) == 1 and
++            int(row['time_left_min']) <= 180 and
++            float(row['seller_rating']) >= 97.0 and
++            (float(row['current_bid']) + float(row['shipping_cost'])) < float(row['my_max_bid'])):
++            filtered_rows.append(row)
++
++    # Calculate scores and rank
++    ranked_rows = []
++    for row in filtered_rows:
++        current_bid = float(row['current_bid'])
++        shipping_cost = float(row['shipping_cost'])
++        time_left_min = int(row['time_left_min'])
++        seller_rating = float(row['seller_rating'])
++        bid_increment = float(row['bid_increment'])
++        my_max_bid = float(row['my_max_bid'])
++
++        # Calculate affordability margin
++        affordability_margin = my_max_bid - (current_bid + shipping_cost)
++
++        # Calculate urgency points
++        if time_left_min <= 30:
++            urgency_points = 3
++        elif time_left_min <= 60:
++            urgency_points = 2
++        elif time_left_min <= 180:
++            urgency_points = 1
++        else:
++            urgency_points = 0
++
++        # Calculate score
++        score = (0.5 * affordability_margin) + (10 * (seller_rating / 100)) + (5 * urgency_points) - (0.5 * bid_increment)
++
++        # Create a new dictionary with all the calculated fields
++        new_row = {
++            'auction_id': row['auction_id'],
++            'title': row['title'],
++            'current_bid': current_bid,
++            'shipping_cost': shipping_cost,
++            'time_left_min': time_left_min,
++            'seller_rating': seller_rating,
++            'bid_increment': bid_increment,
++            'my_max_bid': my_max_bid,
++            'affordability_margin': affordability_margin,
++            'urgency_points': urgency_points,
++            'score': score,
++            'rank': None  # Will be set during ranking
++        }
++        ranked_rows.append(new_row)
++
++    # Sort by score descending, then by time_left_min ascending, then by current_bid ascending
++    ranked_rows.sort(key=lambda x: (-x['score'], x['time_left_min'], x['current_bid']))
++
++    # Assign ranks
++    for i, row in enumerate(ranked_rows):
++        row['rank'] = i + 1
++
++    # Extract top 5
++    top5 = ranked_rows[:5]
++
++    # Create output directory if it doesn't exist
++    import os
++    os.makedirs(output_dir, exist_ok=True)
++
++    # Create candidates.csv
++    candidates_csv_path = os.path.join(output_dir, 'candidates.csv')
++    with open(candidates_csv_path, 'w', encoding='utf-8') as f:
++        writer = csv.DictWriter(f, fieldnames=[
++            'auction_id', 'title', 'current_bid', 'shipping_cost',
++            'time_left_min', 'seller_rating', 'bid_increment',
++            'my_max_bid', 'affordability_margin', 'urgency_points',
++            'score', 'rank'
++        ], quoting=csv.QUOTE_ALL)
++        writer.writeheader()
++        writer.writerows(top5)
++
++    # Create meeting_notes.md
++    meeting_notes_path = os.path.join(output_dir, 'meeting_notes.md')
++    timestamp = datetime.now().isoformat()
++
++    with open(meeting_notes_path, 'w', encoding='utf-8') as f:
++        f.write(f"## Summary
++- Run timestamp: {timestamp}
++- Input file: {input_file}
++- Total rows parsed: {len(rows)}
++- Rows kept after filters: {len(filtered_rows)}
++- Ranking formula: score = 0.5*affordability_margin + 10*(seller_rating/100) + 5*urgency_points - 0.5*bid_increment\n\n")
++        f.write("## Top Targets\n")
++        for row in top5:
++            rank = row['rank']
++            auction_id = row['auction_id']
++            title = row['title']
++            score = round(row['score'], 2)
++            time_left_min = row['time_left_min']
++            snipe_offset_min_from_run = max(time_left_min - 1, 0)
++            f.write(f"- Rank {rank}: {auction_id} - {title} - Score: {score} - Snipe offset: {snipe_offset_min_from_run} min\n")
++        f.write("\n## Action Items\n")
++        for row in top5:
++            auction_id = row['auction_id']
++            title = row['title']
++            current_bid = row['current_bid']
++            shipping_cost = row['shipping_cost']
++            bid_increment = row['bid_increment']
++            my_max_bid = row['my_max_bid']
++
++            recommended_bid = my_max_bid - bid_increment
++            total_cost = current_bid + shipping_cost
++
++            f.write(f"- Prepare snipe at recommended_bid = {recommended_bid}\n")
++            f.write(f"- Verify seller feedback and item photos\n")
++            f.write(f"- Confirm total cost (current_bid + shipping_cost) is within budget\n")
++            f.write(f"  (Recommended bid: {recommended_bid}, Total cost: {total_cost})\n")
++            f.write("\n")
++
++    # Create process_log.json
++    process_log_path = os.path.join(output_dir, 'process_log.json')
++    process_log = {
++        'input_file': input_file,
++        'processed_at': timestamp,
++        'total_rows': len(rows),
++        'filtered_in_rows': len(filtered_rows),
++        'top5_ids': [row['auction_id'] for row in top5],
++        'outputs': {
++            'candidates_csv': candidates_csv_path,
++            'meeting_notes_md': meeting_notes_path
++        }
++    }
++
++    with open(process_log_path, 'w', encoding='utf-8') as f:
++        json.dump(process_log, f, indent=2)
++
++    return process_log
++
++if __name__ == '__main__':
++    import sys
++    if len(sys.argv) != 3:
++        print("Usage: python process_auctions.py <input_file> <output_directory>")
++        sys.exit(1)
++
++    input_file = sys.argv[1]
++    output_dir = sys.argv[2]
++
++    result = process_auctions(input_file, output_dir)
++    print("Auction processing completed successfully!")
++    print(f"Outputs written to {output_dir}")
++    print(f"Process log: {result['outputs']['process_log.json']}")
++    print(f"Candidates: {result['outputs']['candidates.csv']}")
++    print(f"Meeting notes: {result['outputs']['meeting_notes.md']}")
+\ No newline at end of file
+diff --git a/input/auctions_2026-04-18.csv b/input/auctions_2026-04-18.csv
+new file mode 100644
+index 0000000..b06697c
+--- /dev/null
++++ b/input/auctions_2026-04-18.csv
+@@ -0,0 +1,11 @@
++auction_id,title,current_bid,shipping_cost,time_left_min,seller_rating,bid_increment,my_max_bid,category,watchlist_flag
++A1,"Vintage Camera",120,15,45,99.2,2.5,180,collectibles,1
++A2,"Gaming GPU",300,20,25,98.5,5,360,electronics,1
++A3,"Rare Coin",75,5,170,97.5,1,150,collectibles,1
++A4,"Smartphone",200,10,190,99.0,2,250,electronics,1
++A5,"Drone",220,5,60,96.0,5,300,electronics,1
++A6,"Vintage Vinyl",40,10,15,98.0,1,70,collectibles,1
++A7,"Pro Keyboard",90,10,85,99.5,2,110,electronics,1
++A8,"Collectible Comic",160,0,50,99.8,1,159,collectibles,1
++A9,"VR Headset",180,15,35,97.2,2,220,electronics,0
++A10,"Action Figure Set",45,5,30,98.7,1,80,collectibles,1

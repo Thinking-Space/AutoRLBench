@@ -1,0 +1,33 @@
+category: environment
+framework: slime
+task: slime_swe_sandbox_ttl_false_zero
+verdict: unhealthy
+root_cause:
+- name: sandbox_ttl_misalignment
+  where: scripts/run_grpo_local_swe.sh (SLIME_AGENT_SANDBOX_TTL_SEC=120 vs SWE_AGENT_TIME_BUDGET_SEC=900)
+  observed: the sandbox backend kills every episode instance at 120s while the harness-side agent budget is 900s and real episodes live 82-295s, so 15/72 episodes are killed mid-work
+  expected: the instance cap covers the full episode lifetime (agent budget + verify margin), or infra failures are kept out of the reward channel
+- name: verify_chain_folding
+  where: examples/coding_agent_rl/swe.py::_LOCAL_VERIFY_WRAPPER and examples/coding_agent_rl/swe.py::run_local_evaluation
+  observed: the conversion wrapper maps any non-zero checker exit to reward.txt=0.0 with exit 0 (stderr buried in verify/checker.err), and the reward layer's blanket except returns EvalResult(0.0, True) for sandbox-unreachable/upload/read failures (traceback buried in verify/reward_layer.err)
+  expected: verify-side infrastructure failures are classified as infra and excluded from training (remove_sample + out of the GRPO baseline), with bounded verifier-only retry; valid zeros stay
+- name: grpo_baseline_pollution
+  where: slime GRPO group baseline over n_samples_per_prompt=4
+  observed: 61% of groups contain at least one false zero; sibling advantages are lifted by the baseline shift; killed trajectories eat full negative advantage; 2 of 9 steps had all-zero groups (signal annihilation); the train reward trajectory goes DOWN (early=0.159, late=0.055) while the control goes UP (early=0.202, late=0.259)
+  expected: infra-failed samples are excluded from the group baseline so the relative signal reflects model behavior only
+evidence_metrics:
+- 15/72 episodes (21%) TTL-killed in the frozen run; every killed episode scored a legal 0.0 with agent_exit_code=None
+- duration-gated zero rate: P(reward=0 | duration > TTL) = 0.81 vs P(reward=0 | duration <= TTL) = 0.48
+- GRPO group pollution: 11/18 groups (61%) contain at least one false zero; 2/9 steps had all-zero groups
+- train reward trajectory: defective goes DOWN (early=0.159, late=0.055) while control goes UP (early=0.202, late=0.259) — learning direction reversed
+- observed train reward: 0.101 (defective) vs 0.193 (control) — halved
+- the main run.log stays clean (reward=0.00 lines indistinguishable from genuine failures); the SandboxUnavailable tracebacks live only in episodes/<session>/verify/reward_layer.err
+- on the aligned configuration (TTL=400s) the same seed/data/stack yields zero kills and 61% non-zero rewards
+fix:
+  must:
+  - target: sandbox_ttl_misalignment
+    direction: align
+  - target: verify_chain_folding
+    direction: repair
+  - target: grpo_baseline_pollution
+    direction: repair

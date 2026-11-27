@@ -1,0 +1,34 @@
+title = "Sandbox instance TTL misaligned with the agent time budget folds verify failures into legal zero rewards"
+license = "Apache-2.0"
+created_date = "2026-11-27"
+type = "environment"
+domain = "SWE"
+tags = ["slime", "grpo", "sandbox-ttl", "reward-channel", "false-zero", "coding-agent", "clawgym", "ags"]
+
+[submitter]
+name = "Yinghao Chen"
+github = "yhyayi"
+
+[model]
+name = "Qwen3-4B-Instruct-2507"
+
+[dataset]
+name = "ClawGym-Bench (154 code-verified Work-scenario tasks, from RUC-AIBOX/ClawGym-Bench)"
+
+[training]
+framework = "slime"
+algo = "grpo"
+script = "scripts/run_grpo_local_swe.sh"
+
+[environment]
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+# Single node, colocated rollout + training: ray start --num-gpus 2 + --actor-num-gpus-per-node 2.
+# Sandboxes are remote AGS instances (E2B-compatible gateway); the fork's
+# E2BSandbox routes images through the enterprise registry and enforces the
+# instance TTL host-side (persistent instances ignore server-side lifetimes).
+gpus = 2
+
+[outcome]
+failure_type = "reward_poisoning"
+failure_reason = "The run is unhealthy because the sandbox backend's instance-lifetime cap (SLIME_AGENT_SANDBOX_TTL_SEC=120 in scripts/run_grpo_local_swe.sh, a host-cost decision recorded in notes.md) sits far below the harness-side agent time budget (SWE_AGENT_TIME_BUDGET_SEC=900) and was never reconciled with it, so 21% of episodes have their sandbox killed mid-work; the verify chain then folds every such infrastructure failure into a legal 0.0 (tests/test.sh maps any non-zero checker exit to reward.txt=0.0 with exit 0, and run_local_evaluation in examples/coding_agent_rl/swe.py returns EvalResult(0.0) from its blanket except), so 15 false zeros per 72 episodes enter the GRPO group baseline, polluting 61% of groups, halving the observed train reward from 0.19 to 0.10, and reversing the learning trajectory from UP (+0.057) to DOWN (-0.104) while the main training log shows only clean reward=0.00 lines."
