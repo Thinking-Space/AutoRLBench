@@ -1,0 +1,33 @@
+title = "Re-rendering a multi-turn conversation with the Qwen3 chat template drops the first answer's reasoning from GRPO training"
+license = "Apache-2.0"
+created_date = "2026-11-25"
+type = "environment"
+domain = "Math"
+tags = ["slime", "grpo", "qwen3", "multi-turn", "chat-template", "self-correction", "issue-only"]
+
+[submitter]
+name = "Sikuan Yan"
+github = "yansikuan"
+affiliation = "LMU Munich"
+
+[model]
+name = "Qwen/Qwen3-1.7B"
+
+[dataset]
+name = "MATH (hendrycks; DigitalLearningGmbH/MATH-lighteval train split, rev 0530c78), Level 5, 2,264 problems with a boxed answer of at most 40 characters (workspace/data/math_l5_train.jsonl)"
+
+[training]
+framework = "slime"
+algo = "grpo"
+script = "run_grpo.sh"
+
+[environment]
+image = "slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c"
+image_stack = "slime-v0.3.2-sglang0.5.15-torch2.11.0-flashattn2.8.3-cu129-py3.12"
+
+# The recorded run uses two GPUs (Megatron TP=1, data-parallel 2, SGLang colocated); run_grpo.sh defaults NGPU to 2.
+gpus = 2
+
+[outcome]
+failure_type = "silent_objective_change"
+failure_reason = "scripts/feedback_rollout.py builds the two-turn answer-then-review rollout by re-rendering the OpenAI-style message list with tokenizer.apply_chat_template, both for each turn's generation prompt and for the final training sample (loss mask 1 on assistant spans, rollout log-probs recomputed). The Qwen3 chat template strips the <think>...</think> block from assistant turns before the last user message, so the review turn is generated without the first answer's reasoning and turn 1 is trained as <|im_start|>assistant + final summary, tokens the policy never sampled (52-61% of generated tokens are in the trained sequence; 390 of 480 shipped responses start without <think>). Nothing errors and reward stays 0.72-0.79, but over 30 steps the review turn changes correct answers to wrong ones more often (3.2% -> 5.9%; control 0.4%) and fixes wrong ones less often (38.5% -> 20.1%; control 39.3% -> 30.3%), final reward drifts 0.789 -> 0.720 (control 0.809 -> 0.769), and grad_norm is 0.12-0.49 against 0.05-0.16 in a token-in, token-out control."
