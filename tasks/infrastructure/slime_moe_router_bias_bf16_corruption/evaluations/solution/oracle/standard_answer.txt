@@ -1,0 +1,19 @@
+STANDARD_ANSWER_V1
+CASE_ID: slime_moe_router_bias_bf16_corruption
+BENCHMARK_GROUP: B-INFRASTRUCTURE
+EXPECTED_VERDICT: unhealthy
+EXPECTED_ATTRIBUTION: checkpoint.py copies FP32 correction biases into a BF16 router destination before restoring expert-bias buffers to FP32, collapsing expert ordering.
+PRIMARY_METRIC: eval/correct_action_probability
+
+REQUIRED_ALL:
+- Identify checkpoint.py::load_hf_weights and the FP32-source to BF16-destination copy as causal.
+- Restore expert-bias buffers to FP32 with _maintain_float32_expert_bias before the copy.
+- Do not attribute the failure to unrelated timezone, update-rate, auxiliary-loss, batching, or OOM changes.
+
+GLOBAL_JUDGE_POLICY:
+- The score must be exactly 0 or 1.
+- Agent A must explicitly classify the run as healthy or unhealthy.
+- Every REQUIRED_ALL item must be satisfied.
+- A verdict mismatch forces score 0.
+- Equivalent technical wording in any language is acceptable.
+- task.yaml may clarify targets and aliases but may not relax REQUIRED_ALL.
