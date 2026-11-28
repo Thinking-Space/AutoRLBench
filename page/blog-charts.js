@@ -19,26 +19,28 @@
             errors: [['Infrastructure', 13], ['Algorithm', 9], ['Configuration', 5], ['Reward', 5], ['Data', 4], ['Environment', 2]],
             difficulty: [['Very hard', 16], ['Hard', 12], ['Medium', 7], ['Easy', 3]]
         },
-        models: [['GPT-6-Astra', 33.3], ['GPT-6.1-Sol', 33.3], ['Gemini-4-Argon', 28.6], ['GLM-5.3', 26.3], ['Kimi-K3.1-Pro', 22.8], ['Fable-5.1', 19.3], ['Qwen3.8-Max', 19.3], ['Grok-4.7', 17.5], ['Kimi-K3', 7.0], ['DeepSeek-V4-Pro', 3.5]],
+        models: [['DeepSeek-V4.1-Flash', 35.7], ['GPT-6.1-Sol', 32.9], ['GLM-5.3', 28.6], ['Gemini-4-Argon', 27.4], ['GPT-6-Astra', 27.1], ['Grok-4.7', 25.7], ['Qwen3.8-Max', 21.4], ['Claude-Fable-5.1', 18.8], ['Kimi-K3.1-Pro', 18.6], ['Kimi-K3', 7.1], ['DeepSeek-V4-Pro', 4.3]],
         // Per-model [issue, solution] pass rates behind the overall bars;
         // the leaderboard tooltip reads these in the overall view and the
         // categoryByModel entries in a category view.
         modelLevels: {
-            'GPT-6-Astra': [34.3, 38.9],
-            'GPT-6.1-Sol': [31.4, 38.9],
-            'Gemini-4-Argon': [17.1, 55.6],
-            'GLM-5.3': [22.9, 33.3],
-            'Kimi-K3.1-Pro': [17.1, 38.9],
-            'Fable-5.1': [17.1, 27.8],
-            'Qwen3.8-Max': [14.3, 27.8],
-            'Grok-4.7': [17.1, 16.7],
-            'Kimi-K3': [0, 16.7],
-            'DeepSeek-V4-Pro': [0, 5.6]
+            'DeepSeek-V4.1-Flash': [40.8, 23.8],
+            'GPT-6.1-Sol': [38.8, 19.0],
+            'GLM-5.3': [32.7, 19.0],
+            'Gemini-4-Argon': [20.4, 41.7],
+            'GPT-6-Astra': [30.6, 19.0],
+            'Grok-4.7': [26.5, 23.8],
+            'Qwen3.8-Max': [18.4, 28.6],
+            'Claude-Fable-5.1': [16.7, 23.8],
+            'Kimi-K3.1-Pro': [18.4, 19.0],
+            'Kimi-K3': [4.1, 14.3],
+            'DeepSeek-V4-Pro': [4.2, 4.8]
         },
-        averageLevels: [15.8, 31.6],
-        modelHarness: ['Codex', 'Codex', 'Claude Code', 'Claude Code', 'Claude Code', 'Claude Code', 'Qwen Code', 'Grok Build', 'Claude Code', 'Claude Code'],
+        averageLevels: [22.9, 21.8],
+        modelHarness: ['Claude Code', 'Codex', 'Claude Code', 'Claude Code', 'Codex', 'Grok Build', 'Qwen Code', 'Claude Code', 'Claude Code', 'Claude Code', 'Claude Code'],
         modelDisplayNames: {
             Fable: 'Fable-5.1',
+            Flash: 'DeepSeek-V4.1-Flash',
             DeepSeek: 'DeepSeek-V4-Pro',
             GLM: 'GLM-5.3',
             Astra: 'GPT-6-Astra',
@@ -47,7 +49,7 @@
             'Kimi K3': 'Kimi-K3',
             'Kimi 3.1': 'Kimi-K3.1-Pro'
         },
-        leaderboardColors: ['#104680', '#317CB7', '#6DADD1', '#B6D7E8', '#E9F1F4', '#FBE3D5', '#F6B293', '#DC6D57', '#B72230', '#6D011F'],
+        leaderboardColors: ['#104680', '#2C6CA8', '#317CB7', '#6DADD1', '#8FC2DC', '#B6D7E8', '#E9F1F4', '#FBE3D5', '#F6B293', '#DC6D57', '#B72230'],
         // Figure 2 uses the same four-step blue-to-red palette as the
         // four-stage trajectory in Figure 8: two blue outcomes followed by
         // two red outcomes.

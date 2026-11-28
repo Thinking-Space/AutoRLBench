@@ -1172,6 +1172,18 @@
  * produced no-answer zeros (its first T1 attempt hit a 429 and was
  * rerun; the rerun is the published row). The published
  * issue-judgment total below moves 523 -> 545.
+ * The 2026-11-27 Gemini backfill batch: thirteen late-completed
+ * records (eight issue, five solution) published in one pass -- the
+ * channel was unstable through llm-center for a week (403/503 and
+ * a broken tools translation) and these completed through the
+ * yeysai.com backup gateway; mbpp/multi-engine are records of
+ * tasks since retired from the package, kept for history.
+ * The 2026-11-27 Gemini backfill batch: thirteen late-completed
+ * records (seven issue, six solution) published in one pass -- the
+ * channel was unstable through llm-center for a week (403/503 and
+ * a broken tools translation) and these completed through the
+ * yeysai.com backup gateway; mbpp/multi-engine are records of
+ * tasks since retired from the package, kept for history.
  * The 237 solution records are reconciled against AutoRLBench validation-first
  * results in solution-results.json.
  * On 19 Nov 2026, 21 Issue diagnoses for verl_taco_wrong_expected_output
@@ -13257,6 +13269,300 @@ window.AUTORLBENCH_RUNS = [
     "durationMs": 24000,
     "steps": 2,
     "costUsd": 0.0165
+  },
+  {
+    "task": "infrastructure/cc_native_websearch_self_hosted",
+    "slug": "gemini4-cc-websearch",
+    "file": "agent-trace/gemini4-cc-websearch.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 973000,
+    "steps": 23,
+    "costUsd": 6.9389
+  },
+  {
+    "task": "algorithm/justrl2_collective_plan_cache_identity",
+    "slug": "gemini4-justrl2-collective",
+    "file": "agent-trace/gemini4-justrl2-collective.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.9,
+    "durationMs": 350000,
+    "steps": 22,
+    "costUsd": 7.9247
+  },
+  {
+    "task": "algorithm/justrl2_collective_plan_cache_identity",
+    "slug": "gemini4-justrl2-collective-sol",
+    "file": "agent-trace/gemini4-justrl2-collective-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1913000,
+    "steps": 37,
+    "costUsd": 6.4099
+  },
+  {
+    "task": "algorithm/justrl2_ppo_stale_whitening_moment_cache",
+    "slug": "gemini4-stale-whitening-sol",
+    "file": "agent-trace/gemini4-stale-whitening-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 5090000,
+    "steps": 117,
+    "costUsd": 20.1766
+  },
+  {
+    "task": "infrastructure/miles_miniswe_harbor_tool_parser_mismatch",
+    "slug": "gemini4-miniswe-parser",
+    "file": "agent-trace/gemini4-miniswe-parser.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 233000,
+    "steps": 4,
+    "costUsd": 0.1133
+  },
+  {
+    "task": "infrastructure/miles_whitebox_gateway_routing_key_4xx_retry",
+    "slug": "gemini4-whitebox-gateway",
+    "file": "agent-trace/gemini4-whitebox-gateway.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 1376000,
+    "steps": 30,
+    "costUsd": 4.4983
+  },
+  {
+    "task": "infrastructure/miles_whitebox_gateway_routing_key_4xx_retry",
+    "slug": "gemini4-whitebox-gateway-sol",
+    "file": "agent-trace/gemini4-whitebox-gateway-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 189000,
+    "steps": 4,
+    "costUsd": 0.1648
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "gemini4-multi-engine",
+    "file": "agent-trace/gemini4-multi-engine.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.2,
+    "durationMs": 777000,
+    "steps": 15,
+    "costUsd": 0.6044
+  },
+  {
+    "task": "infrastructure/multi_engine_prefix_affinity_collapse",
+    "slug": "gemini4-multi-engine-sol",
+    "file": "agent-trace/gemini4-multi-engine-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 571000,
+    "steps": 56,
+    "costUsd": 5.4495
+  },
+  {
+    "task": "configuration/verl_grpo_group_std_kl_in_reward",
+    "slug": "gemini4-group-std-kl",
+    "file": "agent-trace/gemini4-group-std-kl.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 1252000,
+    "steps": 51,
+    "costUsd": 19.6662
+  },
+  {
+    "task": "algorithm/verl_gsm8k_label_shift_after_filter",
+    "slug": "gemini4-label-shift",
+    "file": "agent-trace/gemini4-label-shift.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 56000,
+    "steps": 15,
+    "costUsd": 1.2837
+  },
+  {
+    "task": "algorithm/verl_mbpp_sandbox_errors_pass",
+    "slug": "gemini4-mbpp-sandbox",
+    "file": "agent-trace/gemini4-mbpp-sandbox.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 138000,
+    "steps": 13,
+    "costUsd": 0.7307
+  },
+  {
+    "task": "algorithm/verl_mbpp_sandbox_errors_pass",
+    "slug": "gemini4-mbpp-sandbox-sol",
+    "file": "agent-trace/gemini4-mbpp-sandbox-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 222000,
+    "steps": 13,
+    "costUsd": 0.7146
+  },
+  {
+    "task": "algorithm/grpo_response_boundary",
+    "slug": "gemini4-response-boundary",
+    "file": "agent-trace/gemini4-response-boundary.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.914286,
+    "durationMs": 1283000,
+    "steps": 74,
+    "costUsd": 24.2064
+  },
+  {
+    "task": "reward/slime_swe_sandbox_ttl_false_zero",
+    "slug": "gemini4-ttl-false-zero",
+    "file": "agent-trace/gemini4-ttl-false-zero.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.914286,
+    "durationMs": 510000,
+    "steps": 24,
+    "costUsd": 9.8323
+  },
+  {
+    "task": "environment/swe_grader_silent_mislabel",
+    "slug": "gemini4-swe-grader-sol",
+    "file": "agent-trace/gemini4-swe-grader-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": true,
+    "score": 1.0,
+    "durationMs": 2242000,
+    "steps": 114,
+    "costUsd": 35.7183
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "gemini4-bucketed-sync",
+    "file": "agent-trace/gemini4-bucketed-sync.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.114286,
+    "durationMs": 1107000,
+    "steps": 73,
+    "costUsd": 24.11
+  },
+  {
+    "task": "infrastructure/verl_fsdp_bucketed_weight_sync",
+    "slug": "gemini4-bucketed-sync-sol",
+    "file": "agent-trace/gemini4-bucketed-sync-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 810000,
+    "steps": 56,
+    "costUsd": 16.4683
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "gemini4-grouped-whiten",
+    "file": "agent-trace/gemini4-grouped-whiten.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.642857,
+    "durationMs": 934000,
+    "steps": 57,
+    "costUsd": 17.0807
+  },
+  {
+    "task": "algorithm/verl_grpo_grouped_whiten_order",
+    "slug": "gemini4-grouped-whiten-sol",
+    "file": "agent-trace/gemini4-grouped-whiten-sol.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "solution",
+    "passed": false,
+    "score": 0.0,
+    "durationMs": 901000,
+    "steps": 57,
+    "costUsd": 18.7536
+  },
+  {
+    "task": "reward/verl_inventory_agent_compound",
+    "slug": "gemini4-inventory",
+    "file": "agent-trace/gemini4-inventory.json",
+    "model": "Gemini-4-Argon",
+    "agent": "claude-code",
+    "effort": "max",
+    "level": "issue",
+    "passed": false,
+    "score": 0.746667,
+    "durationMs": 1003000,
+    "steps": 65,
+    "costUsd": 20.7651
   }
 ];
 window.AUTORLBENCH_TRACE_TASKS = [];
