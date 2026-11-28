@@ -1,0 +1,39 @@
+{
+ "source": "ClawGym-Bench defective arm re-run with AGS sandboxes on wuxi speech-wx (see README); frozen evidence sanitized from the recorded run defective_ttl120",
+ "downloaded_at_prepare": [
+  {
+   "path": "workspace/assets/claude-code-linux-x64-2.1.295.tgz",
+   "source": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.295.tgz",
+   "sha256": "d45a2fa14a7ea0b8ab4f56e502de5893c2b816078c71c4d8ab2e4142148f3d95",
+   "bytes": 114433914,
+   "note": "self-contained ELF platform package; downloaded in prepare.sh from npm with in-flight sha256 verification (the sandbox network is isolated, so the CLI must be on the trainer host for per-episode chunked upload)"
+  }
+ ],
+ "rewritten": [
+  {
+   "from": "observed_run/run.log (recorded run defective_ttl120)",
+   "to": "observed_run/run.log",
+   "changes": "ANSI stripped; absolute host paths rewritten to /workspace/...; arm tag rewritten to observed_run; AGS gateway and registry hostnames replaced; pod IPs, devspace hostnames, ray job ids and the username replaced. No metric value touched.",
+   "transform": "environment/sanitize_clawgym_run.py (shipped)"
+  },
+  {
+   "from": "observed_run/episodes/** (recorded run defective_ttl120)",
+   "to": "observed_run/episodes/**",
+   "changes": "same label/path sanitization applied to episode.json, sandbox.log, patch.diff, verify/*, .harness/trajectory.jsonl; per-episode workdirs kept intact minus __pycache__/.pytest_cache",
+   "transform": "environment/sanitize_clawgym_run.py (shipped)"
+  },
+  {
+   "from": "rollout_dumps/rollout_{1..9}.pt (recorded run defective_ttl120)",
+   "to": "observed_run/rollout_dumps/rollout_{1,5,9}.pt",
+   "changes": "first/middle/last dumps kept (9 recorded); string fields sanitized through the same rules via torch load/save; tensor payloads untouched",
+   "transform": "environment/sanitize_clawgym_run.py (shipped)"
+  }
+ ],
+ "remaining_scan_hits": [
+  {
+   "pattern": "control_plane",
+   "where": "observed_run/run.log",
+   "reason": "sglang ServerArgs fields (control_plane_api_keys, router_control_plane_audit_enabled) - upstream config names, benign"
+  }
+ ]
+}

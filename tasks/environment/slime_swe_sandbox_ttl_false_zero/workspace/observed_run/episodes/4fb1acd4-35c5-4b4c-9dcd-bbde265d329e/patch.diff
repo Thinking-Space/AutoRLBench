@@ -1,0 +1,215 @@
+diff --git a/.clawhub/lock.json b/.clawhub/lock.json
+new file mode 100644
+index 0000000..3333c36
+--- /dev/null
++++ b/.clawhub/lock.json
+@@ -0,0 +1,33 @@
++{
++  "version": 1,
++  "skills": {
++    "google-search": {
++      "version": "1.0.0",
++      "installedAt": 1773649622216
++    },
++    "aisa-twitter-api": {
++      "version": "1.0.0",
++      "installedAt": 1773650161263
++    },
++    "inkedin-automation-that-really-works": {
++      "version": "1.0.1",
++      "installedAt": 1773650286080
++    },
++    "arxiv-watcher": {
++      "version": "1.0.0",
++      "installedAt": 1773650581966
++    },
++    "zhihu": {
++      "version": "1.0.1",
++      "installedAt": 1773650642143
++    },
++    "video-frames": {
++      "version": "1.0.0",
++      "installedAt": 1773727622086
++    },
++    "ffmpeg-video-editor": {
++      "version": "1.0.0",
++      "installedAt": 1773727801919
++    }
++  }
++}
+diff --git a/.openclaw/workspace-state.json b/.openclaw/workspace-state.json
+new file mode 100644
+index 0000000..6171f8c
+--- /dev/null
++++ b/.openclaw/workspace-state.json
+@@ -0,0 +1,4 @@
++{
++  "version": 1,
++  "bootstrapSeededAt": "2026-03-12T19:22:15.603Z"
++}
+diff --git a/data/metrics.csv b/data/metrics.csv
+new file mode 100644
+index 0000000..600eb8b
+--- /dev/null
++++ b/data/metrics.csv
+@@ -0,0 +1,11 @@
++post_id,title,recipe_type,platform,date,views,likes,comments
++P001,"Crispy Smashed Potato Nachos",smashed,Instagram,2026-04-10,"12,345","1,230","98"
++P002,"Sweet Potato Donut Glaze Test",donut,TikTok,2026-04-11,"45,678","3,120","210"
++P003,"Cheesy Potato Waffles",waffle,YouTube,2026-04-12,"8,902","640","56"
++P004,"Air-Fryer Latkes",latke,Instagram,2026-04-12,"23,450","2,015","180"
++P005,"Gnocchi Carbonara",gnocchi,TikTok,2026-04-13,"31,000","2,740","199"
++P006,"Purple Potato Chips",chips,Instagram,2026-04-13,"15,100","","75"
++P007,"Loaded Baked Potato Boats",baked,YouTube,2026-04-14,"19,450","1,540",""
++P008,"Spicy Patatas Bravas",bravas,TikTok,2026-04-14,"27,300","2,110","165"
++P009,"Vegan Potato Salad",salad,Instagram,2026-04-15,"16,780","1,230","120"
++P010,"Potato Donut Filling Shoot",donut,Instagram,2026-04-15,"21,600","1,980","150"
+\ No newline at end of file
+diff --git a/scripts/generate_report.py b/scripts/generate_report.py
+new file mode 100644
+index 0000000..f30185e
+--- /dev/null
++++ b/scripts/generate_report.py
+@@ -0,0 +1,141 @@
++import csv
++import os
++import math
++
++
++def parse_numeric_value(value):
++    """
++    Parse a numeric value from string, handling commas as thousands separators and blanks as 0.
++    """
++    if value == '' or value is None:
++        return 0
++    # Remove commas and convert to int
++    value = value.replace(',', '').strip()
++    return int(value)
++
++def main(input_file, output_dir):
++    """
++    Main function to generate the weekly report.
++    """
++    # Create output directory if it doesn't exist
++    os.makedirs(output_dir, exist_ok=True)
++
++    # Store the data for processing
++    posts = []
++
++    # Read input CSV file
++    with open(input_file, 'r', newline='', encoding='utf-8') as csvfile:
++        reader = csv.DictReader(csvfile)
++        for row in reader:
++            # Parse numeric values
++            views = parse_numeric_value(row['views'])
++            likes = parse_numeric_value(row['likes'])
++            comments = parse_numeric_value(row['comments'])
++
++            # Skip rows with zero views (no engagement)
++            if views == 0:
++                continue
++
++            # Calculate engagement rate for this post
++            engagement_rate = (likes + comments) / views
++
++            # Store post data
++            posts.append({
++                'post_id': row['post_id'],
++                'title': row['title'],
++                'recipe_type': row['recipe_type'],
++                'views': views,
++                'likes': likes,
++                'comments': comments,
++                'engagement_rate': engagement_rate
++            })
++
++    # Generate weekly summary
++    recipe_summary = {}
++    for post in posts:
++        recipe_type = post['recipe_type']
++
++        if recipe_type not in recipe_summary:
++            recipe_summary[recipe_type] = {
++                'total_views': 0,
++                'total_likes': 0,
++                'total_comments': 0,
++                'post_count': 0,
++                'engagement_rates': []
++            }
++
++        recipe_summary[recipe_type]['total_views'] += post['views']
++        recipe_summary[recipe_type]['total_likes'] += post['likes']
++        recipe_summary[recipe_type]['total_comments'] += post['comments']
++        recipe_summary[recipe_type]['post_count'] += 1
++        recipe_summary[recipe_type]['engagement_rates'].append(post['engagement_rate'])
++
++    # Calculate average engagement rate for each recipe type
++    for recipe_type in recipe_summary:
++        engagement_rates = recipe_summary[recipe_type]['engagement_rates']
++        avg_engagement_rate = sum(engagement_rates) / len(engagement_rates)
++        recipe_summary[recipe_type]['avg_engagement_rate'] = round(avg_engagement_rate, 4)
++
++    # Write weekly summary to CSV
++    weekly_summary_file = os.path.join(output_dir, 'weekly_summary.csv')
++    with open(weekly_summary_file, 'w', newline='', encoding='utf-8') as csvfile:
++        writer = csv.DictWriter(csvfile, fieldnames=['recipe_type', 'total_views', 'total_likes', 'total_comments', 'avg_engagement_rate'])
++        writer.writeheader()
++        for recipe_type in recipe_summary:
++            summary_data = recipe_summary[recipe_type]
++            writer.writerow({
++                'recipe_type': recipe_type,
++                'total_views': summary_data['total_views'],
++                'total_likes': summary_data['total_likes'],
++                'total_comments': summary_data['total_comments'],
++                'avg_engagement_rate': summary_data['avg_engagement_rate']
++            })
++
++    # Sort posts by engagement rate (descending) and get top 3
++    sorted_posts = sorted(posts, key=lambda x: x['engagement_rate'], reverse=True)
++    top_posts = sorted_posts[:3]
++
++    # Write top posts to CSV
++    top_posts_file = os.path.join(output_dir, 'top_posts.csv')
++    with open(top_posts_file, 'w', newline='', encoding='utf-8') as csvfile:
++        writer = csv.DictWriter(csvfile, fieldnames=['post_id', 'title', 'recipe_type', 'engagement_rate', 'views', 'likes', 'comments'])
++        writer.writeheader()
++        for post in top_posts:
++            writer.writerow({
++                'post_id': post['post_id'],
++                'title': post['title'],
++                'recipe_type': post['recipe_type'],
++                'engagement_rate': round(post['engagement_rate'], 4),
++                'views': post['views'],
++                'likes': post['likes'],
++                'comments': post['comments']
++            })
++
++    # Generate brand update email
++    total_views = sum(post['views'] for post in posts)
++    best_recipe_type = max(recipe_summary.keys(), key=lambda x: recipe_summary[x]['avg_engagement_rate'])
++    best_engagement_rate = recipe_summary[best_recipe_type]['avg_engagement_rate']
++
++    brand_update = f"Hi team at SpudCo,
++\nWe had a great week of potato content! The total views across all posts were {total_views}.
++\nOur best-performing recipe type was {best_recipe_type} with an average engagement rate of {best_engagement_rate}.
++\nHere are the top 3 posts by engagement rate:
++\n- {top_posts[0]['title']} with an engagement rate of {round(top_posts[0]['engagement_rate'], 4)}
++- {top_posts[1]['title']} with an engagement rate of {round(top_posts[1]['engagement_rate'], 4)}
++- {top_posts[2]['title']} with an engagement rate of {round(top_posts[2]['engagement_rate'], 4)}\n\nThe weekly summary is available at output/weekly_summary.csv and the top posts are available at output/top_posts.csv.\n\nBest regards,\nYour Potato Team"
++
++    # Save brand update to file
++    brand_update_file = os.path.join('drafts', 'brand_update_email.txt')
++    os.makedirs(os.path.dirname(brand_update_file), exist_ok=True)
++    with open(brand_update_file, 'w', encoding='utf-8') as f:
++        f.write(brand_update)
++
++if __name__ == '__main__':
++    import sys
++    if len(sys.argv) != 3:
++        print("Usage: python generate_report.py <input_file> <output_dir>")
++        sys.exit(1)
++
++    input_file = sys.argv[1]
++    output_dir = sys.argv[2]
++    main(input_file, output_dir)
+\ No newline at end of file

@@ -1,0 +1,119 @@
+diff --git a/.clawhub/lock.json b/.clawhub/lock.json
+new file mode 100644
+index 0000000..3333c36
+--- /dev/null
++++ b/.clawhub/lock.json
+@@ -0,0 +1,33 @@
++{
++  "version": 1,
++  "skills": {
++    "google-search": {
++      "version": "1.0.0",
++      "installedAt": 1773649622216
++    },
++    "aisa-twitter-api": {
++      "version": "1.0.0",
++      "installedAt": 1773650161263
++    },
++    "inkedin-automation-that-really-works": {
++      "version": "1.0.1",
++      "installedAt": 1773650286080
++    },
++    "arxiv-watcher": {
++      "version": "1.0.0",
++      "installedAt": 1773650581966
++    },
++    "zhihu": {
++      "version": "1.0.1",
++      "installedAt": 1773650642143
++    },
++    "video-frames": {
++      "version": "1.0.0",
++      "installedAt": 1773727622086
++    },
++    "ffmpeg-video-editor": {
++      "version": "1.0.0",
++      "installedAt": 1773727801919
++    }
++  }
++}
+diff --git a/.openclaw/workspace-state.json b/.openclaw/workspace-state.json
+new file mode 100644
+index 0000000..6171f8c
+--- /dev/null
++++ b/.openclaw/workspace-state.json
+@@ -0,0 +1,4 @@
++{
++  "version": 1,
++  "bootstrapSeededAt": "2026-03-12T19:22:15.603Z"
++}
+diff --git a/data/metrics.csv b/data/metrics.csv
+new file mode 100644
+index 0000000..600eb8b
+--- /dev/null
++++ b/data/metrics.csv
+@@ -0,0 +1,11 @@
++post_id,title,recipe_type,platform,date,views,likes,comments
++P001,"Crispy Smashed Potato Nachos",smashed,Instagram,2026-04-10,"12,345","1,230","98"
++P002,"Sweet Potato Donut Glaze Test",donut,TikTok,2026-04-11,"45,678","3,120","210"
++P003,"Cheesy Potato Waffles",waffle,YouTube,2026-04-12,"8,902","640","56"
++P004,"Air-Fryer Latkes",latke,Instagram,2026-04-12,"23,450","2,015","180"
++P005,"Gnocchi Carbonara",gnocchi,TikTok,2026-04-13,"31,000","2,740","199"
++P006,"Purple Potato Chips",chips,Instagram,2026-04-13,"15,100","","75"
++P007,"Loaded Baked Potato Boats",baked,YouTube,2026-04-14,"19,450","1,540",""
++P008,"Spicy Patatas Bravas",bravas,TikTok,2026-04-14,"27,300","2,110","165"
++P009,"Vegan Potato Salad",salad,Instagram,2026-04-15,"16,780","1,230","120"
++P010,"Potato Donut Filling Shoot",donut,Instagram,2026-04-15,"21,600","1,980","150"
+\ No newline at end of file
+diff --git a/scripts/generate_report.py b/scripts/generate_report.py
+new file mode 100644
+index 0000000..ee68bc4
+--- /dev/null
++++ b/scripts/generate_report.py
+@@ -0,0 +1,46 @@
++#!/usr/bin/env python3
++import argparse
++import pandas as pd
++# BUG: missing import os
++
++
++def main():
++    parser = argparse.ArgumentParser(description="Generate weekly summary and top posts for potato content.")
++    parser.add_argument("input_csv")
++    parser.add_argument("output_dir")
++    args = parser.parse_args()
++
++    df = pd.read_csv(args.input_csv)
++
++    # BUG: fails on commas and blanks
++    df["views"] = df["views"].astype(int)
++    df["likes"] = df["likes"].fillna(0).astype(int)
++    df["comments"] = df["comments"].fillna(0).astype(int)
++
++    # BUG: missing parentheses changes operator precedence
++    df["engagement_rate"] = df["likes"] + df["comments"] / df["views"]
++
++    summary = (
++        df.groupby("recipe_type")
++          .agg({"views": "sum", "likes": "sum", "comments": "sum", "engagement_rate": "mean"})
++          .reset_index()
++          .rename(columns={
++              "views": "total_views",
++              "likes": "total_likes",
++              "comments": "total_comments",
++              "engagement_rate": "avg_engagement_rate"
++          })
++    )
++
++    # BUG: os not imported; wrong column referenced below
++    summary.to_csv(os.path.join(args.output_dir, "weekly_summary.csv"), index=False)
++
++    top_posts = (
++        df.sort_values("engagement", ascending=False)
++          .head(3)[["post_id","title","recipe_type","engagement_rate","views","likes","comments"]]
++    )
++    top_posts.to_csv(os.path.join(args.output_dir, "top_posts.csv"), index=False)
++
++
++if __name__ == "__main__":
++    main()
