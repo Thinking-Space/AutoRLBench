@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Prepare stage, shared byte-identical by the PiSSA GRPO task pair
-# (verl_pissa_residual_base_reference, verl_pissa_vllm_adapter_request).
+# Prepare stage for the PiSSA GRPO task verl_pissa_vllm_adapter_request.
 #
 # Runs in the prepare-stage container: root, the vllm0.11-torch2.8-cu128
 # image, the only networked stage, and $AUTORLBENCH_WORKSPACE writable. It
 # fetches the Qwen2.5-0.5B-Instruct weights and the GSM8K parquet, derives
 # the PiSSA rank-8 bundle and the deterministic tiny-GSM8K subsets, then
-# pins the derived artifacts by sha256.
+# verifies them: byte pins for the tiny parquets, numeric verification for
+# the SVD-derived weights (see verify_bundle.py).
 set -euo pipefail
 
 W=${AUTORLBENCH_WORKSPACE:-/workspace}
@@ -99,23 +99,28 @@ python3 "$AUTORLBENCH_ENVIRONMENT/fetch_hf.py" \
 python "$AUTORLBENCH_ENVIRONMENT/prepare_bundle.py" --model "$SOURCE" --output "$BUNDLE" --rank 8
 python "$AUTORLBENCH_ENVIRONMENT/prepare_tiny_gsm8k.py" --source "$RAW" --output "$TINY" --train-size 16 --val-size 8
 
-# Derived-artifact pins. bf16 SVD (peft pissa_niter_2) and the parquet
-# writer footer are build-stable, not cross-env stable, so the pins follow
-# the environment that regenerates them byte-exactly. Verified 2026-11-10 on
-# the vllm0.11-torch2.8-cu128 image with the pure-Python shadow above, on
-# AVX-512 x86 (Xeon Platinum 8468; the derivation is CPU-only):
-#   * the two safetensors hashes are the 2026-11-04 re-pins — the author's
-#     originals (ee02fd44…, a78b3d4d…) came from a torch-wheel/CPU build
-#     that no longer exists, and the re-pins rebuild byte-identically here
-#     (the bundle also verifies numerically: W_residual + B@A reconstructs
-#     W_pretrained to 2.1e-3 relative, bf16 rounding, across all 48 target
-#     modules);
-#   * the two parquet hashes are the PR author's originals — the recorded
-#     pyarrow 19.0.1 + datasets 4.0.0 combination reproduces them, where
-#     the 2026-11-04 rebuild (67a66b20…, d533efb9…) came from an
-#     approximate environment.
+# Derived-artifact verification.
+#
+# The two tiny-gsm8k parquets are byte-pinned: the pure-Python shadow above
+# pins pyarrow 19.0.1 + datasets 4.0.0, parquet bytes carry no host-CPU
+# dependence, and these pins have reproduced on every prepare environment
+# tried so far -- including a third-party platform on 2026-11-28 whose
+# safetensors pins failed while these passed.
 printf '%s  %s\n' \
-  547d56774376499b4e4ee7514c1152894122cab6c277fcdea82a53176ad437f0 "$BUNDLE/residual_base/model.safetensors" \
-  2b9b3b62e9619360a84cf18ca4fd45dbbd38b734874a9044d260035f9712a635 "$BUNDLE/pissa_adapter/adapter_model.safetensors" \
   5404367e3311ec89dad8720ab683228999b656b7c611fed8d64963d7bc0c755b "$TINY/train.parquet" \
   01fca7c632b579db57432b02aa732e769a2a33cb3feb2f470c4b37c32500a995 "$TINY/validation.parquet" | sha256sum -c -
+
+# The two PiSSA safetensors are no longer byte-pinned. They are derived by a
+# CPU bf16 SVD (peft pissa_niter_2) whose rounding depends on the torch build
+# and the host CPU's LAPACK/MKL dispatch: the 2026-11-04 re-pins reproduce
+# only on the recorded build (the vllm0.11-torch2.8 image on a Xeon Platinum
+# 8468) and failed on a third-party platform's prepare stage on 2026-11-28
+# while its parquet pins passed. The recorded hashes stay in
+# environment/source_manifest.json as reference values; prepare instead
+# proves the bundle mathematically: verify_bundle.py byte-pins the source
+# model against source_manifest.json, requires every untouched parameter to
+# be bitwise identical, and requires all 48 target modules to satisfy
+# W_residual + B@A == W_pretrained within bf16 rounding tolerance (recorded
+# max relative error 2.1e-3, threshold 5e-3) and rejects degenerate no-op
+# bundles.
+python3 "$AUTORLBENCH_ENVIRONMENT/verify_bundle.py" --source "$SOURCE" --bundle "$BUNDLE"

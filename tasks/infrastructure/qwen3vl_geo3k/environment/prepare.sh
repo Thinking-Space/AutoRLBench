@@ -6,10 +6,17 @@
 # read-only at /autorlbench/environment. $AUTORLBENCH_WORKSPACE,
 # $AUTORLBENCH_MODELS and $AUTORLBENCH_DATASETS are all writable.
 #
-# Assets are immutable: the model and raw dataset repos are fetched whole
-# (no revision pin in the task-local fetch tool, cache-first), then the
-# prepared training Parquet and frozen parity inputs are reconstructed on
-# CPU and verified byte-for-byte against environment/asset_pins.json.
+# Assets: the model and raw dataset repos are fetched whole (no revision pin
+# in the task-local fetch tool, cache-first), and the fetched model files and
+# raw dataset shards are verified byte-for-byte against
+# environment/asset_pins.json -- environment-independent, since they are
+# downloaded, not derived. The training Parquet and the frozen parity inputs
+# are REBUILT on CPU and verified semantically against those pinned raw
+# inputs: their bytes embed the building environment's (datasets, pyarrow,
+# Pillow+zlib) decode/re-encode of every image, so byte pins on them break on
+# any other stack (a 2026-11-28 cross-platform prepare failed exactly there:
+# same inputs, +200,770 bytes on test.parquet). asset_pins.json keeps the
+# recorded build bytes as derived_reference for provenance, not as a gate.
 # Later stages read everything from inside the workspace, never host caches.
 set -euo pipefail
 ENV_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -205,6 +212,75 @@ def create_cases(dataset, output):
     write_json(output / "cases.json", {"dataset_revision": DATA_REV, "split": "test", "cases": cases})
 
 
+def verify_derived(raw_data, output, parity_dir):
+    """Check the derived parquets and parity images against the pinned raw inputs.
+
+    Byte-level pins do not apply to these files: the rebuild decodes and
+    re-encodes every image through the building environment's Pillow/zlib and
+    writes the parquets with its pyarrow, so their bytes are a fingerprint of
+    (datasets, pyarrow, Pillow) that only the recorded build reproduces. What
+    must hold on every environment is the CONTENT: same rows in the same
+    order, prompts rebuilt from the same instruction, and pixel-identical
+    images.
+    """
+    import ast
+    import io
+
+    import numpy as np
+    import pyarrow.parquet as pq
+    from PIL import Image
+
+    # The instruction text must stay verbatim in the upstream script; re-derive
+    # it from that source instead of duplicating the literal here. walk(), not
+    # body: the upstream script defines it nested under __main__.
+    instruction = None
+    for node in ast.walk(ast.parse(GEO3K_PREPROCESS)):
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", None) == "instruction_following":
+            instruction = ast.literal_eval(node.value)
+    if not isinstance(instruction, str):
+        raise RuntimeError("could not locate instruction_following in the upstream script")
+
+    def rows(path):
+        return pq.read_table(path).to_pydict()
+
+    def pixels(png_bytes):
+        return np.asarray(Image.open(io.BytesIO(png_bytes)).convert("RGB"))
+
+    for split in ("train", "test"):
+        raw = rows(raw_data / "data" / f"{split}-00000-of-00001.parquet")
+        der = rows(output / f"{split}.parquet")
+        if len(der["data_source"]) != len(raw["problem"]):
+            raise RuntimeError(f"{split}.parquet row count differs from the raw shard")
+        for i, (problem, answer) in enumerate(zip(raw["problem"], raw["answer"])):
+            expected_prompt = [{"role": "user", "content": problem + " " + instruction}]
+            if (der["data_source"][i] != "hiyouga/geometry3k" or der["prompt"][i] != expected_prompt
+                    or der["ability"][i] != "math"
+                    or der["reward_model"][i] != {"style": "rule", "ground_truth": answer}
+                    or der["extra_info"][i] != {"split": split, "index": i, "answer": answer, "question": problem}):
+                raise RuntimeError(f"{split}.parquet row {i} differs from the upstream recipe")
+            if len(der["images"][i]) != len(raw["images"][i]):
+                raise RuntimeError(f"{split}.parquet row {i} image count differs from the raw shard")
+            for src_img, new_img in zip(raw["images"][i], der["images"][i]):
+                if src_img["bytes"] is None or new_img["bytes"] is None:
+                    raise RuntimeError(f"{split}.parquet row {i} image without inline bytes")
+                if src_img["bytes"] != new_img["bytes"] and not np.array_equal(
+                        pixels(src_img["bytes"]), pixels(new_img["bytes"])):
+                    raise RuntimeError(
+                        f"{split}.parquet row {i}: re-encoded image pixels differ from the raw input")
+
+    raw_test = rows(raw_data / "data/test-00000-of-00001.parquet")
+    for case in json.loads((parity_dir / "cases.json").read_text())["cases"]:
+        # text_control carries no images and no source_indices.
+        for index, name in zip(case.get("source_indices", []), case["images"]):
+            expected = Image.open(io.BytesIO(raw_test["images"][index][0]["bytes"])).convert("RGB").resize(
+                tuple(case["requested_size"]), Image.Resampling.BICUBIC)
+            actual = Image.open(parity_dir / name).convert("RGB")
+            if not np.array_equal(np.asarray(expected), np.asarray(actual)):
+                raise RuntimeError(
+                    f"parity image {name} is not the bicubic "
+                    f"{tuple(case['requested_size'])} resize of raw test[{index}]")
+
+
 def main():
     from datasets import load_dataset
     parser = argparse.ArgumentParser(__doc__)
@@ -219,11 +295,24 @@ def main():
     output = workspace / "data/geo3k"
     marker = workspace / "data/.complete"
     manifest_path = workspace / "data/asset_manifest.json"
+
+    # Fetched inputs are byte-pinned everywhere: they are downloaded, not
+    # derived, so their hashes hold on any prepare environment. A drifted
+    # upstream revision or a partial fetch fails here, loudly.
+    def check(group):
+        for name, pin in pins[group].items():
+            path = workspace / name
+            if not path.is_file() or path.stat().st_size != pin["bytes"] or sha256(path) != pin["sha256"]:
+                raise RuntimeError(f"Asset differs from its recorded immutable bytes: {name}")
+
+    check("immutable_files")
+
     if marker.is_file() and marker.read_text().strip() == expected_manifest and manifest_path.is_file():
         if sha256(manifest_path) == expected_manifest and all(
-                (workspace / name).is_file() and (workspace / name).stat().st_size == pin["bytes"]
-                and sha256(workspace / name) == pin["sha256"] for name, pin in pins["files"].items()):
-            print("Pinned assets already prepared and verified.")
+                (workspace / name).is_file() and (workspace / name).stat().st_size > 0
+                for name in pins["derived_reference"]):
+            check("generated_files")
+            print("Assets already prepared from verified immutable inputs.")
             return
     output.mkdir(parents=True, exist_ok=True)
     env = {**os.environ, "PYTHONPATH": str(workspace / "verl"), "HF_HUB_OFFLINE": "1", "HF_DATASETS_OFFLINE": "1"}
@@ -231,14 +320,15 @@ def main():
                     "--local_dataset_path", str(raw_data), "--local_save_dir", str(output)], check=True, env=env)
     test_data = load_dataset("parquet", data_files=str(raw_data / "data/test-00000-of-00001.parquet"), split="train")
     create_cases(test_data, workspace / "data/parity")
-    for name, pin in pins["files"].items():
-        path = workspace / name
-        if not path.is_file() or path.stat().st_size != pin["bytes"] or sha256(path) != pin["sha256"]:
-            raise RuntimeError(f"Prepared asset differs from its recorded immutable bytes: {name}")
+    # cases.json is generated (deterministically, from the byte-pinned raw
+    # inputs and case table) rather than fetched, so it is pinned after its
+    # generation, not before.
+    check("generated_files")
+    verify_derived(raw_data, output, workspace / "data/parity")
     # Use the verified pin document verbatim, including its deterministic ordering.
     manifest_path.write_bytes(pin_path.read_bytes())
     marker.write_text(expected_manifest + "\n")
-    print("Prepared and verified model, train/test data, and diagnostic inputs.")
+    print("Prepared and verified model, raw shards, derived train/test parquets, and diagnostic inputs.")
 
 
 if __name__ == "__main__":

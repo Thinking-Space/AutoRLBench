@@ -51,9 +51,26 @@ rm -rf "$AUTORLBENCH_WORKSPACE/.autorlbench-taco-archive"
 
 python3 "$AUTORLBENCH_ENVIRONMENT/fetch_hf.py" \
     --type dataset \
-    --repo LIF1014/autorlbench-data-task-train-too-hard-dataset \
+    --repo LIF1014/ptdbench-data-task-train-too-hard-dataset \
     --cache-as autorlbench/taco-asset \
     --dest "$AUTORLBENCH_WORKSPACE/.autorlbench-taco-archive"
+
+# The dataset repo lives under its original public name: the 2026-10-19
+# PTDBench -> AutoRLBench rename of references in this repository never
+# happened on the Hub (the autorlbench-* id 401s for everyone without a warm
+# cache), so fetch the id the pinned revision actually lives at. The repo id
+# still states this task's answer -- see the Known leak note in ../README.md.
+#
+# The archive's immutable bytes, per ../README.md (revision 22a1fee0…,
+# 167,612,568 bytes, SHA-256 eddeece8…). fetch_hf.py verifies nothing and
+# follows HEAD, so pin the archive here: a moved revision or a rewritten
+# archive fails loudly instead of silently changing the training data. This
+# restores the checksum guard the 2026-10-19 refactor dropped together with
+# the legacy ptdbench_fetch_hf's --revision/--expect flags.
+TACO_ARCHIVE="$AUTORLBENCH_WORKSPACE/.autorlbench-taco-archive/artifacts/workspace-assets.tar.gz"
+test "$(wc -c < "$TACO_ARCHIVE")" -eq 167612568
+printf '%s  %s\n' \
+  eddeece8c2828e21b581d5168dd4604470165cb061a53e68d50b26d49ce6d916 "$TACO_ARCHIVE" | sha256sum -c -
 
 echo "[prepare] unpacking taco_verl -> $AUTORLBENCH_WORKSPACE/taco_verl"
 tar -xzf "$AUTORLBENCH_WORKSPACE/.autorlbench-taco-archive/artifacts/workspace-assets.tar.gz" \

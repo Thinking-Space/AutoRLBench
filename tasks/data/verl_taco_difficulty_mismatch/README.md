@@ -104,7 +104,7 @@ error ≈ 0.019):
 These notes belong here rather than in `environment/prepare.sh`, which is
 mounted read-only into the agent stage.
 
-**Assets.** Dataset: `LIF1014/autorlbench-data-task-train-too-hard-dataset` @
+**Assets.** Dataset: `LIF1014/ptdbench-data-task-train-too-hard-dataset` @
 `22a1fee0ea2527f514c4115f6c792216a99d7e6f` (Apache-2.0), archive
 `artifacts/workspace-assets.tar.gz` of 167,612,568 bytes, SHA-256
 `eddeece8c2828e21b581d5168dd4604470165cb061a53e68d50b26d49ce6d916`. Model:
