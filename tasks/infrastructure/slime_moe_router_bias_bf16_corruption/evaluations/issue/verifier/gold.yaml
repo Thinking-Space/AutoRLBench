@@ -1,0 +1,11 @@
+category: implementation
+framework: PyTorch controlled reproduction of Slime loader
+task: slime_moe_router_bias_bf16_corruption
+verdict: unhealthy
+root_cause:
+  - checkpoint.py copies FP32 source correction bias into a BF16 router destination before restoring the destination buffer to FP32
+evidence_metrics:
+  - final correct-action probability is 0.02040 versus 0.95893; the defective router has one BF16 value, a source hash mismatch, and selects expert 0
+fix:
+  must:
+    - run the _maintain_float32_expert_bias pre-load traversal before copying source bias

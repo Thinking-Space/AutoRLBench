@@ -1,0 +1,24 @@
+task_id: slime_moe_router_bias_bf16_corruption
+category: checkpoint loading
+framework: PyTorch controlled reproduction of Slime loader
+launch_script: train.py
+model: Tiny 8-expert MoE policy
+dataset: Deterministic two-action reproduction
+algo: grouped policy gradient
+expected_verdict: unhealthy
+evidence_kind: historical_run
+evidence_slurm_job_id: "23051184"
+evidence_image: slimerl/slime:v0.3.2-cu129@sha256:39be6cbb00f9b6770e664ace0c7b9f5ecff2977a1a205e7926a720f906fbc62c
+evidence_imported_sqsh_sha256: 9a3c9ab63f30a5b524744dc56173fe3e37d99e9a1c2dbafde307733e3ef67819
+buggy_commit: raw-workspace
+baseline_commit: raw-workspace-control
+eval_metric_key: eval/correct_action_probability
+last_eval_step: 12
+causes:
+  - path: checkpoint.py
+    kind: symbol
+    observed: FP32 source copied into BF16 expert_bias destination
+    expected: _maintain_float32_expert_bias called before copy
+key_files:
+  - checkpoint.py
+external_assets_not_in_git: []
